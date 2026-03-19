@@ -1,8 +1,19 @@
 <template>
-  <div class="fixed inset-x-4 bottom-4 z-40">
+  <div class="fixed inset-x-4 bottom-4 z-[70]">
     <div
       class="overflow-hidden rounded-3xl border border-default/80 bg-default/95 shadow-2xl backdrop-blur"
     >
+      <div
+        v-if="open"
+        class="flex items-center justify-center px-4 pt-2 pb-1 cursor-ns-resize touch-none"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize workout drawer"
+        @pointerdown.stop.prevent="startResize"
+      >
+        <div class="h-1.5 w-16 rounded-full bg-default/80" />
+      </div>
+
       <button
         class="flex w-full items-center justify-between gap-3 border-b border-default/70 px-4 py-3 text-left"
         @click="$emit('toggle')"
@@ -32,7 +43,11 @@
         </div>
       </button>
 
-      <div v-if="open" class="max-h-[420px] overflow-hidden flex flex-col">
+      <div
+        v-if="open"
+        class="overflow-hidden flex flex-col"
+        :style="{ height: `${drawerHeight}px` }"
+      >
         <div
           class="border-b border-default/70 px-4 py-3 flex flex-wrap items-center gap-3 bg-default/50 sticky top-0 z-10 backdrop-blur-sm"
         >
@@ -82,7 +97,7 @@
           </div>
         </div>
 
-        <div class="flex-1 max-h-[340px] overflow-y-auto px-4 py-4">
+        <div class="flex-1 overflow-y-auto px-4 py-4">
           <div v-if="loading" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <USkeleton v-for="i in 6" :key="i" class="h-24 w-full rounded-2xl" />
           </div>
@@ -207,10 +222,28 @@
   const selectedType = ref('all')
   const selectedDuration = ref('all')
   const previewTemplateId = ref<string | null>(null)
+  const drawerHeight = ref(420)
+  const resizing = ref(false)
+  const resizeStartY = ref(0)
+  const resizeStartHeight = ref(420)
 
   // Technical Modal state
   const showTechnicalModal = ref(false)
   const technicalWorkout = ref<any>(null)
+
+  const minDrawerHeight = 240
+
+  function getMaxDrawerHeight() {
+    if (typeof window === 'undefined') {
+      return 640
+    }
+
+    return Math.max(minDrawerHeight, window.innerHeight - 140)
+  }
+
+  function clampDrawerHeight(value: number) {
+    return Math.min(getMaxDrawerHeight(), Math.max(minDrawerHeight, value))
+  }
 
   function onPreviewViewDetails() {
     const template = props.templates.find((t) => t.id === previewTemplateId.value)
@@ -297,6 +330,33 @@
       })
     )
   }
+
+  function startResize(event: PointerEvent) {
+    resizing.value = true
+    resizeStartY.value = event.clientY
+    resizeStartHeight.value = drawerHeight.value
+    window.addEventListener('pointermove', onResizeMove)
+    window.addEventListener('pointerup', stopResize)
+  }
+
+  function onResizeMove(event: PointerEvent) {
+    if (!resizing.value) {
+      return
+    }
+
+    const delta = resizeStartY.value - event.clientY
+    drawerHeight.value = clampDrawerHeight(resizeStartHeight.value + delta)
+  }
+
+  function stopResize() {
+    resizing.value = false
+    window.removeEventListener('pointermove', onResizeMove)
+    window.removeEventListener('pointerup', stopResize)
+  }
+
+  onBeforeUnmount(() => {
+    stopResize()
+  })
 
   async function generateTemplateStructure(id: string) {
     generatingId.value = id

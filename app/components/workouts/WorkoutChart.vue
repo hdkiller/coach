@@ -46,47 +46,71 @@
             </div>
 
             <!-- Power bars -->
-            <div class="absolute inset-0 flex items-end gap-0.5">
-              <UTooltip
+            <div
+              class="absolute inset-0 flex items-end gap-0.5"
+              @mousemove="handleGlobalMouseMove"
+              @mouseup="handleGlobalMouseUp"
+              @mouseleave="handleGlobalMouseUp"
+            >
+              <div
                 v-for="(step, index) in normalizedSteps"
                 :key="index"
-                :popper="{ placement: 'top' }"
                 :style="getStepContainerStyle(step)"
-                class="relative flex items-end h-full"
+                class="relative flex items-end h-full group/bar"
+                :class="[
+                  selectedStepUid === step.uid ? 'z-20' : 'z-0',
+                  { 'opacity-40': selectedStepUid && selectedStepUid !== step.uid }
+                ]"
+                @mousedown="handleBarMouseDown($event, step)"
               >
-                <template #text>
-                  <div class="font-semibold">{{ getStepName(step) }}</div>
-                  <div class="text-[10px] opacity-80 mt-1">
-                    {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
-                    <span>{{ formatPowerTarget(step) }}</span>
-                  </div>
-                  <div v-if="hasRefValue" class="text-[10px] opacity-80">
-                    <span>{{ getAvgValue(step) }} {{ absUnit }}</span>
-                  </div>
-                  <div class="text-[10px] opacity-80 border-t border-white/20 mt-1 pt-1">
-                    Target Cadence:
-                    {{ Math.round(getStepCadenceMeta(step).value) }} RPM
-                    <span v-if="getStepCadenceMeta(step).inferred" class="text-blue-200">
-                      (inferred)
-                    </span>
-                  </div>
-                </template>
+                <UTooltip :popper="{ placement: 'top' }" class="w-full h-full flex items-end">
+                  <template #text>
+                    <div class="font-semibold">{{ getStepName(step) }}</div>
+                    <div class="text-[10px] opacity-80 mt-1">
+                      {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
+                      <span>{{ formatPowerTarget(step) }}</span>
+                    </div>
+                    <div v-if="hasRefValue" class="text-[10px] opacity-80">
+                      <span>{{ getAvgValue(step) }} {{ absUnit }}</span>
+                    </div>
+                  </template>
 
-                <!-- Wrapper to force stacking context -->
-                <div class="relative w-full h-full flex items-end">
-                  <!-- Range Shade -->
+                  <!-- Wrapper to force stacking context -->
                   <div
-                    v-if="getStepRange(step)"
-                    :style="getStepRangeShadeStyle(step)"
-                    class="absolute left-0 w-full pointer-events-none border-y border-current/40"
-                  />
-                  <!-- Bar -->
-                  <div
-                    :style="getStepBarStyle(step)"
-                    class="w-full transition-all hover:opacity-80"
-                  />
-                </div>
-              </UTooltip>
+                    class="relative w-full h-full flex items-end cursor-pointer"
+                    :class="[
+                      {
+                        'ring-2 ring-primary ring-inset rounded-sm shadow-[0_0_15px_rgba(var(--color-primary-500),0.4)]':
+                          selectedStepUid === step.uid
+                      }
+                    ]"
+                  >
+                    <!-- Range Shade -->
+                    <div
+                      v-if="getStepRange(step)"
+                      :style="getStepRangeShadeStyle(step)"
+                      class="absolute left-0 w-full pointer-events-none border-y border-current/40"
+                    />
+                    <!-- Bar -->
+                    <div
+                      :style="getStepBarStyle(step)"
+                      class="w-full transition-all group-hover/bar:opacity-80"
+                    />
+
+                    <!-- Drag Handle (Top Edge) -->
+                    <div
+                      v-if="allowEdit"
+                      class="absolute left-0 w-full h-4 -translate-y-1/2 cursor-ns-resize z-30 flex items-center justify-center group/handle"
+                      :style="{ bottom: getHandleBottom(step) }"
+                      @mousedown.stop="handleHandleMouseDown($event, step)"
+                    >
+                      <div
+                        class="w-4 h-1 bg-white/40 rounded-full opacity-0 group-hover/handle:opacity-100 transition-opacity"
+                      />
+                    </div>
+                  </div>
+                </UTooltip>
+              </div>
             </div>
 
             <!-- Cadence Line Overlay -->
@@ -388,6 +412,116 @@
     get: () => props.stepsTab || 'view',
     set: (val) => emit('update:stepsTab', val)
   })
+
+  // Visual Manipulation State
+  const selectedStepUid = ref<string | null>(null)
+  const isDragging = ref(false)
+  const dragStartStep = ref<any>(null)
+  const dragStartY = ref(0)
+  const dragStartIntensity = ref(0)
+
+  function getHandleBottom(step: any) {
+    const target = step.power || step.heartRate || step.pace
+    const val = target?.range ? target.range.end : target?.value || 0
+    return `${Math.min((val / chartMaxPower.value) * 100, 100)}%`
+  }
+
+  function handleBarMouseDown(event: MouseEvent, step: any) {
+    selectedStepUid.value = step.uid
+  }
+
+  function handleHandleMouseDown(event: MouseEvent, step: any) {
+    if (!props.allowEdit) return
+
+    // Auto-switch to edit mode if not already there
+    if (activeStepsTab.value !== 'edit') {
+      activeStepsTab.value = 'edit'
+    }
+
+    isDragging.value = true
+    selectedStepUid.value = step.uid
+    dragStartStep.value = step
+    dragStartY.value = event.clientY
+
+    const target = step.power || step.heartRate || step.pace
+    dragStartIntensity.value = target?.range ? target.range.end : target?.value || 0
+
+    // Prevent text selection while dragging
+    event.preventDefault()
+  }
+
+  function handleGlobalMouseMove(event: MouseEvent) {
+    if (!isDragging.value || !dragStartStep.value) return
+
+    // Find the chart container to get relative mouse position
+    const chartEl = (event.currentTarget as HTMLElement).closest('.relative.min-w-0')
+    if (!chartEl) return
+
+    const rect = chartEl.getBoundingClientRect()
+    const relativeY = event.clientY - rect.top
+    const height = rect.height
+
+    // Calculate new intensity based on mouse position relative to chart
+    const newIntensity = Math.max(0.1, (1 - relativeY / height) * chartMaxPower.value)
+
+    // We must update the actual source steps in the workoutData payload
+    // Ensure we are working on the current session steps
+    let sourceSteps = previewSteps.value
+    if (!sourceSteps) {
+      sourceSteps = JSON.parse(
+        JSON.stringify(getStructuredWorkoutPayload(props.workout)?.steps || [])
+      )
+    }
+
+    const wasUpdated = updateIntensityRecursively(
+      sourceSteps!,
+      dragStartStep.value.uid,
+      newIntensity
+    )
+
+    if (wasUpdated) {
+      // Trigger reactivity and live preview
+      previewSteps.value = [...sourceSteps!]
+    }
+  }
+
+  function handleGlobalMouseUp() {
+    if (isDragging.value) {
+      isDragging.value = false
+      dragStartStep.value = null
+      if (previewSteps.value) {
+        emit('update:steps', previewSteps.value)
+      }
+    }
+  }
+
+  function updateIntensityRecursively(steps: any[], uid: string, newValue: number) {
+    let found = false
+    for (const step of steps) {
+      if (step.uid === uid) {
+        const metric = step.power ? 'power' : step.heartRate ? 'heartRate' : 'pace'
+        const target = step[metric]
+
+        if (target) {
+          if (target.range) {
+            const diff = newValue - target.range.end
+            target.range.start = Math.max(0, target.range.start + diff)
+            target.range.end = newValue
+          } else {
+            target.value = newValue
+          }
+          found = true
+        }
+      }
+
+      if (step.steps && Array.isArray(step.steps)) {
+        if (updateIntensityRecursively(step.steps, uid, newValue)) {
+          found = true
+        }
+      }
+    }
+    return found
+  }
 
   const previewSteps = ref<any[] | null>(null)
 
@@ -805,13 +939,18 @@
     if (intensity >= 0.65) return { value: 90, inferred: true }
     return { value: 85, inferred: true }
   }
-
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
     if (!Array.isArray(steps)) return []
 
     const flattened: any[] = []
 
     steps.forEach((step: any) => {
+      // Ensure the source step has a STABLE UID for interaction
+      // We assign it back to the source object so it persists across re-renders
+      if (!step.uid) {
+        step.uid = `step-${Math.random().toString(36).substring(7)}`
+      }
+
       const children = Array.isArray(step.steps) ? step.steps : []
       const hasChildren = children.length > 0
 

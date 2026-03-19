@@ -395,6 +395,111 @@
   const dragStartStep = ref<any>(null)
   const dragStartY = ref(0)
   const dragStartIntensity = ref(0)
+  const DEBUG_PREFIX = '[WorkoutRunChart]'
+
+  function debugLog(event: string, payload?: Record<string, any>) {
+    if (!import.meta.client) return
+
+    const entry = {
+      event,
+      ...payload,
+      timestamp: new Date().toISOString()
+    }
+
+    ;(window as any).__workoutRunChartDebug = entry
+
+    if (payload) {
+      console.debug(DEBUG_PREFIX, event, entry)
+      return
+    }
+
+    console.debug(DEBUG_PREFIX, event)
+  }
+
+  function cloneDebugValue<T>(value: T): T {
+    if (value === undefined) return value
+    return JSON.parse(JSON.stringify(value))
+  }
+
+  function getPreferredMetricKey(): 'power' | 'heartRate' | 'pace' {
+    return chartPreference.value === 'power'
+      ? 'power'
+      : chartPreference.value === 'hr'
+        ? 'heartRate'
+        : 'pace'
+  }
+
+  function findStepByUid(steps: any[] | null | undefined, uid: string | null): any | null {
+    if (!uid || !Array.isArray(steps)) return null
+
+    for (const step of steps) {
+      if (step?.uid === uid) return step
+      if (Array.isArray(step?.steps)) {
+        const nested = findStepByUid(step.steps, uid)
+        if (nested) return nested
+      }
+    }
+
+    return null
+  }
+
+  function getSelectedStepDebugSnapshot(uid: string | null) {
+    if (!uid) return null
+
+    const sourceSteps =
+      previewSteps.value || getStructuredWorkoutPayload(props.workout)?.steps || []
+    const sourceStep = findStepByUid(sourceSteps, uid)
+    const normalizedStep = normalizedSteps.value.find((step: any) => step.uid === uid) || null
+    const preferredMetric = getPreferredMetricKey()
+    const renderedTarget =
+      normalizedStep?.power || normalizedStep?.heartRate || normalizedStep?.pace || null
+
+    return {
+      uid,
+      chartPreference: chartPreference.value,
+      preferredMetric,
+      chartMaxPower: chartMaxPower.value,
+      sourceStep: sourceStep
+        ? {
+            name: sourceStep.name,
+            type: sourceStep.type,
+            power: cloneDebugValue(sourceStep.power),
+            heartRate: cloneDebugValue(sourceStep.heartRate),
+            pace: cloneDebugValue(sourceStep.pace)
+          }
+        : null,
+      normalizedStep: normalizedStep
+        ? {
+            name: normalizedStep.name,
+            type: normalizedStep.type,
+            intensity: getStepIntensity(normalizedStep),
+            range: cloneDebugValue(getStepRange(normalizedStep)),
+            preferredTarget: cloneDebugValue(normalizedStep[preferredMetric]),
+            renderedTarget: cloneDebugValue(renderedTarget),
+            barStyle: cloneDebugValue(getStepBarStyle(normalizedStep)),
+            rangeStyle: cloneDebugValue(getStepRangeStyle(normalizedStep)),
+            handleBottom: getHandleBottom(normalizedStep)
+          }
+        : null
+    }
+  }
+
+  function getPreferredRenderTarget(step: any) {
+    if (!step) return null
+
+    const orderedTargets =
+      chartPreference.value === 'hr'
+        ? [step.heartRate, step.pace, step.power]
+        : chartPreference.value === 'pace'
+          ? [step.pace, step.heartRate, step.power]
+          : [step.power, step.heartRate, step.pace]
+
+    return (
+      orderedTargets.find(
+        (target) => target && (typeof target.value === 'number' || target.range)
+      ) || null
+    )
+  }
 
   function getHandleBottom(step: any) {
     const val = getStepIntensity(step)
@@ -402,8 +507,8 @@
   }
 
   function handleBarMouseDown(event: MouseEvent, step: any) {
-    console.log('[WorkoutRunChart] Bar Mousedown. UID:', step.uid, 'Name:', step.name)
     selectedStepUid.value = step.uid
+    debugLog('bar:mousedown', getSelectedStepDebugSnapshot(step.uid) || { uid: step.uid })
   }
 
   function handleHandleMouseDown(event: MouseEvent, step: any) {
@@ -419,6 +524,11 @@
     dragStartStep.value = step
     dragStartY.value = event.clientY
     dragStartIntensity.value = getStepIntensity(step)
+    debugLog('drag:start', {
+      clientY: event.clientY,
+      startIntensity: dragStartIntensity.value,
+      ...getSelectedStepDebugSnapshot(step.uid)
+    })
 
     // Prevent text selection while dragging
     event.preventDefault()
@@ -436,6 +546,7 @@
 
     // Calculate new intensity based on mouse position relative to chart
     const newIntensity = Math.max(0.1, (1 - relativeY / height) * chartMaxPower.value)
+    const beforeSnapshot = getSelectedStepDebugSnapshot(dragStartStep.value.uid)
 
     // Ensure we are working on the current session steps
     let sourceSteps = previewSteps.value
@@ -448,11 +559,32 @@
     if (updateIntensityRecursively(sourceSteps!, dragStartStep.value.uid, newIntensity)) {
       // Trigger reactivity and live preview
       previewSteps.value = [...sourceSteps!]
+      debugLog('drag:move', {
+        clientY: event.clientY,
+        relativeY,
+        chartHeight: height,
+        newIntensity,
+        beforeSnapshot,
+        afterSourceStep: cloneDebugValue(findStepByUid(sourceSteps, dragStartStep.value.uid))
+      })
+    } else {
+      debugLog('drag:move-missed-step', {
+        clientY: event.clientY,
+        relativeY,
+        chartHeight: height,
+        newIntensity,
+        targetUid: dragStartStep.value.uid
+      })
     }
   }
 
   function handleGlobalMouseUp() {
     if (isDragging.value) {
+      debugLog('drag:end', {
+        draggedUid: dragStartStep.value?.uid || null,
+        previewStepCount: previewSteps.value?.length || 0,
+        snapshot: getSelectedStepDebugSnapshot(dragStartStep.value?.uid || selectedStepUid.value)
+      })
       isDragging.value = false
       dragStartStep.value = null
       if (previewSteps.value) {
@@ -466,13 +598,9 @@
     for (const step of steps) {
       if (step.uid === uid) {
         // Use chartPreference to ensure we update the correct metric
-        const metric =
-          chartPreference.value === 'power'
-            ? 'power'
-            : chartPreference.value === 'hr'
-              ? 'heartRate'
-              : 'pace'
+        const metric = getPreferredMetricKey()
         let target = step[metric]
+        const beforeTarget = cloneDebugValue(target)
 
         if (!target) {
           // If the preferred metric object doesn't exist, create it
@@ -488,6 +616,18 @@
         } else {
           target.value = newValue
         }
+        debugLog('step:updateIntensity', {
+          uid,
+          metric,
+          newValue,
+          beforeTarget,
+          afterTarget: cloneDebugValue(step[metric]),
+          siblingTargets: {
+            power: cloneDebugValue(step.power),
+            heartRate: cloneDebugValue(step.heartRate),
+            pace: cloneDebugValue(step.pace)
+          }
+        })
         found = true
       }
       if (step.steps && Array.isArray(step.steps)) {
@@ -514,7 +654,7 @@
   })
 
   function getAvgValue(step: any): string | number {
-    const target = step.power || step.heartRate || step.pace
+    const target = getPreferredRenderTarget(step)
     if (!target) return '-'
 
     let refValue = 0
@@ -596,6 +736,33 @@
     resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
   )
   const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
+
+  watch(selectedStepUid, (uid) => {
+    if (!uid) return
+    debugLog('selection:changed', getSelectedStepDebugSnapshot(uid) || { uid })
+  })
+
+  watch(
+    () => normalizedSteps.value,
+    () => {
+      if (!selectedStepUid.value) return
+      debugLog('normalizedSteps:updated', getSelectedStepDebugSnapshot(selectedStepUid.value) || {})
+    },
+    { deep: true }
+  )
+
+  watch(
+    () => previewSteps.value,
+    (steps) => {
+      if (!selectedStepUid.value || !steps) return
+      debugLog('previewSteps:updated', {
+        selectedUid: selectedStepUid.value,
+        previewRootCount: steps.length,
+        snapshot: getSelectedStepDebugSnapshot(selectedStepUid.value)
+      })
+    },
+    { deep: true }
+  )
 
   function handleStepsUpdate(newSteps: any[]) {
     previewSteps.value = newSteps
@@ -1263,7 +1430,7 @@
   }
 
   function getStepRange(step: any) {
-    const target = step.power || step.heartRate || step.pace
+    const target = getPreferredRenderTarget(step)
     return target?.range
   }
 
@@ -1326,6 +1493,76 @@
       return `${Math.round(normalized.value * reference)} bpm`
     }
     return null
+  }
+
+  function getStepContainerStyle(step: any) {
+    const width = ((step.durationSeconds || step.duration || 0) / totalDuration.value) * 100
+    return {
+      width: `${width}%`,
+      height: '100%',
+      minWidth: '2px'
+    }
+  }
+
+  function getStepRangeStyle(step: any) {
+    const range = getStepRange(step)
+    if (!range) return {}
+
+    const maxScale = chartMaxPower.value
+    const startH = (range.start / maxScale) * 100
+    const endH = (range.end / maxScale) * 100
+
+    // Ramp logic: Trapezoid from Start to End
+    if (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp) {
+      const startY = 100 - startH
+      const endY = 100 - endH
+      // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
+      return {
+        height: '100%',
+        bottom: '0%',
+        backgroundColor: getStepColor(getStepIntensity(step)),
+        opacity: 0.8, // More opaque for ramps
+        clipPath: `polygon(0% ${startY}%, 100% ${endY}%, 100% 100%, 0% 100%)`
+      }
+    }
+
+    // Range logic: Stacked Window
+    const height = Math.abs(endH - startH)
+    const bottom = Math.min(startH, endH)
+
+    return {
+      height: `${height}%`,
+      bottom: `${bottom}%`,
+      backgroundColor: getStepColor(getStepIntensity(step)),
+      opacity: 0.2 // Default opacity for ranges
+    }
+  }
+
+  function getStepBarStyle(step: any) {
+    const intensity = getStepIntensity(step)
+    const range = getStepRange(step)
+
+    if (range && (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp)) {
+      // Hide standard bar for ramps, as the "Range" element handles the full shape
+      return { height: '0%' }
+    }
+
+    const val = range ? range.start : intensity
+    const color = getStepColor(intensity)
+    const maxScale = chartMaxPower.value
+    const height = (val / maxScale) * 100
+
+    return {
+      height: `${height}%`,
+      backgroundColor: color
+    }
+  }
+
+  function getZoneName(intensity: number): string {
+    const zone =
+      zoneDistribution.value.find((z) => intensity <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
+    return zone ? zone.name : '??'
   }
 
   function formatDuration(seconds: number): string {
