@@ -1267,59 +1267,6 @@
     return target?.range
   }
 
-  function normalizeTarget(
-    target: any
-  ):
-    | { value?: number; range?: { start: number; end: number }; ramp?: boolean; units?: string }
-    | undefined {
-    if (target === null || target === undefined) return undefined
-
-    if (Array.isArray(target)) {
-      if (target.length >= 2) {
-        return { range: { start: Number(target[0]) || 0, end: Number(target[1]) || 0 } }
-      }
-      if (target.length === 1) {
-        return { value: Number(target[0]) || 0 }
-      }
-      return undefined
-    }
-
-    if (typeof target === 'number') {
-      return { value: target }
-    }
-
-    if (typeof target === 'object') {
-      if (target.range && typeof target.range === 'object') {
-        return {
-          range: {
-            start: Number(target.range.start) || 0,
-            end: Number(target.range.end) || 0
-          },
-          ramp: target.ramp,
-          units: typeof target.units === 'string' ? target.units : target.range.units
-        }
-      }
-      if (target.start !== undefined && target.end !== undefined) {
-        return {
-          range: {
-            start: Number(target.start) || 0,
-            end: Number(target.end) || 0
-          },
-          ramp: target.ramp,
-          units: typeof target.units === 'string' ? target.units : undefined
-        }
-      }
-      if (target.value !== undefined) {
-        return {
-          value: Number(target.value) || 0,
-          units: typeof target.units === 'string' ? target.units : undefined
-        }
-      }
-    }
-
-    return undefined
-  }
-
   function getInferredIntensity(step: any): number {
     const power = getTargetValue(step.power)
     if (power !== undefined) return power
@@ -1334,14 +1281,9 @@
     return 0.75
   }
 
-  function getStepIntensity(step: any): number {
-    return getInferredIntensity(step)
-  }
-
-  function getStepColor(step: any): string {
-    const val = getStepIntensity(step)
+  function getStepColor(intensity: number): string {
     const zone =
-      zoneDistribution.value.find((z) => val <= z.max) ||
+      zoneDistribution.value.find((z) => intensity <= z.max) ||
       zoneDistribution.value[zoneDistribution.value.length - 1]
     return zone ? zone.color : '#9ca3af'
   }
