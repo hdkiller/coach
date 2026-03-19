@@ -4,6 +4,7 @@ import { useToast } from '#imports'
 
 export type ViewMode = 'board' | 'table'
 export type ChartMetric = 'tss' | 'minutes'
+export type PlanItemKind = 'workout' | 'note'
 
 export function usePlanArchitect(planId: string) {
   const toast = useToast()
@@ -160,6 +161,25 @@ export function usePlanArchitect(planId: string) {
       athleteNotes: plan.athleteNotes || '',
       strategy: plan.strategy || 'LINEAR',
       recoveryRhythm: plan.recoveryRhythm || 4,
+      visibility: plan.visibility || 'PRIVATE',
+      accessState: plan.accessState || 'PRIVATE',
+      primarySport: plan.primarySport || '',
+      sportSubtype: plan.sportSubtype || '',
+      skillLevel: plan.skillLevel || '',
+      planLanguage: plan.planLanguage || '',
+      daysPerWeek: plan.daysPerWeek || null,
+      weeklyVolumeBand: plan.weeklyVolumeBand || '',
+      goalLabel: plan.goalLabel || '',
+      equipmentTags: Array.isArray(plan.equipmentTags) ? plan.equipmentTags.join(', ') : '',
+      publicHeadline: plan.publicHeadline || '',
+      publicDescription: plan.publicDescription || '',
+      methodology: plan.methodology || '',
+      whoItsFor: plan.whoItsFor || '',
+      faq: plan.faq || '',
+      extraContent: plan.extraContent || '',
+      sampleWeekIds: Array.isArray(plan.sampleWeeks)
+        ? plan.sampleWeeks.map((entry: any) => entry.weekId)
+        : [],
       blocks: (plan.blocks || []).map((block: any, blockIndex: number) => ({
         ...block,
         name: block.name || `Block ${blockIndex + 1}`,
@@ -176,6 +196,7 @@ export function usePlanArchitect(planId: string) {
           workouts: (week.workouts || []).map((workout: any) => ({
             ...workout,
             title: workout.title || 'Untitled workout',
+            description: workout.description || '',
             type: workout.type || 'Workout',
             durationSec: workout.durationSec || 0,
             tss: workout.tss || 0,
@@ -187,10 +208,13 @@ export function usePlanArchitect(planId: string) {
   }
 
   function serializePlan(plan: any) {
-    return JSON.stringify(buildPayload(plan))
+    return JSON.stringify({
+      architect: buildArchitectPayload(plan),
+      publication: buildPublicationPayload(plan)
+    })
   }
 
-  function buildPayload(plan: any) {
+  function buildArchitectPayload(plan: any) {
     return {
       name: plan.name,
       description: plan.description,
@@ -201,6 +225,39 @@ export function usePlanArchitect(planId: string) {
       recoveryRhythm: Number(plan.recoveryRhythm) || 4,
       isPublic: Boolean(plan.isPublic),
       blocks: sortedPayloadBlocks(plan.blocks || [])
+    }
+  }
+
+  function buildPublicationPayload(plan: any) {
+    const equipmentTags =
+      typeof plan.equipmentTags === 'string'
+        ? plan.equipmentTags
+            .split(',')
+            .map((tag: string) => tag.trim())
+            .filter(Boolean)
+        : Array.isArray(plan.equipmentTags)
+          ? plan.equipmentTags
+          : []
+
+    return {
+      visibility: plan.visibility,
+      accessState: plan.accessState,
+      slug: plan.slug || null,
+      primarySport: plan.primarySport || null,
+      sportSubtype: plan.sportSubtype || null,
+      skillLevel: plan.skillLevel || null,
+      planLanguage: plan.planLanguage || null,
+      daysPerWeek: plan.daysPerWeek ? Number(plan.daysPerWeek) : null,
+      weeklyVolumeBand: plan.weeklyVolumeBand || null,
+      goalLabel: plan.goalLabel || null,
+      equipmentTags,
+      publicHeadline: plan.publicHeadline || null,
+      publicDescription: plan.publicDescription || null,
+      methodology: plan.methodology || null,
+      whoItsFor: plan.whoItsFor || null,
+      faq: plan.faq || null,
+      extraContent: plan.extraContent || null,
+      sampleWeekIds: Array.isArray(plan.sampleWeekIds) ? plan.sampleWeekIds : []
     }
   }
 
@@ -225,6 +282,7 @@ export function usePlanArchitect(planId: string) {
             dayIndex: workout.dayIndex,
             weekIndex: weekIndex + 1,
             title: workout.title,
+            description: workout.description || null,
             type: workout.type || null,
             durationSec: Number(workout.durationSec) || 0,
             tss: Number(workout.tss) || 0,
@@ -370,38 +428,51 @@ export function usePlanArchitect(planId: string) {
     toast.add({ title: 'Week duplicated', color: 'success' })
   }
 
-  function addWorkout(weekId: string, dayIndex: number) {
-    const week = findWeek(weekId)
-    if (!week) return
-    week.workouts.push({
+  function createPlanItem(week: any, dayIndex: number, kind: PlanItemKind, source: any = {}) {
+    const isNote = kind === 'note'
+    const item = {
       id: `temp-workout-${Date.now()}`,
       dayIndex,
       weekIndex: week.weekNumber,
-      title: 'New workout',
-      type: 'Workout',
-      durationSec: 1800,
-      tss: 20,
-      category: 'Workout',
-      structuredWorkout: null
-    })
+      title: source.title || (isNote ? 'New note' : 'New workout'),
+      description: source.description || '',
+      type: source.type || (isNote ? 'Note' : 'Workout'),
+      durationSec: isNote ? 0 : Number(source.durationSec) || 1800,
+      tss: isNote ? 0 : Number(source.tss) || 20,
+      category: source.category || (isNote ? 'Note' : 'Workout'),
+      structuredWorkout: isNote ? null : (source.structuredWorkout ?? null)
+    }
+    week.workouts.push(item)
+    return item
+  }
+
+  function addWorkout(weekId: string, dayIndex: number) {
+    const week = findWeek(weekId)
+    if (!week) return null
+    const workout = createPlanItem(week, dayIndex, 'workout')
     toast.add({ title: 'Workout added', color: 'success' })
+    return workout
+  }
+
+  function addNote(weekId: string, dayIndex: number) {
+    const week = findWeek(weekId)
+    if (!week) return null
+    const note = createPlanItem(week, dayIndex, 'note')
+    toast.add({ title: 'Note added', color: 'success' })
+    return note
   }
 
   function addWorkoutFromTemplate(weekId: string, dayIndex: number, template: any) {
     const week = findWeek(weekId)
-    if (!week) return
-    week.workouts.push({
-      id: `temp-workout-${Date.now()}`,
-      dayIndex,
-      weekIndex: week.weekNumber,
-      title: template.title || 'New workout',
-      type: template.type || 'Workout',
-      durationSec: Number(template.durationSec) || 0,
-      tss: Number(template.tss) || 0,
-      category: template.category || 'Workout',
-      structuredWorkout: template.structuredWorkout || null
+    if (!week) return null
+    const kind: PlanItemKind =
+      template.category === 'Note' || template.type === 'Note' ? 'note' : 'workout'
+    const item = createPlanItem(week, dayIndex, kind, template)
+    toast.add({
+      title: kind === 'note' ? 'Note added from library' : 'Workout added from library',
+      color: 'success'
     })
-    toast.add({ title: 'Workout added from library', color: 'success' })
+    return item
   }
 
   function removeWorkout(weekId: string, workoutId: string) {
@@ -431,6 +502,7 @@ export function usePlanArchitect(planId: string) {
     editingWorkoutTarget.value = { weekId, workoutId: workout.id }
     editingWorkout.value = {
       ...workout,
+      description: workout.description || '',
       durationMinutes: Math.round((workout.durationSec || 0) / 60)
     }
     isWorkoutEditorOpen.value = true
@@ -444,14 +516,21 @@ export function usePlanArchitect(planId: string) {
     )
     if (!workout) return
     workout.title = editingWorkout.value.title || 'Untitled workout'
+    workout.description = editingWorkout.value.description || ''
     workout.type = editingWorkout.value.type || 'Workout'
     workout.category = editingWorkout.value.category || 'Workout'
-    workout.durationSec = (Number(editingWorkout.value.durationMinutes) || 0) * 60
-    workout.tss = Number(editingWorkout.value.tss) || 0
+    const isNote =
+      workout.category === 'Note' ||
+      workout.type === 'Note' ||
+      editingWorkout.value.category === 'Note' ||
+      editingWorkout.value.type === 'Note'
+    workout.durationSec = isNote ? 0 : (Number(editingWorkout.value.durationMinutes) || 0) * 60
+    workout.tss = isNote ? 0 : Number(editingWorkout.value.tss) || 0
+    workout.structuredWorkout = isNote ? null : (workout.structuredWorkout ?? null)
     isWorkoutEditorOpen.value = false
     editingWorkout.value = null
     editingWorkoutTarget.value = null
-    toast.add({ title: 'Workout updated', color: 'success' })
+    toast.add({ title: isNote ? 'Note updated' : 'Workout updated', color: 'success' })
   }
 
   function findWeek(weekId: string) {
@@ -470,12 +549,20 @@ export function usePlanArchitect(planId: string) {
     if (!draftPlan.value) return
     saving.value = true
     try {
-      const payload = buildPayload(draftPlan.value)
+      const architectPayload = buildArchitectPayload(draftPlan.value)
+      const publicationPayload = buildPublicationPayload(draftPlan.value)
       await $fetch(`/api/library/plans/${planId}/architect`, {
         method: 'PATCH',
-        body: payload
+        body: architectPayload
       })
-      lastSavedSnapshot.value = JSON.stringify(payload)
+      await $fetch(`/api/library/plans/${planId}/publication`, {
+        method: 'PATCH',
+        body: publicationPayload
+      })
+      lastSavedSnapshot.value = JSON.stringify({
+        architect: architectPayload,
+        publication: publicationPayload
+      })
       toast.add({ title: 'Blueprint saved', color: 'success' })
       await refresh()
     } catch (error: any) {
@@ -531,6 +618,7 @@ export function usePlanArchitect(planId: string) {
     addWeekToBlock,
     duplicateWeek,
     addWorkout,
+    addNote,
     addWorkoutFromTemplate,
     moveWorkout,
     removeWorkout,
