@@ -9,6 +9,7 @@ export const WORKOUT_ICONS: Record<string, string> = {
   Swim: 'i-tabler-swimming',
   Gym: 'i-tabler-barbell',
   WeightTraining: 'i-tabler-barbell',
+  Note: 'i-heroicons-document-text',
   Rest: 'i-tabler-zzz',
   'Active Recovery': 'i-tabler-recharging',
   Walk: 'i-tabler-walk',

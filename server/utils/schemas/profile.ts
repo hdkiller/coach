@@ -24,6 +24,22 @@ export const profileUpdateSchema = z.object({
   state: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
   timezone: z.string().nullable().optional(),
+  publicAuthorSlug: z.string().max(80).nullable().optional(),
+  publicDisplayName: z.string().max(120).nullable().optional(),
+  publicBio: z.string().max(4000).nullable().optional(),
+  publicLocation: z.string().max(160).nullable().optional(),
+  publicWebsiteUrl: z.string().url().nullable().optional(),
+  publicCoachingBrand: z.string().max(160).nullable().optional(),
+  publicSocialLinks: z
+    .array(
+      z.object({
+        label: z.string().max(60),
+        url: z.string().url()
+      })
+    )
+    .max(6)
+    .nullable()
+    .optional(),
 
   // AI Context
   aiContext: z.string().nullable().optional(),

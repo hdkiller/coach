@@ -276,6 +276,18 @@ export function computeStructuredWorkoutMetrics(
   return { durationSec, tss, workIntensity }
 }
 
+export function computeStructuredWorkoutDurationSec(structuredWorkout: any) {
+  return computeStructuredWorkoutMetrics(structuredWorkout, {
+    refs: {
+      ftp: 0,
+      lthr: 0,
+      maxHr: 0,
+      thresholdPace: 0
+    },
+    fallbackOrder: ['power', 'heartRate', 'pace', 'rpe']
+  }).durationSec
+}
+
 export function getPendingSyncStatus(syncStatus: string | null | undefined) {
   return syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
 }
