@@ -576,7 +576,7 @@
     buildPublicPlanPath,
     buildTrainingPlansBrowsePath,
     getPublicSportByValue
-  } from '../../../shared/public-plans'
+  } from '#shared/public-plans'
   import PlanArchitectTimelineChart from './PlanArchitectTimelineChart.vue'
   import PlanActivityBreakdownChart from './PlanActivityBreakdownChart.vue'
   import { getWorkoutIcon } from '../../utils/activity-types'

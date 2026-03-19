@@ -6,7 +6,7 @@
 <script setup lang="ts">
   import PublicPlansCatalogPage from '~/components/plans/PublicPlansCatalogPage.vue'
   import PublicPlanDetailPage from '~/components/plans/PublicPlanDetailPage.vue'
-  import { getPublicSportBySegment, getPublicSubtypeLabel } from '../../../../shared/public-plans'
+  import { getPublicSportBySegment, getPublicSubtypeLabel } from '#shared/public-plans'
 
   const route = useRoute()
   const sportSegment = route.params.sport as string

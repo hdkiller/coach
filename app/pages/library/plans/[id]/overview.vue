@@ -299,7 +299,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
-  import { buildPublicPlanPath, getPublicSportByValue } from '../../../../../shared/public-plans'
+  import { buildPublicPlanPath, getPublicSportByValue } from '#shared/public-plans'
 
   const route = useRoute()
   const { formatDateUTC, formatDuration } = useFormat()

@@ -227,7 +227,7 @@
     buildTrainingPlansBrowsePath,
     getPublicSportBySegment,
     getPublicSubtypeLabel
-  } from '../../../shared/public-plans'
+  } from '#shared/public-plans'
 
   const props = defineProps<{
     overrideSport?: string

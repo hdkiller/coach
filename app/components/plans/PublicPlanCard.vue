@@ -117,7 +117,7 @@
     buildPublicCoachPath,
     buildPublicPlanPath,
     getPublicSportByValue
-  } from '../../../shared/public-plans'
+  } from '#shared/public-plans'
 
   const { plan } = defineProps<{ plan: any }>()
 

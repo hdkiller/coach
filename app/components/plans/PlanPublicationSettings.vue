@@ -147,7 +147,7 @@
     buildPublicPlanPath,
     getSportSubtypeOptions,
     slugifyPublicName
-  } from '../../../shared/public-plans'
+  } from '#shared/public-plans'
 
   const { weekOptions } = defineProps<{
     weekOptions: Array<{ id: string; label: string; blockName: string }>
