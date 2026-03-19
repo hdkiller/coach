@@ -14,7 +14,9 @@
           <div class="w-3 h-3 rounded-xs bg-blue-500" />
           <span class="text-muted"
             >Intensity (%
-            {{ preference === 'hr' ? 'LTHR' : preference === 'pace' ? 'Pace' : 'FTP' }})</span
+            {{
+              chartPreference === 'hr' ? 'LTHR' : chartPreference === 'pace' ? 'Pace' : 'FTP'
+            }})</span
           >
         </div>
       </div>
@@ -39,37 +41,72 @@
             </div>
 
             <!-- Intensity bars -->
-            <div class="absolute inset-0 flex items-end gap-0.5">
-              <UTooltip
+            <div
+              class="absolute inset-0 flex items-end gap-0.5"
+              @mousemove="handleGlobalMouseMove"
+              @mouseup="handleGlobalMouseUp"
+              @mouseleave="handleGlobalMouseUp"
+            >
+              <div
                 v-for="(step, index) in normalizedSteps"
                 :key="index"
-                :popper="{ placement: 'top' }"
                 :style="getStepContainerStyle(step)"
-                class="relative group flex items-end"
+                class="relative flex items-end h-full group/bar"
+                :class="[
+                  selectedStepUid === step.uid ? 'z-20' : 'z-0',
+                  { 'opacity-40': selectedStepUid && selectedStepUid !== step.uid }
+                ]"
+                @mousedown="handleBarMouseDown($event, step)"
               >
-                <template #text>
-                  <div class="font-semibold">{{ step.name }}</div>
-                  <div class="text-[10px] opacity-80 mt-1">
-                    {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
-                    {{ getStepIntensityLabel(step) }}
-                    <span v-if="!step.heartRate && !step.power && !step.pace"> (Inferred)</span>
+                <UTooltip :popper="{ placement: 'top' }" class="w-full h-full flex items-end">
+                  <template #text>
+                    <div class="font-semibold">{{ step.name }}</div>
+                    <div class="text-[10px] opacity-80 mt-1">
+                      {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
+                      {{ getStepIntensityLabel(step) }}
+                      <span v-if="!step.heartRate && !step.power && !step.pace"> (Inferred)</span>
+                    </div>
+                    <div v-if="hasRefValue" class="text-[10px] opacity-80">
+                      <span>{{ getAvgValue(step) }} {{ absUnit }}</span>
+                    </div>
+                  </template>
+
+                  <!-- Wrapper to force stacking context -->
+                  <div
+                    class="relative w-full h-full flex items-end cursor-pointer"
+                    :class="[
+                      {
+                        'ring-2 ring-primary ring-inset rounded-sm shadow-[0_0_15px_rgba(var(--color-primary-500),0.4)]':
+                          selectedStepUid === step.uid
+                      }
+                    ]"
+                  >
+                    <!-- Range Shade -->
+                    <div
+                      v-if="getStepRange(step)"
+                      :style="getStepRangeStyle(step)"
+                      class="absolute left-0 w-full pointer-events-none border-y border-current/40"
+                    />
+                    <!-- Primary Target Bar -->
+                    <div
+                      :style="getStepBarStyle(step)"
+                      class="w-full transition-all group-hover/bar:opacity-80"
+                    />
+
+                    <!-- Drag Handle (Top Edge) -->
+                    <div
+                      v-if="allowEdit"
+                      class="absolute left-0 w-full h-4 -translate-y-1/2 cursor-ns-resize z-30 flex items-center justify-center group/handle"
+                      :style="{ bottom: getHandleBottom(step) }"
+                      @mousedown.stop="handleHandleMouseDown($event, step)"
+                    >
+                      <div
+                        class="w-4 h-1 bg-white/40 rounded-full opacity-0 group-hover/handle:opacity-100 transition-opacity"
+                      />
+                    </div>
                   </div>
-                </template>
-                <!-- Wrapper to force stacking context -->
-                <div class="relative w-full h-full flex items-end">
-                  <!-- Range Shade -->
-                  <div
-                    v-if="getStepRange(step)"
-                    :style="getStepRangeStyle(step)"
-                    class="absolute left-0 w-full pointer-events-none border-y border-current/40"
-                  />
-                  <!-- Primary Target Bar -->
-                  <div
-                    :style="getStepBarStyle(step)"
-                    class="w-full h-full transition-all group-hover:opacity-80"
-                  />
-                </div>
-              </UTooltip>
+                </UTooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -265,7 +302,7 @@
             :steps="getStructuredWorkoutPayload(workout)?.steps || []"
             :user-ftp="userFtp"
             :sport-settings="sportSettings"
-            :preference="preference"
+            :preference="chartPreference"
             @update:steps="handleStepsUpdate"
             @save="$emit('save', $event)"
             @cancel="activeStepsTab = 'view'"
@@ -325,7 +362,8 @@
   import { ZONE_COLORS } from '~/utils/zone-colors'
   import {
     getStructuredWorkoutPayload,
-    resolveWorkoutChartSportSettings
+    resolveWorkoutChartSportSettings,
+    getWorkoutChartPreference
   } from '~/utils/workoutChartContext'
   import WorkoutStepsEditor from './planned/WorkoutStepsEditor.vue'
 
@@ -351,7 +389,168 @@
     set: (val) => emit('update:stepsTab', val)
   })
 
+  // Visual Manipulation State
+  const selectedStepUid = ref<string | null>(null)
+  const isDragging = ref(false)
+  const dragStartStep = ref<any>(null)
+  const dragStartY = ref(0)
+  const dragStartIntensity = ref(0)
+
+  function getHandleBottom(step: any) {
+    const val = getStepIntensity(step)
+    return `${Math.min((val / chartMaxPower.value) * 100, 100)}%`
+  }
+
+  function handleBarMouseDown(event: MouseEvent, step: any) {
+    console.log('[WorkoutRunChart] Bar Mousedown. UID:', step.uid, 'Name:', step.name)
+    selectedStepUid.value = step.uid
+  }
+
+  function handleHandleMouseDown(event: MouseEvent, step: any) {
+    if (!props.allowEdit) return
+
+    // Auto-switch to edit mode if not already there
+    if (activeStepsTab.value !== 'edit') {
+      activeStepsTab.value = 'edit'
+    }
+
+    isDragging.value = true
+    selectedStepUid.value = step.uid
+    dragStartStep.value = step
+    dragStartY.value = event.clientY
+    dragStartIntensity.value = getStepIntensity(step)
+
+    // Prevent text selection while dragging
+    event.preventDefault()
+  }
+
+  function handleGlobalMouseMove(event: MouseEvent) {
+    if (!isDragging.value || !dragStartStep.value) return
+
+    const chartEl = (event.currentTarget as HTMLElement).closest('.relative.min-w-0')
+    if (!chartEl) return
+
+    const rect = chartEl.getBoundingClientRect()
+    const relativeY = event.clientY - rect.top
+    const height = rect.height
+
+    // Calculate new intensity based on mouse position relative to chart
+    const newIntensity = Math.max(0.1, (1 - relativeY / height) * chartMaxPower.value)
+
+    // Ensure we are working on the current session steps
+    let sourceSteps = previewSteps.value
+    if (!sourceSteps) {
+      sourceSteps = JSON.parse(
+        JSON.stringify(getStructuredWorkoutPayload(props.workout)?.steps || [])
+      )
+    }
+
+    if (updateIntensityRecursively(sourceSteps!, dragStartStep.value.uid, newIntensity)) {
+      // Trigger reactivity and live preview
+      previewSteps.value = [...sourceSteps!]
+    }
+  }
+
+  function handleGlobalMouseUp() {
+    if (isDragging.value) {
+      isDragging.value = false
+      dragStartStep.value = null
+      if (previewSteps.value) {
+        emit('update:steps', previewSteps.value)
+      }
+    }
+  }
+
+  function updateIntensityRecursively(steps: any[], uid: string, newValue: number) {
+    let found = false
+    for (const step of steps) {
+      if (step.uid === uid) {
+        // Use chartPreference to ensure we update the correct metric
+        const metric =
+          chartPreference.value === 'power'
+            ? 'power'
+            : chartPreference.value === 'hr'
+              ? 'heartRate'
+              : 'pace'
+        let target = step[metric]
+
+        if (!target) {
+          // If the preferred metric object doesn't exist, create it
+          const unit = metric === 'power' ? '%' : metric === 'heartRate' ? 'LTHR' : 'Pace'
+          step[metric] = { units: unit }
+          target = step[metric]
+        }
+
+        if (target.range) {
+          const diff = newValue - target.range.end
+          target.range.start = Math.max(0, target.range.start + diff)
+          target.range.end = newValue
+        } else {
+          target.value = newValue
+        }
+        found = true
+      }
+      if (step.steps && Array.isArray(step.steps)) {
+        if (updateIntensityRecursively(step.steps, uid, newValue)) {
+          found = true
+        }
+      }
+    }
+    return found
+  }
+
   const previewSteps = ref<any[] | null>(null)
+
+  const absUnit = computed(() => {
+    if (chartPreference.value === 'hr') return 'BPM'
+    if (chartPreference.value === 'pace') return ''
+    return 'W'
+  })
+
+  const hasRefValue = computed(() => {
+    if (chartPreference.value === 'hr') return !!effectiveSportSettings.value?.lthr
+    if (chartPreference.value === 'pace') return !!effectiveSportSettings.value?.thresholdPace
+    return !!(effectiveSportSettings.value?.ftp || props.userFtp)
+  })
+
+  function getAvgValue(step: any): string | number {
+    const target = step.power || step.heartRate || step.pace
+    if (!target) return '-'
+
+    let refValue = 0
+    if (chartPreference.value === 'hr') refValue = effectiveSportSettings.value?.lthr || 0
+    else if (chartPreference.value === 'pace')
+      refValue = effectiveSportSettings.value?.thresholdPace || 0
+    else refValue = effectiveSportSettings.value?.ftp || props.userFtp || 0
+
+    if (!refValue) return '-'
+
+    const intensity = target.range ? (target.range.start + target.range.end) / 2 : target.value || 0
+
+    if (chartPreference.value === 'pace') {
+      const speedMps = intensity * refValue
+      if (!speedMps) return '-'
+      const secondsPerKm = 1000 / speedMps
+      const mins = Math.floor(secondsPerKm / 60)
+      const secs = Math.round(secondsPerKm % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    return Math.round(intensity * refValue)
+  }
+
+  function getStepIntensity(step: any): number {
+    const hr = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
+    const pwr = getTargetValue(step.power)
+    const pace = getTargetValue(getRelativePaceTarget(step.pace))
+
+    if (chartPreference.value === 'hr' && hr !== undefined) return hr
+    if (chartPreference.value === 'pace' && pace !== undefined) return pace
+    if (chartPreference.value === 'power' && pwr !== undefined) return pwr
+
+    // Final fallbacks
+    return pwr ?? hr ?? pace ?? getInferredIntensity(step)
+  }
 
   // Computed properties
   const workoutData = computed(() => {
@@ -360,6 +559,37 @@
       return { ...base, steps: previewSteps.value }
     }
     return base
+  })
+
+  const chartPreference = computed(() => {
+    const steps = workoutData.value?.steps || []
+    let hasHr = false
+    let hasPower = false
+    let hasPace = false
+
+    const hasValue = (obj: any) => {
+      if (!obj) return false
+      if (typeof obj.value === 'number') return true
+      if (obj.range && typeof obj.range.start === 'number' && typeof obj.range.end === 'number')
+        return true
+      return false
+    }
+
+    const visit = (nodes: any[]) => {
+      nodes.forEach((s: any) => {
+        if (hasValue(s.heartRate)) hasHr = true
+        if (hasValue(s.power)) hasPower = true
+        if (hasValue(s.pace)) hasPace = true
+        if (s.steps) visit(s.steps)
+      })
+    }
+    visit(steps)
+
+    return getWorkoutChartPreference(props.workout, props.sportSettings, {
+      hasHr,
+      hasPower,
+      hasPace
+    })
   })
 
   const effectiveSportSettings = computed(() =>
@@ -448,7 +678,7 @@
 
     // Use sport specific HR zones if available and preferred
     if (
-      props.preference === 'hr' &&
+      chartPreference.value === 'hr' &&
       effectiveSportSettings.value?.hrZones &&
       effectiveSportSettings.value.lthr
     ) {
@@ -462,7 +692,7 @@
         color: ZONE_COLORS[i] || '#9ca3af'
       }))
     } else if (
-      props.preference === 'pace' &&
+      chartPreference.value === 'pace' &&
       effectiveSportSettings.value?.paceZones &&
       effectiveSportSettings.value.thresholdPace
     ) {
@@ -495,7 +725,7 @@
   // Functions
   function getZoneSegmentTooltip(zone: any) {
     const percent = Math.round((zone.duration / totalDuration.value) * 100)
-    return `${zone.longName || zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${props.preference === 'hr' ? 'HR' : 'Power'})`
+    return `${zone.longName || zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${chartPreference.value === 'hr' ? 'HR' : 'Power'})`
   }
 
   function getHeartRateReference(): number {
@@ -767,6 +997,11 @@
     const flattened: any[] = []
 
     steps.forEach((step: any) => {
+      // Ensure the source step has a STABLE UID for interaction
+      if (!step.uid) {
+        step.uid = `step-${Math.random().toString(36).substring(7)}`
+      }
+
       const children = Array.isArray(step.steps) ? step.steps : []
       const hasChildren = children.length > 0
 
@@ -1027,6 +1262,90 @@
     return `${getZoneName(value)} HR`
   }
 
+  function getStepRange(step: any) {
+    const target = step.power || step.heartRate || step.pace
+    return target?.range
+  }
+
+  function normalizeTarget(
+    target: any
+  ):
+    | { value?: number; range?: { start: number; end: number }; ramp?: boolean; units?: string }
+    | undefined {
+    if (target === null || target === undefined) return undefined
+
+    if (Array.isArray(target)) {
+      if (target.length >= 2) {
+        return { range: { start: Number(target[0]) || 0, end: Number(target[1]) || 0 } }
+      }
+      if (target.length === 1) {
+        return { value: Number(target[0]) || 0 }
+      }
+      return undefined
+    }
+
+    if (typeof target === 'number') {
+      return { value: target }
+    }
+
+    if (typeof target === 'object') {
+      if (target.range && typeof target.range === 'object') {
+        return {
+          range: {
+            start: Number(target.range.start) || 0,
+            end: Number(target.range.end) || 0
+          },
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : target.range.units
+        }
+      }
+      if (target.start !== undefined && target.end !== undefined) {
+        return {
+          range: {
+            start: Number(target.start) || 0,
+            end: Number(target.end) || 0
+          },
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : undefined
+        }
+      }
+      if (target.value !== undefined) {
+        return {
+          value: Number(target.value) || 0,
+          units: typeof target.units === 'string' ? target.units : undefined
+        }
+      }
+    }
+
+    return undefined
+  }
+
+  function getInferredIntensity(step: any): number {
+    const power = getTargetValue(step.power)
+    if (power !== undefined) return power
+
+    const hr = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
+    if (hr !== undefined) return hr
+
+    const pace = getTargetValue(normalizeMetricTarget(step.pace, 'pace'))
+    if (pace !== undefined) return pace
+
+    if (step?.type === 'Rest') return 0.55
+    return 0.75
+  }
+
+  function getStepIntensity(step: any): number {
+    return getInferredIntensity(step)
+  }
+
+  function getStepColor(step: any): string {
+    const val = getStepIntensity(step)
+    const zone =
+      zoneDistribution.value.find((z) => val <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
+    return zone ? zone.color : '#9ca3af'
+  }
+
   function getStepIntensityLabel(step: any): string {
     const targetByMetric: Record<'hr' | 'power' | 'pace', any> = {
       hr: step.heartRate,
@@ -1035,9 +1354,9 @@
     }
 
     const orderedMetrics: ('hr' | 'power' | 'pace')[] =
-      props.preference === 'power'
+      chartPreference.value === 'power'
         ? ['power', 'hr', 'pace']
-        : props.preference === 'pace'
+        : chartPreference.value === 'pace'
           ? ['pace', 'hr', 'power']
           : ['hr', 'power', 'pace']
 
@@ -1047,7 +1366,7 @@
     }
 
     const preferenceUnit =
-      props.preference === 'hr' ? 'LTHR' : props.preference === 'pace' ? 'Pace' : 'FTP'
+      chartPreference.value === 'hr' ? 'LTHR' : chartPreference.value === 'pace' ? 'Pace' : 'FTP'
     return `${Math.round(getInferredIntensity(step) * 100)}% ${preferenceUnit}`
   }
 
@@ -1065,112 +1384,6 @@
       return `${Math.round(normalized.value * reference)} bpm`
     }
     return null
-  }
-
-  function getStepIntensity(step: any): number {
-    const hr = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
-    const pwr = getTargetValue(step.power)
-    const pace = getTargetValue(getRelativePaceTarget(step.pace))
-
-    if (props.preference === 'hr' && hr !== undefined) return hr
-    if (props.preference === 'pace' && pace !== undefined) return pace
-    if (props.preference === 'power' && pwr !== undefined) return pwr
-
-    // Final fallbacks
-    return pwr ?? hr ?? pace ?? getInferredIntensity(step)
-  }
-
-  function getInferredIntensity(step: any): number {
-    if (step.type === 'Rest' || step.type === 'Warmup' || step.type === 'Cooldown') return 0.6
-    return 0.8
-  }
-
-  function getStepContainerStyle(step: any) {
-    const width = ((step.durationSeconds || step.duration || 0) / totalDuration.value) * 100
-    return {
-      width: `${width}%`,
-      height: '100%',
-      minWidth: '2px'
-    }
-  }
-
-  function getStepRange(step: any) {
-    if (props.preference === 'hr') return normalizeMetricTarget(step.heartRate, 'hr')?.range
-    if (props.preference === 'pace') return getRelativePaceTarget(step.pace)?.range
-    if (props.preference === 'power') return step.power?.range
-    return (
-      normalizeMetricTarget(step.heartRate, 'hr')?.range ||
-      step.power?.range ||
-      getRelativePaceTarget(step.pace)?.range
-    )
-  }
-
-  function getStepRangeStyle(step: any) {
-    const range = getStepRange(step)
-    if (!range) return {}
-
-    const maxScale = chartMaxPower.value
-    const startH = (range.start / maxScale) * 100
-    const endH = (range.end / maxScale) * 100
-
-    // Ramp logic: Trapezoid from Start to End
-    if (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp) {
-      const startY = 100 - startH
-      const endY = 100 - endH
-      // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
-      return {
-        height: '100%',
-        bottom: '0%',
-        backgroundColor: getStepColor(getStepIntensity(step)),
-        opacity: 0.8, // More opaque for ramps
-        clipPath: `polygon(0% ${startY}%, 100% ${endY}%, 100% 100%, 0% 100%)`
-      }
-    }
-
-    // Range logic: Stacked Window
-    const height = Math.abs(endH - startH)
-    const bottom = Math.min(startH, endH)
-
-    return {
-      height: `${height}%`,
-      bottom: `${bottom}%`,
-      backgroundColor: getStepColor(getStepIntensity(step)),
-      opacity: 0.2 // Default opacity for ranges
-    }
-  }
-
-  function getStepBarStyle(step: any) {
-    const intensity = getStepIntensity(step)
-    const range = getStepRange(step)
-
-    if (range && (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp)) {
-      // Hide standard bar for ramps, as the "Range" element handles the full shape
-      return { height: '0%' }
-    }
-
-    const val = range ? range.start : intensity
-    const color = getStepColor(intensity)
-    const maxScale = chartMaxPower.value
-    const height = (val / maxScale) * 100
-
-    return {
-      height: `${height}%`,
-      backgroundColor: color
-    }
-  }
-
-  function getStepColor(intensity: number): string {
-    const zone =
-      zoneDistribution.value.find((z) => intensity <= z.max) ||
-      zoneDistribution.value[zoneDistribution.value.length - 1]
-    return zone ? zone.color : '#9ca3af'
-  }
-
-  function getZoneName(intensity: number): string {
-    const zone =
-      zoneDistribution.value.find((z) => intensity <= z.max) ||
-      zoneDistribution.value[zoneDistribution.value.length - 1]
-    return zone ? zone.name : '??'
   }
 
   function formatDuration(seconds: number): string {
