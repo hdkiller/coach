@@ -33,6 +33,9 @@
               >{{ t('nav.pricing_badge') }}</UBadge
             >
           </NuxtLink>
+          <NuxtLink to="/training-plans" class="hover:text-primary transition-colors">
+            Training Plans
+          </NuxtLink>
           <NuxtLink to="/works-with" class="hover:text-primary transition-colors">{{
             t('nav.integrations')
           }}</NuxtLink>
@@ -85,6 +88,11 @@
                   >
                 </NuxtLink>
                 <NuxtLink
+                  to="/training-plans"
+                  class="text-sm font-medium hover:text-primary transition-colors"
+                  >Training Plans</NuxtLink
+                >
+                <NuxtLink
                   to="/works-with"
                   class="text-sm font-medium hover:text-primary transition-colors"
                   >{{ t('nav.integrations') }}</NuxtLink
@@ -127,12 +135,4 @@
 
   const route = useRoute()
   const { t } = useTranslate('common')
-
-  // Landing page is always dark — no light mode support
-  const colorMode = useColorMode()
-  const prevPreference = colorMode.preference
-  colorMode.preference = 'dark'
-  onBeforeUnmount(() => {
-    colorMode.preference = prevPreference
-  })
 </script>
