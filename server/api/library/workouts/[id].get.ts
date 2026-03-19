@@ -16,6 +16,15 @@ export default defineEventHandler(async (event) => {
     where: {
       id,
       userId: session.user.id
+    },
+    include: {
+      folder: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true
+        }
+      }
     }
   })
 

@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
 
 const workoutTemplateUpdateSchema = z.object({
@@ -7,6 +8,7 @@ const workoutTemplateUpdateSchema = z.object({
   description: z.string().optional(),
   type: z.string().optional(),
   sport: z.string().optional(),
+  folderId: z.string().nullable().optional(),
   category: z.string().optional(),
   structuredWorkout: z.any().optional(),
   tags: z.array(z.string()).optional(),
@@ -40,11 +42,19 @@ export default defineEventHandler(async (event) => {
 
   const data = validation.data
 
+  if (data.folderId) {
+    const folder = await (prisma as any).workoutTemplateFolder.findFirst({
+      where: { id: data.folderId, userId }
+    })
+
+    if (!folder) {
+      throw createError({ statusCode: 404, message: 'Folder not found' })
+    }
+  }
+
   // Re-calculate duration if structure changed
   if (data.structuredWorkout?.steps && !data.durationSec) {
-    data.durationSec = data.structuredWorkout.steps.reduce((acc: number, step: any) => {
-      return acc + (step.duration || 0) * 60
-    }, 0)
+    data.durationSec = computeStructuredWorkoutDurationSec(data.structuredWorkout)
   }
 
   const template = await (prisma as any).workoutTemplate.update({
@@ -54,12 +64,22 @@ export default defineEventHandler(async (event) => {
       description: data.description,
       type: data.type,
       sport: data.sport,
+      folderId: data.folderId,
       category: data.category,
       structuredWorkout: data.structuredWorkout,
       tags: data.tags,
       durationSec: data.durationSec,
       tss: data.tss,
       workIntensity: data.workIntensity
+    },
+    include: {
+      folder: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true
+        }
+      }
     }
   })
 

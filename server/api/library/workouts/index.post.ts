@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
 
 const workoutTemplateSchema = z.object({
@@ -7,6 +8,7 @@ const workoutTemplateSchema = z.object({
   description: z.string().optional(),
   type: z.string().default('Ride'),
   sport: z.string().default('Cycling'),
+  folderId: z.string().nullable().optional(),
   category: z.string().optional(),
   structuredWorkout: z.any().optional(),
   tags: z.array(z.string()).optional(),
@@ -31,16 +33,25 @@ export default defineEventHandler(async (event) => {
 
   const data = validation.data
 
+  if (data.folderId) {
+    const folder = await (prisma as any).workoutTemplateFolder.findFirst({
+      where: { id: data.folderId, userId }
+    })
+
+    if (!folder) {
+      throw createError({ statusCode: 404, message: 'Folder not found' })
+    }
+  }
+
   // Calculate duration if steps are provided but duration isn't
   if (!data.durationSec && data.structuredWorkout?.steps) {
-    data.durationSec = data.structuredWorkout.steps.reduce((acc: number, step: any) => {
-      return acc + (step.duration || 0) * 60
-    }, 0)
+    data.durationSec = computeStructuredWorkoutDurationSec(data.structuredWorkout)
   }
 
   const template = await (prisma as any).workoutTemplate.create({
     data: {
       userId,
+      folderId: data.folderId ?? null,
       title: data.title,
       description: data.description,
       type: data.type,
@@ -51,6 +62,15 @@ export default defineEventHandler(async (event) => {
       durationSec: data.durationSec || 0,
       tss: data.tss,
       workIntensity: data.workIntensity
+    },
+    include: {
+      folder: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true
+        }
+      }
     }
   })
 

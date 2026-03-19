@@ -11,7 +11,16 @@ export default defineEventHandler(async (event) => {
 
   const templates = await (prisma as any).workoutTemplate.findMany({
     where: { userId },
-    orderBy: { updatedAt: 'desc' }
+    include: {
+      folder: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true
+        }
+      }
+    },
+    orderBy: [{ lastUsedAt: 'desc' }, { updatedAt: 'desc' }]
   })
 
   return templates

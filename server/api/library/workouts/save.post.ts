@@ -90,6 +90,15 @@ export default defineEventHandler(async (event) => {
         workIntensity: sourceData.workIntensity,
         structuredWorkout: sourceData.structuredWorkout,
         tags: tags || []
+      },
+      include: {
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            parentId: true
+          }
+        }
       }
     })
 
