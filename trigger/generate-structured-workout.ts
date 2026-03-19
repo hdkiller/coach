@@ -1440,7 +1440,7 @@ export const generateStructuredWorkoutTask = task({
       // WorkoutTemplate - Strictly filter fields
       const templateData = {
         structuredWorkout: structure as any,
-        durationSec: updateData.durationSec,
+        durationSec: totalDuration > 0 ? totalDuration : updateData.durationSec,
         tss: updateData.tss,
         workIntensity: updateData.workIntensity
       }

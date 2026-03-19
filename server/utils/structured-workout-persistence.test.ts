@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   normalizeStructuredWorkoutForPersistence,
+  computeStructuredWorkoutDurationSec,
   computeStructuredWorkoutMetrics
 } from './structured-workout-persistence'
 
@@ -77,5 +78,25 @@ describe('structured workout persistence', () => {
 
     expect(metrics.tss).toBe(20)
     expect(metrics.workIntensity).toBe(1.1)
+  })
+
+  it('computes recursive duration for repeated nested steps', () => {
+    const durationSec = computeStructuredWorkoutDurationSec({
+      steps: [
+        { type: 'Warmup', durationSeconds: 300 },
+        {
+          type: 'Active',
+          reps: 4,
+          steps: [
+            { type: 'Active', durationSeconds: 60 },
+            { type: 'Active', durationSeconds: 300 }
+          ]
+        },
+        { type: 'Active', durationSeconds: 600 },
+        { type: 'Cooldown', durationSeconds: 300 }
+      ]
+    })
+
+    expect(durationSec).toBe(2640)
   })
 })
