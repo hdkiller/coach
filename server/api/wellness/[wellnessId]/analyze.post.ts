@@ -9,16 +9,35 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
   await assertQuotaAllowed(userId, 'wellness_analysis')
 
-  const wellnessId = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
+  const param = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
 
-  if (!wellnessId) {
-    throw createError({ statusCode: 400, message: 'Wellness ID is required' })
+  if (!param) {
+    throw createError({ statusCode: 400, message: 'Parameter is required' })
   }
 
-  // Fetch the wellness record
-  const wellness = await prisma.wellness.findUnique({
-    where: { id: wellnessId }
-  })
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
+  let wellness: any = null
+
+  if (isUuid) {
+    // Fetch the wellness record by ID
+    wellness = await prisma.wellness.findUnique({
+      where: { id: param }
+    })
+  } else {
+    // Fetch the wellness record by Date
+    const date = new Date(param)
+    if (isNaN(date.getTime())) {
+      throw createError({ statusCode: 400, message: 'Invalid date format' })
+    }
+    wellness = await prisma.wellness.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date
+        }
+      }
+    })
+  }
 
   if (!wellness) {
     throw createError({ statusCode: 404, message: 'Wellness record not found' })
@@ -27,6 +46,8 @@ export default defineEventHandler(async (event) => {
   if (wellness.userId !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
+
+  const wellnessId = wellness.id
 
   // Update status to PROCESSING
   await prisma.wellness.update({

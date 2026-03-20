@@ -78,20 +78,38 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['health:write'])
-  const wellnessId = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
+  const param = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
 
-  if (!wellnessId) {
+  if (!param) {
     throw createError({
       statusCode: 400,
-      message: 'Wellness ID is required'
+      message: 'Parameter is required'
     })
   }
 
-  const body = normalizeWellnessFields(await readValidatedBody(event, (b) => patchSchema.parse(b)))
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
+  let wellness: any = null
 
-  const wellness = await prisma.wellness.findUnique({
-    where: { id: wellnessId }
-  })
+  if (isUuid) {
+    // Fetch the wellness record by ID
+    wellness = await prisma.wellness.findUnique({
+      where: { id: param }
+    })
+  } else {
+    // Fetch the wellness record by Date
+    const date = new Date(param)
+    if (isNaN(date.getTime())) {
+      throw createError({ statusCode: 400, message: 'Invalid date format' })
+    }
+    wellness = await prisma.wellness.findUnique({
+      where: {
+        userId_date: {
+          userId: user.id,
+          date
+        }
+      }
+    })
+  }
 
   if (!wellness || wellness.userId !== user.id) {
     throw createError({
@@ -99,6 +117,10 @@ export default defineEventHandler(async (event) => {
       message: 'Wellness record not found'
     })
   }
+
+  const wellnessId = wellness.id
+
+  const body = normalizeWellnessFields(await readValidatedBody(event, (b) => patchSchema.parse(b)))
 
   const incomingData: Record<string, any> = {}
 

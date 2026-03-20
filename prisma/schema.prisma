@@ -23,6 +23,7 @@ model User {
   nutritionComplianceScore           Int?
   trainingConsistencyScore           Int?
   profileLastUpdated                 DateTime?
+  personalBestsBackfilledAt          DateTime?
   currentFitnessExplanation          String?
   recoveryCapacityExplanation        String?
   nutritionComplianceExplanation     String?
