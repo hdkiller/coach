@@ -128,12 +128,15 @@
 </template>
 
 <script setup lang="ts">
+  import { useAppLogout } from '#imports'
+
   definePageMeta({
     layout: 'simple',
     middleware: 'oauth-auth'
   })
 
-  const { data: authData, signOut } = useAuth()
+  const { data: authData } = useAuth()
+  const { logout } = useAppLogout()
   const route = useRoute()
 
   const user = computed(() => authData.value?.user)
@@ -240,7 +243,7 @@
       query: newQuery
     }).fullPath
 
-    await signOut({ callbackUrl })
+    await logout(callbackUrl)
   }
 
   async function fetchAppDetails() {

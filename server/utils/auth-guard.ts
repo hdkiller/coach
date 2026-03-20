@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { oauthRepository } from './repositories/oauthRepository'
 import { validateApiKey } from './auth-api-key'
-import { getServerSession } from '#auth'
+import { getServerSession } from './session'
 import { prisma } from './db'
 
 /**
@@ -55,6 +55,7 @@ export async function requireAuth(event: H3Event, requiredScopes?: string[]) {
     })
     if (user) {
       event.context.user = user
+      event.context.session = session
       event.context.authType = 'session'
       return user
     }

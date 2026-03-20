@@ -471,8 +471,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useAppLogout } from '#imports'
+
   const toast = useToast()
-  const { signOut } = useAuth()
+  const { logout } = useAppLogout()
   const coachingStore = useCoachingStore()
   const clearingSchedule = ref(false)
   const clearingPastSchedule = ref(false)
@@ -780,7 +782,7 @@
       })
 
       // Give a moment for the toast to be seen? No, just sign out.
-      await signOut({ callbackUrl: '/login' })
+      await logout('/login')
     } catch (error) {
       console.error('Failed to delete account', error)
       toast.add({

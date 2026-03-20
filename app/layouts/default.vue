@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useTranslate, useTolgee } from '@tolgee/vue'
   import type { NavigationMenuItem } from '@nuxt/ui'
+  import { useAppLogout } from '#imports'
 
   const { t } = useTranslate('common')
   const tolgee = useTolgee()
@@ -18,7 +19,8 @@
   )
 
   const config = useRuntimeConfig()
-  const { data, signOut, refresh } = useAuth()
+  const { data, refresh } = useAuth()
+  const { logout } = useAppLogout()
   const user = computed(() => data.value?.user)
   const toast = useToast()
   const stoppingImpersonation = ref(false)
@@ -199,10 +201,42 @@
       {
         label: ready ? t.value('navigation_coaching') : 'Coaching',
         icon: 'i-lucide-users',
-        to: '/coaching',
-        onSelect: () => {
-          open.value = false
-        }
+        defaultOpen: route.path.startsWith('/coaching'),
+        children: [
+          {
+            label: 'Overview',
+            icon: 'i-lucide-layout-dashboard',
+            to: '/coaching',
+            exact: true,
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Calendar',
+            icon: 'i-lucide-calendar-days',
+            to: '/coaching/calendar',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Athletes',
+            icon: 'i-lucide-users-round',
+            to: '/coaching/athletes',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Team',
+            icon: 'i-lucide-building-2',
+            to: '/coaching/team',
+            onSelect: () => {
+              open.value = false
+            }
+          }
+        ]
       },
       {
         label: ready ? t.value('navigation_chat') : 'AI Chat',
@@ -843,7 +877,7 @@
                 size="xs"
                 :padded="false"
                 class="p-0 h-auto font-normal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                @click="signOut({ callbackUrl: '/login' })"
+                @click="logout('/login')"
               >
                 {{ isTReady ? t('navigation_admin_nav_sign_out') : 'Sign out' }}
               </UButton>

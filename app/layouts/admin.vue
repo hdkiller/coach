@@ -1,5 +1,8 @@
 <script setup lang="ts">
-  const { data, signOut } = useAuth()
+  import { useAppLogout } from '#imports'
+
+  const { data } = useAuth()
+  const { logout } = useAppLogout()
   const user = computed(() => data.value?.user)
   const route = useRoute()
   const config = useRuntimeConfig()
@@ -402,7 +405,7 @@
                 size="xs"
                 :padded="false"
                 class="p-0 h-auto font-normal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                @click="signOut({ callbackUrl: '/login' })"
+                @click="logout('/login')"
               >
                 Sign out
               </UButton>
