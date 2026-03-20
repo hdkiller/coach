@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { recommendationRepository } from '../../utils/repositories/recommendationRepository'
 
@@ -22,10 +22,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const user = await requireAuth(event, ['recommendation:read'])
 
   const query = getQuery(event)
   const status = query.status as string | undefined
@@ -34,9 +31,6 @@ export default defineEventHandler(async (event) => {
   const category = query.category as string | undefined
   const sourceType = query.sourceType as string | undefined
   const limit = parseInt(query.limit as string) || 50
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' })
 
   const recommendations = await recommendationRepository.list(user.id, {
     status,

@@ -1,6 +1,5 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
-import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { requireAuth } from '../../utils/auth-guard'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
 import { parseTagQueryParam } from '../../utils/workout-tags'
@@ -137,31 +136,13 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['performance:read'])
 
   const query = getQuery(event)
-  const userId = (session.user as any).id
+  const userId = user.id
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
   const tags = parseTagQueryParam(query.tags)
   const sportTypeWhere = buildSportTypeWhere(sport)
-
-  // Get user
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found'
-    })
-  }
 
   // Calculate date range
   const endDate = new Date()

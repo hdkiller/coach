@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 
@@ -39,16 +39,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['plan:read'])
+  const userId = user.id
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)
 

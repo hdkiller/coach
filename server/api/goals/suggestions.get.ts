@@ -1,7 +1,8 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { runs } from '@trigger.dev/sdk/v3'
 
 defineRouteMeta({
+  // ... (omitting openAPI for brevity)
   openAPI: {
     tags: ['Goals'],
     summary: 'Get goal suggestions',
@@ -38,14 +39,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['goal:read'])
+  const userId = user.id
 
   const query = getQuery(event)
   const jobId = query.jobId as string

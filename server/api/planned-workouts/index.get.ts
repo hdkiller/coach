@@ -1,4 +1,5 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
+import { getEffectiveUserId } from '../../utils/coaching'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
@@ -58,22 +59,14 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  await requireAuth(event, ['workout:read'])
+  const userId = await getEffectiveUserId(event)
 
   const query = getQuery(event)
   const limit = query.limit ? parseInt(query.limit as string) : undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : new Date()
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   const independentOnly = query.independentOnly === 'true'
-
-  const userId = (session.user as any).id
 
   const plannedWorkouts = await plannedWorkoutRepository.list(userId, {
     startDate,

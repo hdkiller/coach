@@ -1,5 +1,55 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
+import { pbDetectionService } from '../../utils/services/pbDetectionService'
+
+const personalBestSelect = {
+  id: true,
+  type: true,
+  category: true,
+  value: true,
+  unit: true,
+  date: true,
+  workoutId: true,
+  metadata: true,
+  workout: {
+    select: {
+      averageHr: true,
+      averageCadence: true
+    }
+  }
+} as const
+
+async function ensurePersonalBestsBackfilled(userId: string) {
+  const workouts = await prisma.workout.findMany({
+    where: {
+      userId,
+      isDuplicate: false,
+      streams: { isNot: null }
+    },
+    orderBy: { date: 'asc' },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      date: true,
+      elevationGain: true,
+      averageHr: true,
+      averageCadence: true,
+      maxHr: true,
+      maxCadence: true,
+      streams: true
+    }
+  })
+
+  for (const workout of workouts) {
+    await pbDetectionService.detectPBs(workout, prisma)
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { personalBestsBackfilledAt: new Date() }
+  })
+}
 
 defineRouteMeta({
   openAPI: {
@@ -47,17 +97,10 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const authUser = await requireAuth(event, ['performance:read'])
 
   const user = (await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: authUser.id },
     select: {
       id: true,
       name: true,
@@ -65,6 +108,7 @@ export default defineEventHandler(async (event) => {
       weight: true,
       maxHr: true,
       nutritionTrackingEnabled: true,
+      personalBestsBackfilledAt: true,
       currentFitnessScore: true,
       recoveryCapacityScore: true,
       nutritionComplianceScore: true,
@@ -79,22 +123,7 @@ export default defineEventHandler(async (event) => {
       nutritionComplianceExplanationJson: true,
       trainingConsistencyExplanationJson: true,
       personalBests: {
-        select: {
-          id: true,
-          type: true,
-          category: true,
-          value: true,
-          unit: true,
-          date: true,
-          workoutId: true,
-          metadata: true,
-          workout: {
-            select: {
-              averageHr: true,
-              averageCadence: true
-            }
-          }
-        },
+        select: personalBestSelect,
         orderBy: { type: 'asc' }
       }
     }
@@ -105,6 +134,22 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: 'User not found'
     })
+  }
+
+  if (!user.personalBestsBackfilledAt) {
+    try {
+      await ensurePersonalBestsBackfilled(user.id)
+      user.personalBests = await prisma.personalBest.findMany({
+        where: { userId: user.id },
+        select: personalBestSelect,
+        orderBy: { type: 'asc' }
+      })
+    } catch (error) {
+      console.warn('Failed to backfill personal bests during athlete profile load', {
+        userId: user.id,
+        error
+      })
+    }
   }
 
   // Fetch historical scores from reports

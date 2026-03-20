@@ -1,6 +1,5 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
-import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { requireAuth } from '../../utils/auth-guard'
 import { userRepository } from '../../utils/repositories/userRepository'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../utils/date'
@@ -58,22 +57,11 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['performance:read'])
 
   const query = getQuery(event)
   const months = parseInt(query.months as string) || 12
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' })
   const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
     weight: user.weight,
     weightSourceMode: (user as any).weightSourceMode,

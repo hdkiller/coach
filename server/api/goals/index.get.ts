@@ -1,7 +1,8 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 defineRouteMeta({
+  // ... (omitting openAPI for brevity in replacement, but I must provide exact literal text)
   openAPI: {
     tags: ['Goals'],
     summary: 'List user goals',
@@ -43,18 +44,11 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized'
-    })
-  }
+  const userAuth = await requireAuth(event, ['goal:read'])
 
   try {
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: userAuth.id },
       include: {
         goals: {
           orderBy: { createdAt: 'desc' },

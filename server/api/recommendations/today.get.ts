@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { prisma } from '../../utils/db'
 import { activityRecommendationRepository } from '../../utils/repositories/activityRecommendationRepository'
@@ -37,16 +37,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const user = await requireAuth(event, ['recommendation:read'])
 
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const userId = user.id
 
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)

@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 
@@ -55,14 +55,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['performance:read'])
 
   const query = getQuery(event)
   const { type, period, metric } = query as {
@@ -83,17 +76,6 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'Period must be a number'
-    })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found'
     })
   }
 

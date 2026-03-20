@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getStartOfYearUTC, getUserLocalDate } from '../../utils/date'
 import type { PMCMetrics } from '../../utils/training-stress'
 import {
@@ -64,18 +64,11 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['performance:read'])
 
   const query = getQuery(event)
   const days = parseInt(query.days as string) || 90
-  const userId = (session.user as any).id
+  const userId = user.id
   const timezone = await getUserTimezone(userId)
 
   // Get current fitness summary first to determine the true end date

@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { availabilityRepository } from '../../utils/repositories/availabilityRepository'
 
 defineRouteMeta({
@@ -58,16 +58,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['availability:write'])
+  const userId = user.id
   const body = await readBody(event)
 
   // Validate input

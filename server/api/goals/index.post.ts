@@ -1,7 +1,8 @@
 import { z } from 'zod'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
+  // ... (omitting openAPI for brevity)
   openAPI: {
     tags: ['Goals'],
     summary: 'Create goal',
@@ -102,14 +103,7 @@ const goalSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['goal:write'])
 
   const body = await readBody(event)
   const result = goalSchema.safeParse(body)
@@ -136,17 +130,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'User not found'
-      })
-    }
-
     // Handle Event creation/linkage
     const eventsToConnect: { id: string }[] = []
 

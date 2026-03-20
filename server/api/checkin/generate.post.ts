@@ -1,3 +1,4 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { dailyCheckinRepository } from '../../utils/repositories/dailyCheckinRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { tasks } from '@trigger.dev/sdk/v3'
@@ -6,12 +7,8 @@ import { assertQuotaAllowed } from '../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = session.user.id
+  const user = await requireAuth(event, ['health:write'])
+  const userId = user.id
   // 0. Quota Check
   await assertQuotaAllowed(userId, 'daily_checkin')
 
