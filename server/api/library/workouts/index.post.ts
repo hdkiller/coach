@@ -2,6 +2,12 @@ import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
+import {
+  annotateLibraryOwner,
+  getLibraryAccessContext,
+  getWritableLibraryOwnerId,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 const workoutTemplateSchema = z.object({
   title: z.string().min(1),
@@ -14,7 +20,8 @@ const workoutTemplateSchema = z.object({
   tags: z.array(z.string()).optional(),
   durationSec: z.number().int().optional(),
   tss: z.number().optional(),
-  workIntensity: z.number().optional()
+  workIntensity: z.number().optional(),
+  ownerScope: z.enum(['athlete', 'coach']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -23,7 +30,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const userId = session.user.id
+  const context = getLibraryAccessContext(session.user)
   const body = await readBody(event)
 
   const validation = workoutTemplateSchema.safeParse(body)
@@ -32,10 +39,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = validation.data
+  const ownerUserId = getWritableLibraryOwnerId(
+    context,
+    parseLibraryScope(data.ownerScope, 'coach')
+  )
 
   if (data.folderId) {
     const folder = await (prisma as any).workoutTemplateFolder.findFirst({
-      where: { id: data.folderId, userId }
+      where: { id: data.folderId, userId: ownerUserId }
     })
 
     if (!folder) {
@@ -50,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
   const template = await (prisma as any).workoutTemplate.create({
     data: {
-      userId,
+      userId: ownerUserId,
       folderId: data.folderId ?? null,
       title: data.title,
       description: data.description,
@@ -74,5 +85,5 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  return template
+  return annotateLibraryOwner(context, template)
 })

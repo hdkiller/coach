@@ -1,10 +1,16 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { z } from 'zod'
+import {
+  getLibraryAccessContext,
+  getWritableLibraryOwnerId,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 const bulkMoveSchema = z.object({
   templateIds: z.array(z.string()).min(1),
-  folderId: z.string().nullable()
+  folderId: z.string().nullable(),
+  ownerScope: z.enum(['athlete', 'coach']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -18,12 +24,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: validation.error.message })
   }
 
-  const userId = session.user.id
-  const { templateIds, folderId } = validation.data
+  const context = getLibraryAccessContext(session.user)
+  const { templateIds, folderId, ownerScope } = validation.data
+  const ownerUserId = getWritableLibraryOwnerId(context, parseLibraryScope(ownerScope, 'coach'))
 
   if (folderId) {
     const folder = await (prisma as any).workoutTemplateFolder.findFirst({
-      where: { id: folderId, userId }
+      where: { id: folderId, userId: ownerUserId }
     })
 
     if (!folder) {
@@ -33,7 +40,7 @@ export default defineEventHandler(async (event) => {
 
   await (prisma as any).workoutTemplate.updateMany({
     where: {
-      userId,
+      userId: ownerUserId,
       id: {
         in: templateIds
       }

@@ -1,5 +1,11 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import {
+  annotateLibraryOwner,
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -12,10 +18,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing workout template ID' })
   }
 
-  const template = await (prisma as any).workoutTemplate.findUnique({
+  const context = getLibraryAccessContext(session.user)
+  const scope = parseLibraryScope(getQuery(event).scope, context.isCoaching ? 'all' : 'athlete')
+  const ownerIds = getReadableLibraryOwnerIds(context, scope)
+
+  const template = await (prisma as any).workoutTemplate.findFirst({
     where: {
       id,
-      userId: session.user.id
+      userId: { in: ownerIds }
     },
     include: {
       folder: {
@@ -34,12 +44,12 @@ export default defineEventHandler(async (event) => {
 
   // Get user FTP for scaling/display
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: context.effectiveUserId },
     select: { ftp: true, lthr: true }
   })
 
   return {
-    template,
+    template: annotateLibraryOwner(context, template),
     userFtp: user?.ftp,
     userLthr: user?.lthr
   }

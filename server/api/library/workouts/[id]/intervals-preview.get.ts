@@ -2,6 +2,11 @@ import { prisma } from '../../../../utils/db'
 import { getServerSession } from '../../../../utils/session'
 import { WorkoutConverter } from '../../../../utils/workout-converter'
 import { sportSettingsRepository } from '../../../../utils/repositories/sportSettingsRepository'
+import {
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../../utils/library-access'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -14,10 +19,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Workout ID is required' })
   }
 
-  const userId = (session.user as any).id
+  const context = getLibraryAccessContext(session.user as any)
+  const scope = parseLibraryScope(getQuery(event).scope, context.isCoaching ? 'all' : 'athlete')
 
-  const template = await (prisma as any).workoutTemplate.findUnique({
-    where: { id, userId }
+  const template = await (prisma as any).workoutTemplate.findFirst({
+    where: { id, userId: { in: getReadableLibraryOwnerIds(context, scope) } }
   })
 
   if (!template) {
@@ -29,12 +35,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: context.effectiveUserId },
     select: { ftp: true }
   })
 
   const sportSettings = await sportSettingsRepository.getForActivityType(
-    userId,
+    context.effectiveUserId,
     template.type || ''
   )
 

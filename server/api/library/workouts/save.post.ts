@@ -1,6 +1,12 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { z } from 'zod'
+import {
+  annotateLibraryOwner,
+  getLibraryAccessContext,
+  getWritableLibraryOwnerId,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 const saveTemplateSchema = z.object({
   plannedWorkoutId: z.string().optional(),
@@ -8,7 +14,8 @@ const saveTemplateSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   category: z.string().optional(),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
+  ownerScope: z.enum(['athlete', 'coach']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +24,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const userId = session.user.id
+  const context = getLibraryAccessContext(session.user)
+  const userId = context.effectiveUserId
   const body = await readBody(event)
 
   const validation = saveTemplateSchema.safeParse(body)
@@ -25,7 +33,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: validation.error.message })
   }
 
-  const { plannedWorkoutId, workoutId, title, description, category, tags } = validation.data
+  const { plannedWorkoutId, workoutId, title, description, category, tags, ownerScope } =
+    validation.data
+  const ownerUserId = getWritableLibraryOwnerId(context, parseLibraryScope(ownerScope, 'coach'))
 
   let sourceData: any = null
 
@@ -80,7 +90,7 @@ export default defineEventHandler(async (event) => {
   return await prisma.$transaction(async (tx) => {
     const template = await (tx as any).workoutTemplate.create({
       data: {
-        userId,
+        userId: ownerUserId,
         title: sourceData.title,
         description: sourceData.description,
         type: sourceData.type || 'Ride',
@@ -105,7 +115,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       templateId: template.id,
-      template
+      template: annotateLibraryOwner(context, template)
     }
   })
 })

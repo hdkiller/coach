@@ -2,6 +2,12 @@ import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
+import {
+  annotateLibraryOwner,
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 const workoutTemplateUpdateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -14,7 +20,8 @@ const workoutTemplateUpdateSchema = z.object({
   tags: z.array(z.string()).optional(),
   durationSec: z.number().int().optional(),
   tss: z.number().optional(),
-  workIntensity: z.number().optional()
+  workIntensity: z.number().optional(),
+  ownerScope: z.enum(['athlete', 'coach']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +31,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const id = getRouterParam(event, 'id')
-  const userId = session.user.id
+  const context = getLibraryAccessContext(session.user)
   const body = await readBody(event)
 
   const validation = workoutTemplateUpdateSchema.safeParse(body)
@@ -32,8 +39,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: validation.error.message })
   }
 
-  const existing = await (prisma as any).workoutTemplate.findUnique({
-    where: { id, userId }
+  const existing = await (prisma as any).workoutTemplate.findFirst({
+    where: {
+      id,
+      userId: {
+        in: getReadableLibraryOwnerIds(
+          context,
+          parseLibraryScope(validation.data.ownerScope, context.isCoaching ? 'all' : 'athlete')
+        )
+      }
+    }
   })
 
   if (!existing) {
@@ -41,10 +56,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = validation.data
+  const ownerUserId = existing.userId
 
   if (data.folderId) {
     const folder = await (prisma as any).workoutTemplateFolder.findFirst({
-      where: { id: data.folderId, userId }
+      where: { id: data.folderId, userId: ownerUserId }
     })
 
     if (!folder) {
@@ -58,7 +74,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const template = await (prisma as any).workoutTemplate.update({
-    where: { id, userId },
+    where: { id: existing.id },
     data: {
       title: data.title,
       description: data.description,
@@ -83,5 +99,5 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  return template
+  return annotateLibraryOwner(context, template)
 })

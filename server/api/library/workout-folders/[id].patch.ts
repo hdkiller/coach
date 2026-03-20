@@ -2,11 +2,17 @@ import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { z } from 'zod'
 import { isWorkoutTemplateFolderDescendant } from '../../../utils/workout-template-folders'
+import {
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 const updateFolderSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   parentId: z.string().nullable().optional(),
-  beforeId: z.string().nullable().optional()
+  beforeId: z.string().nullable().optional(),
+  ownerScope: z.enum(['athlete', 'coach']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -25,19 +31,24 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: validation.error.message })
   }
 
-  const userId = session.user.id
-  const { name, parentId, beforeId } = validation.data
+  const context = getLibraryAccessContext(session.user)
+  const { name, parentId, beforeId, ownerScope } = validation.data
+  const ownerIds = getReadableLibraryOwnerIds(
+    context,
+    parseLibraryScope(ownerScope, context.isCoaching ? 'all' : 'athlete')
+  )
 
   const existing = await (prisma as any).workoutTemplateFolder.findFirst({
-    where: { id, userId }
+    where: { id, userId: { in: ownerIds } }
   })
 
   if (!existing) {
     throw createError({ statusCode: 404, message: 'Folder not found' })
   }
 
+  const ownerUserId = existing.userId
   const allFolders = await (prisma as any).workoutTemplateFolder.findMany({
-    where: { userId },
+    where: { userId: ownerUserId },
     select: { id: true, parentId: true }
   })
 
@@ -53,7 +64,7 @@ export default defineEventHandler(async (event) => {
 
   if (parentId) {
     const parent = await (prisma as any).workoutTemplateFolder.findFirst({
-      where: { id: parentId, userId }
+      where: { id: parentId, userId: ownerUserId }
     })
 
     if (!parent) {
@@ -63,7 +74,7 @@ export default defineEventHandler(async (event) => {
 
   if (beforeId) {
     const beforeFolder = await (prisma as any).workoutTemplateFolder.findFirst({
-      where: { id: beforeId, userId }
+      where: { id: beforeId, userId: ownerUserId }
     })
 
     if (!beforeFolder) {
@@ -88,7 +99,7 @@ export default defineEventHandler(async (event) => {
 
     const siblings = await (tx as any).workoutTemplateFolder.findMany({
       where: {
-        userId,
+        userId: ownerUserId,
         parentId: nextParentId
       },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }]
@@ -119,7 +130,7 @@ export default defineEventHandler(async (event) => {
 
     const previousSiblings = await (tx as any).workoutTemplateFolder.findMany({
       where: {
-        userId,
+        userId: ownerUserId,
         parentId: existing.parentId
       },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }]
@@ -137,7 +148,7 @@ export default defineEventHandler(async (event) => {
     )
 
     return (tx as any).workoutTemplateFolder.findFirst({
-      where: { id: existing.id, userId }
+      where: { id: existing.id, userId: ownerUserId }
     })
   })
 

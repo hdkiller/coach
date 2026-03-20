@@ -1,5 +1,10 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import {
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -12,24 +17,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing folder ID' })
   }
 
-  const userId = session.user.id
+  const context = getLibraryAccessContext(session.user)
+  const scope = parseLibraryScope(getQuery(event).scope, context.isCoaching ? 'all' : 'athlete')
 
   const existing = await (prisma as any).workoutTemplateFolder.findFirst({
-    where: { id, userId }
+    where: { id, userId: { in: getReadableLibraryOwnerIds(context, scope) } }
   })
 
   if (!existing) {
     throw createError({ statusCode: 404, message: 'Folder not found' })
   }
 
+  const ownerUserId = existing.userId
   await prisma.$transaction(async (tx) => {
     await (tx as any).workoutTemplate.updateMany({
-      where: { userId, folderId: id },
+      where: { userId: ownerUserId, folderId: id },
       data: { folderId: null }
     })
 
     await (tx as any).workoutTemplateFolder.updateMany({
-      where: { userId, parentId: id },
+      where: { userId: ownerUserId, parentId: id },
       data: { parentId: existing.parentId }
     })
 
@@ -39,7 +46,7 @@ export default defineEventHandler(async (event) => {
 
     const siblings = await (tx as any).workoutTemplateFolder.findMany({
       where: {
-        userId,
+        userId: ownerUserId,
         parentId: existing.parentId
       },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }]

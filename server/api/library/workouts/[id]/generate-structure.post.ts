@@ -1,6 +1,11 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
+import {
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../../utils/library-access'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -13,10 +18,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing workout template ID' })
   }
 
-  const template = await (prisma as any).workoutTemplate.findUnique({
+  const context = getLibraryAccessContext(session.user)
+  const scope = parseLibraryScope(getQuery(event).scope, context.isCoaching ? 'all' : 'athlete')
+
+  const template = await (prisma as any).workoutTemplate.findFirst({
     where: {
       id,
-      userId: session.user.id
+      userId: { in: getReadableLibraryOwnerIds(context, scope) }
     }
   })
 
@@ -30,8 +38,8 @@ export default defineEventHandler(async (event) => {
       workoutTemplateId: id
     },
     {
-      tags: [`user:${session.user.id}`, `workout-template:${id}`],
-      concurrencyKey: session.user.id
+      tags: [`user:${template.userId}`, `workout-template:${id}`],
+      concurrencyKey: template.userId
     }
   )
 

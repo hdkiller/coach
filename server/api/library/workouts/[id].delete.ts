@@ -1,5 +1,10 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import {
+  getLibraryAccessContext,
+  getReadableLibraryOwnerIds,
+  parseLibraryScope
+} from '../../../utils/library-access'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -8,10 +13,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const id = getRouterParam(event, 'id')
-  const userId = session.user.id
+  const context = getLibraryAccessContext(session.user)
+  const scope = parseLibraryScope(getQuery(event).scope, context.isCoaching ? 'all' : 'athlete')
 
-  const template = await (prisma as any).workoutTemplate.findUnique({
-    where: { id, userId }
+  const template = await (prisma as any).workoutTemplate.findFirst({
+    where: {
+      id,
+      userId: { in: getReadableLibraryOwnerIds(context, scope) }
+    }
   })
 
   if (!template) {
@@ -19,7 +28,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await (prisma as any).workoutTemplate.delete({
-    where: { id, userId }
+    where: { id: template.id }
   })
 
   return { success: true }
