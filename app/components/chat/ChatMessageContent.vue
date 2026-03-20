@@ -185,7 +185,14 @@
 
   const toMdcSafeText = (value: unknown) => {
     if (typeof value !== 'string') return ''
-    return value.replaceAll('{{', '&#123;&#123;').replaceAll('}}', '&#125;&#125;')
+    // Escape Vue-style double curly braces to prevent MDC from trying to evaluate them
+    let sanitized = value.replaceAll('{{', '&#123;&#123;').replaceAll('}}', '&#125;&#125;')
+    // Ensure code blocks are properly closed to avoid MDC parsing errors (basic check)
+    const codeBlockCount = (sanitized.match(/```/g) || []).length
+    if (codeBlockCount % 2 !== 0) {
+      sanitized += '\n```'
+    }
+    return sanitized
   }
 
   const isImageFile = (part: any) =>
@@ -213,7 +220,10 @@
       class="message-part"
     >
       <!-- Text Part -->
-      <div v-if="part.type === 'text' && part.text" class="relative group/message max-w-none">
+      <div
+        v-if="part.type === 'text' && part.text && part.text.trim()"
+        class="relative group/message max-w-none"
+      >
         <div
           class="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p]:leading-7 [&_p]:text-pretty"
         >

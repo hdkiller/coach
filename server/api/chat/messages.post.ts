@@ -4,11 +4,10 @@ import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
 import { chatService } from '../../utils/services/chatService'
 import { chatTurnService } from '../../utils/services/chatTurnService'
-import { getServerSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['chat:write'])
-  const session = await getServerSession(event)
+  const session = event.context.session
   const userId = user.id
 
   try {

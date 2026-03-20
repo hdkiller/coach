@@ -1249,7 +1249,7 @@
     if (!calendarResponse.value) return []
     const { activities: rawActivities, nutritionByDate, wellnessByDate } = calendarResponse.value
 
-    return rawActivities.map((a: any) => {
+    return (Array.isArray(rawActivities) ? rawActivities : []).map((a: any) => {
       const dateKey = getCalendarActivityDateKey(a, timezone.value)
       return {
         ...a,
@@ -1442,7 +1442,8 @@
       const day = new Date(dayIterator)
 
       const dayStr = formatDateUTC(day, 'yyyy-MM-dd')
-      const dayActivities = (activities.value || []).filter((a) => {
+      const currentActivities = Array.isArray(activities.value) ? activities.value : []
+      const dayActivities = currentActivities.filter((a) => {
         if (a.source === 'note') {
           const noteStart = formatDateUTC(a.date, 'yyyy-MM-dd')
           const noteEnd = a.displayEndDate
@@ -2344,10 +2345,11 @@
   })
 
   const sortedActivities = computed(() => {
-    if (!activities.value) return []
+    const list = Array.isArray(activities.value) ? activities.value : []
+    if (list.length === 0) return []
 
     // Filter out wellness dummy entries from the list view
-    let result = activities.value.filter((a) => a.type !== 'wellness')
+    let result = list.filter((a) => a.type !== 'wellness')
 
     result = [...result].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -2475,11 +2477,13 @@
   }
 
   const unlinkedCompletedWorkouts = computed(() => {
-    return (activities.value || []).filter((a) => a.source === 'completed' && !a.plannedWorkoutId)
+    const list = Array.isArray(activities.value) ? activities.value : []
+    return list.filter((a) => a.source === 'completed' && !a.plannedWorkoutId)
   })
 
   const unlinkedPlannedWorkouts = computed(() => {
-    return (activities.value || []).filter((a) => a.source === 'planned' && a.status === 'missed')
+    const list = Array.isArray(activities.value) ? activities.value : []
+    return list.filter((a) => a.source === 'planned' && a.status === 'missed')
   })
 </script>
 
