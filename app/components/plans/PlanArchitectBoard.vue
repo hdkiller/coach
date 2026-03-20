@@ -65,13 +65,13 @@
         </div>
       </div>
 
-      <div v-if="!isCollapsed(block.id)" class="p-4 sm:p-6">
-        <div class="space-y-4 lg:hidden">
+      <div v-if="!isCollapsed(block.id)" class="p-0 sm:p-6">
+        <div class="space-y-0 lg:hidden sm:space-y-4">
           <article
             v-for="week in orderedWeeks(block)"
             :id="`architect-week-${week.id}`"
             :key="`${block.id}-${week.id}-mobile`"
-            class="relative overflow-hidden rounded-2xl border border-default/80 bg-default"
+            class="relative overflow-hidden rounded-none border-y border-default/80 bg-default sm:rounded-2xl sm:border"
             :class="getWeekRowSurface(week)"
           >
             <div
@@ -133,7 +133,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-3">
               <div
                 v-for="dayIndex in 7"
                 :key="`${week.id}-${dayIndex - 1}-mobile`"

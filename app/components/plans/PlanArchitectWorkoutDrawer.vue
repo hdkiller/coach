@@ -1,5 +1,9 @@
 <template>
-  <div class="fixed inset-x-0 bottom-0 z-[70] sm:inset-x-4 sm:bottom-4">
+  <div
+    v-bind="rootAttrs"
+    class="fixed inset-x-0 bottom-0 z-[70] sm:inset-x-4 sm:bottom-4"
+    :class="attrs.class"
+  >
     <div
       class="overflow-hidden rounded-t-3xl border-x-0 border-t border-default/80 bg-default/95 shadow-2xl backdrop-blur sm:rounded-3xl sm:border"
     >
@@ -15,20 +19,20 @@
       </div>
 
       <button
-        class="flex w-full items-center justify-between gap-3 border-b border-default/70 px-4 py-3 text-left"
+        class="hidden w-full items-center justify-between gap-3 border-b border-default/70 px-4 py-3 text-left sm:flex sm:py-3.5"
         @click="$emit('toggle')"
       >
         <div class="flex min-w-0 items-center gap-3">
           <div
-            class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            class="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:h-8 sm:w-8 sm:rounded-xl"
           >
             <UIcon name="i-heroicons-rectangle-stack" class="h-4 w-4" />
           </div>
-          <div class="min-w-0">
+          <div class="hidden min-w-0 sm:block">
             <div class="text-[10px] font-black uppercase tracking-[0.22em] text-primary/80">
               Library Drawer
             </div>
-            <div class="truncate text-sm font-semibold text-highlighted">
+            <div class="truncate text-base font-semibold text-highlighted sm:text-sm">
               Drag items from {{ selectedFolderLabel.toLowerCase() }}
             </div>
           </div>
@@ -39,7 +43,7 @@
           <span class="text-xs text-muted sm:hidden">{{ templates.length }}</span>
           <UIcon
             :name="open ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
-            class="h-4 w-4 text-muted"
+            class="hidden h-4 w-4 text-muted sm:block"
           />
         </div>
       </button>
@@ -50,84 +54,47 @@
         :style="{ height: `${drawerHeight}px` }"
       >
         <div
-          class="sticky top-0 z-10 border-b border-default/70 bg-default/50 px-4 py-3 backdrop-blur-sm"
+          class="sticky top-0 z-10 border-t border-default/70 bg-default/95 px-4 py-2.5 backdrop-blur-sm sm:border-t-0 sm:border-b sm:bg-default/60 sm:py-3"
         >
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center gap-2">
-              <div class="flex min-w-0 flex-1 items-center gap-2">
-                <UButton
-                  size="xs"
-                  :color="selectedScope === 'all' ? 'primary' : 'neutral'"
-                  :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
-                  icon="i-heroicons-squares-2x2"
-                  class="shrink-0 justify-center px-3 sm:justify-start"
-                  @click="setSelectedScope('all')"
-                >
-                  <span class="sm:hidden">All</span>
-                  <span class="hidden sm:inline">Show all</span>
-                </UButton>
+          <div class="hidden items-center gap-2 sm:flex">
+            <UButton
+              size="xs"
+              :color="selectedScope === 'all' ? 'primary' : 'neutral'"
+              :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
+              icon="i-heroicons-squares-2x2"
+              class="h-8 shrink-0 justify-start rounded-xl px-3"
+              @click="setSelectedScope('all')"
+            >
+              Show all
+            </UButton>
 
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  icon="i-heroicons-folder-open"
-                  class="min-w-0 flex-1 justify-start px-3 sm:max-w-[220px]"
-                  @click="showFolderPicker = true"
-                >
-                  <span class="truncate">{{ selectedFolderLabel }}</span>
-                </UButton>
-              </div>
-
-              <div class="flex shrink-0 items-center gap-1">
-                <UButton
-                  size="xs"
-                  color="primary"
-                  variant="soft"
-                  icon="i-heroicons-plus"
-                  class="h-8 w-8 justify-center p-0"
-                  title="New workout"
-                  aria-label="New workout"
-                  @click="openCreateModal('workout')"
-                />
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  icon="i-heroicons-document-text"
-                  class="h-8 w-8 justify-center p-0"
-                  title="New note"
-                  aria-label="New note"
-                  @click="openCreateModal('note')"
-                />
-                <UButton
-                  to="/library/workouts"
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-heroicons-arrow-top-right-on-square"
-                  class="h-8 w-8 justify-center p-0"
-                  title="Open workout library"
-                  aria-label="Open workout library"
-                />
-              </div>
-            </div>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="soft"
+              icon="i-heroicons-folder-open"
+              class="min-w-0 max-w-[220px] shrink-0 justify-start rounded-xl px-3 h-8"
+              @click="showFolderPicker = true"
+            >
+              <span class="truncate">{{ selectedFolderLabel }}</span>
+            </UButton>
 
             <UInput
               v-model="localSearch"
               placeholder="Search items..."
               size="sm"
               icon="i-heroicons-magnifying-glass"
-              class="w-full"
+              class="min-w-[220px] flex-1"
             />
 
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
               <UTooltip text="All Types">
                 <UButton
                   size="xs"
                   :color="selectedType === 'all' ? 'primary' : 'neutral'"
                   :variant="selectedType === 'all' ? 'solid' : 'ghost'"
                   icon="i-heroicons-squares-2x2"
+                  class="h-8 shrink-0 rounded-xl px-2.5"
                   @click="selectedType = 'all'"
                 />
               </UTooltip>
@@ -137,64 +104,182 @@
                   :color="selectedType === type.value ? 'primary' : 'neutral'"
                   :variant="selectedType === type.value ? 'solid' : 'ghost'"
                   :icon="type.icon"
+                  class="h-8 shrink-0 rounded-xl px-2.5"
                   @click="selectedType = type.value"
                 />
               </UTooltip>
             </div>
 
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
               <UButton
                 v-for="range in durationRanges"
                 :key="range.label"
                 size="xs"
                 :color="selectedDuration === range.value ? 'primary' : 'neutral'"
                 :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
-                class="shrink-0 px-2 text-[10px] font-bold uppercase tracking-wider"
+                class="h-8 shrink-0 rounded-xl px-2 text-[10px] font-bold uppercase tracking-wider"
                 @click="selectedDuration = range.value"
               >
                 {{ range.label }}
               </UButton>
             </div>
 
-            <div class="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+            <div class="flex shrink-0 items-center gap-1">
               <UButton
                 size="xs"
                 color="primary"
                 variant="soft"
                 icon="i-heroicons-plus"
-                class="justify-center sm:justify-start"
+                class="h-8 w-8 justify-center p-0"
+                title="New workout"
+                aria-label="New workout"
                 @click="openCreateModal('workout')"
-              >
-                New workout
-              </UButton>
+              />
               <UButton
                 size="xs"
                 color="neutral"
                 variant="soft"
                 icon="i-heroicons-document-text"
-                class="justify-center sm:justify-start"
+                class="h-8 w-8 justify-center p-0"
+                title="New note"
+                aria-label="New note"
                 @click="openCreateModal('note')"
-              >
-                New note
-              </UButton>
-
+              />
               <UButton
                 to="/library/workouts"
                 size="xs"
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-arrow-top-right-on-square"
-                class="justify-center sm:justify-start"
+                class="h-8 w-8 justify-center p-0"
                 title="Open workout library"
                 aria-label="Open workout library"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2.5 sm:hidden">
+            <div class="flex items-center gap-2">
+              <div class="flex min-w-0 flex-1 items-center gap-2">
+                <UButton
+                  size="xs"
+                  :color="selectedScope === 'all' ? 'primary' : 'neutral'"
+                  :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
+                  icon="i-heroicons-squares-2x2"
+                  class="h-9 shrink-0 justify-center rounded-xl px-3"
+                  @click="setSelectedScope('all')"
+                >
+                  All
+                </UButton>
+
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
+                  icon="i-heroicons-folder-open"
+                  class="min-w-0 flex-1 justify-start rounded-xl px-3 h-9"
+                  @click="showFolderPicker = true"
+                >
+                  <span class="truncate">{{ selectedFolderLabel }}</span>
+                </UButton>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-1">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-magnifying-glass"
+                  class="h-9 w-9 justify-center rounded-xl p-0"
+                  :title="mobileSearchOpen ? 'Hide search' : 'Show search'"
+                  :aria-label="mobileSearchOpen ? 'Hide search' : 'Show search'"
+                  @click="mobileSearchOpen = !mobileSearchOpen"
+                />
+                <UButton
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  icon="i-heroicons-plus"
+                  class="h-9 w-9 justify-center rounded-xl p-0"
+                  title="New workout"
+                  aria-label="New workout"
+                  @click="openCreateModal('workout')"
+                />
+
+                <UDropdownMenu :items="mobileActionMenuItems" :content="{ align: 'end' }">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="soft"
+                    icon="i-heroicons-ellipsis-horizontal"
+                    class="h-9 w-9 justify-center rounded-xl p-0"
+                    title="More actions"
+                    aria-label="More actions"
+                  />
+                </UDropdownMenu>
+
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  :icon="open ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+                  class="h-9 w-9 justify-center rounded-xl p-0"
+                  :title="open ? 'Collapse drawer' : 'Expand drawer'"
+                  :aria-label="open ? 'Collapse drawer' : 'Expand drawer'"
+                  @click.stop="$emit('toggle')"
+                />
+              </div>
+            </div>
+
+            <UInput
+              v-if="mobileSearchOpen || localSearch"
+              v-model="localSearch"
+              placeholder="Search items..."
+              size="sm"
+              icon="i-heroicons-magnifying-glass"
+              class="w-full"
+            />
+
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <UTooltip text="All Types">
+                <UButton
+                  size="xs"
+                  :color="selectedType === 'all' ? 'primary' : 'neutral'"
+                  :variant="selectedType === 'all' ? 'solid' : 'ghost'"
+                  icon="i-heroicons-squares-2x2"
+                  class="h-9 shrink-0 rounded-xl px-2.5"
+                  @click="selectedType = 'all'"
+                />
+              </UTooltip>
+              <UTooltip v-for="type in workoutTypes" :key="type.value" :text="type.label">
+                <UButton
+                  size="xs"
+                  :color="selectedType === type.value ? 'primary' : 'neutral'"
+                  :variant="selectedType === type.value ? 'solid' : 'ghost'"
+                  :icon="type.icon"
+                  class="h-9 shrink-0 rounded-xl px-2.5"
+                  @click="selectedType = type.value"
+                />
+              </UTooltip>
+
+              <div class="mx-1 h-6 w-px shrink-0 bg-default/70" />
+
+              <UButton
+                v-for="range in durationRanges"
+                :key="range.label"
+                size="xs"
+                :color="selectedDuration === range.value ? 'primary' : 'neutral'"
+                :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
+                class="h-9 shrink-0 rounded-xl px-3 text-[10px] font-bold uppercase tracking-wider"
+                @click="selectedDuration = range.value"
               >
-                Library
+                {{ range.label }}
               </UButton>
             </div>
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto px-4 py-4">
+        <div class="flex-1 overflow-y-auto px-4 py-3 sm:py-4">
           <div v-if="loading" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <USkeleton v-for="i in 6" :key="i" class="h-24 w-full rounded-2xl" />
           </div>
@@ -219,13 +304,13 @@
               v-for="template in filteredTemplates"
               :key="template.id"
               draggable="true"
-              class="group/card relative cursor-grab rounded-2xl border border-default/80 bg-muted/10 p-4 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing"
+              class="group/card relative cursor-grab rounded-[24px] border border-default/80 bg-muted/10 p-3.5 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing sm:rounded-2xl sm:p-4"
               @dragstart="onTemplateDragStart($event, template)"
               @click="previewTemplateId = template.id"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="line-clamp-2 text-sm font-semibold text-highlighted">
+                  <div class="line-clamp-2 text-[15px] font-semibold text-highlighted sm:text-sm">
                     {{ template.title }}
                   </div>
                   <div class="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted">
@@ -233,7 +318,7 @@
                   </div>
                   <div
                     v-if="template.description"
-                    class="mt-2 line-clamp-3 text-[11px] leading-5 text-muted"
+                    class="mt-1.5 hidden line-clamp-2 text-[11px] leading-5 text-muted sm:block"
                   >
                     {{ template.description }}
                   </div>
@@ -245,20 +330,22 @@
                     color="neutral"
                     variant="ghost"
                     icon="i-heroicons-arrow-top-right-on-square"
-                    class="h-6 w-6 p-0 opacity-0 transition-opacity group-hover/card:opacity-100"
+                    class="h-7 w-7 p-0 opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover/card:opacity-100"
                     title="View Details"
                     @click.stop="previewTemplateId = template.id"
                   />
                   <MiniWorkoutChart
                     v-if="template.structuredWorkout && !isNoteTemplate(template)"
                     :workout="template"
-                    class="h-8 w-12 opacity-75"
+                    class="mt-0.5 h-8 w-14 opacity-80 sm:h-8 sm:w-12 sm:opacity-75"
                   />
                 </div>
               </div>
 
-              <div class="mt-4 flex items-center justify-between gap-3 text-[11px] text-muted">
-                <div class="flex items-center gap-3">
+              <div
+                class="mt-3 flex items-center justify-between gap-3 text-[11px] text-muted sm:mt-4"
+              >
+                <div class="flex items-center gap-2.5 sm:gap-3">
                   <span v-if="isNoteTemplate(template)">Note</span>
                   <template v-else>
                     <span>{{ formatMinutes(Math.round((template.durationSec || 0) / 60)) }}</span>
@@ -267,20 +354,37 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
+                  <UDropdownMenu
+                    v-if="scheduleMenuItems(template).length"
+                    :items="scheduleMenuItems(template)"
+                    :content="{ align: 'end' }"
+                    class="sm:hidden"
+                  >
+                    <UButton
+                      size="xs"
+                      color="primary"
+                      variant="soft"
+                      icon="i-heroicons-plus"
+                      class="h-7 w-7 p-0"
+                      title="Add to calendar"
+                      aria-label="Add to calendar"
+                      @click.stop
+                    />
+                  </UDropdownMenu>
                   <UButton
                     v-if="!template.structuredWorkout && !isNoteTemplate(template)"
                     size="xs"
                     color="primary"
                     variant="ghost"
                     icon="i-heroicons-sparkles"
-                    class="h-6 w-6 p-0"
+                    class="h-7 w-7 p-0 sm:h-6 sm:w-6"
                     title="Generate Structure"
                     :loading="generatingId === template.id"
                     @click.stop="generateTemplateStructure(template.id)"
                   />
                   <UIcon
                     :name="getWorkoutIcon(template.type)"
-                    class="h-4 w-4 shrink-0 text-primary"
+                    class="h-[18px] w-[18px] shrink-0 text-primary sm:h-4 sm:w-4"
                   />
                 </div>
               </div>
@@ -391,26 +495,42 @@
 
 <script setup lang="ts">
   import { useMediaQuery } from '@vueuse/core'
+  import { useAttrs } from 'vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import WorkoutFolderSelector from '~/components/workouts/library/WorkoutFolderSelector.vue'
   import WorkoutTemplatePreviewModal from '~/components/workouts/WorkoutTemplatePreviewModal.vue'
   import WorkoutTechnicalViewModal from '~/components/workouts/WorkoutTechnicalViewModal.vue'
   import { getWorkoutIcon } from '~/utils/activity-types'
 
+  defineOptions({
+    inheritAttrs: false
+  })
+
   const props = defineProps<{
     open: boolean
     templates: any[]
     loading?: boolean
     error?: boolean
+    scheduleTargets?: Array<{
+      label: string
+      date: string
+    }>
   }>()
 
   const emit = defineEmits<{
     toggle: []
     created: []
+    'schedule-template': [payload: { template: any; date: string }]
   }>()
 
+  const attrs = useAttrs()
+  const rootAttrs = computed(() => {
+    const { class: _class, ...rest } = attrs
+    return rest
+  })
   const toast = useToast()
   const localSearch = ref('')
+  const mobileSearchOpen = ref(false)
   const generatingId = ref<string | null>(null)
   const selectedType = ref('all')
   const selectedDuration = ref('all')
@@ -480,6 +600,14 @@
     return isNoteTemplate(template) ? 'Note' : template?.type || template?.category || 'Workout'
   }
 
+  function scheduleMenuItems(template: any) {
+    return (props.scheduleTargets || []).map((target) => ({
+      label: target.label,
+      icon: 'i-heroicons-calendar-days',
+      onSelect: () => emit('schedule-template', { template, date: target.date })
+    }))
+  }
+
   const workoutTypes = [
     { label: 'Ride', value: 'Ride', icon: 'i-tabler-bike' },
     { label: 'Run', value: 'Run', icon: 'i-tabler-run' },
@@ -494,6 +622,30 @@
     { label: '30-60m', value: 'medium' },
     { label: '60m+', value: 'long' }
   ]
+
+  const mobileActionMenuItems = computed(() => [
+    [
+      {
+        label: 'New note',
+        icon: 'i-heroicons-document-text',
+        onSelect: () => openCreateModal('note')
+      },
+      {
+        label: 'Choose folder',
+        icon: 'i-heroicons-folder-open',
+        onSelect: () => {
+          showFolderPicker.value = true
+        }
+      }
+    ],
+    [
+      {
+        label: 'Open library',
+        icon: 'i-heroicons-arrow-top-right-on-square',
+        onSelect: () => navigateTo('/library/workouts')
+      }
+    ]
+  ])
 
   const filteredTemplates = computed(() => {
     let result = props.templates
