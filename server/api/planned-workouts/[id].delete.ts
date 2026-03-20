@@ -1,9 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
-import { deleteIntervalsPlannedWorkout } from '../../utils/intervals'
-import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
-import { metabolicService } from '../../utils/services/metabolicService'
-import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import { deletePlannedWorkoutForUser } from '../../utils/planned-workout-service'
 
 defineRouteMeta({
   openAPI: {
@@ -60,55 +56,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Check if workout belongs to user
-    const workout = await plannedWorkoutRepository.getById(workoutId, userId)
-
-    if (!workout) {
-      throw createError({
-        statusCode: 404,
-        message: 'Workout not found'
-      })
-    }
-
-    // Get Intervals.icu integration
-    const integration = await prisma.integration.findFirst({
-      where: {
-        userId,
-        provider: 'intervals'
-      }
-    })
-
-    const settings = (integration?.settings as any) || {}
-    const importPlannedWorkouts = settings.importPlannedWorkouts !== false // Default to true
-
-    // Delete from Intervals.icu if integration exists and sync is enabled
-    if (integration && workout.externalId && importPlannedWorkouts) {
-      try {
-        await deleteIntervalsPlannedWorkout(integration, workout.externalId)
-      } catch (error) {
-        console.error('Failed to delete from Intervals.icu:', error)
-        // Continue with local deletion even if Intervals.icu deletion fails
-      }
-    }
-
-    // Delete the workout from our database
-    await plannedWorkoutRepository.delete(workoutId, userId)
-
-    // REACTIVE: Trigger fueling plan update for the workout date
-    try {
-      if (await isNutritionTrackingEnabled(userId)) {
-        await metabolicService.calculateFuelingPlanForDate(userId, workout.date, {
-          persist: true
-        })
-      }
-    } catch (err) {
-      console.error('[PlannedWorkoutDelete] Failed to trigger regeneration:', err)
-    }
-
-    return {
-      success: true,
-      message: 'Workout deleted successfully'
-    }
+    return await deletePlannedWorkoutForUser(userId, workoutId)
   } catch (error: any) {
     if (error.statusCode) {
       throw error
