@@ -47,11 +47,7 @@
         >
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">Fitness</p>
           <p class="text-lg font-black text-blue-600 dark:text-blue-400 leading-tight">
-            {{
-              currentWellness?.ctl !== undefined && currentWellness?.ctl !== null
-                ? Math.round(currentWellness.ctl)
-                : '--'
-            }}
+            {{ currentCTL !== undefined && currentCTL !== null ? Math.round(currentCTL) : '--' }}
           </p>
           <p class="text-[9px] text-neutral-400">CTL</p>
         </div>
@@ -190,9 +186,20 @@
   defineEmits(['view', 'message'])
 
   const currentWellness = computed(() => props.athlete.wellness?.[0] || null)
+  const performanceSummary = computed(() => props.athlete.performanceSummary || null)
+  const currentCTL = computed(
+    () => performanceSummary.value?.currentCTL ?? currentWellness.value?.ctl ?? null
+  )
   const currentTSB = computed(() => {
+    if (
+      performanceSummary.value?.currentTSB !== undefined &&
+      performanceSummary.value?.currentTSB !== null
+    ) {
+      return performanceSummary.value.currentTSB
+    }
     if (!currentWellness.value) return null
-    return (currentWellness.value.ctl || 0) - (currentWellness.value.atl || 0)
+    if (currentWellness.value.ctl == null || currentWellness.value.atl == null) return null
+    return currentWellness.value.ctl - currentWellness.value.atl
   })
 
   const nextWorkout = computed(() => props.athlete.plannedWorkouts?.[0] || null)

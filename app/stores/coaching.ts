@@ -40,13 +40,19 @@ export const useCoachingStore = defineStore('coaching', () => {
     }
   }
 
-  function stopActingAs() {
+  function clearActingAs() {
     actingAsUserId.value = null
     actingAsUserName.value = null
     if (import.meta.client) {
       localStorage.removeItem('coaching_act_as_id')
       localStorage.removeItem('coaching_act_as_name')
       persistActAsCookie(null)
+    }
+  }
+
+  function stopActingAs() {
+    clearActingAs()
+    if (import.meta.client) {
       // Force reload to clear all states and re-fetch session
       window.location.reload()
     }
@@ -57,6 +63,7 @@ export const useCoachingStore = defineStore('coaching', () => {
     actingAsUserName,
     isCoachingMode,
     startActingAs,
+    clearActingAs,
     stopActingAs
   }
 })
