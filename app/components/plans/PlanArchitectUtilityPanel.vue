@@ -1,8 +1,8 @@
 <template>
   <aside
-    class="flex min-h-full flex-col overflow-hidden rounded-3xl border border-default/80 bg-default/90 shadow-sm backdrop-blur"
+    class="flex min-h-full flex-col overflow-hidden rounded-none border-y border-default/80 bg-default/90 shadow-sm backdrop-blur sm:rounded-3xl sm:border"
   >
-    <div class="border-b border-default/80 px-5 py-4">
+    <div class="border-b border-default/80 px-4 py-4 sm:px-5">
       <div class="flex items-start justify-between gap-3">
         <div>
           <div class="text-[10px] font-black uppercase tracking-[0.24em] text-primary/80">
@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-5 py-4">
+    <div class="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
       <div class="space-y-8">
         <!-- Blueprint Overview Stats -->
         <section class="space-y-4">

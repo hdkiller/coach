@@ -3,10 +3,10 @@
     <article
       v-for="block in sortedBlocks"
       :key="block.id"
-      class="overflow-hidden rounded-3xl border bg-default shadow-sm transition-colors"
+      class="overflow-hidden rounded-none border-y bg-default shadow-sm transition-colors sm:rounded-3xl sm:border"
       :class="blockChrome(block).card"
     >
-      <div class="border-b p-5 sm:p-6" :class="blockChrome(block).header">
+      <div class="border-b px-4 py-5 sm:p-6" :class="blockChrome(block).header">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div class="space-y-3">
             <div class="flex flex-wrap items-center gap-2">
@@ -36,7 +36,10 @@
               :icon="isCollapsed(block.id) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
               @click="$emit('toggle-collapsed', block.id)"
             >
-              {{ isCollapsed(block.id) ? 'Expand' : 'Collapse' }}
+              <span class="sm:hidden">{{ isCollapsed(block.id) ? 'Open' : 'Close' }}</span>
+              <span class="hidden sm:inline">{{
+                isCollapsed(block.id) ? 'Expand' : 'Collapse'
+              }}</span>
             </UButton>
             <UButton
               color="neutral"
@@ -45,7 +48,8 @@
               icon="i-heroicons-pencil-square"
               @click="$emit('edit-block', block)"
             >
-              Edit
+              <span class="sm:hidden">Edit</span>
+              <span class="hidden sm:inline">Edit</span>
             </UButton>
             <UButton
               color="neutral"
@@ -54,194 +58,334 @@
               icon="i-heroicons-trash"
               @click="$emit('remove-block', block.id)"
             >
-              Remove
+              <span class="sm:hidden">Delete</span>
+              <span class="hidden sm:inline">Remove</span>
             </UButton>
           </div>
         </div>
       </div>
 
-      <div v-if="!isCollapsed(block.id)" class="overflow-x-auto p-4 sm:p-6">
-        <div
-          class="hidden min-w-[1540px] overflow-hidden rounded-2xl border border-default/80 bg-default lg:grid"
-          style="grid-template-columns: 190px repeat(7, minmax(148px, 1fr)) 200px"
-        >
-          <div
-            class="border-b border-r border-default bg-muted/40 p-3 text-xs font-black uppercase tracking-[0.2em] text-muted"
+      <div v-if="!isCollapsed(block.id)" class="p-4 sm:p-6">
+        <div class="space-y-4 lg:hidden">
+          <article
+            v-for="week in orderedWeeks(block)"
+            :id="`architect-week-${week.id}`"
+            :key="`${block.id}-${week.id}-mobile`"
+            class="relative overflow-hidden rounded-2xl border border-default/80 bg-default"
+            :class="getWeekRowSurface(week)"
           >
-            Week
-          </div>
-          <div
-            v-for="dayName in days"
-            :key="`${block.id}-${dayName}`"
-            class="border-b border-r border-default bg-muted/40 p-3 text-center text-xs font-black uppercase tracking-[0.2em] text-muted last:border-r-0"
-          >
-            {{ dayName }}
-          </div>
-          <div
-            class="border-b border-default bg-muted/40 p-3 text-xs font-black uppercase tracking-[0.2em] text-muted"
-          >
-            Summary
-          </div>
-
-          <template v-for="week in orderedWeeks(block)" :key="week.id">
-            <!-- Week Rail -->
             <div
-              :id="`architect-week-${week.id}`"
-              class="group/rail relative flex min-h-[188px] flex-col justify-between border-r border-default p-3.5 cursor-pointer"
-              :class="getWeekRowSurface(week)"
+              v-if="activeWeekId === week.id"
+              class="pointer-events-none absolute inset-0 ring-2 ring-primary ring-inset"
+            />
+
+            <div
+              class="border-b border-default/70 px-4 py-4"
               @click="$emit('select-week', week.id)"
             >
-              <div
-                v-if="activeWeekId === week.id"
-                class="pointer-events-none absolute inset-0 ring-2 ring-primary ring-inset"
-              />
-              <div class="space-y-3">
-                <div class="text-[11px] font-black uppercase tracking-[0.24em] text-muted">
-                  Week {{ week.weekNumber }}
-                </div>
-                <div
-                  class="text-[18px] font-black leading-[1.05] tracking-tight text-highlighted xl:text-[19px]"
-                >
-                  {{ week.focus || 'Untitled week' }}
-                </div>
-                <!-- Zone Distributions -->
-                <div class="mt-4 space-y-4">
-                  <div v-for="type in ['power', 'hr'] as const" :key="type">
-                    <div v-if="getZoneBars(week, type).some((b) => b.duration > 0)">
-                      <div class="text-[9px] font-black uppercase tracking-[0.12em] text-muted/80">
-                        {{ type === 'power' ? 'Power' : 'HR' }} Distribution
-                      </div>
-                      <div class="mt-1.5 flex h-8 items-end gap-1">
-                        <UTooltip
-                          v-for="bar in getZoneBars(week, type)"
-                          :key="`${type}-${week.id}-${bar.zoneIndex}`"
-                          :text="`Z${bar.zoneIndex}: ${formatMinutes(Math.round(bar.duration / 60))}`"
-                          class="h-full flex-1 flex items-end"
-                        >
-                          <div
-                            class="w-full rounded-t-[2px]"
-                            :style="{ height: `${bar.height}%`, backgroundColor: bar.color }"
-                          />
-                        </UTooltip>
-                      </div>
-                    </div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-[10px] font-black uppercase tracking-[0.24em] text-muted">
+                    Week {{ week.weekNumber }}
+                  </div>
+                  <div
+                    class="mt-2 text-lg font-black leading-tight tracking-tight text-highlighted"
+                  >
+                    {{ week.focus || 'Untitled week' }}
                   </div>
                 </div>
-              </div>
-              <div
-                class="flex flex-wrap gap-2 opacity-100 lg:opacity-0 lg:group-hover/rail:opacity-100 transition-opacity"
-              >
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-heroicons-document-duplicate"
-                  @click.stop="$emit('duplicate-week', block.id, week.id)"
-                />
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-heroicons-pencil-square"
-                  @click.stop="$emit('edit-week', block.id, week)"
-                />
-              </div>
-            </div>
 
-            <!-- Day Cells -->
-            <div
-              v-for="dayIndex in 7"
-              :key="`${week.id}-${dayIndex - 1}`"
-              class="group/day flex min-h-[188px] flex-col border-r border-default p-2.5 last:border-r-0"
-              :class="[
-                getWeekRowSurface(week),
-                dragOverKey === `${week.id}:${dayIndex - 1}` ? 'ring-2 ring-primary ring-inset' : ''
-              ]"
-              @dragover.prevent="$emit('dragover', week.id, dayIndex - 1)"
-              @dragleave="$emit('dragleave', week.id, dayIndex - 1, $event)"
-              @drop.prevent="$emit('drop', week.id, dayIndex - 1, $event)"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-black uppercase tracking-[0.18em] text-muted">{{
-                  days[dayIndex - 1]
-                }}</span>
-                <UBadge
-                  v-if="getWorkouts(week, dayIndex - 1).length"
-                  size="xs"
-                  variant="soft"
-                  color="primary"
-                  class="font-black"
-                >
-                  {{ getWorkouts(week, dayIndex - 1).length }}
-                </UBadge>
-              </div>
-              <div class="mt-3 flex-1 space-y-2">
-                <PlanArchitectWorkoutCard
-                  v-for="workout in getWorkouts(week, dayIndex - 1)"
-                  :key="workout.id"
-                  :workout="workout"
-                  :in-library="isWorkoutInLibrary(workout)"
-                  @edit="$emit('edit-workout', week.id, dayIndex - 1, workout)"
-                  @remove="(id) => $emit('remove-workout', week.id, id)"
-                  @copy-to-library="(w) => $emit('copy-to-library', w)"
-                />
-                <div
-                  v-if="!getWorkouts(week, dayIndex - 1).length"
-                  class="rounded-xl border border-dashed border-default/80 bg-transparent px-3 py-3 text-[11px] text-muted/60 text-center"
-                >
-                  Empty
-                </div>
-              </div>
-              <UDropdownMenu
-                :items="getAddMenuItems(week.id, dayIndex - 1)"
-                :content="{ align: 'start', side: 'top' }"
-              >
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  icon="i-heroicons-plus-circle"
-                  class="mt-3 opacity-0 transition-opacity lg:group-hover/day:opacity-100"
-                >
-                  Add
-                </UButton>
-              </UDropdownMenu>
-            </div>
-
-            <!-- Week Summary -->
-            <div
-              class="min-h-[188px] border-l border-default p-3.5"
-              :class="getWeekRowSurface(week)"
-            >
-              <div class="text-[11px] font-black uppercase tracking-[0.22em] text-muted">
-                Summary
-              </div>
-              <div class="mt-3 space-y-3">
-                <div
-                  v-for="metric in ['minutes', 'tss'] as const"
-                  :key="metric"
-                  class="rounded-xl border border-default/70 bg-default px-3 py-2"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-[9px] font-black uppercase text-muted">{{ metric }}</div>
-                    <div class="text-[10px] font-bold text-highlighted">
-                      {{
-                        metric === 'minutes'
-                          ? formatMinutes(getWeekSummary(week).scheduledMinutes)
-                          : getWeekSummary(week).scheduledTss
-                      }}
-                    </div>
-                  </div>
-                  <UProgress
-                    class="mt-1.5"
+                <div class="flex shrink-0 gap-1">
+                  <UButton
                     size="xs"
-                    :color="metric === 'minutes' ? 'primary' : 'neutral'"
-                    :model-value="getCompletion(week, metric)"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-document-duplicate"
+                    @click.stop="$emit('duplicate-week', block.id, week.id)"
+                  />
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-pencil-square"
+                    @click.stop="$emit('edit-week', block.id, week)"
                   />
                 </div>
               </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-2">
+                <div class="rounded-xl border border-default/70 bg-default px-3 py-2">
+                  <div class="text-[9px] font-black uppercase tracking-[0.18em] text-muted">
+                    Minutes
+                  </div>
+                  <div class="mt-1 text-sm font-bold text-highlighted">
+                    {{ formatMinutes(getWeekSummary(week).scheduledMinutes) }}
+                  </div>
+                </div>
+                <div class="rounded-xl border border-default/70 bg-default px-3 py-2">
+                  <div class="text-[9px] font-black uppercase tracking-[0.18em] text-muted">
+                    TSS
+                  </div>
+                  <div class="mt-1 text-sm font-bold text-highlighted">
+                    {{ getWeekSummary(week).scheduledTss }}
+                  </div>
+                </div>
+              </div>
             </div>
-          </template>
+
+            <div class="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
+              <div
+                v-for="dayIndex in 7"
+                :key="`${week.id}-${dayIndex - 1}-mobile`"
+                class="group/day rounded-2xl border border-default/70 bg-default/80 p-3"
+                :class="
+                  dragOverKey === `${week.id}:${dayIndex - 1}`
+                    ? 'ring-2 ring-primary ring-inset'
+                    : ''
+                "
+                @dragover.prevent="$emit('dragover', week.id, dayIndex - 1)"
+                @dragleave="$emit('dragleave', week.id, dayIndex - 1, $event)"
+                @drop.prevent="$emit('drop', week.id, dayIndex - 1, $event)"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-black uppercase tracking-[0.18em] text-muted">
+                    {{ days[dayIndex - 1] }}
+                  </span>
+                  <UBadge
+                    v-if="getWorkouts(week, dayIndex - 1).length"
+                    size="xs"
+                    variant="soft"
+                    color="primary"
+                    class="font-black"
+                  >
+                    {{ getWorkouts(week, dayIndex - 1).length }}
+                  </UBadge>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                  <PlanArchitectWorkoutCard
+                    v-for="workout in getWorkouts(week, dayIndex - 1)"
+                    :key="workout.id"
+                    :workout="workout"
+                    :in-library="isWorkoutInLibrary(workout)"
+                    @edit="$emit('edit-workout', week.id, dayIndex - 1, workout)"
+                    @remove="(id) => $emit('remove-workout', week.id, id)"
+                    @copy-to-library="(w) => $emit('copy-to-library', w)"
+                  />
+                  <div
+                    v-if="!getWorkouts(week, dayIndex - 1).length"
+                    class="rounded-xl border border-dashed border-default/80 px-3 py-3 text-center text-[11px] text-muted/60"
+                  >
+                    Empty
+                  </div>
+                </div>
+
+                <UDropdownMenu
+                  :items="getAddMenuItems(week.id, dayIndex - 1)"
+                  :content="{ align: 'end', side: 'bottom' }"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-heroicons-plus-circle"
+                    class="mt-3 w-full justify-center"
+                  >
+                    Add
+                  </UButton>
+                </UDropdownMenu>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="hidden overflow-x-auto lg:block">
+          <div
+            class="min-w-[1540px] overflow-hidden rounded-2xl border border-default/80 bg-default lg:grid"
+            style="grid-template-columns: 190px repeat(7, minmax(148px, 1fr)) 200px"
+          >
+            <div
+              class="border-b border-r border-default bg-muted/40 p-3 text-xs font-black uppercase tracking-[0.2em] text-muted"
+            >
+              Week
+            </div>
+            <div
+              v-for="dayName in days"
+              :key="`${block.id}-${dayName}`"
+              class="border-b border-r border-default bg-muted/40 p-3 text-center text-xs font-black uppercase tracking-[0.2em] text-muted last:border-r-0"
+            >
+              {{ dayName }}
+            </div>
+            <div
+              class="border-b border-default bg-muted/40 p-3 text-xs font-black uppercase tracking-[0.2em] text-muted"
+            >
+              Summary
+            </div>
+
+            <template v-for="week in orderedWeeks(block)" :key="week.id">
+              <!-- Week Rail -->
+              <div
+                :id="`architect-week-${week.id}`"
+                class="group/rail relative flex min-h-[188px] flex-col justify-between border-r border-default p-3.5 cursor-pointer"
+                :class="getWeekRowSurface(week)"
+                @click="$emit('select-week', week.id)"
+              >
+                <div
+                  v-if="activeWeekId === week.id"
+                  class="pointer-events-none absolute inset-0 ring-2 ring-primary ring-inset"
+                />
+                <div class="space-y-3">
+                  <div class="text-[11px] font-black uppercase tracking-[0.24em] text-muted">
+                    Week {{ week.weekNumber }}
+                  </div>
+                  <div
+                    class="text-[18px] font-black leading-[1.05] tracking-tight text-highlighted xl:text-[19px]"
+                  >
+                    {{ week.focus || 'Untitled week' }}
+                  </div>
+                  <!-- Zone Distributions -->
+                  <div class="mt-4 space-y-4">
+                    <div v-for="type in ['power', 'hr'] as const" :key="type">
+                      <div v-if="getZoneBars(week, type).some((b) => b.duration > 0)">
+                        <div
+                          class="text-[9px] font-black uppercase tracking-[0.12em] text-muted/80"
+                        >
+                          {{ type === 'power' ? 'Power' : 'HR' }} Distribution
+                        </div>
+                        <div class="mt-1.5 flex h-8 items-end gap-1">
+                          <UTooltip
+                            v-for="bar in getZoneBars(week, type)"
+                            :key="`${type}-${week.id}-${bar.zoneIndex}`"
+                            :text="`Z${bar.zoneIndex}: ${formatMinutes(Math.round(bar.duration / 60))}`"
+                            class="h-full flex-1 flex items-end"
+                          >
+                            <div
+                              class="w-full rounded-t-[2px]"
+                              :style="{ height: `${bar.height}%`, backgroundColor: bar.color }"
+                            />
+                          </UTooltip>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="flex flex-wrap gap-2 opacity-100 lg:opacity-0 lg:group-hover/rail:opacity-100 transition-opacity"
+                >
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-document-duplicate"
+                    @click.stop="$emit('duplicate-week', block.id, week.id)"
+                  />
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-pencil-square"
+                    @click.stop="$emit('edit-week', block.id, week)"
+                  />
+                </div>
+              </div>
+
+              <!-- Day Cells -->
+              <div
+                v-for="dayIndex in 7"
+                :key="`${week.id}-${dayIndex - 1}`"
+                class="group/day flex min-h-[188px] flex-col border-r border-default p-2.5 last:border-r-0"
+                :class="[
+                  getWeekRowSurface(week),
+                  dragOverKey === `${week.id}:${dayIndex - 1}`
+                    ? 'ring-2 ring-primary ring-inset'
+                    : ''
+                ]"
+                @dragover.prevent="$emit('dragover', week.id, dayIndex - 1)"
+                @dragleave="$emit('dragleave', week.id, dayIndex - 1, $event)"
+                @drop.prevent="$emit('drop', week.id, dayIndex - 1, $event)"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-black uppercase tracking-[0.18em] text-muted">{{
+                    days[dayIndex - 1]
+                  }}</span>
+                  <UBadge
+                    v-if="getWorkouts(week, dayIndex - 1).length"
+                    size="xs"
+                    variant="soft"
+                    color="primary"
+                    class="font-black"
+                  >
+                    {{ getWorkouts(week, dayIndex - 1).length }}
+                  </UBadge>
+                </div>
+                <div class="mt-3 flex-1 space-y-2">
+                  <PlanArchitectWorkoutCard
+                    v-for="workout in getWorkouts(week, dayIndex - 1)"
+                    :key="workout.id"
+                    :workout="workout"
+                    :in-library="isWorkoutInLibrary(workout)"
+                    @edit="$emit('edit-workout', week.id, dayIndex - 1, workout)"
+                    @remove="(id) => $emit('remove-workout', week.id, id)"
+                    @copy-to-library="(w) => $emit('copy-to-library', w)"
+                  />
+                  <div
+                    v-if="!getWorkouts(week, dayIndex - 1).length"
+                    class="rounded-xl border border-dashed border-default/80 bg-transparent px-3 py-3 text-[11px] text-muted/60 text-center"
+                  >
+                    Empty
+                  </div>
+                </div>
+                <UDropdownMenu
+                  :items="getAddMenuItems(week.id, dayIndex - 1)"
+                  :content="{ align: 'start', side: 'top' }"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-heroicons-plus-circle"
+                    class="mt-3 opacity-0 transition-opacity lg:group-hover/day:opacity-100"
+                  >
+                    Add
+                  </UButton>
+                </UDropdownMenu>
+              </div>
+
+              <!-- Week Summary -->
+              <div
+                class="min-h-[188px] border-l border-default p-3.5"
+                :class="getWeekRowSurface(week)"
+              >
+                <div class="text-[11px] font-black uppercase tracking-[0.22em] text-muted">
+                  Summary
+                </div>
+                <div class="mt-3 space-y-3">
+                  <div
+                    v-for="metric in ['minutes', 'tss'] as const"
+                    :key="metric"
+                    class="rounded-xl border border-default/70 bg-default px-3 py-2"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-[9px] font-black uppercase text-muted">{{ metric }}</div>
+                      <div class="text-[10px] font-bold text-highlighted">
+                        {{
+                          metric === 'minutes'
+                            ? formatMinutes(getWeekSummary(week).scheduledMinutes)
+                            : getWeekSummary(week).scheduledTss
+                        }}
+                      </div>
+                    </div>
+                    <UProgress
+                      class="mt-1.5"
+                      size="xs"
+                      :color="metric === 'minutes' ? 'primary' : 'neutral'"
+                      :model-value="getCompletion(week, metric)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
     </article>

@@ -3,9 +3,9 @@
     class="group/workout relative rounded-xl border bg-default p-3 shadow-sm transition-colors hover:bg-muted/10"
     :class="workoutCardTone(workout)"
   >
-    <button class="block min-w-0 pr-12 text-left" @click="$emit('edit', workout)">
+    <button class="block min-w-0 max-w-full pr-12 text-left" @click="$emit('edit', workout)">
       <div class="min-w-0">
-        <div class="text-[14px] font-bold leading-[1.2] text-highlighted">
+        <div class="break-words text-[14px] font-bold leading-[1.2] text-highlighted">
           {{ workout.title }}
         </div>
         <div
