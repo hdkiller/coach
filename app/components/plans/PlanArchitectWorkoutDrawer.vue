@@ -365,7 +365,7 @@
                       color="primary"
                       variant="soft"
                       icon="i-heroicons-plus"
-                      class="h-7 w-7 p-0"
+                      class="h-7 w-7 items-center justify-center p-0"
                       title="Add to calendar"
                       aria-label="Add to calendar"
                       @click.stop
@@ -511,6 +511,7 @@
     templates: any[]
     loading?: boolean
     error?: boolean
+    allowCalendarTarget?: boolean
     scheduleTargets?: Array<{
       label: string
       date: string
@@ -520,6 +521,7 @@
   const emit = defineEmits<{
     toggle: []
     created: []
+    'open-calendar-picker': [payload: { template: any }]
     'schedule-template': [payload: { template: any; date: string }]
   }>()
 
@@ -601,11 +603,21 @@
   }
 
   function scheduleMenuItems(template: any) {
-    return (props.scheduleTargets || []).map((target) => ({
+    const items = (props.scheduleTargets || []).map((target) => ({
       label: target.label,
       icon: 'i-heroicons-calendar-days',
       onSelect: () => emit('schedule-template', { template, date: target.date })
     }))
+
+    if (props.allowCalendarTarget) {
+      items.push({
+        label: 'Choose from calendar',
+        icon: 'i-heroicons-calendar',
+        onSelect: () => emit('open-calendar-picker', { template })
+      })
+    }
+
+    return items
   }
 
   const workoutTypes = [

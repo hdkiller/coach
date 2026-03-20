@@ -496,6 +496,15 @@
         </UButton>
         <div class="flex-1" />
         <div class="flex gap-2">
+          <UButton
+            v-if="plannedWorkout"
+            color="neutral"
+            variant="soft"
+            :loading="savingToLibrary"
+            @click="emit('save-to-library', plannedWorkout)"
+          >
+            Save to Library
+          </UButton>
           <UButton v-if="plannedWorkout" color="primary" @click="viewFullPlannedWorkout">
             View Details
           </UButton>
@@ -594,12 +603,14 @@
     modelValue: boolean
     userFtp?: number
     allSportSettings?: any[]
+    savingToLibrary?: boolean
   }>()
 
   const emit = defineEmits<{
     'update:modelValue': [value: boolean]
     completed: []
     deleted: []
+    'save-to-library': [plannedWorkout: any]
   }>()
 
   const isOpen = computed({

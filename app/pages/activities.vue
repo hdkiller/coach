@@ -860,8 +860,10 @@
     :planned-workout="selectedPlannedWorkout"
     :user-ftp="userStore.currentFtp"
     :all-sport-settings="allSportSettings"
+    :saving-to-library="savingToLibraryId === selectedPlannedWorkout?.id"
     @completed="handlePlannedWorkoutCompleted"
     @deleted="handlePlannedWorkoutDeleted"
+    @save-to-library="savePlannedWorkoutToLibrary"
   />
 
   <WorkoutQuickViewModal
@@ -981,12 +983,52 @@
       :templates="workoutTemplates || []"
       :loading="workoutTemplateStatus === 'pending'"
       :error="workoutTemplateStatus === 'error'"
+      allow-calendar-target
       :schedule-targets="workoutDrawerScheduleTargets"
       class="z-[70]"
       @toggle="toggleWorkoutDrawerCollapsed"
+      @open-calendar-picker="openTemplateCalendarPicker"
       @schedule-template="onQuickScheduleTemplate"
     />
   </ClientOnly>
+
+  <UModal
+    v-model:open="showTemplateCalendarPicker"
+    title="Schedule Workout"
+    description="Choose the day you want to place this library item on your calendar."
+  >
+    <template #body>
+      <div class="space-y-4 p-4">
+        <div v-if="calendarPickerTemplate" class="rounded-xl border border-default/80 px-3 py-2.5">
+          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
+            Library Item
+          </div>
+          <div class="mt-1 text-sm font-semibold text-highlighted">
+            {{ calendarPickerTemplate.title }}
+          </div>
+        </div>
+
+        <div class="flex justify-center">
+          <UCalendar v-model="calendarPickerDate" />
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="showTemplateCalendarPicker = false">
+          Cancel
+        </UButton>
+        <UButton
+          color="primary"
+          :disabled="!calendarPickerTemplate || !calendarPickerDate"
+          @click="confirmTemplateCalendarPicker"
+        >
+          Add to day
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -994,6 +1036,7 @@
   import { nextTick } from 'vue'
   import { format, isSameMonth, getISOWeek, getISOWeekYear } from 'date-fns'
   import { useStorage } from '@vueuse/core'
+  import { CalendarDate, getLocalTimeZone, type DateValue } from '@internationalized/date'
   import type { CalendarActivity } from '../../types/calendar'
   import { getWeekSummary } from '~/composables/useWeekSummary'
   import WorkoutMatcher from '~/components/workouts/WorkoutMatcher.vue'
@@ -1088,6 +1131,9 @@
   const linkPlanned = ref<CalendarActivity | null>(null)
   const linkCompleted = ref<CalendarActivity | null>(null)
   const isLinking = ref(false)
+  const showTemplateCalendarPicker = ref(false)
+  const calendarPickerTemplate = ref<any | null>(null)
+  const calendarPickerDate = ref<DateValue | null>(null)
   const isWorkoutDrawerVisible = ref(false)
   const isWorkoutDrawerOpen = ref(true)
   const savingToLibraryId = ref<string | null>(null)
@@ -1955,6 +2001,17 @@
     }
   }
 
+  async function savePlannedWorkoutToLibrary(plannedWorkout: any) {
+    if (!plannedWorkout?.id) {
+      return
+    }
+
+    await saveActivityToLibrary({
+      ...plannedWorkout,
+      source: 'planned'
+    } as CalendarActivity)
+  }
+
   async function onScheduleTemplate({ template, date }: { template: any; date: Date }) {
     const toast = useToast()
 
@@ -2010,6 +2067,39 @@
     })
   }
 
+  function toCalendarDate(date: Date) {
+    return new CalendarDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+  }
+
+  function getQuickScheduleStartDate() {
+    const today = getUserLocalDate()
+    return currentDate.value > today ? currentDate.value : today
+  }
+
+  function openTemplateCalendarPicker({ template }: { template: any }) {
+    calendarPickerTemplate.value = template
+    calendarPickerDate.value = toCalendarDate(getQuickScheduleStartDate())
+    showTemplateCalendarPicker.value = true
+  }
+
+  async function confirmTemplateCalendarPicker() {
+    if (!calendarPickerTemplate.value || !calendarPickerDate.value) {
+      return
+    }
+
+    const selectedDate = (calendarPickerDate.value as any).toDate(getLocalTimeZone())
+
+    await onScheduleTemplate({
+      template: calendarPickerTemplate.value,
+      date: new Date(
+        Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+      )
+    })
+
+    showTemplateCalendarPicker.value = false
+    calendarPickerTemplate.value = null
+  }
+
   function toggleWorkoutDrawerFromHeader() {
     if (isWorkoutDrawerVisible.value) {
       isWorkoutDrawerVisible.value = false
@@ -2026,22 +2116,40 @@
 
   const workoutDrawerScheduleTargets = computed(() => {
     const targets: Array<{ label: string; date: string }> = []
-    const currentDay = formatDateUTC(currentDate.value, 'yyyy-MM-dd')
+    const seenDates = new Set<string>()
+    const startDate = getQuickScheduleStartDate()
 
-    targets.push({
-      label: `Add to ${formatDateUTC(currentDate.value, 'MMM d')}`,
-      date: currentDay
-    })
+    for (let index = 0; index < 7; index++) {
+      const nextDate = new Date(startDate)
+      nextDate.setUTCDate(startDate.getUTCDate() + index)
+      const dateKey = formatDateUTC(nextDate, 'yyyy-MM-dd')
 
-    const plannedDay = selectedPlannedWorkout.value?.date
-      ? formatDateUTC(selectedPlannedWorkout.value.date, 'yyyy-MM-dd')
+      if (seenDates.has(dateKey)) {
+        continue
+      }
+
+      seenDates.add(dateKey)
+      targets.push({
+        label:
+          index === 0
+            ? `Add to ${formatDateUTC(nextDate, 'MMM d')}`
+            : formatDateUTC(nextDate, 'EEE, MMM d'),
+        date: dateKey
+      })
+    }
+
+    const plannedDate = selectedPlannedWorkout.value?.date
+      ? new Date(selectedPlannedWorkout.value.date)
       : null
 
-    if (plannedDay && plannedDay !== currentDay) {
-      targets.push({
-        label: `Add to workout day (${formatDateUTC(selectedPlannedWorkout.value.date, 'MMM d')})`,
-        date: plannedDay
-      })
+    if (plannedDate) {
+      const plannedDay = formatDateUTC(plannedDate, 'yyyy-MM-dd')
+      if (!seenDates.has(plannedDay)) {
+        targets.unshift({
+          label: `Add to workout day (${formatDateUTC(plannedDate, 'MMM d')})`,
+          date: plannedDay
+        })
+      }
     }
 
     return targets
