@@ -251,6 +251,175 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.adherence.executionClassification).toBe('as_prescribed')
   })
 
+  it('prefers the planned step primaryTarget over power for run adherence', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Threshold Run',
+        type: 'Run',
+        durationSec: 2100,
+        rawJson: {
+          intervals: [
+            {
+              type: 'WORK',
+              moving_time: 480,
+              average_watts: 320,
+              average_heartrate: 168,
+              average_speed: 4.05
+            },
+            {
+              type: 'REST',
+              moving_time: 120,
+              average_watts: 280,
+              average_heartrate: 132,
+              average_speed: 2.65
+            },
+            {
+              type: 'WORK',
+              moving_time: 480,
+              average_watts: 322,
+              average_heartrate: 169,
+              average_speed: 4.04
+            },
+            {
+              type: 'REST',
+              moving_time: 120,
+              average_watts: 278,
+              average_heartrate: 133,
+              average_speed: 2.63
+            }
+          ]
+        }
+      }),
+      plannedWorkout: {
+        durationSec: 2100,
+        structuredWorkout: {
+          steps: [
+            {
+              type: 'Active',
+              durationSeconds: 480,
+              primaryTarget: 'pace',
+              power: { value: 260, units: 'watts' },
+              heartRate: { value: 168, units: 'bpm' },
+              pace: { value: 4.05, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 120,
+              primaryTarget: 'pace',
+              power: { value: 180, units: 'watts' },
+              heartRate: { value: 132, units: 'bpm' },
+              pace: { value: 2.65, units: 'm/s' }
+            },
+            {
+              type: 'Active',
+              durationSeconds: 480,
+              primaryTarget: 'pace',
+              power: { value: 260, units: 'watts' },
+              heartRate: { value: 168, units: 'bpm' },
+              pace: { value: 4.05, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 120,
+              primaryTarget: 'pace',
+              power: { value: 180, units: 'watts' },
+              heartRate: { value: 132, units: 'bpm' },
+              pace: { value: 2.65, units: 'm/s' }
+            }
+          ]
+        }
+      }
+    })
+
+    expect(facts.adherence.workIntervalHitRate).toBe(100)
+    expect(facts.adherence.recoveryHitRate).toBe(100)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+  })
+
+  it('falls back to sport metric preference when primaryTarget is absent', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Threshold Run',
+        type: 'Run',
+        durationSec: 2100,
+        rawJson: {
+          intervals: [
+            {
+              type: 'WORK',
+              moving_time: 480,
+              average_watts: 320,
+              average_heartrate: 168,
+              average_speed: 4.05
+            },
+            {
+              type: 'REST',
+              moving_time: 120,
+              average_watts: 280,
+              average_heartrate: 132,
+              average_speed: 2.65
+            },
+            {
+              type: 'WORK',
+              moving_time: 480,
+              average_watts: 322,
+              average_heartrate: 169,
+              average_speed: 4.04
+            },
+            {
+              type: 'REST',
+              moving_time: 120,
+              average_watts: 278,
+              average_heartrate: 133,
+              average_speed: 2.63
+            }
+          ]
+        }
+      }),
+      sportSettings: {
+        loadPreference: 'HR_PACE_POWER'
+      },
+      plannedWorkout: {
+        durationSec: 2100,
+        structuredWorkout: {
+          steps: [
+            {
+              type: 'Active',
+              durationSeconds: 480,
+              power: { value: 260, units: 'watts' },
+              heartRate: { value: 168, units: 'bpm' },
+              pace: { value: 4.05, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 120,
+              power: { value: 180, units: 'watts' },
+              heartRate: { value: 132, units: 'bpm' },
+              pace: { value: 2.65, units: 'm/s' }
+            },
+            {
+              type: 'Active',
+              durationSeconds: 480,
+              power: { value: 260, units: 'watts' },
+              heartRate: { value: 168, units: 'bpm' },
+              pace: { value: 4.05, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 120,
+              power: { value: 180, units: 'watts' },
+              heartRate: { value: 132, units: 'bpm' },
+              pace: { value: 2.65, units: 'm/s' }
+            }
+          ]
+        }
+      }
+    })
+
+    expect(facts.adherence.workIntervalHitRate).toBe(100)
+    expect(facts.adherence.recoveryHitRate).toBe(100)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+  })
+
   it('marks outdoor substitutions as not fully assessable when no actual intervals exist', () => {
     const facts = buildWorkoutAnalysisFactsV2({
       workout: makeWorkout({

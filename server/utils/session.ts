@@ -65,7 +65,8 @@ export async function getServerSession(event: H3Event): Promise<CustomSession | 
   }
 
   // 3. Handle Coaching "Act As"
-  const actAsUserId = getHeader(event, 'x-act-as-user')
+  const actAsUserId =
+    getHeader(event, 'x-act-as-user') || getCookie(event, 'coach_wattz_act_as_user')
   const currentUserId = (session.user as any).id
 
   if (actAsUserId && actAsUserId !== currentUserId) {

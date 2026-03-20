@@ -679,6 +679,46 @@ export const WorkoutConverter = {
       const end = target.value + hrTolerancePct
       return { range: { start, end }, units: target.units }
     }
+    const deriveRunHeartRateTargetFromPower = (
+      powerTarget: { value?: number; range?: { start: number; end: number }; units?: string } | null
+    ) => {
+      if (!isRun || !powerTarget) return null
+      const normalizedUnits = String(powerTarget.units || '')
+        .trim()
+        .toLowerCase()
+      const isRelativePower =
+        normalizedUnits.includes('%') ||
+        normalizedUnits === '' ||
+        normalizedUnits === 'ftp' ||
+        normalizedUnits === '%ftp'
+
+      const normalizeRelativeValue = (value: number) => {
+        if (!Number.isFinite(value) || value <= 0) return null
+        if (value > 3) return value / 100
+        return value
+      }
+
+      if (powerTarget.range) {
+        const start = normalizeRelativeValue(powerTarget.range.start)
+        const end = normalizeRelativeValue(powerTarget.range.end)
+        if (!isRelativePower || start === null || end === null) return null
+        return {
+          range: { start, end },
+          units: 'LTHR'
+        }
+      }
+
+      if (typeof powerTarget.value === 'number') {
+        const value = normalizeRelativeValue(powerTarget.value)
+        if (!isRelativePower || value === null) return null
+        return {
+          value,
+          units: 'LTHR'
+        }
+      }
+
+      return null
+    }
 
     if (workout.description) {
       const cleanPreamble = workout.description
@@ -746,8 +786,9 @@ export const WorkoutConverter = {
         }
 
         const power = normalizeTarget(step.power) || normalizeTarget(parentStep?.power)
+        const rawHeartRate = normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate)
         const heartRate = normalizeHrTargetForExport(
-          normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate)
+          rawHeartRate || deriveRunHeartRateTargetFromPower(power)
         )
         const pace = normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace)
         const distanceStr = toDistanceToken(step.distance)

@@ -1,6 +1,7 @@
 import { calculateFatigueSensitivity, calculateStabilityMetrics } from './performance-metrics'
 import { toIntensityFactorFromTarget } from './structured-workout-persistence'
 import { detectIntervals } from './interval-detection'
+import { parseLegacyLoadPreference, type MetricTarget } from './workout-target-policy'
 
 type FactConfidence = 'low' | 'medium' | 'high'
 type FactSeverity = 'low' | 'moderate' | 'high' | 'unknown'
@@ -1110,6 +1111,8 @@ type AnalysisRefs = {
   thresholdPace: number
 }
 
+type PlannedStepMetric = MetricTarget
+
 export type ActualIntervalForAnalysis = ActualInterval
 
 function getPromptFactValueByPath(value: unknown, path: string) {
@@ -1180,9 +1183,48 @@ function getTargetValue(target: any): number | null {
   return null
 }
 
+function hasPlannedMetricTarget(step: any, metric: PlannedStepMetric) {
+  if (metric === 'rpe') return typeof step?.rpe === 'number'
+  const target = step?.[metric]
+  return Boolean(target && (typeof target.value === 'number' || target.range))
+}
+
+function normalizePlannedMetricOrder(
+  metricOrder?: PlannedStepMetric[] | null
+): PlannedStepMetric[] {
+  const ordered: PlannedStepMetric[] = []
+  for (const metric of metricOrder || parseLegacyLoadPreference(null)) {
+    if (!ordered.includes(metric)) ordered.push(metric)
+  }
+  for (const metric of parseLegacyLoadPreference(null)) {
+    if (!ordered.includes(metric)) ordered.push(metric)
+  }
+  return ordered
+}
+
+function resolvePlannedStepMetric(
+  step: any,
+  metricOrder?: PlannedStepMetric[] | null
+): FlattenedPlannedStep['metric'] {
+  const currentPrimary = String(step?.primaryTarget || '')
+  if (
+    (['power', 'heartRate', 'pace', 'rpe'] as string[]).includes(currentPrimary) &&
+    hasPlannedMetricTarget(step, currentPrimary as PlannedStepMetric)
+  ) {
+    return currentPrimary as FlattenedPlannedStep['metric']
+  }
+
+  for (const metric of normalizePlannedMetricOrder(metricOrder)) {
+    if (hasPlannedMetricTarget(step, metric)) return metric
+  }
+
+  return null
+}
+
 function flattenPlannedSteps(
   steps: any[],
-  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number },
+  metricOrder?: PlannedStepMetric[] | null
 ): FlattenedPlannedStep[] {
   const flattened: FlattenedPlannedStep[] = []
 
@@ -1215,15 +1257,7 @@ function flattenPlannedSteps(
       const isRecovery = recoveryTokens.some(
         (token) => normalizedType.includes(token) || stepName.includes(token)
       )
-      const metric = step.power
-        ? 'power'
-        : step.pace
-          ? 'pace'
-          : step.heartRate || step.hr
-            ? 'heartRate'
-            : typeof step.rpe === 'number'
-              ? 'rpe'
-              : null
+      const metric = resolvePlannedStepMetric(step, metricOrder)
       const targetValue =
         metric === 'power'
           ? getTargetValue(step.power)
@@ -2184,8 +2218,9 @@ function deriveAdherence(params: {
   plannedWorkout: any
   family: ReturnType<typeof getWorkoutFamily>
   refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+  metricOrder?: PlannedStepMetric[] | null
 }): WorkoutAnalysisFactsV2['adherence'] {
-  const { workout, plannedWorkout, family, refs } = params
+  const { workout, plannedWorkout, family, refs, metricOrder } = params
   if (!plannedWorkout) {
     return {
       planLinked: false,
@@ -2213,7 +2248,8 @@ function deriveAdherence(params: {
 
   const plannedSteps = flattenPlannedSteps(
     getStructuredSteps(plannedWorkout?.structuredWorkout),
-    refs
+    refs,
+    metricOrder
   )
   const actualIntervals = extractActualIntervals(workout, plannedWorkout)
   const plannedWork = plannedSteps.filter((step) => step.classification === 'work')
@@ -2807,7 +2843,8 @@ export function buildWorkoutAnalysisFactsV2({
     workout,
     plannedWorkout,
     family,
-    refs
+    refs,
+    metricOrder: parseLegacyLoadPreference(sportSettings?.loadPreference)
   })
   const plannedRecoveryTail = hasTerminalRecoveryPhase(workout, plannedWorkout, refs)
 
