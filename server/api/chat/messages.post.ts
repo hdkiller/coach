@@ -4,9 +4,11 @@ import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
 import { chatService } from '../../utils/services/chatService'
 import { chatTurnService } from '../../utils/services/chatTurnService'
+import { getServerSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['chat:write'])
+  const session = await getServerSession(event)
   const userId = user.id
 
   try {
@@ -188,7 +190,11 @@ export default defineEventHandler(async (event) => {
         files: attachedFiles,
         replyMessage,
         lastMessageId: triggerMessageId,
-        content: typeof content === 'string' ? content : ''
+        content: typeof content === 'string' ? content : '',
+        coachingContext: {
+          actorUserId: (session?.user as any)?.originalUserId || userId,
+          isCoaching: !!(session?.user as any)?.isCoaching
+        }
       }
     })
 
