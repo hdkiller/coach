@@ -106,6 +106,21 @@ export function useStripe() {
         return false // Return false because it's not "finished" yet
       }
 
+      if (data.value?.status === 'checkout_required') {
+        toast.add({
+          title: 'Billing Profile Refreshed',
+          description:
+            'We could not use the saved subscription record, so we are starting a fresh secure checkout.',
+          color: 'info'
+        })
+
+        await createCheckoutSession(priceId, {
+          successUrl: `${window.location.origin}/settings/billing?success=true`,
+          cancelUrl: window.location.href
+        })
+        return false
+      }
+
       if (data.value?.status === 'success') {
         toast.add({
           title: direction === 'upgrade' ? 'Upgrade Successful' : 'Plan Changed',
