@@ -1,4 +1,5 @@
 import { useStorage } from '@vueuse/core'
+import type { Ref } from 'vue'
 
 type FolderNode = {
   id: string
@@ -13,7 +14,10 @@ type FolderNode = {
 
 type FolderScope = 'all' | 'unfiled' | string
 
-export function useWorkoutTemplateFolders(storageKey = 'default') {
+export function useWorkoutTemplateFolders(
+  storageKey = 'default',
+  options?: { librarySource?: Ref<'athlete' | 'coach' | 'all'> }
+) {
   const tree = useState<FolderNode[]>('workout-template-folders:tree', () => [])
   const flat = useState<FolderNode[]>('workout-template-folders:flat', () => [])
   const counts = useState<{ total: number; unfiled: number }>(
@@ -33,6 +37,11 @@ export function useWorkoutTemplateFolders(storageKey = 'default') {
   const expandedFolderIds = useStorage<string[]>(
     `workout-template-folders:expanded:${storageKey}`,
     []
+  )
+  const activeLibrarySource = computed(() =>
+    options?.librarySource?.value && options.librarySource.value !== 'all'
+      ? options.librarySource.value
+      : 'athlete'
   )
 
   const expandedSet = computed(() => new Set(expandedFolderIds.value))
@@ -96,7 +105,11 @@ export function useWorkoutTemplateFolders(storageKey = 'default') {
   async function refreshFolders() {
     loading.value = true
     try {
-      const response = await $fetch<any>('/api/library/workout-folders')
+      const response = await $fetch<any>('/api/library/workout-folders', {
+        query: {
+          scope: activeLibrarySource.value
+        }
+      })
       tree.value = response.tree || []
       flat.value = response.flat || []
       counts.value = response.counts || { total: 0, unfiled: 0 }
@@ -144,6 +157,15 @@ export function useWorkoutTemplateFolders(storageKey = 'default') {
   }
 
   watch(flatLookup, clearFolderSelectionIfMissing, { immediate: true })
+  watch(
+    activeLibrarySource,
+    async () => {
+      selectedScope.value = 'all'
+      loaded.value = false
+      await refreshFolders()
+    },
+    { immediate: true }
+  )
 
   return {
     tree,

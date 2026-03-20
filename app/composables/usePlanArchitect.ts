@@ -9,6 +9,7 @@ export type PlanItemKind = 'workout' | 'note'
 export function usePlanArchitect(planId: string) {
   const toast = useToast()
   const router = useRouter()
+  const { source: librarySource } = useLibrarySource(`plan-architect:${planId}`)
 
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const blockTypeOptions = ['BASE', 'BUILD', 'PEAK', 'RECOVERY', 'DELOAD', 'TAPER']
@@ -31,7 +32,10 @@ export function usePlanArchitect(planId: string) {
     refresh: refreshWorkoutTemplates
   } = useLazyFetch<any[]>('/api/library/workouts', {
     server: false,
-    default: () => []
+    default: () => [],
+    query: computed(() => ({
+      scope: librarySource.value
+    }))
   })
 
   // State
@@ -601,6 +605,7 @@ export function usePlanArchitect(planId: string) {
     editingWorkoutTarget,
     workoutTemplates,
     workoutTemplateStatus,
+    librarySource,
     sortedBlocks,
     totalWeeks,
     totalWorkouts,
