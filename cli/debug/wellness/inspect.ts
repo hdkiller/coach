@@ -71,7 +71,7 @@ inspectCommand
       const records = await prisma.wellness.findMany({
         where,
         orderBy: { date: 'desc' },
-        take: (options.date || options.id) ? 100 : 10 // Limit if no specific date/id
+        take: options.date || options.id ? 100 : 10 // Limit if no specific date/id
       })
 
       console.log(chalk.gray(`Found ${records.length} wellness records.`))
@@ -100,14 +100,21 @@ inspectCommand
           { label: 'Sleep Secs', db: w.sleepSecs, raw: raw.sleepSecs, unit: 's' },
           { label: 'Sleep Score', db: w.sleepScore, raw: raw.sleepScore, unit: '%' },
           { label: 'Readiness', db: w.readiness, raw: raw.readiness, unit: '' },
-          { label: 'Rec. Score', db: w.recoveryScore, raw: raw.readiness ?? raw.recovery_score ?? raw.recoveryScore, unit: '%' },
+          {
+            label: 'Rec. Score',
+            db: w.recoveryScore,
+            raw: raw.readiness ?? raw.recovery_score ?? raw.recoveryScore,
+            unit: '%'
+          },
           { label: 'Weight', db: w.weight, raw: raw.weight, unit: 'kg' },
           { label: 'Systolic', db: w.systolic, raw: raw.systolic, unit: 'mmHg' },
           { label: 'Diastolic', db: w.diastolic, raw: raw.diastolic, unit: 'mmHg' },
           { label: 'SpO2', db: w.spO2, raw: raw.spO2, unit: '%' },
           { label: 'Stress', db: w.stress, raw: raw.stress, unit: '' },
           { label: 'Mood', db: w.mood, raw: raw.mood, unit: '' },
-          { label: 'Soreness', db: w.soreness, raw: raw.soreness, unit: '' }
+          { label: 'Soreness', db: w.soreness, raw: raw.soreness, unit: '' },
+          { label: 'CTL', db: w.ctl, raw: raw.ctl, unit: '' },
+          { label: 'ATL', db: w.atl, raw: raw.atl, unit: '' }
         ]
 
         let discrepancies = 0
