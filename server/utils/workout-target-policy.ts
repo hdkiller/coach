@@ -64,7 +64,7 @@ export function normalizeTargetPolicy(
   const result = {
     primaryMetric,
     fallbackOrder,
-    strictPrimary: Boolean(targetPolicy?.strictPrimary),
+    strictPrimary: targetPolicy?.strictPrimary !== false,
     allowMixedTargetsPerStep: Boolean(targetPolicy?.allowMixedTargetsPerStep),
     defaultTargetStyle: targetPolicy?.defaultTargetStyle === 'value' ? 'value' : 'range',
     preferRangesForSteady: Boolean(targetPolicy?.preferRangesForSteady)

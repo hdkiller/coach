@@ -447,6 +447,11 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
           .map((p: any) => p.text)
           .join(''))
+  const actorUserId =
+    requestSnapshot.coachingContext?.actorUserId &&
+    requestSnapshot.coachingContext.actorUserId !== turn.userId
+      ? requestSnapshot.coachingContext.actorUserId
+      : turn.userId
 
   const startedAt = new Date()
   const executionStartedAtMs = Date.now()
@@ -557,7 +562,8 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     turnId: turn.id,
     lineageId: turn.lineageId,
     roomId: turn.roomId,
-    userId: turn.userId
+    userId: turn.userId,
+    actorUserId
   })
   const skillSelection = await classifyChatSkills({
     userId: turn.userId,
@@ -654,7 +660,8 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           turnId: turn.id,
           lineageId: turn.lineageId,
           roomId: turn.roomId,
-          userId: turn.userId
+          userId: turn.userId,
+          actorUserId
         }
       }
     )

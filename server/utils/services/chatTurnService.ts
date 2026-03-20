@@ -21,6 +21,10 @@ type PersistedRequestSnapshot = {
   replyMessage?: any
   lastMessageId?: string
   content?: string
+  coachingContext?: {
+    actorUserId?: string
+    isCoaching?: boolean
+  }
 }
 
 class ChatTurnService {
@@ -48,7 +52,11 @@ class ChatTurnService {
         typeof metadata.request?.lastMessageId === 'string'
           ? metadata.request.lastMessageId
           : undefined,
-      content: typeof metadata.request?.content === 'string' ? metadata.request.content : undefined
+      content: typeof metadata.request?.content === 'string' ? metadata.request.content : undefined,
+      coachingContext:
+        metadata.request?.coachingContext && typeof metadata.request.coachingContext === 'object'
+          ? metadata.request.coachingContext
+          : undefined
     }
   }
 

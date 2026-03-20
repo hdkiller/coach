@@ -54,7 +54,7 @@ export const TERMINAL_CHAT_TURN_STATUSES: ChatTurnStatus[] = [
 
 export const CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS = 15 * 1000
 export const CHAT_TURN_EXECUTION_TIMEOUT_MS = 60 * 1000
-export const CHAT_TURN_HEARTBEAT_TIMEOUT_MS = 45 * 1000
+export const CHAT_TURN_HEARTBEAT_TIMEOUT_MS = 120 * 1000
 
 export const CHAT_TURN_TIMEOUT_REASON = {
   SLOW_RESPONSE: 'slow_response',
@@ -71,6 +71,7 @@ export type ChatToolExecutionContext = {
   lineageId: string
   roomId: string
   userId: string
+  actorUserId?: string
 }
 
 export function isActiveChatTurnStatus(status?: string | null): status is ChatTurnStatus {
