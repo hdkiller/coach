@@ -983,10 +983,14 @@
       :templates="workoutTemplates || []"
       :loading="workoutTemplateStatus === 'pending'"
       :error="workoutTemplateStatus === 'error'"
+      :library-source="workoutLibrarySource"
+      :is-coaching-mode="isCoachingLibraryMode"
       allow-calendar-target
       :schedule-targets="workoutDrawerScheduleTargets"
       class="z-[70]"
       @toggle="toggleWorkoutDrawerCollapsed"
+      @created="refreshWorkoutTemplates"
+      @update:library-source="workoutLibrarySource = $event"
       @open-calendar-picker="openTemplateCalendarPicker"
       @schedule-template="onQuickScheduleTemplate"
     />
@@ -1137,6 +1141,9 @@
   const isWorkoutDrawerVisible = ref(false)
   const isWorkoutDrawerOpen = ref(true)
   const savingToLibraryId = ref<string | null>(null)
+  const { source: workoutLibrarySource, isCoachingMode: isCoachingLibraryMode } = useLibrarySource(
+    'activities-workout-drawer'
+  )
 
   const {
     data: workoutTemplates,
@@ -1144,7 +1151,10 @@
     refresh: refreshWorkoutTemplates
   } = useLazyFetch<any[]>('/api/library/workouts', {
     server: false,
-    default: () => []
+    default: () => [],
+    query: computed(() => ({
+      scope: workoutLibrarySource.value
+    }))
   })
 
   const activityMenuItems = computed(() => {

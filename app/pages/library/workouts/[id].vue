@@ -112,6 +112,7 @@
       <div class="p-6">
         <WorkoutTemplateEditor
           :template="template"
+          :owner-scope="template?.ownerScope"
           @save="onTemplateSaved"
           @cancel="isEditorOpen = false"
         />
@@ -126,7 +127,11 @@
     @update:open="showViewModal = $event"
   />
 
-  <WorkoutTemplatePreviewModal v-if="template" v-model:template-id="previewTemplateId" />
+  <WorkoutTemplatePreviewModal
+    v-if="template"
+    v-model:template-id="previewTemplateId"
+    :template-owner-scope="template?.ownerScope"
+  />
 </template>
 
 <script setup lang="ts">
@@ -173,7 +178,11 @@
   async function fetchTemplate() {
     loading.value = true
     try {
-      const data: any = await $fetch(`/api/library/workouts/${route.params.id}`)
+      const data: any = await $fetch(`/api/library/workouts/${route.params.id}`, {
+        query: {
+          scope: route.query.scope
+        }
+      })
       template.value = data.template
       userFtp.value = data.userFtp
       userLthr.value = data.userLthr
@@ -220,7 +229,10 @@
     generating.value = true
     try {
       await $fetch(`/api/library/workouts/${route.params.id}/generate-structure`, {
-        method: 'POST'
+        method: 'POST',
+        query: {
+          scope: template.value?.ownerScope || route.query.scope
+        }
       })
       toast.add({
         title: 'Generation Started',
@@ -241,6 +253,9 @@
     try {
       await $fetch(`/api/library/workouts/${route.params.id}`, {
         method: 'PATCH',
+        query: {
+          scope: template.value?.ownerScope || route.query.scope
+        },
         body: { structuredWorkout: { ...template.value.structuredWorkout, steps } }
       })
       toast.add({ title: 'Structure Updated', color: 'success' })

@@ -22,27 +22,43 @@
               Your Repository of Reusable Structured Sessions
             </p>
           </div>
-          <div class="flex items-center gap-2">
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-folder-open"
-              class="lg:hidden"
-              @click="showFolderSlideover = true"
-            >
-              Folders
-            </UButton>
-            <UInput
-              v-model="searchQuery"
-              icon="i-heroicons-magnifying-glass"
-              placeholder="Search library..."
-              class="w-full md:w-64"
-            />
+          <div class="flex flex-col items-stretch gap-2 md:items-end">
+            <div v-if="isCoachingMode" class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <UButton
+                v-for="option in librarySourceOptions"
+                :key="option.value"
+                size="xs"
+                :color="librarySource === option.value ? 'primary' : 'neutral'"
+                :variant="librarySource === option.value ? 'solid' : 'ghost'"
+                class="shrink-0 rounded-xl px-3"
+                @click="librarySource = option.value"
+              >
+                {{ option.label }}
+              </UButton>
+            </div>
+            <div class="flex items-center gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-folder-open"
+                class="lg:hidden"
+                :disabled="librarySource === 'all'"
+                @click="showFolderSlideover = true"
+              >
+                Folders
+              </UButton>
+              <UInput
+                v-model="searchQuery"
+                icon="i-heroicons-magnifying-glass"
+                placeholder="Search library..."
+                class="w-full md:w-64"
+              />
+            </div>
           </div>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div class="hidden lg:block">
+          <div v-if="librarySource !== 'all'" class="hidden lg:block">
             <UCard :ui="{ body: 'p-4' }" class="sticky top-4 shadow-sm">
               <WorkoutFolderSelector
                 title="Library"
@@ -117,7 +133,7 @@
             </div>
 
             <div
-              v-if="selectedTemplateIds.length"
+              v-if="librarySource !== 'all' && selectedTemplateIds.length"
               class="flex flex-wrap items-center justify-between gap-3 rounded-none border-y border-primary/20 bg-primary/5 px-4 py-4 sm:rounded-2xl sm:border sm:p-4"
             >
               <div class="text-sm font-medium text-highlighted">
@@ -148,7 +164,7 @@
             </div>
 
             <div
-              v-if="loading && !templates?.length"
+              v-if="loading && !templateItems.length"
               class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
             >
               <UCard v-for="i in 6" :key="i" class="min-h-[200px]">
@@ -162,20 +178,20 @@
             </div>
 
             <div
-              v-else-if="filteredTemplates.length === 0"
+              v-else-if="librarySource !== 'all' && filteredTemplates.length === 0"
               class="border-y border-dashed border-gray-200 bg-gray-50 px-4 py-20 text-center dark:border-gray-800 dark:bg-gray-900/50 sm:rounded-xl sm:border"
             >
               <UIcon name="i-heroicons-bookmark-slash" class="w-12 h-12 text-gray-300 mb-4" />
               <h3 class="text-lg font-bold">
                 {{
-                  templates?.length
+                  templateItems.length
                     ? 'No workouts match this folder or filter'
                     : 'Your library is empty'
                 }}
               </h3>
               <p class="text-sm text-muted max-w-xs mx-auto mb-6">
                 {{
-                  templates?.length
+                  templateItems.length
                     ? 'Try a different folder, search, or filter combination.'
                     : 'Save any workout from your calendar or create a new session to start building your library.'
                 }}
@@ -185,7 +201,10 @@
               </UButton>
             </div>
 
-            <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div
+              v-else-if="librarySource !== 'all'"
+              class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+            >
               <UCard
                 v-for="template in filteredTemplates"
                 :key="template.id"
@@ -212,6 +231,15 @@
                           {{ template.title }}
                         </div>
                         <div class="mt-2 flex min-h-6 flex-wrap items-center gap-1.5">
+                          <UBadge
+                            v-if="template.ownerScope"
+                            color="primary"
+                            variant="outline"
+                            size="xs"
+                            class="font-medium"
+                          >
+                            {{ template.ownerScope === 'coach' ? 'Coach' : 'Athlete' }}
+                          </UBadge>
                           <UBadge
                             v-if="template.folder?.name"
                             color="neutral"
@@ -323,6 +351,118 @@
                 </template>
               </UCard>
             </div>
+
+            <div v-else-if="templateGroups.length === 0" class="space-y-3">
+              <UAlert
+                color="neutral"
+                variant="soft"
+                title="No templates available"
+                description="Neither the coach nor athlete library has matching items."
+              />
+            </div>
+
+            <div v-else class="space-y-6">
+              <section v-for="group in templateGroups" :key="group.key" class="space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-lg font-bold text-highlighted">{{ group.label }}</h2>
+                    <p class="text-xs uppercase tracking-[0.16em] text-muted">
+                      {{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  v-if="group.items.length"
+                  class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                >
+                  <UCard
+                    v-for="template in group.items"
+                    :key="template.id"
+                    class="group cursor-pointer transition-all hover:border-primary/50"
+                    :ui="{
+                      header: 'px-4 py-3 sm:px-4',
+                      body: 'px-4 py-3 sm:px-4',
+                      footer: 'px-4 py-2 sm:px-4'
+                    }"
+                    draggable="true"
+                    @click="previewTemplateId = template.id"
+                    @dragstart="onTemplateDragStart(template)"
+                    @dragend="draggedItem = null"
+                  >
+                    <template #header>
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="flex min-w-0 items-start gap-3">
+                          <UIcon
+                            :name="getWorkoutIcon(template.type)"
+                            class="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                          />
+                          <div class="min-w-0">
+                            <div
+                              class="truncate text-sm font-semibold leading-snug text-highlighted"
+                            >
+                              {{ template.title }}
+                            </div>
+                            <div class="mt-2 flex min-h-6 flex-wrap items-center gap-1.5">
+                              <UBadge
+                                color="primary"
+                                variant="outline"
+                                size="xs"
+                                class="font-medium"
+                              >
+                                {{ template.ownerScope === 'coach' ? 'Coach' : 'Athlete' }}
+                              </UBadge>
+                              <UBadge
+                                v-if="template.folder?.name"
+                                color="neutral"
+                                variant="soft"
+                                size="xs"
+                                class="font-medium"
+                              >
+                                {{ template.folder.name }}
+                              </UBadge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+
+                    <div class="space-y-2">
+                      <div
+                        v-if="template.structuredWorkout"
+                        class="h-12 w-full px-1.5 opacity-85 transition-opacity group-hover:opacity-100"
+                      >
+                        <MiniWorkoutChart :workout="template" class="h-full w-full" />
+                      </div>
+                      <div
+                        v-else
+                        class="mx-1.5 flex h-12 items-center justify-center rounded-lg bg-gray-50 text-[10px] italic text-muted dark:bg-gray-900"
+                      >
+                        No structure defined
+                      </div>
+                    </div>
+
+                    <template #footer>
+                      <div class="flex items-center justify-between gap-3 text-xs text-muted">
+                        <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+                          <div class="flex items-center gap-1 whitespace-nowrap">
+                            <UIcon name="i-heroicons-clock" class="h-3.5 w-3.5" />
+                            {{ Math.round(template.durationSec / 60) }}m
+                          </div>
+                          <div
+                            v-if="template.tss"
+                            class="flex items-center gap-1 whitespace-nowrap text-amber-500"
+                          >
+                            <UIcon name="i-heroicons-bolt" class="h-3.5 w-3.5" />
+                            {{ Math.round(template.tss) }} TSS
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  </UCard>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </div>
@@ -339,6 +479,9 @@
       <div class="p-6">
         <WorkoutTemplateEditor
           :template="editingTemplate"
+          :owner-scope="
+            editingTemplate?.ownerScope || (librarySource === 'athlete' ? 'athlete' : 'coach')
+          "
           @save="onTemplateSaved"
           @cancel="isEditorOpen = false"
         />
@@ -422,7 +565,12 @@
     </template>
   </UModal>
 
-  <USlideover v-model:open="showFolderSlideover" side="left" title="Folders">
+  <USlideover
+    v-if="librarySource !== 'all'"
+    v-model:open="showFolderSlideover"
+    side="left"
+    title="Folders"
+  >
     <template #body>
       <div class="p-4">
         <WorkoutFolderSelector
@@ -447,7 +595,11 @@
     </template>
   </USlideover>
 
-  <WorkoutTemplatePreviewModal v-model:template-id="previewTemplateId" @view="openPreviewDetails" />
+  <WorkoutTemplatePreviewModal
+    v-model:template-id="previewTemplateId"
+    :template-owner-scope="activePreviewTemplate?.ownerScope"
+    @view="openPreviewDetails"
+  />
 </template>
 
 <script setup lang="ts">
@@ -457,7 +609,20 @@
   import WorkoutTemplatePreviewModal from '~/components/workouts/WorkoutTemplatePreviewModal.vue'
   import { getWorkoutIcon } from '~/utils/activity-types'
 
-  const { data: templates, refresh, status } = await useFetch<any[]>('/api/library/workouts')
+  const {
+    source: librarySource,
+    options: librarySourceOptions,
+    isCoachingMode
+  } = useLibrarySource('library-page')
+  const {
+    data: templates,
+    refresh,
+    status
+  } = await useFetch<any>('/api/library/workouts', {
+    query: computed(() => ({
+      scope: librarySource.value
+    }))
+  })
   const loading = computed(() => status.value === 'pending')
   const searchQuery = ref('')
   const selectedType = ref('all')
@@ -495,7 +660,9 @@
     refreshFolders,
     setSelectedScope,
     toggleExpanded
-  } = useWorkoutTemplateFolders('library-page')
+  } = useWorkoutTemplateFolders('library-page', {
+    librarySource
+  })
 
   const workoutTypes = [
     { label: 'Ride', value: 'Ride', icon: 'i-tabler-bike' },
@@ -518,15 +685,27 @@
     { label: 'TSS', value: 'tss' }
   ]
 
-  const filteredTemplates = computed(() => {
-    if (!templates.value) return []
+  const templateItems = computed(() => {
+    if (Array.isArray(templates.value)) {
+      return templates.value
+    }
 
-    let result = templates.value
+    return [...(templates.value?.coach || []), ...(templates.value?.athlete || [])]
+  })
 
-    if (selectedScope.value === 'unfiled') {
-      result = result.filter((t) => !t.folderId)
-    } else if (scopedFolderIds.value?.length) {
-      result = result.filter((t) => scopedFolderIds.value?.includes(t.folderId))
+  const activePreviewTemplate = computed(
+    () => templateItems.value.find((item) => item.id === previewTemplateId.value) || null
+  )
+
+  function applyTemplateFilters(items: any[]) {
+    let result = items
+
+    if (librarySource.value !== 'all') {
+      if (selectedScope.value === 'unfiled') {
+        result = result.filter((t) => !t.folderId)
+      } else if (scopedFolderIds.value?.length) {
+        result = result.filter((t) => scopedFolderIds.value?.includes(t.folderId))
+      }
     }
 
     if (selectedType.value !== 'all') {
@@ -553,7 +732,7 @@
       )
     }
 
-    result = [...result].sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (sortBy.value === 'title') {
         return (a.title || '').localeCompare(b.title || '')
       }
@@ -570,8 +749,29 @@
       const bUpdated = new Date(b.updatedAt || b.createdAt || 0).getTime()
       return bUpdated - aUpdated
     })
+  }
 
-    return result
+  const filteredTemplates = computed(() => {
+    return applyTemplateFilters(Array.isArray(templates.value) ? templates.value : [])
+  })
+
+  const templateGroups = computed(() => {
+    if (librarySource.value !== 'all' || Array.isArray(templates.value)) {
+      return []
+    }
+
+    return [
+      {
+        key: 'coach',
+        label: 'Coach library',
+        items: applyTemplateFilters(templates.value?.coach || [])
+      },
+      {
+        key: 'athlete',
+        label: 'Athlete library',
+        items: applyTemplateFilters(templates.value?.athlete || [])
+      }
+    ].filter((group) => group.items.length > 0)
   })
 
   function createNewTemplate() {
@@ -585,7 +785,7 @@
   }
 
   function openPreviewDetails() {
-    const template = filteredTemplates.value.find((item) => item.id === previewTemplateId.value)
+    const template = activePreviewTemplate.value
     if (!template) return
     editTemplate(template)
   }
@@ -612,7 +812,10 @@
     deleting.value = true
     try {
       await $fetch(`/api/library/workouts/${editingTemplate.value.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        query: {
+          scope: editingTemplate.value.ownerScope
+        }
       })
       toast.add({ title: 'Template deleted', color: 'success' })
       isDeleteModalOpen.value = false
@@ -629,7 +832,16 @@
   }
 
   onMounted(() => {
-    void ensureFoldersLoaded()
+    if (librarySource.value !== 'all') {
+      void ensureFoldersLoaded()
+    }
+  })
+
+  watch(librarySource, (value) => {
+    selectedTemplateIds.value = []
+    if (value === 'all') {
+      selectedScope.value = 'all'
+    }
   })
 
   function toggleTemplateSelection(templateId: string) {
@@ -667,14 +879,16 @@
           method: 'POST',
           body: {
             name: folderFormName.value.trim(),
-            parentId: folderParentId.value
+            parentId: folderParentId.value,
+            ownerScope: librarySource.value
           }
         })
       } else if (activeFolder.value) {
         await $fetch(`/api/library/workout-folders/${activeFolder.value.id}`, {
           method: 'PATCH',
           body: {
-            name: folderFormName.value.trim()
+            name: folderFormName.value.trim(),
+            ownerScope: activeFolder.value.ownerScope || librarySource.value
           }
         })
       }
@@ -698,7 +912,10 @@
     savingFolder.value = true
     try {
       await $fetch(`/api/library/workout-folders/${activeFolder.value.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        query: {
+          scope: activeFolder.value.ownerScope || librarySource.value
+        }
       })
       await refresh()
       await refreshFolders()
@@ -725,7 +942,8 @@
         method: 'PATCH',
         body: {
           parentId: payload.parentId,
-          beforeId: payload.beforeId
+          beforeId: payload.beforeId,
+          ownerScope: librarySource.value
         }
       })
       await refreshFolders()
@@ -761,7 +979,8 @@
         body: {
           templateIds: moveTemplateIds.value,
           folderId:
-            moveTemplatesTargetScope.value === 'unfiled' ? null : moveTemplatesTargetScope.value
+            moveTemplatesTargetScope.value === 'unfiled' ? null : moveTemplatesTargetScope.value,
+          ownerScope: librarySource.value
         }
       })
       selectedTemplateIds.value = selectedTemplateIds.value.filter(
@@ -811,7 +1030,8 @@
         method: 'POST',
         body: {
           templateIds,
-          folderId
+          folderId,
+          ownerScope: librarySource.value
         }
       })
 

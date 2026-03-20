@@ -639,7 +639,10 @@
       :templates="workoutTemplates || []"
       :loading="workoutTemplateStatus === 'pending'"
       :error="workoutTemplateStatus === 'error'"
+      :library-source="librarySource"
+      :is-coaching-mode="isCoachingLibraryMode"
       @toggle="isWorkoutDrawerOpen = !isWorkoutDrawerOpen"
+      @update:library-source="librarySource = $event"
       @created="refreshWorkoutTemplates"
     />
   </ClientOnly>
@@ -653,10 +656,12 @@
   import PlanPublicationSettings from '~/components/plans/PlanPublicationSettings.vue'
   import PlanArchitectUtilityPanel from '~/components/plans/PlanArchitectUtilityPanel.vue'
   import { usePlanArchitect } from '~/composables/usePlanArchitect'
+  import { useLibrarySource } from '~/composables/useLibrarySource'
 
   const route = useRoute()
   const planId = route.params.id as string
   const toast = useToast()
+  const { isCoachingMode: isCoachingLibraryMode } = useLibrarySource(`plan-architect:${planId}`)
 
   const {
     DAYS,
@@ -683,6 +688,7 @@
     editingWorkoutTarget,
     workoutTemplates,
     workoutTemplateStatus,
+    librarySource,
     sortedBlocks,
     totalWeeks,
     totalWorkouts,
