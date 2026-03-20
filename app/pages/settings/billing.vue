@@ -853,11 +853,9 @@
           </p>
         </div>
 
-        <LandingPricingPlans
-          conversion-goal="pro"
-          is-billing-page
-          @close="showPlansModal = false"
-        />
+        <div class="pb-6 sm:pb-8">
+          <LandingPricingPlans conversion-goal="pro" @close="showPlansModal = false" />
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
@@ -948,40 +946,38 @@
     <!-- Change Plan Modal -->
     <UModal
       v-model:open="showPlansModal"
-      :ui="{ content: 'sm:max-w-5xl' }"
+      :ui="{ content: 'sm:max-w-6xl', body: 'p-0' }"
       :title="t('billing_modal_title')"
       :description="t('billing_modal_desc')"
     >
       <template #content>
-        <UCard :ui="{ body: 'p-6 sm:p-8' }">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="text-xl font-bold">{{ t('billing_modal_change_title') }}</h3>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-heroicons-x-mark"
-                @click="showPlansModal = false"
+        <div class="max-h-[85vh] overflow-y-auto overscroll-y-contain">
+          <UCard :ui="{ body: 'p-5 sm:p-6 lg:p-7' }">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold">{{ t('billing_modal_change_title') }}</h3>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-x-mark"
+                  @click="showPlansModal = false"
+                />
+              </div>
+            </template>
+
+            <SettingsBillingPlans conversion-goal="pro" @close="showPlansModal = false" />
+
+            <div v-if="!subscriptionsEnabled" class="mt-8">
+              <UAlert
+                icon="i-heroicons-information-circle"
+                color="info"
+                variant="soft"
+                :title="t('billing_unavailable_title')"
+                :description="t('billing_unavailable_modal_desc')"
               />
             </div>
-          </template>
-
-          <LandingPricingPlans
-            conversion-goal="pro"
-            is-billing-page
-            @close="showPlansModal = false"
-          />
-
-          <div v-if="!subscriptionsEnabled" class="mt-8">
-            <UAlert
-              icon="i-heroicons-information-circle"
-              color="info"
-              variant="soft"
-              :title="t('billing_unavailable_title')"
-              :description="t('billing_unavailable_modal_desc')"
-            />
-          </div>
-        </UCard>
+          </UCard>
+        </div>
       </template>
     </UModal>
   </div>
