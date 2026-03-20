@@ -199,6 +199,7 @@
               Workout Structure
             </h4>
             <UButton
+              v-if="showStructureActions"
               size="xs"
               color="neutral"
               variant="ghost"
@@ -247,7 +248,7 @@
 
         <!-- Mark Complete Section -->
         <div
-          v-if="!plannedWorkout.completed && !showWorkoutSelector"
+          v-if="showCompletionActions && !plannedWorkout.completed && !showWorkoutSelector"
           class="flex flex-col gap-3 pt-4"
         >
           <UButton
@@ -275,7 +276,10 @@
         </div>
 
         <!-- Workout Selector -->
-        <div v-if="showWorkoutSelector && !plannedWorkout.completed" class="space-y-3">
+        <div
+          v-if="showCompletionActions && showWorkoutSelector && !plannedWorkout.completed"
+          class="space-y-3"
+        >
           <div>
             <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">
               Select Completed Workout
@@ -497,7 +501,7 @@
         <div class="flex-1" />
         <div class="flex gap-2">
           <UButton
-            v-if="plannedWorkout"
+            v-if="showSaveToLibrary && plannedWorkout"
             color="neutral"
             variant="soft"
             :loading="savingToLibrary"
@@ -505,7 +509,11 @@
           >
             Save to Library
           </UButton>
-          <UButton v-if="plannedWorkout" color="primary" @click="viewFullPlannedWorkout">
+          <UButton
+            v-if="showViewDetails && plannedWorkout"
+            color="primary"
+            @click="viewFullPlannedWorkout"
+          >
             View Details
           </UButton>
           <UButton color="neutral" variant="ghost" :disabled="loading" @click="closeModal">
@@ -604,6 +612,12 @@
     userFtp?: number
     allSportSettings?: any[]
     savingToLibrary?: boolean
+    endpointBase?: string
+    viewPathBase?: string
+    showCompletionActions?: boolean
+    showStructureActions?: boolean
+    showViewDetails?: boolean
+    showSaveToLibrary?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -617,6 +631,12 @@
     get: () => props.modelValue,
     set: (value) => emit('update:modelValue', value)
   })
+  const plannedWorkoutEndpointBase = computed(() => props.endpointBase || '/api/planned-workouts')
+  const plannedWorkoutViewBase = computed(() => props.viewPathBase || '/workouts/planned')
+  const showCompletionActions = computed(() => props.showCompletionActions ?? true)
+  const showStructureActions = computed(() => props.showStructureActions ?? true)
+  const showViewDetails = computed(() => props.showViewDetails ?? true)
+  const showSaveToLibrary = computed(() => props.showSaveToLibrary ?? true)
 
   const loading = ref(false)
   const showWorkoutSelector = ref(false)
@@ -646,7 +666,7 @@
 
       updatingStrategy.value = true
       try {
-        await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`, {
+        await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
           method: 'PATCH',
           body: { fuelingStrategy: val }
         })
@@ -913,7 +933,7 @@
 
     loading.value = true
     try {
-      await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`, {
+      await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
         method: 'DELETE'
       })
 
@@ -948,7 +968,7 @@
     if (!props.plannedWorkout?.id) return
     updatingTime.value = true
     try {
-      await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`, {
+      await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
         method: 'PATCH',
         body: { date: timeForm.date, startTime: timeForm.startTime }
       })
@@ -977,7 +997,7 @@
 
   function viewFullPlannedWorkout() {
     if (props.plannedWorkout?.id) {
-      navigateTo(`/workouts/planned/${props.plannedWorkout.id}`)
+      navigateTo(`${plannedWorkoutViewBase.value}/${props.plannedWorkout.id}`)
     }
   }
 

@@ -1,14 +1,8 @@
 <template>
-  <div
-    v-bind="rootAttrs"
-    class="fixed inset-x-0 bottom-0 z-[70] sm:inset-x-4 sm:bottom-4"
-    :class="attrs.class"
-  >
-    <div
-      class="overflow-hidden rounded-t-3xl border-x-0 border-t border-default/80 bg-default/95 shadow-2xl backdrop-blur sm:rounded-3xl sm:border"
-    >
+  <div v-bind="rootAttrs" :class="[rootContainerClass, attrs.class]">
+    <div :class="shellClass">
       <div
-        v-if="open"
+        v-if="isBottomSurface && open"
         class="flex items-center justify-center px-4 pt-2 pb-1 cursor-ns-resize touch-none"
         role="separator"
         aria-orientation="vertical"
@@ -19,6 +13,7 @@
       </div>
 
       <button
+        v-if="isBottomSurface"
         class="hidden w-full items-center justify-between gap-3 border-b border-default/70 px-4 py-3 text-left sm:flex sm:py-3.5"
         @click="$emit('toggle')"
       >
@@ -48,15 +43,115 @@
         </div>
       </button>
 
-      <div
-        v-if="open"
-        class="overflow-hidden flex flex-col"
-        :style="{ height: `${drawerHeight}px` }"
-      >
-        <div
-          class="sticky top-0 z-10 border-t border-default/70 bg-default/95 px-4 py-2.5 backdrop-blur-sm sm:border-t-0 sm:border-b sm:bg-default/60 sm:py-3"
-        >
-          <div class="hidden items-center gap-2 sm:flex">
+      <div v-if="surfaceOpen" class="overflow-hidden flex flex-col" :style="surfaceBodyStyle">
+        <div :class="toolbarClass">
+          <div v-if="isRailSurface" class="flex flex-col gap-2.5">
+            <div class="flex items-center gap-2">
+              <UInput
+                v-model="localSearch"
+                placeholder="Search items..."
+                size="sm"
+                icon="i-heroicons-magnifying-glass"
+                class="min-w-0 flex-1"
+              />
+
+              <UDropdownMenu :items="railActionMenuItems" :content="{ align: 'end' }">
+                <UButton
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-ellipsis-horizontal"
+                  class="h-9 w-9 shrink-0 justify-center rounded-xl p-0"
+                  title="Library actions"
+                  aria-label="Library actions"
+                />
+              </UDropdownMenu>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <UButton
+                size="sm"
+                color="neutral"
+                variant="soft"
+                icon="i-heroicons-folder-open"
+                class="h-9 min-w-0 flex-1 justify-start rounded-xl px-3"
+                @click="showFolderPicker = true"
+              >
+                <span class="truncate">{{ selectedScopeLabel }}</span>
+              </UButton>
+
+              <UPopover>
+                <UButton
+                  size="sm"
+                  color="neutral"
+                  variant="soft"
+                  icon="i-heroicons-funnel"
+                  class="h-9 shrink-0 rounded-xl px-3"
+                >
+                  {{ filtersButtonLabel }}
+                </UButton>
+
+                <template #content>
+                  <div class="w-72 space-y-3 p-3">
+                    <div class="space-y-1">
+                      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
+                        Type
+                      </div>
+                      <USelectMenu
+                        v-model="selectedType"
+                        value-key="value"
+                        :items="typeFilterOptions"
+                        size="sm"
+                        class="w-full"
+                        :ui="railCompactSelectUi"
+                      />
+                    </div>
+
+                    <div class="space-y-1">
+                      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
+                        Duration
+                      </div>
+                      <USelectMenu
+                        v-model="selectedDuration"
+                        value-key="value"
+                        :items="durationFilterOptions"
+                        size="sm"
+                        class="w-full"
+                        :ui="railCompactSelectUi"
+                      />
+                    </div>
+
+                    <div class="flex justify-end">
+                      <UButton
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        :disabled="activeRailFilterCount === 0"
+                        @click="resetRailFilters"
+                      >
+                        Reset filters
+                      </UButton>
+                    </div>
+                  </div>
+                </template>
+              </UPopover>
+            </div>
+
+            <div v-if="activeRailFilterChips.length" class="flex flex-wrap gap-1.5">
+              <UBadge
+                v-for="chip in activeRailFilterChips"
+                :key="chip.key"
+                color="neutral"
+                variant="soft"
+                class="cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-bold"
+                @click="chip.clear"
+              >
+                {{ chip.label }}
+              </UBadge>
+            </div>
+          </div>
+
+          <div v-else class="hidden items-center gap-2 sm:flex">
             <div v-if="isCoachingMode" class="flex items-center gap-1 overflow-x-auto no-scrollbar">
               <UButton
                 v-for="option in librarySourceOptions"
@@ -174,7 +269,7 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-2.5 sm:hidden">
+          <div v-if="!isRailSurface" class="flex flex-col gap-2.5 sm:hidden">
             <div class="flex items-center gap-2">
               <div class="flex min-w-0 flex-1 items-center gap-2">
                 <UButton
@@ -298,7 +393,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto px-4 py-3 sm:py-4">
-          <div v-if="loading" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div v-if="loading" :class="templatesGridClass">
             <USkeleton v-for="i in 6" :key="i" class="h-24 w-full rounded-2xl" />
           </div>
 
@@ -317,7 +412,7 @@
             No matching items found.
           </div>
 
-          <div v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div v-else :class="templatesGridClass">
             <div
               v-for="template in filteredTemplates"
               :key="template.id"
@@ -342,7 +437,7 @@
                   </div>
                   <div
                     v-if="template.description"
-                    class="mt-1.5 hidden line-clamp-2 text-[11px] leading-5 text-muted sm:block"
+                    class="mt-1.5 hidden line-clamp-3 text-[11px] leading-5 text-muted sm:block"
                   >
                     {{ template.description }}
                   </div>
@@ -431,10 +526,25 @@
     v-if="!isMobileFolderPicker"
     v-model:open="showFolderPicker"
     title="Choose Folder"
-    description="Filter the workout drawer by library folder."
+    description="Choose the library source and folder scope for this rail."
   >
     <template #body>
-      <div class="p-4">
+      <div class="space-y-4 p-4">
+        <div v-if="isCoachingMode" class="space-y-1">
+          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
+            Library source
+          </div>
+          <USelectMenu
+            :model-value="librarySource"
+            value-key="value"
+            :items="librarySourceOptions"
+            size="sm"
+            class="w-full"
+            :ui="railCompactSelectUi"
+            @update:model-value="updateLibrarySourceFromPicker"
+          />
+        </div>
+
         <WorkoutFolderSelector
           title="Drawer Scope"
           :tree="folderTree"
@@ -456,7 +566,22 @@
     title="Choose Folder"
   >
     <template #body>
-      <div class="p-4">
+      <div class="space-y-4 p-4">
+        <div v-if="isCoachingMode" class="space-y-1">
+          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
+            Library source
+          </div>
+          <USelectMenu
+            :model-value="librarySource"
+            value-key="value"
+            :items="librarySourceOptions"
+            size="sm"
+            class="w-full"
+            :ui="railCompactSelectUi"
+            @update:model-value="updateLibrarySourceFromPicker"
+          />
+        </div>
+
         <WorkoutFolderSelector
           title="Drawer Scope"
           :tree="folderTree"
@@ -537,6 +662,7 @@
 
   const props = defineProps<{
     open: boolean
+    surface?: 'bottom' | 'rail'
     templates: any[] | Record<string, any[]>
     loading?: boolean
     error?: boolean
@@ -546,6 +672,7 @@
     scheduleTargets?: Array<{
       label: string
       date: string
+      athleteId?: string
     }>
   }>()
 
@@ -553,7 +680,7 @@
     toggle: []
     created: []
     'open-calendar-picker': [payload: { template: any }]
-    'schedule-template': [payload: { template: any; date: string }]
+    'schedule-template': [payload: { template: any; date: string; athleteId?: string }]
     'update:librarySource': [value: 'athlete' | 'coach' | 'all']
   }>()
 
@@ -562,6 +689,32 @@
     const { class: _class, ...rest } = attrs
     return rest
   })
+  const isBottomSurface = computed(() => (props.surface || 'bottom') === 'bottom')
+  const isRailSurface = computed(() => !isBottomSurface.value)
+  const surfaceOpen = computed(() => (isBottomSurface.value ? props.open : true))
+  const rootContainerClass = computed(() =>
+    isBottomSurface.value ? 'fixed inset-x-0 bottom-0 z-[70] sm:inset-x-4 sm:bottom-4' : 'h-full'
+  )
+  const shellClass = computed(() =>
+    isBottomSurface.value
+      ? 'overflow-hidden rounded-t-3xl border-x-0 border-t border-default/80 bg-default/95 shadow-2xl backdrop-blur sm:rounded-3xl sm:border'
+      : 'flex h-full flex-col overflow-hidden rounded-2xl border border-default/80 bg-default shadow-sm'
+  )
+  const toolbarClass = computed(() =>
+    isBottomSurface.value
+      ? 'sticky top-0 z-10 border-t border-default/70 bg-default/95 px-4 py-2.5 backdrop-blur-sm sm:border-t-0 sm:border-b sm:bg-default/60 sm:py-3'
+      : 'border-b border-default/70 bg-default px-3 py-3'
+  )
+  const surfaceBodyStyle = computed(() =>
+    isBottomSurface.value ? { height: `${drawerHeight.value}px` } : undefined
+  )
+  const templatesGridClass = computed(() =>
+    isRailSurface.value ? 'grid grid-cols-1 gap-3' : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+  )
+  const railCompactSelectUi = {
+    base: 'h-9 rounded-xl border-default/80 bg-muted/10 px-3 text-sm font-semibold text-highlighted',
+    content: 'min-w-[12rem]'
+  }
   const toast = useToast()
   const localSearch = ref('')
   const mobileSearchOpen = ref(false)
@@ -578,6 +731,7 @@
   const resizeStartHeight = ref(420)
   const showFolderPicker = ref(false)
   const isMobileFolderPicker = useMediaQuery('(max-width: 767px)')
+  const librarySource = computed(() => props.librarySource || 'athlete')
   const {
     tree: folderTree,
     counts: folderCounts,
@@ -589,7 +743,7 @@
     setSelectedScope,
     toggleExpanded
   } = useWorkoutTemplateFolders('workout-drawer', {
-    librarySource: computed(() => props.librarySource || 'athlete')
+    librarySource
   })
 
   // Technical Modal state
@@ -652,7 +806,12 @@
     const items = (props.scheduleTargets || []).map((target) => ({
       label: target.label,
       icon: 'i-heroicons-calendar-days',
-      onSelect: () => emit('schedule-template', { template, date: target.date })
+      onSelect: () =>
+        emit('schedule-template', {
+          template,
+          date: target.date,
+          athleteId: target.athleteId
+        })
     }))
 
     if (props.allowCalendarTarget) {
@@ -680,6 +839,98 @@
     { label: '30-60m', value: 'medium' },
     { label: '60m+', value: 'long' }
   ]
+  const typeFilterOptions = [
+    { label: 'All types', value: 'all' },
+    ...workoutTypes.map((type) => ({ label: type.label, value: type.value }))
+  ]
+  const durationFilterOptions = durationRanges.map((range) => ({
+    label: range.value === 'all' ? 'All durations' : range.label,
+    value: range.value
+  }))
+  const activeRailFilterCount = computed(() => {
+    let count = 0
+    if (selectedType.value !== 'all') count += 1
+    if (selectedDuration.value !== 'all') count += 1
+    return count
+  })
+  const filtersButtonLabel = computed(() =>
+    activeRailFilterCount.value > 0 ? `Filters (${activeRailFilterCount.value})` : 'Filters'
+  )
+  const selectedScopeLabel = computed(() => {
+    const sourceLabel =
+      librarySourceOptions.find((option) => option.value === librarySource.value)?.label || 'Coach'
+    const folderLabel =
+      selectedScope.value === 'all'
+        ? 'All workouts'
+        : selectedScope.value === 'unfiled'
+          ? 'Unfiled workouts'
+          : selectedFolderLabel.value
+
+    return `${sourceLabel} • ${folderLabel}`
+  })
+  const activeRailFilterChips = computed(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = []
+
+    if (selectedType.value !== 'all') {
+      const typeLabel =
+        typeFilterOptions.find((option) => option.value === selectedType.value)?.label ||
+        selectedType.value
+      chips.push({
+        key: `type-${selectedType.value}`,
+        label: typeLabel,
+        clear: () => {
+          selectedType.value = 'all'
+        }
+      })
+    }
+
+    if (selectedDuration.value !== 'all') {
+      const durationLabel =
+        durationFilterOptions.find((option) => option.value === selectedDuration.value)?.label ||
+        selectedDuration.value
+      chips.push({
+        key: `duration-${selectedDuration.value}`,
+        label: durationLabel,
+        clear: () => {
+          selectedDuration.value = 'all'
+        }
+      })
+    }
+
+    return chips
+  })
+  const railActionMenuItems = computed(() => [
+    [
+      {
+        label: 'New workout',
+        icon: 'i-heroicons-plus',
+        onSelect: () => openCreateModal('workout')
+      },
+      {
+        label: 'New note',
+        icon: 'i-heroicons-document-text',
+        onSelect: () => openCreateModal('note')
+      }
+    ],
+    [
+      {
+        label: 'Open workout library',
+        icon: 'i-heroicons-arrow-top-right-on-square',
+        onSelect: () => navigateTo('/library/workouts')
+      },
+      ...(librarySource.value === 'all'
+        ? []
+        : [
+            {
+              label: 'Choose folder',
+              icon: 'i-heroicons-folder-open',
+              onSelect: () => {
+                showFolderPicker.value = true
+              }
+            }
+          ])
+    ]
+  ])
 
   const mobileActionMenuItems = computed(() => [
     [
@@ -816,6 +1067,15 @@
   function selectScopeFromPicker(scope: string) {
     setSelectedScope(scope)
     showFolderPicker.value = false
+  }
+
+  function updateLibrarySourceFromPicker(value: 'athlete' | 'coach' | 'all') {
+    emit('update:librarySource', value)
+  }
+
+  function resetRailFilters() {
+    selectedType.value = 'all'
+    selectedDuration.value = 'all'
   }
 
   function openCreateModal(mode: 'workout' | 'note') {
