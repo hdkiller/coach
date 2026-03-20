@@ -104,7 +104,7 @@ USER PROFILE:
 {{sport_settings_context}}
 
 RECENT WORKOUTS (Last 3 Cycling Sessions):
-{{workout_summary}}
+{{workouts_summary}}
 
 ANALYSIS FOCUS:
 1. **Training Progression**: Are they building fitness effectively? Getting stronger or showing fatigue?
@@ -262,11 +262,11 @@ USER PROFILE:
 - W/kg: {{user.wKg}}
 
 WORKOUTS (Last 7 days):
-{{workout_summary}}
+{{workouts_summary}}
 
 DAILY METRICS (Recovery & Sleep):
 {{metrics_summary}}
-{{goals_context}}
+{{activeGoals_context}}
 
 ANALYSIS INSTRUCTIONS:
 Create a comprehensive weekly training analysis with these sections:
