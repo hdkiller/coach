@@ -13,13 +13,13 @@ backfillPBCommand
   .option('--user <email>', 'Filter to a specific user email')
   .option('--user-id <uuid>', 'Filter to a specific user ID')
   .option('--limit <number>', 'Max workouts to process', '1000')
-  .option('--days <number>', 'Look back this many days', '365')
+  .option('--days <number>', 'Look back this many days (omit for all-time)')
   .option('--batch-size <number>', 'Database fetch batch size', '500')
   .option('--concurrency <number>', 'Parallel processing limit', '5')
   .action(async (options) => {
     const isProd = Boolean(options.prod)
     const limit = Number.parseInt(options.limit, 10)
-    const days = Number.parseInt(options.days, 10)
+    const days = options.days ? Number.parseInt(options.days, 10) : null
     const batchSize = Number.parseInt(options.batchSize, 10)
     const concurrency = Number.parseInt(options.concurrency, 10)
     const userEmail = options.user ? String(options.user).trim().toLowerCase() : null
@@ -40,12 +40,14 @@ backfillPBCommand
     const prisma = new PrismaClient({ adapter })
 
     try {
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
-
       const filters: any = {
-        date: { gte: since },
         isDuplicate: false,
         streams: { isNot: null }
+      }
+
+      if (days != null) {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+        filters.date = { gte: since }
       }
 
       if (userEmail) filters.user = { email: userEmail }
@@ -58,7 +60,11 @@ backfillPBCommand
       console.log(
         chalk.cyan(`Target: Processing ${toProcess} of ${totalMatching} matching workouts.`)
       )
-      console.log(chalk.gray(`Batch Size: ${batchSize} | Concurrency: ${concurrency}\n`))
+      console.log(
+        chalk.gray(
+          `Batch Size: ${batchSize} | Concurrency: ${concurrency} | Range: ${days != null ? `${days} days` : 'all-time'}\n`
+        )
+      )
 
       let processedCount = 0
       let pbDetectedCount = 0
