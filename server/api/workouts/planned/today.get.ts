@@ -1,4 +1,5 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
+import { getEffectiveUserId } from '../../../utils/coaching'
 import { getUserTimezone, getUserLocalDate } from '../../../utils/date'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
 
@@ -34,13 +35,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  await requireAuth(event, ['workout:read'])
+  const userId = await getEffectiveUserId(event)
 
   // Get user's timezone-aware "today" (UTC midnight of their local date)
   const timezone = await getUserTimezone(userId)

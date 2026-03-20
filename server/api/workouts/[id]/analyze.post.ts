@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
@@ -41,14 +41,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['workout:write'])
 
   const id = getRouterParam(event, 'id')
 
@@ -59,7 +52,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const userId = (session.user as any).id
+  const userId = user.id
   await assertQuotaAllowed(userId, 'workout_analysis')
 
   // Fetch the workout
@@ -93,8 +86,8 @@ export default defineEventHandler(async (event) => {
         workoutId: id
       },
       {
-        concurrencyKey: (session.user as any).id,
-        tags: [`user:${(session.user as any).id}`],
+        concurrencyKey: user.id,
+        tags: [`user:${user.id}`],
         idempotencyKey: id,
         idempotencyKeyTTL: '5m'
       }

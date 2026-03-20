@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
@@ -86,16 +86,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const user = await requireAuth(event, ['workout:write'])
 
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const userId = user.id
   const workoutId = getRouterParam(event, 'id')
 
   if (!workoutId) {

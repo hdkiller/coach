@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import {
   buildWorkoutAnalysisFacts,
@@ -34,37 +34,36 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['workout:read'])
 
   const id = getRouterParam(event, 'id')
 
   if (!id) {
     throw createError({
       statusCode: 400,
-      message: 'Workout ID is required'
+      message: 'Workout ID or Date is required'
     })
   }
 
-  const workout = await workoutRepository.getById(id, (session.user as any).id, {
-    include: {
-      streams: true,
-      oauthApp: {
-        select: {
-          id: true,
-          name: true,
-          sourceName: true,
-          clientId: true
-        }
-      },
-      duplicates: {
+  let workout: any = null
+
+  // Check if ID is a date string (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(id)) {
+    const dateObj = new Date(`${id}T00:00:00Z`)
+    if (!isNaN(dateObj.getTime())) {
+      // Find workouts for this date. If there are multiple, get the most recent one (non-duplicate).
+      workout = await prisma.workout.findFirst({
+        where: {
+          userId: user.id,
+          date: {
+            gte: new Date(`${id}T00:00:00Z`),
+            lte: new Date(`${id}T23:59:59Z`)
+          },
+          isDuplicate: false
+        },
+        orderBy: { createdAt: 'desc' },
         include: {
+          streams: true,
           oauthApp: {
             select: {
               id: true,
@@ -72,42 +71,114 @@ export default defineEventHandler(async (event) => {
               sourceName: true,
               clientId: true
             }
-          }
-        }
-      },
-      canonicalWorkout: {
-        include: {
-          oauthApp: {
-            select: {
-              id: true,
-              name: true,
-              sourceName: true,
-              clientId: true
+          },
+          duplicates: {
+            include: {
+              oauthApp: {
+                select: {
+                  id: true,
+                  name: true,
+                  sourceName: true,
+                  clientId: true
+                }
+              }
             }
-          }
-        }
-      },
-      plannedWorkout: true,
-      planAdherence: true,
-      metricHistory: {
-        orderBy: { createdAt: 'desc' }
-      },
-      personalBests: true,
-      exercises: {
-        include: {
-          exercise: true,
-          sets: {
+          },
+          canonicalWorkout: {
+            include: {
+              oauthApp: {
+                select: {
+                  id: true,
+                  name: true,
+                  sourceName: true,
+                  clientId: true
+                }
+              }
+            }
+          },
+          plannedWorkout: true,
+          planAdherence: true,
+          metricHistory: {
+            orderBy: { createdAt: 'desc' }
+          },
+          personalBests: true,
+          exercises: {
+            include: {
+              exercise: true,
+              sets: {
+                orderBy: {
+                  order: 'asc'
+                }
+              }
+            },
             orderBy: {
               order: 'asc'
             }
           }
+        }
+      })
+    }
+  }
+
+  // Fallback to searching by UUID if not found by date or if not a date string
+  if (!workout) {
+    workout = await workoutRepository.getById(id, user.id, {
+      include: {
+        streams: true,
+        oauthApp: {
+          select: {
+            id: true,
+            name: true,
+            sourceName: true,
+            clientId: true
+          }
         },
-        orderBy: {
-          order: 'asc'
+        duplicates: {
+          include: {
+            oauthApp: {
+              select: {
+                id: true,
+                name: true,
+                sourceName: true,
+                clientId: true
+              }
+            }
+          }
+        },
+        canonicalWorkout: {
+          include: {
+            oauthApp: {
+              select: {
+                id: true,
+                name: true,
+                sourceName: true,
+                clientId: true
+              }
+            }
+          }
+        },
+        plannedWorkout: true,
+        planAdherence: true,
+        metricHistory: {
+          orderBy: { createdAt: 'desc' }
+        },
+        personalBests: true,
+        exercises: {
+          include: {
+            exercise: true,
+            sets: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          },
+          orderBy: {
+            order: 'asc'
+          }
         }
       }
-    }
-  })
+    })
+  }
 
   if (!workout) {
     throw createError({
@@ -134,7 +205,7 @@ export default defineEventHandler(async (event) => {
   const [prevWorkout, nextWorkout] = await Promise.all([
     prisma.workout.findFirst({
       where: {
-        userId: (session.user as any).id,
+        userId: user.id,
         date: { lt: workout.date },
         isDuplicate: false
       },
@@ -143,7 +214,7 @@ export default defineEventHandler(async (event) => {
     }),
     prisma.workout.findFirst({
       where: {
-        userId: (session.user as any).id,
+        userId: user.id,
         date: { gt: workout.date },
         isDuplicate: false
       },
@@ -153,9 +224,9 @@ export default defineEventHandler(async (event) => {
   ])
 
   const [sportSettings, userProfile] = await Promise.all([
-    sportSettingsRepository.getForActivityType((session.user as any).id, workout.type || ''),
+    sportSettingsRepository.getForActivityType(user.id, workout.type || ''),
     prisma.user.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: user.id },
       select: {
         weight: true,
         weightUnits: true,

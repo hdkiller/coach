@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../../utils/date'
 
@@ -44,14 +44,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['workout:read'])
 
   const query = getQuery(event)
   const date = query.date as string
@@ -64,7 +57,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const userId = (session.user as any).id
+    const userId = user.id
     const timezone = await getUserTimezone(userId)
 
     // Parse the date parameter (YYYY-MM-DD)

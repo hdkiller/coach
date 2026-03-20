@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { calculateWorkoutStress } from '../../utils/calculate-workout-stress'
 import { metabolicService } from '../../utils/services/metabolicService'
@@ -52,16 +52,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const user = await requireAuth(event, ['workout:write'])
 
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const userId = user.id
   const body = await readBody(event)
 
   // Validate required fields
