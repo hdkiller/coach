@@ -155,7 +155,7 @@ describe('GET /api/calendar threshold milestones', () => {
       }
     } as any)
 
-    expect(result).toEqual([
+    expect(result.activities).toEqual([
       expect.objectContaining({
         id: 'mh-1',
         source: 'threshold',

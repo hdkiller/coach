@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getServerSession } from '../../../../../server/utils/session'
+import { requireAuth } from '../../../../../server/utils/auth-guard'
 
 const prismaMock = {
   user: {
@@ -19,19 +19,25 @@ const wellnessRepositoryMock = {
 
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
 vi.stubGlobal('defineRouteMeta', () => {})
+vi.stubGlobal('getQuery', (event: any) => event.query || {})
+vi.stubGlobal('getHeader', (event: any, name: string) => event.headers?.[name])
+vi.stubGlobal('getCookie', (event: any, name: string) => event.cookies?.[name])
 vi.stubGlobal('createError', (err: any) => {
   const error = new Error(err.message)
   ;(error as any).statusCode = err.statusCode
   return error
 })
 vi.stubGlobal('prisma', prismaMock)
-vi.stubGlobal('getUserLocalDate', vi.fn(() => new Date('2026-03-12T00:00:00Z')))
+vi.stubGlobal(
+  'getUserLocalDate',
+  vi.fn(() => new Date('2026-03-12T00:00:00Z'))
+)
 vi.stubGlobal('workoutRepository', workoutRepositoryMock)
 vi.stubGlobal('nutritionRepository', nutritionRepositoryMock)
 vi.stubGlobal('wellnessRepository', wellnessRepositoryMock)
 
-vi.mock('../../../../../server/utils/session', () => ({
-  getServerSession: vi.fn()
+vi.mock('../../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn()
 }))
 
 const getHandler = async () => {
@@ -42,7 +48,7 @@ const getHandler = async () => {
 describe('GET /api/activity/recent', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'user-1' } } as any)
+    vi.mocked(requireAuth).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(workoutRepositoryMock.getForUser).mockResolvedValue([] as any)
     vi.mocked(nutritionRepositoryMock.getForUser).mockResolvedValue([] as any)
     vi.mocked(wellnessRepositoryMock.getForUser).mockResolvedValue([] as any)

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getServerSession } from '../../../../../server/utils/session'
 import {
   getCurrentFitnessSummary,
   getFormStatus
@@ -11,9 +10,13 @@ import {
   getStartOfYearUTC
 } from '../../../../../server/utils/date'
 
+import { requireAuth } from '../../../../../server/utils/auth-guard'
+
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
 vi.stubGlobal('defineRouteMeta', () => {})
 vi.stubGlobal('getQuery', (event: any) => event.query || {})
+vi.stubGlobal('getHeader', (event: any, name: string) => event.headers?.[name])
+vi.stubGlobal('getCookie', (event: any, name: string) => event.cookies?.[name])
 vi.stubGlobal('createError', (err: any) => {
   const error = new Error(err.message)
   // @ts-expect-error test-only statusCode assignment
@@ -21,8 +24,8 @@ vi.stubGlobal('createError', (err: any) => {
   return error
 })
 
-vi.mock('../../../../../server/utils/session', () => ({
-  getServerSession: vi.fn()
+vi.mock('../../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn()
 }))
 
 vi.mock('../../../../../server/utils/date', () => ({
@@ -46,6 +49,7 @@ const getHandler = async () => {
 describe('GET /api/performance/pmc', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(requireAuth).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(getUserTimezone).mockResolvedValue('Europe/Budapest')
     vi.mocked(getUserLocalDate).mockReturnValue(new Date('2026-03-09T00:00:00Z'))
     vi.mocked(getStartOfYearUTC).mockReturnValue(new Date('2026-01-01T00:00:00Z'))
@@ -61,7 +65,6 @@ describe('GET /api/performance/pmc', () => {
     const { calculatePMCForDateRange, getInitialPMCValues } =
       await import('../../../../../server/utils/training-stress')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'user-1' } } as any)
     vi.mocked(getCurrentFitnessSummary).mockResolvedValue({
       ctl: 58.9,
       atl: 72.9,

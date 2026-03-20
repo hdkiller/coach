@@ -27,6 +27,7 @@ describe('getUserAiSettings', () => {
       aiAutoAnalyzeReadiness: true,
       aiProactivityEnabled: true,
       aiConversationalEngagement: false,
+      aiMemoryEnabled: true,
       aiContext: 'I have a sore knee.'
     }
 
@@ -45,6 +46,7 @@ describe('getUserAiSettings', () => {
         aiRequireToolApproval: true,
         aiProactivityEnabled: true,
         aiConversationalEngagement: true,
+        aiMemoryEnabled: true,
         aiContext: true,
         nutritionTrackingEnabled: true,
         updateWorkoutNotesEnabled: true,
@@ -65,6 +67,7 @@ describe('getUserAiSettings', () => {
       aiRequireToolApproval: false,
       aiProactivityEnabled: true,
       aiConversationalEngagement: false,
+      aiMemoryEnabled: true,
       aiContext: 'I have a sore knee.',
       nickname: undefined,
       nutritionTrackingEnabled: true,
@@ -90,6 +93,7 @@ describe('getUserAiSettings', () => {
       aiRequireToolApproval: false,
       aiProactivityEnabled: false,
       aiConversationalEngagement: true,
+      aiMemoryEnabled: false,
       aiContext: null,
       nickname: null,
       nutritionTrackingEnabled: true,
@@ -119,6 +123,7 @@ describe('getUserAiSettings', () => {
       aiRequireToolApproval: false,
       aiProactivityEnabled: false,
       aiConversationalEngagement: true,
+      aiMemoryEnabled: false,
       aiContext: undefined,
       nickname: undefined,
       nutritionTrackingEnabled: true,

@@ -1,19 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getServerSession } from '../../../../../server/utils/session'
 import { prisma } from '../../../../../server/utils/db'
 import { pbDetectionService } from '../../../../../server/utils/services/pbDetectionService'
 
+import { requireAuth } from '../../../../../server/utils/auth-guard'
+
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
 vi.stubGlobal('defineRouteMeta', () => {})
+vi.stubGlobal('getQuery', (event: any) => event.query || {})
+vi.stubGlobal('getHeader', (event: any, name: string) => event.headers?.[name])
+vi.stubGlobal('getCookie', (event: any, name: string) => event.cookies?.[name])
 vi.stubGlobal('createError', (err: any) => {
   const error = new Error(err.message)
   ;(error as any).statusCode = err.statusCode
   return error
 })
 
-vi.mock('../../../../../server/utils/session', () => ({
-  getServerSession: vi.fn()
+vi.mock('../../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn()
 }))
 
 vi.mock('../../../../../server/utils/db', () => ({
@@ -48,7 +52,7 @@ const getHandler = async () => {
 describe('GET /api/scores/athlete-profile', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(getServerSession).mockResolvedValue({ user: { email: 'athlete@example.com' } } as any)
+    vi.mocked(requireAuth).mockResolvedValue({ id: 'user-1', email: 'athlete@example.com' } as any)
     vi.mocked(prisma.report.findMany).mockResolvedValue([] as any)
     vi.mocked(pbDetectionService.detectPBs).mockResolvedValue([] as any)
     vi.mocked(prisma.user.update).mockResolvedValue({ id: 'user-1' } as any)
