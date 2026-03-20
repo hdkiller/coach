@@ -1,7 +1,7 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { subDays } from 'date-fns'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
 import { parseTagQueryParam } from '../../utils/workout-tags'
 
@@ -65,14 +65,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  const user = session?.user as any
-  if (!user?.id) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['workout:read'])
   const userId = user.id
   const query = getQuery(event)
   const sport = query.sport === 'all' ? undefined : (query.sport as string)

@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -32,12 +32,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['chat:read'])
+  const userId = user.id
 
   // Find existing rooms for the user
   // Optimization: Sort in DB using lastMessageAt and use select for minimal data
@@ -104,7 +100,7 @@ export default defineEventHandler(async (event) => {
 
   // Migration cutoff date: January 22, 2026
   const MIGRATION_CUTOFF = new Date('2026-01-22T00:00:00Z')
-  const userImage = session.user?.image || null
+  const userImage = user.image || null
 
   // Common users list to avoid repeated object creation
   const commonUsers = [

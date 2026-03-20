@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { expandStoredChatMessages } from '../../utils/chat/history'
 import { prisma } from '../../utils/db'
 
@@ -41,15 +41,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
-  if (!userId) {
-    throw createError({ statusCode: 401, message: 'User ID not found' })
-  }
+  const user = await requireAuth(event, ['chat:read'])
+  const userId = user.id
 
   const { roomId } = getQuery(event) as { roomId: string }
 

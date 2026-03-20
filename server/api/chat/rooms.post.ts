@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -28,12 +28,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['chat:write'])
+  const userId = user.id
 
   // Create a new chat room
   const newRoom = await prisma.chatRoom.create({
@@ -79,7 +75,7 @@ export default defineEventHandler(async (event) => {
       {
         _id: userId,
         username: 'Me',
-        avatar: session.user.image,
+        avatar: user.image,
         status: {
           state: 'online',
           lastChanged: 'today'

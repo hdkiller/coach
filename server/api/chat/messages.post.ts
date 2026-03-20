@@ -1,20 +1,13 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
 import { chatService } from '../../utils/services/chatService'
 import { chatTurnService } from '../../utils/services/chatTurnService'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
-  if (!userId) {
-    throw createError({ statusCode: 401, message: 'User ID not found' })
-  }
+  const user = await requireAuth(event, ['chat:write'])
+  const userId = user.id
 
   try {
     await checkQuota(userId, 'chat')

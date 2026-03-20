@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -31,11 +31,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const coachId = (session.user as any).id
+  const user = await requireAuth(event, ['coaching:read'])
+  const coachId = user.id
   return await coachingRepository.getAthletesForCoach(coachId)
 })

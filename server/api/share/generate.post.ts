@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
@@ -63,15 +63,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const user = await requireAuth(event, ['workout:read'])
+  const userId = user.id
 
-  const userId = (session.user as any).id
-  if (!userId) {
-    throw createError({ statusCode: 401, message: 'User ID not found in session' })
-  }
   const { resourceType, resourceId, expiresIn, forceNew } = await readBody(event)
 
   if (!resourceType || !resourceId) {

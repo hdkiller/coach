@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getWorkoutIcon } from '../../utils/activity-types'
 import { normalizeStressScore } from '../../utils/wellness'
 
@@ -44,16 +44,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.id) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const userAuth = await requireAuth(event, ['workout:read'])
+  const userId = userAuth.id
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
