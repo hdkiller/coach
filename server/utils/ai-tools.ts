@@ -52,7 +52,7 @@ export const getToolsWithContext = (
   const tools = {
     ...workoutTools(userId, timezone, settings),
     ...planningTools(userId, timezone, settings),
-    ...libraryTools(userId),
+    ...libraryTools(userId, executionContext?.actorUserId || userId),
     ...recommendationTools(userId, timezone),
     ...analysisTools(userId, timezone, settings),
     ...profileTools(userId, timezone, settings),
