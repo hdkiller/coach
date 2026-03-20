@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
@@ -10,13 +10,10 @@ const analyzeSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const user = await requireAuth(event, ['health:write'])
 
   const { wellnessId } = await readValidatedBody(event, analyzeSchema.parse)
-  const userId = (session.user as any).id
+  const userId = user.id
 
   await assertQuotaAllowed(userId, 'wellness_analysis')
 

@@ -1,6 +1,7 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { normalizeStressScore } from '../../utils/wellness'
+import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -27,14 +28,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['health:read'])
 
   const param =
     getRouterParam(event, 'wellnessParam') ||
@@ -47,7 +41,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const userId = (session.user as any).id
+  const userId = user.id
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
   const toSleepHours = (
     sleepHours: number | null | undefined,

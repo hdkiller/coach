@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 
 defineRouteMeta({
@@ -33,16 +33,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['health:write'])
+  const userId = user.id
 
   // 1. Delete Wellness records
   const wellnessDelete = await prisma.wellness.deleteMany({

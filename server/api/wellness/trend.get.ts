@@ -1,5 +1,6 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
+import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 
 const toSleepHours = (
   sleepHours: number | null | undefined,
@@ -54,14 +55,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['health:read'])
 
   const query = getQuery(event)
   const startDate = query.startDate ? new Date(query.startDate as string) : null
@@ -74,7 +68,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const userId = (session.user as any).id
+  const userId = user.id
 
   // Fetch wellness data for the date range
   const wellness = await wellnessRepository.getForUser(userId, {
