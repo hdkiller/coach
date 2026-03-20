@@ -39,11 +39,36 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.siteUrl || 'http://localhost:3099'
 
-  // Create Stripe customer portal session
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: user.stripeCustomerId,
-    return_url: returnUrl || `${baseUrl}/settings/billing`
-  })
+  let portalSession
+  try {
+    portalSession = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: returnUrl || `${baseUrl}/settings/billing`
+    })
+  } catch (error: any) {
+    if (error?.type !== 'StripeInvalidRequestError' && error?.code !== 'resource_missing') {
+      throw error
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        subscriptionTier: 'FREE',
+        subscriptionStatus: 'NONE',
+        subscriptionPeriodEnd: null,
+        pendingSubscriptionTier: null,
+        pendingSubscriptionPeriodEnd: null
+      }
+    })
+
+    throw createError({
+      statusCode: 409,
+      message:
+        'Billing profile not found in the current Stripe account. Please choose a plan again to start a fresh checkout.'
+    })
+  }
 
   return {
     url: portalSession.url

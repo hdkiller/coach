@@ -43,6 +43,32 @@ export default defineEventHandler(async (event) => {
 
   let customerId = user.stripeCustomerId
 
+  // Recreate the customer if the stored ID belongs to another Stripe instance
+  // or has otherwise gone missing from the current account.
+  if (customerId) {
+    try {
+      await stripe.customers.retrieve(customerId)
+    } catch (error: any) {
+      if (error?.type === 'StripeInvalidRequestError' || error?.code === 'resource_missing') {
+        customerId = null
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            subscriptionTier: 'FREE',
+            subscriptionStatus: 'NONE',
+            subscriptionPeriodEnd: null,
+            pendingSubscriptionTier: null,
+            pendingSubscriptionPeriodEnd: null
+          }
+        })
+      } else {
+        throw error
+      }
+    }
+  }
+
   // Create Stripe customer if doesn't exist
   if (!customerId) {
     const customer = await stripe.customers.create({

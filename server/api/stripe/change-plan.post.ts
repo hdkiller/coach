@@ -39,8 +39,35 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 1. Retrieve the subscription from Stripe to get the item ID
-  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId)
+  let subscription
+
+  // If the stored subscription belongs to another Stripe instance, recover by
+  // clearing the stale billing linkage and letting the frontend start checkout.
+  try {
+    subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId)
+  } catch (error: any) {
+    if (error?.type !== 'StripeInvalidRequestError' && error?.code !== 'resource_missing') {
+      throw error
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        subscriptionTier: 'FREE',
+        subscriptionStatus: 'NONE',
+        subscriptionPeriodEnd: null,
+        pendingSubscriptionTier: null,
+        pendingSubscriptionPeriodEnd: null
+      }
+    })
+
+    return {
+      status: 'checkout_required'
+    }
+  }
+
   const subscriptionItem = subscription.items.data[0]
 
   if (!subscriptionItem) {
