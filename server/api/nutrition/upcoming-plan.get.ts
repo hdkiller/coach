@@ -1,7 +1,9 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { getEffectiveUserId } from '../../utils/coaching'
 import { metabolicService } from '../../utils/services/metabolicService'
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event, ['nutrition:read'])
   const userId = await getEffectiveUserId(event)
   const now = new Date()
 

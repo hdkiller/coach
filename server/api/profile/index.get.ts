@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
@@ -43,19 +43,12 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized'
-    })
-  }
+  const authUser = await requireAuth(event, ['profile:read'])
 
   try {
-    // Get user by email with all profile fields
+    // Get user by id with all profile fields and relations
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: authUser.id },
       select: {
         id: true,
         name: true,

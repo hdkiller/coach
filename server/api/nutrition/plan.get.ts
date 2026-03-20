@@ -1,4 +1,5 @@
 import { defineEventHandler, getQuery } from 'h3'
+import { requireAuth } from '../../utils/auth-guard'
 import { getEffectiveUserId } from '../../utils/coaching'
 import { nutritionPlanService } from '../../utils/services/nutritionPlanService'
 
@@ -21,6 +22,7 @@ function parseDateOnlyUtcEnd(value: string) {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event, ['nutrition:read'])
   const userId = await getEffectiveUserId(event)
   const query = getQuery(event)
 

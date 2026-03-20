@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
@@ -9,46 +9,9 @@ import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import { normalizeStressScore } from '../../utils/wellness'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['profile:read'])
 
   try {
-    // Get user with cached profile data
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        name: true,
-        country: true,
-        ftp: true,
-        weight: true,
-        maxHr: true,
-        restingHr: true,
-        lthr: true,
-        dob: true,
-        weightUnits: true,
-        weightSourceMode: true,
-        height: true,
-        heightUnits: true,
-        profileLastUpdated: true,
-        nutritionTrackingEnabled: true,
-        language: true
-      }
-    })
-
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        message: 'User not found'
-      })
-    }
-
     // Get Sport Settings via Repository (ensures Default exists)
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
     const defaultProfile = sportSettings.find((s: any) => s.isDefault)

@@ -1,6 +1,8 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
+import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
+import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -12,7 +14,8 @@ defineRouteMeta({
         name: 'id',
         in: 'path',
         required: true,
-        schema: { type: 'string' }
+        schema: { type: 'string' },
+        description: 'UUID or Date (YYYY-MM-DD)'
       }
     ],
     responses: {
@@ -40,29 +43,34 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
 
   const id = getRouterParam(event, 'id')
 
   if (!id) {
     throw createError({
       statusCode: 400,
-      message: 'Nutrition ID is required'
+      message: 'Nutrition ID or Date is required'
     })
   }
 
-  const userId = (session.user as any).id
   await assertQuotaAllowed(userId, 'nutrition_analysis')
 
-  // Fetch the nutrition record
-  const nutrition = await nutritionRepository.getById(id, userId)
+  let nutrition: any = null
+
+  // Check if ID is a date string (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(id)) {
+    const dateObj = new Date(`${id}T00:00:00Z`)
+    if (!isNaN(dateObj.getTime())) {
+      nutrition = await nutritionRepository.getByDate(userId, dateObj)
+    }
+  }
+
+  // Fallback to searching by UUID if not found by date or if not a date string
+  if (!nutrition) {
+    nutrition = await nutritionRepository.getById(id, userId)
+  }
 
   if (!nutrition) {
     throw createError({
@@ -70,6 +78,8 @@ export default defineEventHandler(async (event) => {
       message: 'Nutrition record not found'
     })
   }
+
+  const nutritionId = nutrition.id
 
   // Allow re-analysis regardless of existing data
   if (nutrition.aiAnalysisStatus === 'COMPLETED' && nutrition.aiAnalysisJson) {
@@ -80,7 +90,7 @@ export default defineEventHandler(async (event) => {
   if (nutrition.aiAnalysisStatus === 'PROCESSING') {
     return {
       success: true,
-      nutritionId: id,
+      nutritionId,
       status: 'PROCESSING',
       message: 'Analysis is currently being generated'
     }
@@ -88,32 +98,34 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Update status to PENDING
-    await nutritionRepository.updateStatus(id, 'PENDING')
+    await nutritionRepository.updateStatus(nutritionId, 'PENDING')
 
     // Trigger background job with per-user concurrency
     const handle = await tasks.trigger(
       'analyze-nutrition',
       {
-        nutritionId: id
+        nutritionId
       },
       {
-        concurrencyKey: (session.user as any).id,
-        tags: [`user:${(session.user as any).id}`],
-        idempotencyKey: id,
+        concurrencyKey: userId,
+        tags: [`user:${userId}`],
+        idempotencyKey: nutritionId,
         idempotencyKeyTTL: '5m'
       }
     )
 
+    await publishTaskRunStartedEvent(userId, 'analyze-nutrition', handle)
+
     return {
       success: true,
-      nutritionId: id,
+      nutritionId,
       jobId: handle.id,
       status: 'PENDING',
       message: 'Nutrition analysis started'
     }
   } catch (error) {
     // Update status to failed
-    await nutritionRepository.updateStatus(id, 'FAILED')
+    await nutritionRepository.updateStatus(nutritionId, 'FAILED')
 
     throw createError({
       statusCode: 500,

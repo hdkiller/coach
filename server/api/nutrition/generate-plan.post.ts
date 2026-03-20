@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { getUserLocalDate } from '../../utils/date'
 import { metabolicService } from '../../utils/services/metabolicService'
@@ -46,23 +46,12 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const user = await requireAuth(event, ['nutrition:write'])
 
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const userId = user.id
   const body = (await readBody(event)) || {}
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { timezone: true }
-  })
-  const timezone = user?.timezone ?? 'UTC'
+  const timezone = user.timezone ?? 'UTC'
 
   const targetDate = body.date ? new Date(body.date) : getUserLocalDate(timezone)
   const normalizedDate = new Date(
