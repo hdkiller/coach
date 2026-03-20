@@ -507,6 +507,7 @@
   import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
   import { useTranslate } from '@tolgee/vue'
   import RecoveryContextSlideover from '~/components/recovery/RecoveryContextSlideover.vue'
+  import { getCalendarActivities } from '~/utils/calendar'
   import { getPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
   import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
   import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
@@ -691,10 +692,12 @@
   async function refreshMissingStartTimeWarning() {
     try {
       const { startDate, endDate } = getWaveDateRange()
-      const activities = (await ($fetch as any)('/api/calendar', {
+      const calendarData = await ($fetch as any)('/api/calendar', {
         query: { startDate, endDate }
-      })) as any[]
-      missingPlannedStartActivities.value = getPlannedWorkoutsWithMissingStartTime(activities || [])
+      })
+      missingPlannedStartActivities.value = getPlannedWorkoutsWithMissingStartTime(
+        getCalendarActivities(calendarData)
+      )
     } catch (error) {
       console.error('Failed to evaluate planned workouts without start time:', error)
       missingPlannedStartActivities.value = []

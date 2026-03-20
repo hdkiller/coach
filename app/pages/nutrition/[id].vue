@@ -488,6 +488,7 @@
 </template>
 
 <script setup lang="ts">
+  import { getCalendarActivities } from '~/utils/calendar'
   import {
     mapNutritionToTimeline,
     getPlannedWorkoutsWithMissingStartTime
@@ -747,12 +748,12 @@
       const dateStr = nData.date
 
       // 2. Fetch all training activities for this date
-      const wData = (await ($fetch as any)('/api/calendar', {
+      const calendarData = await ($fetch as any)('/api/calendar', {
         query: { startDate: dateStr, endDate: dateStr }
-      })) as any[]
+      })
 
       // Filter out non-training items like wellness/nutrition placeholders and notes from the workouts array
-      workouts.value = (wData || []).filter(
+      workouts.value = getCalendarActivities(calendarData).filter(
         (a) =>
           (a.source === 'completed' || a.source === 'planned') &&
           a.type !== 'Rest' &&

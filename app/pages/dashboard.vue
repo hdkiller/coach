@@ -397,6 +397,7 @@
     getWorkoutColorClass,
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
+  import { getCalendarActivities } from '~/utils/calendar'
   import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
 
   const { t } = useTranslate('dashboard')
@@ -527,9 +528,9 @@
     loadingNutrition.value = true
     try {
       const dateStr = formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
-      const [nData, wData, sData] = (await Promise.all([
+      const [nData, calendarData, sData] = (await Promise.all([
         $fetch<any>(`/api/nutrition/${dateStr}`),
-        $fetch<any[]>('/api/calendar', {
+        $fetch<any>('/api/calendar', {
           query: { startDate: dateStr, endDate: dateStr }
         }),
         $fetch<any>('/api/profile/nutrition')
@@ -537,7 +538,7 @@
       todayNutrition.value = nData
 
       // Filter out non-training items like wellness/nutrition placeholders and notes
-      todayWorkouts.value = (wData || []).filter(
+      todayWorkouts.value = getCalendarActivities(calendarData).filter(
         (a: any) =>
           (a.source === 'completed' || a.source === 'planned') &&
           a.type !== 'Rest' &&
