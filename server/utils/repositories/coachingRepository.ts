@@ -1,4 +1,31 @@
 import { prisma } from '../db'
+import { athleteMetricsService } from '../athleteMetricsService'
+import { sportSettingsRepository } from './sportSettingsRepository'
+import { getCurrentFitnessSummary } from '../training-stress'
+
+function normalizeReadinessScore(
+  readiness: number | null | undefined,
+  recoveryScore: number | null | undefined
+) {
+  if (typeof readiness === 'number' && Number.isFinite(readiness)) {
+    if (readiness > 10) return Math.max(0, Math.min(100, readiness))
+    return Math.max(0, Math.min(100, readiness * 10))
+  }
+
+  if (typeof recoveryScore === 'number' && Number.isFinite(recoveryScore)) {
+    return Math.max(0, Math.min(100, recoveryScore))
+  }
+
+  return null
+}
+
+function getReadinessStatus(score: number | null) {
+  if (score === null) return 'Unknown'
+  if (score >= 80) return 'High'
+  if (score >= 60) return 'Moderate'
+  if (score >= 40) return 'Strained'
+  return 'Low'
+}
 
 export const coachingRepository = {
   // --- Relationship Management ---
@@ -54,36 +81,68 @@ export const coachingRepository = {
         const athleteId = rel.athlete.id
         const sevenDaysAgo = new Date()
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        sevenDaysAgo.setHours(0, 0, 0, 0)
 
         const thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-        const [recentWorkouts, recentPlanned, wellnessHistory] = await Promise.all([
-          prisma.workout.count({
-            where: { userId: athleteId, date: { gte: sevenDaysAgo }, isDuplicate: false }
-          }),
-          prisma.plannedWorkout.count({
-            where: {
-              userId: athleteId,
-              date: { gte: sevenDaysAgo, lte: new Date() },
-              category: 'WORKOUT'
-            }
-          }),
-          prisma.wellness.findMany({
-            where: { userId: athleteId, date: { gte: thirtyDaysAgo } },
-            orderBy: { date: 'asc' },
-            select: { date: true, ctl: true, atl: true }
-          })
-        ])
+        const latestWellness = rel.athlete.wellness?.[0] ?? null
+
+        const [completedPlanned, recentPlanned, wellnessHistory, performanceSummary] =
+          await Promise.all([
+            prisma.plannedWorkout.count({
+              where: {
+                userId: athleteId,
+                date: { gte: sevenDaysAgo, lte: new Date() },
+                category: 'WORKOUT',
+                completed: true
+              }
+            }),
+            prisma.plannedWorkout.count({
+              where: {
+                userId: athleteId,
+                date: { gte: sevenDaysAgo, lte: new Date() },
+                category: 'WORKOUT'
+              }
+            }),
+            prisma.wellness.findMany({
+              where: { userId: athleteId, date: { gte: thirtyDaysAgo } },
+              orderBy: { date: 'asc' },
+              select: { date: true, ctl: true, atl: true }
+            }),
+            getCurrentFitnessSummary(athleteId, undefined, {
+              adjustForTodayUncompletedPlannedTSS: true
+            })
+          ])
+
+        const readinessScore = normalizeReadinessScore(
+          latestWellness?.readiness,
+          latestWellness?.recoveryScore
+        )
 
         return {
           ...rel,
           athlete: {
             ...rel.athlete,
+            performanceSummary: {
+              currentCTL: performanceSummary.ctl,
+              currentATL: performanceSummary.atl,
+              currentTSB: performanceSummary.tsb,
+              formStatus: performanceSummary.formStatus.status,
+              formColor: performanceSummary.formStatus.color,
+              formDescription: performanceSummary.formStatus.description,
+              lastUpdated: performanceSummary.lastUpdated
+            },
+            readinessSummary: {
+              score: readinessScore,
+              status: getReadinessStatus(readinessScore),
+              date: latestWellness?.date ?? null
+            },
             stats: {
               adherence7d:
-                recentPlanned > 0 ? Math.round((recentWorkouts / recentPlanned) * 100) : 100,
-              completedCount: recentWorkouts,
+                recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : 100,
+              completedCount: completedPlanned,
               plannedCount: recentPlanned,
               wellnessHistory // For sparkline
             }
@@ -93,6 +152,167 @@ export const coachingRepository = {
     )
 
     return enrichedAthletes
+  },
+
+  async getEnrichedAthleteForCoach(coachId: string, athleteId: string) {
+    const relationship = await (prisma as any).coachingRelationship.findFirst({
+      where: {
+        coachId,
+        athleteId,
+        status: 'ACTIVE'
+      },
+      include: {
+        athlete: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            currentFitnessScore: true,
+            profileLastUpdated: true,
+            recommendations: {
+              orderBy: { generatedAt: 'desc' },
+              take: 1
+            },
+            wellness: {
+              select: {
+                id: true,
+                date: true,
+                ctl: true,
+                atl: true,
+                readiness: true,
+                recoveryScore: true,
+                sleepScore: true,
+                hrv: true,
+                restingHr: true,
+                weight: true
+              },
+              orderBy: { date: 'desc' },
+              take: 30
+            },
+            plannedWorkouts: {
+              where: {
+                date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+                category: 'WORKOUT'
+              },
+              orderBy: { date: 'asc' },
+              take: 5
+            },
+            events: {
+              where: {
+                date: { gte: new Date() }
+              },
+              orderBy: { date: 'asc' },
+              take: 3
+            },
+            workouts: {
+              where: {
+                isDuplicate: false
+              },
+              orderBy: { date: 'desc' },
+              take: 8,
+              select: {
+                id: true,
+                date: true,
+                title: true,
+                type: true,
+                durationSec: true,
+                tss: true,
+                overallScore: true,
+                plannedWorkoutId: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!relationship) return null
+
+    const athlete = relationship.athlete
+    const athleteIdStr = athlete.id
+    const latestWellness = athlete.wellness[0] ?? null
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    sevenDaysAgo.setHours(0, 0, 0, 0)
+
+    // Add stats similar to the dashboard card
+    const [
+      completedPlanned,
+      recentPlanned,
+      overduePlanned,
+      performanceSummary,
+      zones,
+      defaultSport
+    ] = await Promise.all([
+      prisma.plannedWorkout.count({
+        where: {
+          userId: athleteIdStr,
+          date: { gte: sevenDaysAgo, lte: new Date() },
+          category: 'WORKOUT',
+          completed: true
+        }
+      }),
+      prisma.plannedWorkout.count({
+        where: {
+          userId: athleteIdStr,
+          date: { gte: sevenDaysAgo, lte: new Date() },
+          category: 'WORKOUT'
+        }
+      }),
+      prisma.plannedWorkout.count({
+        where: {
+          userId: athleteIdStr,
+          date: { lt: new Date(new Date().setHours(0, 0, 0, 0)) },
+          category: 'WORKOUT',
+          completed: false
+        }
+      }),
+      getCurrentFitnessSummary(athleteIdStr, undefined, {
+        adjustForTodayUncompletedPlannedTSS: true
+      }),
+      athleteMetricsService.getCurrentZones(athleteIdStr),
+      sportSettingsRepository.getDefault(athleteIdStr)
+    ])
+
+    const readinessScore = normalizeReadinessScore(
+      latestWellness?.readiness,
+      latestWellness?.recoveryScore
+    )
+
+    return {
+      ...athlete,
+      performanceSummary: {
+        currentCTL: performanceSummary.ctl,
+        currentATL: performanceSummary.atl,
+        currentTSB: performanceSummary.tsb,
+        formStatus: performanceSummary.formStatus.status,
+        formColor: performanceSummary.formStatus.color,
+        formDescription: performanceSummary.formStatus.description,
+        lastUpdated: performanceSummary.lastUpdated
+      },
+      readinessSummary: {
+        score: readinessScore,
+        status: getReadinessStatus(readinessScore),
+        date: latestWellness?.date ?? null,
+        sleepScore: latestWellness?.sleepScore ?? null,
+        hrv: latestWellness?.hrv ?? null,
+        restingHr: latestWellness?.restingHr ?? null,
+        weight: latestWellness?.weight ?? null
+      },
+      zones,
+      zoneSummary: {
+        ftp: defaultSport?.ftp ?? null,
+        lthr: defaultSport?.lthr ?? null,
+        maxHr: defaultSport?.maxHr ?? null
+      },
+      stats: {
+        adherence7d: recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : 100,
+        completedCount: completedPlanned,
+        plannedCount: recentPlanned,
+        overduePlannedCount: overduePlanned
+      }
+    }
   },
 
   async getCoachesForAthlete(athleteId: string) {
@@ -112,15 +332,14 @@ export const coachingRepository = {
   },
 
   async checkRelationship(coachId: string, athleteId: string) {
-    const relationship = await (prisma as any).coachingRelationship.findUnique({
+    const relationship = await (prisma as any).coachingRelationship.findFirst({
       where: {
-        coachId_athleteId: {
-          coachId,
-          athleteId
-        }
+        coachId,
+        athleteId,
+        status: 'ACTIVE'
       }
     })
-    return relationship?.status === 'ACTIVE'
+    return !!relationship
   },
 
   async removeRelationship(coachId: string, athleteId: string) {
