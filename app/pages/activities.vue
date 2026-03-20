@@ -965,8 +965,10 @@
       :templates="workoutTemplates || []"
       :loading="workoutTemplateStatus === 'pending'"
       :error="workoutTemplateStatus === 'error'"
+      :schedule-targets="workoutDrawerScheduleTargets"
       class="z-[70]"
       @toggle="toggleWorkoutDrawerCollapsed"
+      @schedule-template="onQuickScheduleTemplate"
     />
   </ClientOnly>
 </template>
@@ -1971,6 +1973,13 @@
     }
   }
 
+  async function onQuickScheduleTemplate({ template, date }: { template: any; date: string }) {
+    await onScheduleTemplate({
+      template,
+      date: new Date(`${date}T00:00:00`)
+    })
+  }
+
   function toggleWorkoutDrawerFromHeader() {
     if (isWorkoutDrawerVisible.value) {
       isWorkoutDrawerVisible.value = false
@@ -1984,6 +1993,29 @@
   function toggleWorkoutDrawerCollapsed() {
     isWorkoutDrawerOpen.value = !isWorkoutDrawerOpen.value
   }
+
+  const workoutDrawerScheduleTargets = computed(() => {
+    const targets: Array<{ label: string; date: string }> = []
+    const currentDay = formatDateUTC(currentDate.value, 'yyyy-MM-dd')
+
+    targets.push({
+      label: `Add to ${formatDateUTC(currentDate.value, 'MMM d')}`,
+      date: currentDay
+    })
+
+    const plannedDay = selectedPlannedWorkout.value?.date
+      ? formatDateUTC(selectedPlannedWorkout.value.date, 'yyyy-MM-dd')
+      : null
+
+    if (plannedDay && plannedDay !== currentDay) {
+      targets.push({
+        label: `Add to workout day (${formatDateUTC(selectedPlannedWorkout.value.date, 'MMM d')})`,
+        date: plannedDay
+      })
+    }
+
+    return targets
+  })
 
   // List View Helpers
   const tableSearch = ref('')
