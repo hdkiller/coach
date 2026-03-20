@@ -57,12 +57,27 @@
           class="sticky top-0 z-10 border-t border-default/70 bg-default/95 px-4 py-2.5 backdrop-blur-sm sm:border-t-0 sm:border-b sm:bg-default/60 sm:py-3"
         >
           <div class="hidden items-center gap-2 sm:flex">
+            <div v-if="isCoachingMode" class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <UButton
+                v-for="option in librarySourceOptions"
+                :key="option.value"
+                size="xs"
+                :color="librarySource === option.value ? 'primary' : 'neutral'"
+                :variant="librarySource === option.value ? 'solid' : 'ghost'"
+                class="h-8 shrink-0 justify-start rounded-xl px-3"
+                @click="$emit('update:librarySource', option.value)"
+              >
+                {{ option.label }}
+              </UButton>
+            </div>
+
             <UButton
               size="xs"
               :color="selectedScope === 'all' ? 'primary' : 'neutral'"
               :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
               icon="i-heroicons-squares-2x2"
               class="h-8 shrink-0 justify-start rounded-xl px-3"
+              :disabled="librarySource === 'all'"
               @click="setSelectedScope('all')"
             >
               Show all
@@ -74,6 +89,7 @@
               variant="soft"
               icon="i-heroicons-folder-open"
               class="min-w-0 max-w-[220px] shrink-0 justify-start rounded-xl px-3 h-8"
+              :disabled="librarySource === 'all'"
               @click="showFolderPicker = true"
             >
               <span class="truncate">{{ selectedFolderLabel }}</span>
@@ -167,6 +183,7 @@
                   :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
                   icon="i-heroicons-squares-2x2"
                   class="h-9 shrink-0 justify-center rounded-xl px-3"
+                  :disabled="librarySource === 'all'"
                   @click="setSelectedScope('all')"
                 >
                   All
@@ -178,6 +195,7 @@
                   variant="soft"
                   icon="i-heroicons-folder-open"
                   class="min-w-0 flex-1 justify-start rounded-xl px-3 h-9"
+                  :disabled="librarySource === 'all'"
                   @click="showFolderPicker = true"
                 >
                   <span class="truncate">{{ selectedFolderLabel }}</span>
@@ -317,6 +335,12 @@
                     {{ getTemplateLabel(template) }}
                   </div>
                   <div
+                    v-if="librarySource === 'all' && template.ownerScope"
+                    class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary/80"
+                  >
+                    {{ template.ownerScope === 'coach' ? 'Coach library' : 'Athlete library' }}
+                  </div>
+                  <div
                     v-if="template.description"
                     class="mt-1.5 hidden line-clamp-2 text-[11px] leading-5 text-muted sm:block"
                   >
@@ -397,6 +421,9 @@
 
   <WorkoutTemplatePreviewModal
     v-model:template-id="previewTemplateId"
+    :template-owner-scope="
+      normalizedTemplates.find((item) => item.id === previewTemplateId)?.ownerScope
+    "
     @view="onPreviewViewDetails"
   />
 
@@ -414,6 +441,7 @@
           :counts="folderCounts"
           :selected-scope="selectedScope"
           :expanded-set="expandedSet"
+          :allow-manage="librarySource !== 'all'"
           @select-scope="selectScopeFromPicker"
           @toggle-folder="toggleExpanded"
         />
@@ -435,6 +463,7 @@
           :counts="folderCounts"
           :selected-scope="selectedScope"
           :expanded-set="expandedSet"
+          :allow-manage="librarySource !== 'all'"
           @select-scope="selectScopeFromPicker"
           @toggle-folder="toggleExpanded"
         />
@@ -508,10 +537,12 @@
 
   const props = defineProps<{
     open: boolean
-    templates: any[]
+    templates: any[] | Record<string, any[]>
     loading?: boolean
     error?: boolean
     allowCalendarTarget?: boolean
+    librarySource?: 'athlete' | 'coach' | 'all'
+    isCoachingMode?: boolean
     scheduleTargets?: Array<{
       label: string
       date: string
@@ -523,6 +554,7 @@
     created: []
     'open-calendar-picker': [payload: { template: any }]
     'schedule-template': [payload: { template: any; date: string }]
+    'update:librarySource': [value: 'athlete' | 'coach' | 'all']
   }>()
 
   const attrs = useAttrs()
@@ -556,11 +588,25 @@
     ensureFoldersLoaded,
     setSelectedScope,
     toggleExpanded
-  } = useWorkoutTemplateFolders('workout-drawer')
+  } = useWorkoutTemplateFolders('workout-drawer', {
+    librarySource: computed(() => props.librarySource || 'athlete')
+  })
 
   // Technical Modal state
   const showTechnicalModal = ref(false)
   const technicalWorkout = ref<any>(null)
+  const librarySourceOptions = [
+    { label: 'Coach', value: 'coach' as const },
+    { label: 'Athlete', value: 'athlete' as const },
+    { label: 'Both', value: 'all' as const }
+  ]
+  const normalizedTemplates = computed(() => {
+    if (Array.isArray(props.templates)) {
+      return props.templates
+    }
+
+    return [...(props.templates?.coach || []), ...(props.templates?.athlete || [])]
+  })
 
   const workoutTypeOptions = ['Ride', 'Run', 'Swim', 'WeightTraining', 'Workout', 'Recovery']
   const draftTemplate = ref({
@@ -587,7 +633,7 @@
   }
 
   function onPreviewViewDetails() {
-    const template = props.templates.find((t) => t.id === previewTemplateId.value)
+    const template = normalizedTemplates.value.find((t) => t.id === previewTemplateId.value)
     if (template) {
       technicalWorkout.value = template
       showTechnicalModal.value = true
@@ -642,13 +688,17 @@
         icon: 'i-heroicons-document-text',
         onSelect: () => openCreateModal('note')
       },
-      {
-        label: 'Choose folder',
-        icon: 'i-heroicons-folder-open',
-        onSelect: () => {
-          showFolderPicker.value = true
-        }
-      }
+      ...(props.librarySource === 'all'
+        ? []
+        : [
+            {
+              label: 'Choose folder',
+              icon: 'i-heroicons-folder-open',
+              onSelect: () => {
+                showFolderPicker.value = true
+              }
+            }
+          ])
     ],
     [
       {
@@ -660,11 +710,11 @@
   ])
 
   const filteredTemplates = computed(() => {
-    let result = props.templates
+    let result = normalizedTemplates.value
 
-    if (selectedScope.value === 'unfiled') {
+    if (props.librarySource !== 'all' && selectedScope.value === 'unfiled') {
       result = result.filter((template) => !template.folderId)
-    } else if (scopedFolderIds.value?.length) {
+    } else if (props.librarySource !== 'all' && scopedFolderIds.value?.length) {
       result = result.filter((template) => scopedFolderIds.value?.includes(template.folderId))
     }
 
@@ -758,7 +808,9 @@
   })
 
   onMounted(() => {
-    void ensureFoldersLoaded()
+    if (props.librarySource !== 'all') {
+      void ensureFoldersLoaded()
+    }
   })
 
   function selectScopeFromPicker(scope: string) {
@@ -799,7 +851,8 @@
               ? 0
               : Math.max(0, Number(draftTemplate.value.durationMinutes) || 0) * 60,
           tss: createMode.value === 'note' ? 0 : Math.max(0, Number(draftTemplate.value.tss) || 0),
-          structuredWorkout: null
+          structuredWorkout: null,
+          ownerScope: props.librarySource === 'athlete' ? 'athlete' : 'coach'
         }
       })
       isCreateModalOpen.value = false
@@ -822,8 +875,12 @@
   async function generateTemplateStructure(id: string) {
     generatingId.value = id
     try {
+      const template = normalizedTemplates.value.find((entry) => entry.id === id)
       await $fetch(`/api/library/workouts/${id}/generate-structure`, {
-        method: 'POST'
+        method: 'POST',
+        query: {
+          scope: template?.ownerScope
+        }
       })
       toast.add({
         title: 'Generation Started',

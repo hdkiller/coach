@@ -102,12 +102,18 @@
 <script setup lang="ts">
   const props = defineProps<{
     template?: any
+    ownerScope?: 'athlete' | 'coach'
   }>()
 
   const emit = defineEmits(['save', 'cancel'])
   const toast = useToast()
   const saving = ref(false)
-  const { flat, ensureFoldersLoaded } = useWorkoutTemplateFolders('editor')
+  const activeOwnerScope = computed(
+    () => props.template?.ownerScope || props.ownerScope || 'athlete'
+  )
+  const { flat, ensureFoldersLoaded } = useWorkoutTemplateFolders('editor', {
+    librarySource: activeOwnerScope
+  })
 
   const WORKOUT_TYPES = ['Ride', 'VirtualRide', 'Run', 'Swim', 'WeightTraining', 'Hike', 'Walk']
 
@@ -123,7 +129,8 @@
           category: '',
           structuredWorkout: {
             steps: []
-          }
+          },
+          ownerScope: props.ownerScope || 'athlete'
         }
   )
 
@@ -171,7 +178,10 @@
 
       await $fetch(url, {
         method,
-        body: localTemplate.value
+        body: {
+          ...localTemplate.value,
+          ownerScope: activeOwnerScope.value
+        }
       })
 
       toast.add({

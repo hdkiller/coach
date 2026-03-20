@@ -98,7 +98,12 @@
           ? `/api/workouts/planned/${props.workout.id}/intervals-preview`
           : `/api/library/workouts/${props.workout.id}/intervals-preview`
 
-      const response = await $fetch<{ intervalsDescription: string }>(endpoint)
+      const response = await $fetch<{ intervalsDescription: string }>(endpoint, {
+        query:
+          !props.isPlanned && props.workout?.ownerScope
+            ? { scope: props.workout.ownerScope }
+            : undefined
+      })
       intervalsPreviewText.value = response?.intervalsDescription || ''
     } catch (e: any) {
       error.value = e?.data?.message || 'Failed to load Intervals.icu preview.'

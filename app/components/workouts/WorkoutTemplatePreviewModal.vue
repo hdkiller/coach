@@ -40,6 +40,7 @@
 
   const props = defineProps<{
     templateId: string | null
+    templateOwnerScope?: 'athlete' | 'coach'
   }>()
 
   const emit = defineEmits<{
@@ -65,7 +66,11 @@
   async function fetchTemplate(id: string) {
     loading.value = true
     try {
-      const data: any = await $fetch(`/api/library/workouts/${id}`)
+      const data: any = await $fetch(`/api/library/workouts/${id}`, {
+        query: {
+          scope: props.templateOwnerScope
+        }
+      })
       template.value = data.template
       userFtp.value = data.userFtp
     } catch (error) {
@@ -76,8 +81,8 @@
   }
 
   watch(
-    () => props.templateId,
-    (newId) => {
+    () => [props.templateId, props.templateOwnerScope],
+    ([newId]) => {
       if (newId) {
         fetchTemplate(newId)
       } else {
@@ -88,7 +93,10 @@
 
   function goToFullPage() {
     if (props.templateId) {
-      navigateTo(`/library/workouts/${props.templateId}`)
+      navigateTo({
+        path: `/library/workouts/${props.templateId}`,
+        query: props.templateOwnerScope ? { scope: props.templateOwnerScope } : undefined
+      })
       isOpen.value = false
     }
   }
