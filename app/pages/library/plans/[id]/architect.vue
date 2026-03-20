@@ -25,15 +25,17 @@
 
         <template #right>
           <ClientOnly>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
               <UButton
                 color="neutral"
                 variant="outline"
                 size="sm"
                 icon="i-heroicons-squares-2x2"
                 @click="isUtilityPanelOpen = true"
-                >Utility panel</UButton
               >
+                <span class="sm:hidden">Tools</span>
+                <span class="hidden sm:inline">Utility panel</span>
+              </UButton>
               <UBadge v-if="hasUnsavedChanges" color="warning" variant="soft" size="sm"
                 >Unsaved</UBadge
               >
@@ -43,8 +45,10 @@
                 size="sm"
                 icon="i-heroicons-pencil-square"
                 @click="isPlanEditorOpen = true"
-                >Edit details</UButton
               >
+                <span class="sm:hidden">Edit</span>
+                <span class="hidden sm:inline">Edit details</span>
+              </UButton>
               <UButton
                 color="primary"
                 size="sm"
@@ -52,8 +56,10 @@
                 :loading="saving"
                 :disabled="!hasUnsavedChanges"
                 @click="savePlan"
-                >Save changes</UButton
               >
+                <span class="sm:hidden">Save</span>
+                <span class="hidden sm:inline">Save changes</span>
+              </UButton>
             </div>
           </ClientOnly>
         </template>
@@ -63,7 +69,7 @@
     <template #body>
       <div class="min-h-full bg-default">
         <ClientOnly>
-          <div class="p-4 sm:p-6">
+          <div class="px-0 py-4 sm:p-6">
             <div v-if="loading" class="space-y-4">
               <UCard v-for="i in 4" :key="i" :ui="{ body: 'p-5' }">
                 <USkeleton class="h-28 w-full" />
@@ -82,47 +88,51 @@
             <div v-else class="space-y-6 pb-32">
               <!-- Unified Header & Analytics Section -->
               <section
-                class="rounded-3xl border border-default/80 bg-default/95 p-5 shadow-sm sm:p-6"
+                class="rounded-none border-y border-default/80 bg-default/95 px-4 py-5 shadow-sm sm:rounded-3xl sm:border sm:p-6"
               >
                 <!-- Top Row: Title & Stats -->
                 <div
-                  class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between pb-6 border-b border-default/60"
+                  class="flex flex-col gap-5 border-b border-default/60 pb-5 lg:flex-row lg:items-start lg:justify-between"
                 >
                   <div class="min-w-0 space-y-1.5">
-                    <h2 class="truncate text-2xl font-black tracking-tight text-highlighted">
+                    <h2 class="text-2xl font-black tracking-tight text-highlighted sm:truncate">
                       {{ draftPlan.name }}
                     </h2>
                   </div>
 
-                  <div class="flex shrink-0 flex-wrap items-center gap-6">
+                  <div class="flex w-full flex-col gap-4 lg:w-auto lg:items-end">
                     <!-- Headline metrics -->
-                    <div class="flex items-center gap-5">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                       <div
-                        v-for="(metric, i) in headlineMetrics"
+                        v-for="metric in headlineMetrics"
                         :key="metric.label"
-                        class="flex items-center gap-5"
+                        class="rounded-2xl border border-default/70 bg-muted/20 px-3 py-2.5"
                       >
-                        <div v-if="i > 0" class="h-6 w-px bg-default/60" />
-                        <div>
+                        <div class="min-w-0">
                           <div class="text-[9px] font-black uppercase tracking-[0.18em] text-muted">
                             {{ metric.label }}
                           </div>
-                          <div class="text-sm font-bold text-highlighted leading-none mt-1">
+                          <div
+                            class="mt-1 truncate text-sm font-bold leading-none text-highlighted"
+                          >
                             {{ metric.value }}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div class="flex items-center gap-3">
+                    <div
+                      class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end"
+                    >
                       <!-- Chart metric toggle -->
                       <div
-                        class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                        class="inline-flex w-full items-center rounded-xl border border-default bg-muted/30 p-1 sm:w-auto"
                       >
                         <UButton
                           :color="chartMetric === 'tss' ? 'primary' : 'neutral'"
                           :variant="chartMetric === 'tss' ? 'soft' : 'ghost'"
                           size="sm"
+                          class="flex-1 sm:flex-none"
                           @click="chartMetric = 'tss'"
                           >TSS</UButton
                         >
@@ -130,33 +140,40 @@
                           :color="chartMetric === 'minutes' ? 'primary' : 'neutral'"
                           :variant="chartMetric === 'minutes' ? 'soft' : 'ghost'"
                           size="sm"
+                          class="flex-1 sm:flex-none"
                           @click="chartMetric = 'minutes'"
                           >Minutes</UButton
                         >
                       </div>
 
-                      <div class="h-6 w-px bg-default/60 mx-1" />
+                      <div class="mx-1 hidden h-6 w-px bg-default/60 sm:block" />
 
                       <!-- View switcher -->
                       <div
-                        class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                        class="inline-flex w-full items-center rounded-xl border border-default bg-muted/30 p-1 sm:w-auto"
                       >
                         <UButton
                           :color="viewMode === 'board' ? 'primary' : 'neutral'"
                           :variant="viewMode === 'board' ? 'soft' : 'ghost'"
                           size="sm"
                           icon="i-heroicons-calendar-days"
+                          class="flex-1 sm:flex-none"
                           @click="viewMode = 'board'"
-                          >Weekly board</UButton
                         >
+                          <span class="sm:hidden">Board</span>
+                          <span class="hidden sm:inline">Weekly board</span>
+                        </UButton>
                         <UButton
                           :color="viewMode === 'table' ? 'primary' : 'neutral'"
                           :variant="viewMode === 'table' ? 'soft' : 'ghost'"
                           size="sm"
                           icon="i-heroicons-table-cells"
+                          class="flex-1 sm:flex-none"
                           @click="viewMode = 'table'"
-                          >Plan table</UButton
                         >
+                          <span class="sm:hidden">Table</span>
+                          <span class="hidden sm:inline">Plan table</span>
+                        </UButton>
                       </div>
                     </div>
                   </div>
@@ -194,7 +211,9 @@
                   />
 
                   <!-- Selected Week Summary Card -->
-                  <div class="rounded-2xl border border-default/70 bg-muted/10 p-5">
+                  <div
+                    class="rounded-none border-y border-default/70 bg-muted/10 px-4 py-5 sm:rounded-2xl sm:border sm:p-5"
+                  >
                     <div v-if="selectedWeekAnalytics" class="h-full flex flex-col">
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
@@ -460,7 +479,7 @@
     <template #body>
       <div v-if="editingWorkout" class="space-y-6">
         <div
-          class="flex items-start gap-3 rounded-2xl border border-default/70 bg-muted/15 p-4"
+          class="-mx-4 flex items-start gap-3 rounded-none border-y border-default/70 bg-muted/15 px-4 py-4 sm:mx-0 sm:rounded-2xl sm:border sm:p-4"
           :class="isEditingNote ? 'border-amber-500/20 bg-amber-500/5' : ''"
         >
           <div
@@ -486,7 +505,10 @@
           </div>
         </div>
 
-        <div v-if="isEditingNote" class="space-y-4">
+        <div
+          v-if="isEditingNote"
+          class="-mx-4 space-y-4 rounded-none border-y border-default/70 bg-default/70 px-4 py-4 sm:mx-0 sm:rounded-2xl sm:border sm:bg-default sm:p-4"
+        >
           <UFormField label="Title" help="Keep it short so it scans well in the week view.">
             <UInput v-model="editingWorkout.title" placeholder="Race week reminder" />
           </UFormField>
@@ -501,7 +523,9 @@
         </div>
 
         <div v-else class="space-y-5">
-          <section class="space-y-4">
+          <section
+            class="-mx-4 space-y-4 rounded-none border-y border-default/70 bg-default/70 px-4 py-4 sm:mx-0 sm:rounded-2xl sm:border sm:bg-default sm:p-4"
+          >
             <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Identity</div>
             <UFormField label="Workout title" help="This is what appears on the weekly board.">
               <UInput v-model="editingWorkout.title" placeholder="Tempo builder" />
@@ -516,7 +540,9 @@
             </UFormField>
           </section>
 
-          <section class="space-y-4 border-t border-default/60 pt-5">
+          <section
+            class="-mx-4 space-y-4 rounded-none border-y border-default/70 bg-default/70 px-4 py-4 sm:mx-0 sm:rounded-2xl sm:border sm:bg-default sm:p-4"
+          >
             <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Metadata</div>
             <div class="grid gap-4 sm:grid-cols-2">
               <UFormField label="Type">
@@ -528,7 +554,9 @@
             </div>
           </section>
 
-          <section class="space-y-4 border-t border-default/60 pt-5">
+          <section
+            class="-mx-4 space-y-4 rounded-none border-y border-default/70 bg-default/70 px-4 py-4 sm:mx-0 sm:rounded-2xl sm:border sm:bg-default sm:p-4"
+          >
             <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Load</div>
             <div class="grid gap-4 sm:grid-cols-2">
               <UFormField label="Minutes">
@@ -576,7 +604,7 @@
 
   <USlideover v-model:open="isUtilityPanelOpen" title="Utility panel" side="right">
     <template #content>
-      <div class="h-full overflow-y-auto p-4">
+      <div class="h-full overflow-y-auto p-0 sm:p-4">
         <PlanArchitectUtilityPanel
           v-if="draftPlan"
           v-model:coach-notes="draftPlan.coachNotes"

@@ -44,7 +44,7 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6">
+      <div class="px-0 py-4 sm:p-6">
         <div v-if="pending" class="space-y-4">
           <UCard v-for="item in 3" :key="item">
             <USkeleton class="h-32 w-full" />
@@ -62,7 +62,11 @@
 
         <div v-else class="space-y-6">
           <section class="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
-            <UCard>
+            <UCard
+              :ui="{
+                root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
+              }"
+            >
               <template #header>
                 <div>
                   <h2 class="text-xl font-bold text-highlighted">
@@ -102,7 +106,11 @@
               </div>
             </UCard>
 
-            <UCard>
+            <UCard
+              :ui="{
+                root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
+              }"
+            >
               <template #header>
                 <div>
                   <h2 class="text-lg font-bold text-highlighted">Publishing</h2>
@@ -180,7 +188,11 @@
           </section>
 
           <section class="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
-            <UCard>
+            <UCard
+              :ui="{
+                root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
+              }"
+            >
               <template #header>
                 <div>
                   <h2 class="text-lg font-bold text-highlighted">Plan structure</h2>
@@ -250,7 +262,11 @@
             </UCard>
 
             <div class="space-y-6">
-              <UCard>
+              <UCard
+                :ui="{
+                  root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
+                }"
+              >
                 <template #header>
                   <div>
                     <h2 class="text-lg font-bold text-highlighted">Public copy</h2>

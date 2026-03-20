@@ -15,8 +15,8 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6 space-y-6">
-        <div>
+      <div class="space-y-6 px-0 py-4 sm:p-6">
+        <div class="px-4 sm:px-0">
           <h1 class="text-3xl font-black uppercase tracking-tight">Plans</h1>
           <p class="text-xs font-bold text-muted uppercase tracking-[0.2em] mt-1 italic">
             Architectural Blueprint for Your Season
@@ -30,6 +30,9 @@
             v-for="plan in templates"
             :key="plan.id"
             class="group hover:border-primary/50 transition-all cursor-pointer"
+            :ui="{
+              root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
+            }"
             @click="editPlan(plan.id)"
           >
             <template #header>
@@ -88,7 +91,7 @@
           <!-- Empty State -->
           <div
             v-if="templates.length === 0"
-            class="col-span-full text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800"
+            class="col-span-full border-y border-dashed border-gray-200 bg-gray-50 px-4 py-20 text-center dark:border-gray-800 dark:bg-gray-900/50 sm:rounded-xl sm:border"
           >
             <UIcon name="i-heroicons-document-duplicate" class="w-12 h-12 text-gray-300 mb-4" />
             <h3 class="text-lg font-bold">No plan templates yet</h3>

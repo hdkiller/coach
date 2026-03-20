@@ -14,8 +14,8 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6 space-y-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="space-y-6 px-0 py-4 sm:p-6">
+        <div class="flex flex-col justify-between gap-4 px-4 md:flex-row md:items-center sm:px-0">
           <div>
             <h1 class="text-3xl font-black uppercase tracking-tight">Workouts</h1>
             <p class="text-xs font-bold text-muted uppercase tracking-[0.2em] mt-1 italic">
@@ -67,7 +67,7 @@
 
           <div class="space-y-4">
             <div
-              class="flex flex-col gap-3 rounded-2xl border border-default/70 bg-muted/10 p-4 md:flex-row md:flex-wrap md:items-center"
+              class="flex flex-col gap-3 rounded-none border-y border-default/70 bg-muted/10 px-4 py-4 md:flex-row md:flex-wrap md:items-center sm:rounded-2xl sm:border sm:p-4"
             >
               <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 <UTooltip text="All Types">
@@ -118,7 +118,7 @@
 
             <div
               v-if="selectedTemplateIds.length"
-              class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4"
+              class="flex flex-wrap items-center justify-between gap-3 rounded-none border-y border-primary/20 bg-primary/5 px-4 py-4 sm:rounded-2xl sm:border sm:p-4"
             >
               <div class="text-sm font-medium text-highlighted">
                 {{ selectedTemplateIds.length }} workout{{
@@ -163,7 +163,7 @@
 
             <div
               v-else-if="filteredTemplates.length === 0"
-              class="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800"
+              class="border-y border-dashed border-gray-200 bg-gray-50 px-4 py-20 text-center dark:border-gray-800 dark:bg-gray-900/50 sm:rounded-xl sm:border"
             >
               <UIcon name="i-heroicons-bookmark-slash" class="w-12 h-12 text-gray-300 mb-4" />
               <h3 class="text-lg font-bold">
@@ -189,8 +189,9 @@
               <UCard
                 v-for="template in filteredTemplates"
                 :key="template.id"
-                class="group cursor-pointer hover:border-primary/50 transition-all"
+                class="group cursor-pointer transition-all hover:border-primary/50"
                 :ui="{
+                  root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm',
                   header: 'px-4 py-3 sm:px-4',
                   body: 'px-4 py-3 sm:px-4',
                   footer: 'px-4 py-2 sm:px-4'
