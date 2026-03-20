@@ -240,7 +240,23 @@
 
           <ClientOnly>
             <!-- Calendar View -->
-            <div v-if="viewMode === 'calendar'" class="overflow-x-auto overflow-y-auto h-full">
+            <div
+              v-if="viewMode === 'calendar'"
+              class="overflow-x-auto overflow-y-auto h-full relative"
+            >
+              <!-- Loading Overlay -->
+              <div
+                v-if="status === 'pending'"
+                class="absolute inset-0 z-50 flex items-center justify-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-[1px]"
+              >
+                <div class="flex flex-col items-center gap-2">
+                  <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+                  <span class="text-xs font-bold uppercase tracking-widest text-gray-500"
+                    >{{ t('header_refresh') }}...</span
+                  >
+                </div>
+              </div>
+
               <!-- Desktop Grid View (hidden on mobile) -->
               <div
                 class="hidden lg:grid grid-cols-[100px_repeat(7,minmax(130px,1fr))] gap-px bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden min-w-[1000px]"
@@ -1165,12 +1181,26 @@
 
   // API Fetch
   const {
-    data: activities,
+    data: calendarResponse,
     status,
     refresh
-  } = await useFetch<CalendarActivity[]>('/api/calendar', {
+  } = useFetch<any>('/api/calendar', {
     query: calendarRange,
     watch: [currentDate]
+  })
+
+  const activities = computed(() => {
+    if (!calendarResponse.value) return []
+    const { activities: rawActivities, nutritionByDate, wellnessByDate } = calendarResponse.value
+
+    return rawActivities.map((a: any) => {
+      const dateKey = getCalendarActivityDateKey(a, timezone.value)
+      return {
+        ...a,
+        nutrition: nutritionByDate?.[dateKey] || null,
+        wellness: wellnessByDate?.[dateKey] || null
+      }
+    })
   })
 
   REFRESH_TASKS.forEach((task) => {
@@ -1184,7 +1214,7 @@
     data: metabolicWaveResponse,
     status: metabolicWaveStatus,
     refresh: refreshMetabolicWave
-  } = await useAsyncData(
+  } = useAsyncData(
     'metabolic-wave',
     async () => {
       if (!nutritionEnabled.value || !calendarSettings.value.showMetabolicWave) return null
@@ -1250,7 +1280,7 @@
   )
 
   // User Profile for Zones
-  const { data: profile } = await useFetch<any>('/api/profile')
+  const { data: profile } = useFetch<any>('/api/profile')
 
   const allSportSettings = computed(() => profile.value?.profile?.sportSettings || [])
 

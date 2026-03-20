@@ -414,9 +414,7 @@ export default defineEventHandler(async (event) => {
       priority: g.priority,
       metric: g.metric,
       targetValue: g.targetValue,
-      description: g.description,
-      nutrition: nutritionByDate.get(dateKey) || null,
-      wellness: wellnessByDate.get(dateKey) || null
+      description: g.description
     })
   }
 
@@ -485,9 +483,7 @@ export default defineEventHandler(async (event) => {
       value: m.value,
       oldValue: m.oldValue,
       sportProfileName: m.sportProfileName || undefined,
-      description: m.notes,
-      nutrition: nutritionByDate.get(dateKey) || null,
-      wellness: wellnessByDate.get(dateKey) || null
+      description: m.notes
     })
   }
 
@@ -540,9 +536,7 @@ export default defineEventHandler(async (event) => {
       metric: pb.type,
       value: pb.value,
       unit: pb.unit,
-      description: pb.notes,
-      nutrition: nutritionByDate.get(dateKey) || null,
-      wellness: wellnessByDate.get(dateKey) || null
+      description: pb.notes
     })
   }
 
@@ -610,13 +604,7 @@ export default defineEventHandler(async (event) => {
         : null,
 
       // Original IDs for linking
-      originalId: w.id,
-
-      // Nutrition data for this date (will be same for all activities on the same day)
-      nutrition: nutritionByDate.get(dateKey) || null,
-
-      // Wellness data for this date
-      wellness: wellnessByDate.get(dateKey) || null
+      originalId: w.id
     })
   }
 
@@ -666,13 +654,7 @@ export default defineEventHandler(async (event) => {
       plannedDuration: p.durationSec,
       plannedDistance: p.distanceMeters,
       plannedTss: p.tss,
-      structuredWorkout: p.structuredWorkout,
-
-      // Nutrition data for this date (will be same for all activities on the same day)
-      nutrition: nutritionByDate.get(dateKey) || null,
-
-      // Wellness data for this date
-      wellness: wellnessByDate.get(dateKey) || null
+      structuredWorkout: p.structuredWorkout
     })
   }
 
@@ -694,13 +676,7 @@ export default defineEventHandler(async (event) => {
       category: n.category,
       source: 'note',
       status: 'note',
-      description: n.description,
-
-      // Nutrition data for this date
-      nutrition: nutritionByDate.get(dateKey) || null,
-
-      // Wellness data for this date
-      wellness: wellnessByDate.get(dateKey) || null
+      description: n.description
     })
   }
 
@@ -716,27 +692,21 @@ export default defineEventHandler(async (event) => {
           date: date.toISOString(),
           type: 'wellness',
           source: 'wellness',
-          status: 'completed',
-          nutrition: nutritionByDate.get(dateKey) || null,
-          wellness: wellnessByDate.get(dateKey) || null
+          status: 'completed'
         }
       ])
     }
   }
 
-  // Flatten activities array and ensure nutrition and wellness are attached to all activities
+  // Flatten activities array
   const activities = []
-  for (const [dateKey, dateActivities] of activitiesByDate.entries()) {
-    const nutritionData = nutritionByDate.get(dateKey) || null
-    const wellnessData = wellnessByDate.get(dateKey) || null
-    for (const activity of dateActivities) {
-      activities.push({
-        ...activity,
-        nutrition: nutritionData,
-        wellness: wellnessData
-      })
-    }
+  for (const dateActivities of activitiesByDate.values()) {
+    activities.push(...dateActivities)
   }
 
-  return activities
+  return {
+    activities,
+    nutritionByDate: Object.fromEntries(nutritionByDate),
+    wellnessByDate: Object.fromEntries(wellnessByDate)
+  }
 })

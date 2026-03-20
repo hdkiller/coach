@@ -7,9 +7,7 @@
         :style="getStepContainerStyle(step)"
         class="h-full flex items-end"
       >
-        <UTooltip :text="tooltipText(step)" :popper="{ placement: 'top' }" class="h-full w-full">
-          <div class="rounded-xs w-full" :style="getStepStyle(step)" />
-        </UTooltip>
+        <div class="rounded-xs w-full" :style="getStepStyle(step)" />
       </div>
     </div>
 
