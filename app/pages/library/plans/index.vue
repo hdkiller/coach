@@ -30,9 +30,6 @@
             v-for="plan in templates"
             :key="plan.id"
             class="group hover:border-primary/50 transition-all cursor-pointer"
-            :ui="{
-              root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm'
-            }"
             @click="editPlan(plan.id)"
           >
             <template #header>

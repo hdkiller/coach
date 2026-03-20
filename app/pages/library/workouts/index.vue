@@ -191,7 +191,6 @@
                 :key="template.id"
                 class="group cursor-pointer transition-all hover:border-primary/50"
                 :ui="{
-                  root: 'rounded-none border-x-0 shadow-none sm:rounded-2xl sm:border-x sm:shadow-sm',
                   header: 'px-4 py-3 sm:px-4',
                   body: 'px-4 py-3 sm:px-4',
                   footer: 'px-4 py-2 sm:px-4'

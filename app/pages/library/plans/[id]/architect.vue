@@ -100,9 +100,9 @@
                     </h2>
                   </div>
 
-                  <div class="flex w-full flex-col gap-4 lg:w-auto lg:items-end">
+                  <div class="flex w-full flex-col gap-4 lg:w-auto lg:gap-5">
                     <!-- Headline metrics -->
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:hidden xl:grid-cols-4">
                       <div
                         v-for="metric in headlineMetrics"
                         :key="metric.label"
@@ -115,6 +115,24 @@
                           <div
                             class="mt-1 truncate text-sm font-bold leading-none text-highlighted"
                           >
+                            {{ metric.value }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-5">
+                      <div
+                        v-for="(metric, i) in headlineMetrics"
+                        :key="`desktop-${metric.label}`"
+                        class="flex items-center gap-5"
+                      >
+                        <div v-if="i > 0" class="h-6 w-px bg-default/60" />
+                        <div class="min-w-0">
+                          <div class="text-[9px] font-black uppercase tracking-[0.18em] text-muted">
+                            {{ metric.label }}
+                          </div>
+                          <div class="mt-1 text-sm font-bold leading-none text-highlighted">
                             {{ metric.value }}
                           </div>
                         </div>
