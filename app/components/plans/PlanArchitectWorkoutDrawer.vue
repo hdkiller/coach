@@ -1,5 +1,14 @@
 <template>
-  <div v-bind="rootAttrs" :class="[rootContainerClass, attrs.class]">
+  <div
+    v-bind="rootAttrs"
+    :class="[
+      rootContainerClass,
+      attrs.class,
+      'transition-all duration-200 ease-out',
+      dragPassThrough ? 'pointer-events-none' : '',
+      isDragging ? 'opacity-[0.04] scale-[0.985] saturate-50' : 'opacity-100 scale-100'
+    ]"
+  >
     <div :class="shellClass">
       <div
         v-if="isBottomSurface && open"
@@ -419,6 +428,7 @@
               draggable="true"
               class="group/card relative cursor-grab rounded-[24px] border border-default/80 bg-muted/10 p-3.5 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing sm:rounded-2xl sm:p-4"
               @dragstart="onTemplateDragStart($event, template)"
+              @dragend="onTemplateDragEnd"
               @click="previewTemplateId = template.id"
             >
               <div class="flex items-start justify-between gap-3">
@@ -718,6 +728,9 @@
   const toast = useToast()
   const localSearch = ref('')
   const mobileSearchOpen = ref(false)
+  const isDragging = ref(false)
+  const dragPassThrough = ref(false)
+  let dragPassThroughFrame: number | null = null
   const generatingId = ref<string | null>(null)
   const selectedType = ref('all')
   const selectedDuration = ref('all')
@@ -1021,6 +1034,17 @@
       return
     }
 
+    isDragging.value = true
+    if (typeof window !== 'undefined') {
+      if (dragPassThroughFrame !== null) {
+        window.cancelAnimationFrame(dragPassThroughFrame)
+      }
+      // Delay pass-through until the browser has established the active drag source.
+      dragPassThroughFrame = window.requestAnimationFrame(() => {
+        dragPassThrough.value = true
+        dragPassThroughFrame = null
+      })
+    }
     event.dataTransfer.effectAllowed = 'copy'
     event.dataTransfer.setData(
       'application/json',
@@ -1029,6 +1053,15 @@
         template
       })
     )
+  }
+
+  function onTemplateDragEnd() {
+    if (typeof window !== 'undefined' && dragPassThroughFrame !== null) {
+      window.cancelAnimationFrame(dragPassThroughFrame)
+      dragPassThroughFrame = null
+    }
+    isDragging.value = false
+    dragPassThrough.value = false
   }
 
   function startResize(event: PointerEvent) {
@@ -1056,12 +1089,19 @@
 
   onBeforeUnmount(() => {
     stopResize()
+    onTemplateDragEnd()
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('dragend', onTemplateDragEnd)
+      window.removeEventListener('drop', onTemplateDragEnd)
+    }
   })
 
   onMounted(() => {
     if (props.librarySource !== 'all') {
       void ensureFoldersLoaded()
     }
+    window.addEventListener('dragend', onTemplateDragEnd)
+    window.addEventListener('drop', onTemplateDragEnd)
   })
 
   function selectScopeFromPicker(scope: string) {
