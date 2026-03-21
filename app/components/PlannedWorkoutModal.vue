@@ -2,10 +2,33 @@
   <UModal
     v-model:open="isOpen"
     :dismissible="!loading"
-    title="Planned Workout"
     :close="loading ? false : undefined"
-    description="View and manage details for your scheduled training sessions."
   >
+    <template #title>
+      <h3 class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight truncate">
+        Planned Workout
+      </h3>
+    </template>
+
+    <template #description>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium line-clamp-1">
+        View and manage details for your scheduled training sessions.
+      </p>
+    </template>
+
+    <template #actions>
+      <UButton
+        v-if="showViewDetails && plannedWorkout"
+        size="xs"
+        color="primary"
+        variant="solid"
+        icon="i-heroicons-arrow-top-right-on-square"
+        label="Open Full Page"
+        class="font-black uppercase tracking-widest text-[9px] px-3 py-1.5 shrink-0"
+        @click="viewFullPlannedWorkout"
+      />
+    </template>
+
     <!-- Hidden trigger - modal is controlled programmatically -->
     <span class="hidden" />
 
@@ -24,10 +47,21 @@
                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
                   >Title</span
                 >
-                <span
-                  class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
-                  >{{ plannedWorkout.title }}</span
-                >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                    >{{ plannedWorkout.title }}</span
+                  >
+                  <UButton
+                    v-if="showViewDetails"
+                    icon="i-heroicons-arrow-top-right-on-square"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                    @click="viewFullPlannedWorkout"
+                  />
+                </div>
               </div>
 
               <div class="px-5 py-3.5 flex justify-between items-center group">
