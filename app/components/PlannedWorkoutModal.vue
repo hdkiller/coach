@@ -16,19 +16,6 @@
       </p>
     </template>
 
-    <template #actions>
-      <UButton
-        v-if="showViewDetails && plannedWorkout"
-        size="xs"
-        color="primary"
-        variant="solid"
-        icon="i-heroicons-arrow-top-right-on-square"
-        label="Open Full Page"
-        class="font-black uppercase tracking-widest text-[9px] px-3 py-1.5 shrink-0"
-        @click="viewFullPlannedWorkout"
-      />
-    </template>
-
     <!-- Hidden trigger - modal is controlled programmatically -->
     <span class="hidden" />
 
@@ -640,7 +627,8 @@
   const { formatDate, formatDateUTC } = useFormat()
   const toast = useToast()
 
-  const props = defineProps<{
+  const props = withDefaults(
+    defineProps<{
     plannedWorkout: any | null
     modelValue: boolean
     userFtp?: number
@@ -652,7 +640,14 @@
     showStructureActions?: boolean
     showViewDetails?: boolean
     showSaveToLibrary?: boolean
-  }>()
+    }>(),
+    {
+      showCompletionActions: true,
+      showStructureActions: true,
+      showViewDetails: true,
+      showSaveToLibrary: true
+    }
+  )
 
   const emit = defineEmits<{
     'update:modelValue': [value: boolean]
@@ -667,10 +662,10 @@
   })
   const plannedWorkoutEndpointBase = computed(() => props.endpointBase || '/api/planned-workouts')
   const plannedWorkoutViewBase = computed(() => props.viewPathBase || '/workouts/planned')
-  const showCompletionActions = computed(() => props.showCompletionActions ?? true)
-  const showStructureActions = computed(() => props.showStructureActions ?? true)
-  const showViewDetails = computed(() => props.showViewDetails ?? true)
-  const showSaveToLibrary = computed(() => props.showSaveToLibrary ?? true)
+  const showCompletionActions = computed(() => props.showCompletionActions)
+  const showStructureActions = computed(() => props.showStructureActions)
+  const showViewDetails = computed(() => props.showViewDetails)
+  const showSaveToLibrary = computed(() => props.showSaveToLibrary)
 
   const loading = ref(false)
   const showWorkoutSelector = ref(false)

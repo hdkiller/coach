@@ -1117,6 +1117,7 @@
   const showPlannedWorkoutModal = ref(false)
   const selectedPlannedWorkout = ref<any>(null)
   const showWorkoutModal = ref(false)
+
   const selectedWorkout = ref<any>(null)
   const showWellnessModal = ref(false)
   const selectedWellnessDate = ref<Date | null>(null)

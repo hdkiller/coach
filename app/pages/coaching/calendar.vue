@@ -347,7 +347,6 @@
         :endpoint-base="selectedPlannedWorkoutEndpointBase"
         :show-completion-actions="false"
         :show-structure-actions="false"
-        :show-view-details="false"
         :show-save-to-library="false"
         @completed="refreshAffectedPanel(selectedPlannedWorkoutAthleteId)"
         @deleted="handlePlannedWorkoutDeleted"
@@ -428,6 +427,7 @@
   const selectedPlannedWorkoutAthleteId = ref<string | null>(null)
   const showWorkoutPreviewModal = ref(false)
   const selectedWorkout = ref<any | null>(null)
+
 
   const athletes = ref<any[]>([])
   const loadingAthletes = ref(true)
