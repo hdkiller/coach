@@ -1,11 +1,17 @@
 import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { analyticsRepository } from '../../utils/repositories/analyticsRepository'
-import { assertAnalyticsScopeAccess } from '../../utils/analyticsScope'
+import {
+  assertAnalyticsScopeAccess,
+  assertWorkoutComparisonAccess
+} from '../../utils/analyticsScope'
 
 const querySchema = z
   .object({
     source: z.enum(['workouts', 'wellness', 'nutrition']),
+    visualType: z
+      .enum(['line', 'bar', 'combo', 'stackedBar', 'scatter', 'horizontalBar', 'heatmap'])
+      .optional(),
     scope: z
       .object({
         target: z.enum(['self', 'athlete', 'athletes', 'athlete_group', 'team']),
@@ -18,6 +24,22 @@ const querySchema = z
       endDate: z.union([z.string(), z.date()]).pipe(z.coerce.date())
     }),
     grouping: z.enum(['daily', 'weekly', 'monthly']),
+    comparison: z
+      .object({
+        type: z.literal('workouts'),
+        mode: z.enum(['summary', 'stream', 'interval']),
+        workoutIds: z.array(z.string().min(1)).min(2),
+        alignment: z.enum(['elapsed_time', 'distance', 'percent_complete', 'lap_index']).optional(),
+        field: z.string().optional()
+      })
+      .optional(),
+    xAxis: z
+      .object({
+        type: z.literal('entity_label'),
+        sort: z.enum(['selected_order', 'chronological', 'metric_desc']).optional(),
+        sortMetricField: z.string().optional()
+      })
+      .optional(),
     metrics: z
       .array(
         z.object({
@@ -58,11 +80,22 @@ export default defineEventHandler(async (event) => {
 
   const options = result.data
 
-  if (!options.metrics || options.metrics.length === 0) {
+  if (
+    (!options.metrics || options.metrics.length === 0) &&
+    options.comparison?.mode !== 'stream' &&
+    options.comparison?.mode !== 'interval'
+  ) {
     return { labels: [], datasets: [] }
   }
 
   await assertAnalyticsScopeAccess(user.id, options.scope)
+
+  if (options.comparison?.type === 'workouts') {
+    options.comparison.workoutIds = await assertWorkoutComparisonAccess(
+      user.id,
+      options.comparison.workoutIds
+    )
+  }
 
   return await analyticsRepository.query(user.id, options as any)
 })
