@@ -77,6 +77,27 @@ It has multiple lines.
       expect(result.date.toISOString()).toBe('2026-03-14T00:00:00.000Z')
       expect(result.startTime).toBe('00:00')
     })
+
+    it('falls back to moving_time when Intervals omits top-level duration on structured events', () => {
+      const input = {
+        id: 'event-126',
+        start_date_local: '2026-03-21T06:00:00',
+        name: 'Longest Endurance Ride',
+        category: 'WORKOUT',
+        type: 'Ride',
+        moving_time: 10800,
+        workout_doc: {
+          duration: 10800,
+          steps: [{ duration: 1200, text: 'Warmup' }]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+
+      expect(result.durationSec).toBe(10800)
+      expect(result.structuredWorkout.duration).toBe(10800)
+      expect(result.structuredWorkout.steps[0].durationSeconds).toBe(1200)
+    })
   })
 
   describe('normalizeIntervalsWorkout (Completed / Type A)', () => {

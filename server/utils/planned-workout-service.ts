@@ -213,10 +213,16 @@ export async function deletePlannedWorkoutForUser(userId: string, workoutId: str
 
   const { integration, importPlannedWorkouts } = await getPlannedWorkoutSyncSettings(userId)
   if (integration && workout.externalId && importPlannedWorkouts) {
-    try {
-      await deleteIntervalsPlannedWorkout(integration, workout.externalId)
-    } catch (error) {
-      console.error('Failed to delete from Intervals.icu:', error)
+    if (isIntervalsEventId(workout.externalId)) {
+      try {
+        await deleteIntervalsPlannedWorkout(integration, workout.externalId)
+      } catch (error) {
+        console.error('Failed to delete from Intervals.icu:', error)
+      }
+    } else {
+      console.info(
+        `[deletePlannedWorkoutForUser] skipping delete from Intervals.icu: ${workout.externalId} is not a valid Intervals ID`
+      )
     }
   }
 

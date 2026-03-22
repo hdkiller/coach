@@ -82,6 +82,16 @@ const compareIntervalsCommand = new Command('compare-intervals')
       }
 
       const remote = await response.json()
+      const remoteDuration =
+        typeof remote.duration === 'number'
+          ? remote.duration
+          : typeof remote.moving_time === 'number'
+            ? remote.moving_time
+            : typeof remote.elapsed_time === 'number'
+              ? remote.elapsed_time
+              : typeof remote.workout_doc?.duration === 'number'
+                ? remote.workout_doc.duration
+                : undefined
 
       console.log(chalk.bold('\n--- COMPARISON ---\n'))
 
@@ -95,8 +105,12 @@ const compareIntervalsCommand = new Command('compare-intervals')
       // Compare Duration
       console.log(chalk.bold('\nDuration:'))
       console.log(`Local (durationSec): ${workout.durationSec}`)
+      console.log(`Remote (resolved):   ${remoteDuration}`)
       console.log(`Remote (duration):   ${remote.duration}`)
-      if (workout.durationSec !== remote.duration) {
+      console.log(`Remote (moving_time): ${remote.moving_time}`)
+      console.log(`Remote (elapsed_time): ${remote.elapsed_time}`)
+      console.log(`Remote (workout_doc.duration): ${remote.workout_doc?.duration}`)
+      if (workout.durationSec !== remoteDuration) {
         console.log(chalk.yellow('⚠ Duration mismatch!'))
       } else {
         console.log(chalk.green('✓ Duration matches'))

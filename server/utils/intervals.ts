@@ -399,7 +399,10 @@ export async function deleteIntervalsEvent(
   eventId: string
 ): Promise<void> {
   if (!isIntervalsEventId(eventId)) {
-    throw new Error(`Invalid Intervals event ID: ${eventId}`)
+    console.info(
+      `[deleteIntervalsEvent] skipping delete from Intervals.icu: ${eventId} is not a valid Intervals ID`
+    )
+    return
   }
 
   const athleteId = getIntervalsAthleteId(integration)
