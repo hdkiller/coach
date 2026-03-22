@@ -1,16 +1,16 @@
 <script setup lang="ts">
-  import { Line, Bar } from 'vue-chartjs'
+  import { Bar, Line, Scatter } from 'vue-chartjs'
   import {
-    Chart as ChartJS,
+    BarElement,
     CategoryScale,
+    Chart as ChartJS,
+    Filler,
+    Legend,
+    LineElement,
     LinearScale,
     PointElement,
-    LineElement,
-    BarElement,
     Title,
-    Tooltip,
-    Legend,
-    Filler
+    Tooltip
   } from 'chart.js'
 
   ChartJS.register(
@@ -25,6 +25,32 @@
     Filler
   )
 
+  interface WidgetDataset {
+    label: string
+    data: any[]
+    color?: string
+    backgroundColor?: string
+    borderColor?: string
+    type?: 'line' | 'bar'
+    yAxisID?: string
+    showLine?: boolean
+    pointRadius?: number
+  }
+
+  interface HeatmapPoint {
+    x: string
+    y: string
+    value: number | null
+  }
+
+  interface HeatmapPayload {
+    chartType: 'heatmap'
+    xLabels: string[]
+    yLabels: string[]
+    matrix: HeatmapPoint[]
+    valueLabel?: string
+  }
+
   const props = defineProps<{
     config: any
   }>()
@@ -36,68 +62,194 @@
   const lastFetchedConfig = ref<string | null>(null)
 
   const chartColors = [
-    '#3b82f6', // blue-500
-    '#ef4444', // red-500
-    '#10b981', // emerald-500
-    '#f59e0b', // amber-500
-    '#8b5cf6', // violet-500
-    '#ec4899', // pink-500
-    '#06b6d4', // cyan-500
-    '#f97316'  // orange-500
+    '#3b82f6',
+    '#ef4444',
+    '#10b981',
+    '#f59e0b',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#f97316'
   ]
+  const metricUnits: Record<string, string> = {
+    durationSec: 'duration',
+    tss: 'tss',
+    averageWatts: 'W',
+    averageHr: 'bpm',
+    distanceMeters: 'm',
+    intensity: '',
+    calories: 'kcal',
+    hrv: 'ms',
+    restingHr: 'bpm',
+    sleepHours: 'h',
+    sleepScore: '%',
+    recoveryScore: '%',
+    weight: 'kg',
+    ctl: 'load',
+    atl: 'load',
+    tsb: 'load'
+  }
+
+  const visualType = computed(() => props.config.visualType || props.config.type || 'line')
+  const isHeatmap = computed(() => visualType.value === 'heatmap')
+
+  function resolveDatasetUnit(index: number) {
+    if (props.config.units?.datasets?.[index]) return props.config.units.datasets[index]
+
+    const metricField = props.config.metrics?.[index]?.field
+    if (metricField) return metricUnits[metricField] || ''
+
+    return ''
+  }
+
+  function formatUnitValue(rawValue: number | null | undefined, unit = '') {
+    if (rawValue === null || rawValue === undefined || Number.isNaN(rawValue)) return '—'
+    const value = Number(rawValue)
+
+    if (unit === 'duration') {
+      if (Math.abs(value) >= 7200) return `${(value / 3600).toFixed(1)} h`
+      if (Math.abs(value) >= 3600) return `${(value / 3600).toFixed(1)} h`
+      if (Math.abs(value) >= 60) return `${Math.round(value / 60)} min`
+      return `${Math.round(value)} s`
+    }
+
+    if (unit === 'm') {
+      if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)} km`
+      return `${Math.round(value)} m`
+    }
+
+    if (unit === '%') return `${Math.round(value)}%`
+    if (unit === 'tss') return `${roundValue(value)} TSS`
+    if (unit === 'load') return roundValue(value)
+    if (unit === 'sessions') return `${roundValue(value)} sessions`
+    if (unit === 'score') return roundValue(value)
+    if (!unit) return roundValue(value)
+
+    return `${roundValue(value)} ${unit}`
+  }
+
+  function roundValue(value: number) {
+    if (Math.abs(value) >= 100 || Number.isInteger(value)) return String(Math.round(value))
+    return value.toFixed(1)
+  }
+
+  function formatAxisTick(value: number | string, unit = '') {
+    const numeric = Number(value)
+    if (Number.isNaN(numeric)) return String(value)
+
+    if (unit === 'duration') {
+      if (Math.abs(numeric) >= 3600) return `${roundValue(numeric / 3600)} h`
+      if (Math.abs(numeric) >= 60) return `${Math.round(numeric / 60)}m`
+      return `${Math.round(numeric)}s`
+    }
+
+    if (unit === 'm') {
+      if (Math.abs(numeric) >= 1000) return `${roundValue(numeric / 1000)} km`
+      return `${Math.round(numeric)} m`
+    }
+
+    if (unit === '%') return `${Math.round(numeric)}%`
+    if (unit === 'tss') return `${roundValue(numeric)}`
+    if (unit === 'sessions') return `${roundValue(numeric)}`
+    if (!unit || unit === 'load' || unit === 'score') return roundValue(numeric)
+
+    return `${roundValue(numeric)} ${unit}`
+  }
+
+  const axisUnits = computed(() => {
+    const primaryMetricUnit = props.config.metrics?.[0]?.field
+      ? metricUnits[props.config.metrics[0].field] || ''
+      : ''
+    const secondaryMetricUnit = props.config.metrics?.[1]?.field
+      ? metricUnits[props.config.metrics[1].field] || ''
+      : ''
+
+    return {
+      x: props.config.units?.x || '',
+      y: props.config.units?.y || primaryMetricUnit || '',
+      y1: props.config.units?.y1 || secondaryMetricUnit || ''
+    }
+  })
+
+  function resolveTimeRange() {
+    let startDate = props.config.timeRange?.startDate
+    let endDate = props.config.timeRange?.endDate
+
+    if (props.config.timeRange?.type === 'rolling') {
+      const days = parseInt(props.config.timeRange.value || '30', 10)
+      const now = new Date()
+      const start = new Date()
+      start.setDate(now.getDate() - days)
+      startDate = start.toISOString()
+      endDate = now.toISOString()
+    } else if (props.config.timeRange?.type === 'ytd') {
+      const now = new Date()
+      startDate = new Date(now.getFullYear(), 0, 1).toISOString()
+      endDate = now.toISOString()
+    }
+
+    return { startDate, endDate }
+  }
+
+  function normalizeDataset(ds: WidgetDataset, index: number, labelsLength: number) {
+    const datasetType =
+      ds.type ||
+      props.config.styling?.datasetTypes?.[index] ||
+      (visualType.value === 'combo' ? (index === 0 ? 'bar' : 'line') : props.config.type || 'line')
+    const color = ds.color || ds.borderColor || chartColors[index % chartColors.length]
+    const isBarDataset = datasetType === 'bar'
+
+    return {
+      ...ds,
+      type: datasetType,
+      borderColor: color,
+      backgroundColor:
+        ds.backgroundColor ||
+        (isBarDataset ? `${color}80` : visualType.value === 'scatter' ? color : 'transparent'),
+      borderWidth: 2,
+      tension: datasetType === 'line' ? 0.35 : 0,
+      fill: false,
+      yAxisID: ds.yAxisID || (visualType.value === 'combo' && datasetType === 'line' ? 'y1' : 'y'),
+      pointRadius:
+        ds.pointRadius || (visualType.value === 'scatter' ? 4 : labelsLength > 50 ? 0 : 3),
+      pointHoverRadius: visualType.value === 'scatter' ? 5 : 4
+    }
+  }
 
   async function fetchData() {
-    // Only fetch if config actually changed (ignore instanceId which is unique per dashboard instance)
     const currentConfigStr = JSON.stringify({ ...props.config, instanceId: undefined })
     if (lastFetchedConfig.value === currentConfigStr) return
-    
+
     loading.value = true
     error.value = null
 
     try {
-      // Calculate start/end dates based on rolling range if needed
-      let startDate = props.config.timeRange?.startDate
-      let endDate = props.config.timeRange?.endDate
-
-      if (props.config.timeRange?.type === 'rolling') {
-        const val = props.config.timeRange.value // e.g. '90d'
-        const days = parseInt(val)
-        const now = new Date()
-        const start = new Date()
-        start.setDate(now.getDate() - days)
-        startDate = start.toISOString()
-        endDate = now.toISOString()
-      } else if (props.config.timeRange?.type === 'ytd') {
-        const now = new Date()
-        startDate = new Date(now.getFullYear(), 0, 1).toISOString()
-        endDate = now.toISOString()
-      }
-
-      const response = await $fetch('/api/analytics/query', {
+      const endpoint = props.config.endpoint || '/api/analytics/query'
+      const timeRange = resolveTimeRange()
+      const { _meta, instanceId, ...requestConfig } = props.config
+      const response = await $fetch<any>(endpoint, {
         method: 'POST',
         body: {
-          ...props.config,
-          timeRange: {
-            startDate,
-            endDate
-          }
+          ...requestConfig,
+          timeRange
         }
       })
 
-      // Transform response into Chart.js format
+      if (response?.chartType === 'heatmap') {
+        chartData.value = response as HeatmapPayload
+        lastFetchedConfig.value = currentConfigStr
+        return
+      }
+
+      const labels = response?.labels || []
+      const datasets = (response?.datasets || []).map((ds: WidgetDataset, index: number) => ({
+        ...normalizeDataset(ds, index, labels.length),
+        unit: resolveDatasetUnit(index)
+      }))
+
       chartData.value = {
-        labels: (response as any).labels,
-        datasets: (response as any).datasets.map((ds: any, index: number) => ({
-          ...ds,
-          borderColor: ds.color || chartColors[index % chartColors.length],
-          backgroundColor: props.config.type === 'bar' 
-            ? (ds.color || chartColors[index % chartColors.length]) + '80' // 50% opacity for bar fills
-            : 'transparent',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: props.config.type === 'bar',
-          pointRadius: (response as any).labels.length > 50 ? 0 : 3
-        }))
+        labels,
+        datasets
       }
       lastFetchedConfig.value = currentConfigStr
     } catch (e: any) {
@@ -108,66 +260,153 @@
     }
   }
 
-  const chartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: props.config.styling?.showLegend !== false,
-        position: 'bottom' as const,
-        labels: {
-          usePointStyle: true,
-          boxWidth: 6,
-          boxHeight: 6,
-          font: { size: 10, weight: 'bold' as const },
-          color: '#94a3b8'
+  const chartOptions = computed(() => {
+    const stacked = visualType.value === 'stackedBar'
+    const isHorizontal = visualType.value === 'horizontalBar'
+    const isScatter = visualType.value === 'scatter'
+    const isCombo = visualType.value === 'combo'
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: isHorizontal ? ('y' as const) : ('x' as const),
+      plugins: {
+        legend: {
+          display: props.config.styling?.showLegend !== false,
+          position: 'bottom' as const,
+          labels: {
+            usePointStyle: true,
+            boxWidth: 6,
+            boxHeight: 6,
+            font: { size: 10, weight: 'bold' as const },
+            color: '#94a3b8'
+          }
+        },
+        tooltip: {
+          backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
+          titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
+          bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
+          borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
+          borderWidth: 1,
+          padding: 12,
+          titleFont: { size: 12, weight: 'bold' as const },
+          bodyFont: { size: 11 },
+          displayColors: true,
+          mode: isScatter ? ('nearest' as const) : ('index' as const),
+          intersect: isScatter,
+          callbacks: {
+            label: (context: any) => {
+              const datasetUnit = context.dataset.unit || ''
+              if (isScatter) {
+                const xValue = context.raw?.x
+                const yValue = context.raw?.y
+                return `${context.dataset.label}: ${formatUnitValue(xValue, axisUnits.value.x)} / ${formatUnitValue(yValue, axisUnits.value.y)}`
+              }
+
+              return `${context.dataset.label}: ${formatUnitValue(context.parsed?.y ?? context.parsed?.x, datasetUnit || axisUnits.value.y)}`
+            }
+          }
         }
       },
-      tooltip: {
-        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
-        titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
-        bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
-        borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
-        borderWidth: 1,
-        padding: 12,
-        titleFont: { size: 12, weight: 'bold' as const },
-        bodyFont: { size: 11 },
-        displayColors: true,
-        mode: 'index' as const,
-        intersect: false
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: {
-          color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const },
-          maxTicksLimit: 8,
-          autoSkip: true
+      scales: {
+        x: {
+          type: isScatter ? ('linear' as const) : ('category' as const),
+          stacked,
+          grid: {
+            display: !isHorizontal,
+            color: theme.isDark.value ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)'
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10, weight: 'bold' as const },
+            maxTicksLimit: isScatter ? 6 : 8,
+            autoSkip: !isScatter,
+            callback: (value: number | string) =>
+              isScatter || isHorizontal ? formatAxisTick(value, axisUnits.value.x) : value
+          },
+          title: {
+            display: Boolean(axisUnits.value.x) && (isScatter || isHorizontal),
+            text: axisUnits.value.x
+          },
+          border: { display: false }
         },
-        border: { display: false }
+        y: {
+          position: 'right' as const,
+          stacked,
+          grid: {
+            color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+            drawTicks: false
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10, weight: 'bold' as const },
+            maxTicksLimit: 6,
+            callback: (value: number | string) =>
+              !isHorizontal ? formatAxisTick(value, axisUnits.value.y) : value
+          },
+          title: {
+            display: Boolean(axisUnits.value.y) && !isHorizontal,
+            text: axisUnits.value.y
+          },
+          border: { display: false }
+        },
+        ...(isCombo
+          ? {
+              y1: {
+                position: 'left' as const,
+                grid: { display: false },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { size: 10, weight: 'bold' as const },
+                  maxTicksLimit: 6,
+                  callback: (value: number | string) =>
+                    formatAxisTick(value, axisUnits.value.y1 || axisUnits.value.y)
+                },
+                title: {
+                  display: Boolean(axisUnits.value.y1),
+                  text: axisUnits.value.y1
+                },
+                border: { display: false }
+              }
+            }
+          : {})
       },
-      y: {
-        position: 'right' as const,
-        grid: {
-          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
-          drawTicks: false
-        },
-        ticks: {
-          color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const },
-          maxTicksLimit: 6
-        },
-        border: { display: false }
+      interaction: {
+        mode: isScatter ? ('nearest' as const) : ('index' as const),
+        axis: isScatter ? ('xy' as const) : ('x' as const),
+        intersect: isScatter
       }
-    },
-    interaction: {
-      mode: 'nearest' as const,
-      axis: 'x' as const,
-      intersect: false
     }
-  }))
+  })
+
+  const heatmapMatrix = computed(() => {
+    if (!isHeatmap.value || !chartData.value) return new Map<string, number | null>()
+    return new Map(
+      (chartData.value.matrix as HeatmapPoint[]).map((point) => [
+        `${point.y}::${point.x}`,
+        point.value
+      ])
+    )
+  })
+
+  function heatmapColor(value: number | null) {
+    if (value === null || Number.isNaN(value)) {
+      return theme.isDark.value ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.05)'
+    }
+
+    const intensity = Math.max(0.12, Math.min(1, Math.abs(value) / 100))
+
+    if (props.config.presetOptions?.mode === 'fatigue') {
+      if (value >= 10) return `rgba(16, 185, 129, ${intensity})`
+      if (value >= -10) return `rgba(245, 158, 11, ${intensity})`
+      return `rgba(239, 68, 68, ${intensity})`
+    }
+
+    if (value >= 80) return `rgba(16, 185, 129, ${intensity})`
+    if (value >= 60) return `rgba(59, 130, 246, ${intensity})`
+    if (value >= 40) return `rgba(245, 158, 11, ${intensity})`
+    return `rgba(239, 68, 68, ${intensity})`
+  }
 
   watch(() => props.config, fetchData, { deep: true })
   onMounted(fetchData)
@@ -175,37 +414,84 @@
 
 <template>
   <div class="base-widget h-full w-full min-h-[250px]">
-    <div v-if="loading" class="flex justify-center items-center h-full min-h-[250px]">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+    <div v-if="loading" class="flex h-full min-h-[250px] items-center justify-center">
+      <UIcon name="i-heroicons-arrow-path" class="h-8 w-8 animate-spin text-primary" />
     </div>
 
-    <div v-else-if="error" class="flex flex-col items-center justify-center h-full min-h-[250px] p-4 text-center">
-      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-error-500 mb-2" />
-      <p class="text-error-600 dark:text-error-400 font-bold text-sm line-clamp-3">
+    <div
+      v-else-if="error"
+      class="flex h-full min-h-[250px] flex-col items-center justify-center p-4 text-center"
+    >
+      <UIcon name="i-heroicons-exclamation-triangle" class="mb-2 h-8 w-8 text-error-500" />
+      <p class="line-clamp-3 text-sm font-bold text-error-600 dark:text-error-400">
         {{ error }}
       </p>
-      <UButton
-        color="neutral"
-        variant="link"
-        size="xs"
-        class="mt-2"
-        @click="fetchData"
-      />
+      <UButton color="neutral" variant="link" size="xs" class="mt-2" @click="fetchData">
+        Retry
+      </UButton>
     </div>
 
-    <div v-else-if="chartData" class="h-full relative p-2">
-      <Line
-        v-if="config.type === 'line'"
-        :data="chartData"
-        :options="chartOptions"
-      />
+    <div
+      v-else-if="isHeatmap && chartData"
+      class="h-full overflow-auto rounded-2xl border border-default/60 bg-default/70 p-4"
+    >
+      <div class="min-w-max space-y-2">
+        <div
+          class="grid gap-2"
+          :style="{
+            gridTemplateColumns: `180px repeat(${chartData.xLabels.length}, minmax(48px, 1fr))`
+          }"
+        >
+          <div />
+          <div
+            v-for="label in chartData.xLabels"
+            :key="label"
+            class="text-center text-[10px] font-black uppercase tracking-[0.18em] text-muted"
+          >
+            {{ label.slice(5) }}
+          </div>
+        </div>
+
+        <div
+          v-for="athlete in chartData.yLabels"
+          :key="athlete"
+          class="grid items-center gap-2"
+          :style="{
+            gridTemplateColumns: `180px repeat(${chartData.xLabels.length}, minmax(48px, 1fr))`
+          }"
+        >
+          <div class="truncate pr-3 text-sm font-bold text-highlighted">
+            {{ athlete }}
+          </div>
+          <div
+            v-for="label in chartData.xLabels"
+            :key="`${athlete}-${label}`"
+            class="flex h-12 items-center justify-center rounded-xl border border-default/50 text-xs font-bold text-highlighted"
+            :style="{
+              backgroundColor: heatmapColor(heatmapMatrix.get(`${athlete}::${label}`) ?? null)
+            }"
+          >
+            {{ heatmapMatrix.get(`${athlete}::${label}`) ?? '—' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="chartData" class="relative h-full p-2">
+      <Line v-if="visualType === 'line'" :data="chartData" :options="chartOptions" />
       <Bar
-        v-else-if="config.type === 'bar'"
+        v-else-if="
+          visualType === 'bar' ||
+          visualType === 'combo' ||
+          visualType === 'stackedBar' ||
+          visualType === 'horizontalBar'
+        "
         :data="chartData"
         :options="chartOptions"
       />
-      <div v-else class="flex items-center justify-center h-full text-neutral-400 text-xs italic">
-        Unsupported chart type: {{ config.type }}
+      <Scatter v-else-if="visualType === 'scatter'" :data="chartData" :options="chartOptions" />
+      <div v-else class="flex h-full items-center justify-center text-xs italic text-neutral-400">
+        Unsupported chart type: {{ visualType }}
       </div>
     </div>
   </div>
