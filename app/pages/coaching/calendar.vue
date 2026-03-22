@@ -252,6 +252,7 @@
                 @move-planned-workout="onMovePlannedWorkout"
                 @duplicate-planned-workout="onDuplicatePlannedWorkout"
                 @activity-click="onActivityClick"
+                @compare-activity="addWorkoutToComparison"
               />
 
               <CoachCalendarPanel
@@ -270,6 +271,7 @@
                 @move-planned-workout="onMovePlannedWorkout"
                 @duplicate-planned-workout="onDuplicatePlannedWorkout"
                 @activity-click="onActivityClick"
+                @compare-activity="addWorkoutToComparison"
               />
             </div>
 
@@ -398,6 +400,8 @@
           </div>
         </template>
       </UModal>
+
+      <WorkoutsWorkoutComparisonDock />
     </template>
   </UDashboardPanel>
 </template>
@@ -415,6 +419,7 @@
   const { formatDateUTC } = useFormat()
   const toast = useToast()
   const route = useRoute()
+  const comparisonStore = useWorkoutComparisonStore()
   const athleteSearch = ref('')
   const railCollapsed = ref(false)
   const leftRailTab = ref<'roster' | 'library'>('roster')
@@ -428,7 +433,6 @@
   const selectedPlannedWorkoutAthleteId = ref<string | null>(null)
   const showWorkoutPreviewModal = ref(false)
   const selectedWorkout = ref<any | null>(null)
-
 
   const athletes = ref<any[]>([])
   const loadingAthletes = ref(true)
@@ -593,6 +597,28 @@
     } finally {
       loadingAthletes.value = false
     }
+  }
+
+  function addWorkoutToComparison(athleteId: string, activity: any) {
+    if (!activity?.id) return
+
+    const athlete =
+      athletes.value.find((relationship) => relationship.athleteId === athleteId)?.athlete || null
+
+    comparisonStore.toggleWorkout({
+      id: activity.id,
+      title: activity.title || 'Workout',
+      type: activity.type || null,
+      date: activity.date || null,
+      athleteName: athlete?.name || athlete?.email || 'Athlete'
+    })
+
+    toast.add({
+      title: comparisonStore.isSelected(activity.id)
+        ? 'Workout added to comparison'
+        : 'Workout removed from comparison',
+      color: 'success'
+    })
   }
 
   function enableCompareLane() {
@@ -907,8 +933,7 @@
 
   watch(primaryAthleteId, (nextPrimary) => {
     if (!nextPrimary || secondaryAthleteId.value !== nextPrimary) return
-    const fallback =
-      athletes.value.find((rel) => rel.athleteId !== nextPrimary)?.athleteId || null
+    const fallback = athletes.value.find((rel) => rel.athleteId !== nextPrimary)?.athleteId || null
     secondaryAthleteId.value = fallback
   })
 

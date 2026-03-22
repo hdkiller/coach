@@ -42,12 +42,27 @@
       <button
         v-for="activity in visibleActivities"
         :key="activity.id"
-        class="w-full rounded-xl border px-2 py-1.5 text-left text-xs transition hover:bg-default/80"
+        class="group relative w-full rounded-xl border px-2 py-1.5 text-left text-xs transition hover:bg-default/80"
         :class="activityClass(activity)"
         :draggable="activity.source === 'planned'"
         @click="$emit('activity-click', activity)"
         @dragstart="onActivityDragStart($event, activity)"
       >
+        <div
+          v-if="activity.source === 'completed' && activity.id"
+          class="absolute right-1.5 top-1.5 z-10 opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-git-compare-arrows"
+            class="h-6 w-6 p-0"
+            title="Add to comparison"
+            @click.stop="$emit('compare-activity', activity)"
+          />
+        </div>
+
         <div class="flex items-start gap-2">
           <div class="mt-1 h-2 w-2 shrink-0 rounded-full" :class="activityDotClass(activity)" />
           <div class="min-w-0 flex-1">
@@ -121,6 +136,7 @@
     dragover: []
     drop: [event: DragEvent]
     'activity-click': [activity: CalendarActivity]
+    'compare-activity': [activity: CalendarActivity]
   }>()
 
   const { formatDateUTC } = useFormat()
