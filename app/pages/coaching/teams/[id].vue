@@ -55,11 +55,12 @@
                 <h3 class="text-lg font-bold">Team Roster</h3>
                 <UButton
                   v-if="['OWNER', 'ADMIN', 'COACH'].includes(myRole)"
-                  color="primary"
-                  variant="soft"
-                  label="Add Connected Athlete"
+                  color="neutral"
+                  variant="outline"
+                  label="Add Athlete"
                   icon="i-heroicons-user-plus"
                   size="xs"
+                  class="font-bold"
                   @click="openQuickAddModal"
                 />
               </div>
@@ -159,11 +160,12 @@
                 <div class="flex items-center justify-between mb-4">
                   <h3 class="text-lg font-bold">Pending Invitations</h3>
                   <UButton
-                    color="primary"
-                    variant="soft"
+                    color="neutral"
+                    variant="outline"
                     label="Create Invite"
                     icon="i-heroicons-plus"
                     size="xs"
+                    class="font-bold"
                     @click="isInviteModalOpen = true"
                   />
                 </div>

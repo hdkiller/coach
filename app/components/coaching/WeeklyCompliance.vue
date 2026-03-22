@@ -89,10 +89,11 @@
               <td class="py-3 px-4 text-right">
                 <UButton
                   color="neutral"
-                  variant="ghost"
+                  variant="outline"
                   icon="i-heroicons-user-circle"
                   size="xs"
                   label="Profile"
+                  class="font-bold"
                   @click.stop="goToProfile(athlete.id)"
                 />
               </td>
