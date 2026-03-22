@@ -359,6 +359,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCompactDuration } from '~/utils/duration'
   import { ZONE_COLORS } from '~/utils/zone-colors'
   import {
     getStructuredWorkoutPayload,
@@ -1566,11 +1567,7 @@
   }
 
   function formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.round(seconds % 60)
-    if (mins === 0) return `${secs}s`
-    if (secs === 0) return `${mins}m`
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+    return formatCompactDuration(seconds)
   }
 </script>
 

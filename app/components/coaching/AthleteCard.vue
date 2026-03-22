@@ -66,12 +66,12 @@
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">7d Comp.</p>
           <p
             class="text-lg font-black leading-tight"
-            :class="athlete.stats.adherence7d >= 80 ? 'text-green-600' : 'text-orange-500'"
+            :class="(athlete.stats?.adherence7d || 0) >= 80 ? 'text-green-600' : 'text-orange-500'"
           >
-            {{ athlete.stats.adherence7d }}%
+            {{ athlete.stats?.adherence7d ?? '--' }}%
           </p>
           <p class="text-[9px] text-neutral-400">
-            {{ athlete.stats.completedCount }}/{{ athlete.stats.plannedCount }}
+            {{ athlete.stats?.completedCount ?? 0 }}/{{ athlete.stats?.plannedCount ?? 0 }}
           </p>
         </div>
       </div>
@@ -213,7 +213,7 @@
 
   // Alert Logic
   const isOvertrained = computed(() => currentTSB.value !== null && currentTSB.value < -25)
-  const isSlacking = computed(() => props.athlete.stats.adherence7d < 60)
+  const isSlacking = computed(() => (props.athlete.stats?.adherence7d || 100) < 60)
 
   const getTSBColor = (tsb: number | null) => {
     if (tsb === null) return 'text-neutral-400'
@@ -268,7 +268,7 @@
 
   // Chart Logic
   const chartData = computed(() => {
-    const history = props.athlete.stats.wellnessHistory || []
+    const history = props.athlete.stats?.wellnessHistory || []
     if (history.length < 2) return null
 
     return {
