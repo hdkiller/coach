@@ -18,6 +18,28 @@ export type AnalyticsVisualType =
   | 'horizontalBar'
   | 'heatmap'
 
+export type AnalyticsOverlayType =
+  | 'rollingAverage'
+  | 'baselineBand'
+  | 'targetLine'
+  | 'previousPeriod'
+  | 'squadAverage'
+  | 'thresholdLine'
+  | 'regressionLine'
+  | 'wellnessEvents'
+
+export interface AnalyticsOverlayOption {
+  id: string
+  label: string
+  type: AnalyticsOverlayType
+  description?: string
+  datasetIndex?: number
+  window?: number
+  value?: number
+  axis?: 'x' | 'y' | 'y1'
+  color?: string
+}
+
 export interface AnalyticsPresetConfig {
   source?: 'workouts' | 'wellness' | 'nutrition'
   type?: 'line' | 'bar'
@@ -52,6 +74,98 @@ export interface AnalyticsSystemPreset extends AnalyticsPresetConfig {
   visualType: AnalyticsVisualType
   requiredCapabilities: string[]
   isSystem: true
+  defaultOverlays?: string[]
+  availableOverlays?: AnalyticsOverlayOption[]
+  supportsCompareOverlay?: boolean
+  compareOverlayMode?: 'squadAverage' | 'median' | 'none'
+  insightCopy?: string
+  flagship?: boolean
+  displayNameOverride?: string
+}
+
+const rolling7d: AnalyticsOverlayOption = {
+  id: 'rolling-7d',
+  label: '7D Avg',
+  type: 'rollingAverage',
+  window: 7,
+  description: 'Smooth short-term day-to-day noise.'
+}
+
+const rolling30d: AnalyticsOverlayOption = {
+  id: 'rolling-30d',
+  label: '30D Avg',
+  type: 'rollingAverage',
+  window: 30,
+  description: 'Highlight longer trend direction.'
+}
+
+const baselineBand: AnalyticsOverlayOption = {
+  id: 'baseline-band',
+  label: 'Baseline Band',
+  type: 'baselineBand',
+  description: 'Show the athlete normal range around the primary trend.'
+}
+
+const previousPeriod: AnalyticsOverlayOption = {
+  id: 'previous-period',
+  label: 'Prior Period',
+  type: 'previousPeriod',
+  description: 'Overlay the immediately preceding time block.'
+}
+
+const squadAverage: AnalyticsOverlayOption = {
+  id: 'squad-average',
+  label: 'Squad Average',
+  type: 'squadAverage',
+  description: 'Compare selected athletes to the cohort average.'
+}
+
+const regressionLine: AnalyticsOverlayOption = {
+  id: 'regression-line',
+  label: 'Trendline',
+  type: 'regressionLine',
+  description: 'Add a best-fit line to reveal the overall relationship.'
+}
+
+const wellnessEvents: AnalyticsOverlayOption = {
+  id: 'wellness-events',
+  label: 'Context Events',
+  type: 'wellnessEvents',
+  description: 'Mark illness, travel, tags, and recovery context on the timeline.'
+}
+
+function targetLine(
+  id: string,
+  label: string,
+  value: number,
+  color = '#10b981',
+  description?: string
+): AnalyticsOverlayOption {
+  return {
+    id,
+    label,
+    type: 'targetLine',
+    value,
+    color,
+    description
+  }
+}
+
+function thresholdLine(
+  id: string,
+  label: string,
+  value: number,
+  color = '#f59e0b',
+  description?: string
+): AnalyticsOverlayOption {
+  return {
+    id,
+    label,
+    type: 'thresholdLine',
+    value,
+    color,
+    description
+  }
 }
 
 function queryPreset(
@@ -104,7 +218,8 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
   queryPreset({
     id: 'system-pmc',
     name: 'Performance Management (PMC)',
-    description: 'Track Fitness (CTL), Fatigue (ATL), and Form (TSB) in one training-load chart.',
+    description:
+      'Track fitness, fatigue, and form together to understand where the athlete sits in the training cycle.',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -119,12 +234,18 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
       { field: 'tsb', aggregation: 'avg' }
     ],
     units: { y: 'load' },
-    styling: { showLegend: true }
+    styling: { showLegend: true },
+    flagship: true,
+    insightCopy:
+      'Use PMC to balance long-term fitness gains against short-term fatigue so you can spot productive overload versus risky strain.',
+    defaultOverlays: ['previous-period'],
+    availableOverlays: [previousPeriod]
   }),
   queryPreset({
     id: 'system-weekly-tss',
     name: 'Weekly Load Trend',
-    description: 'See weekly Training Stress Score accumulation at a glance.',
+    description:
+      'Answer the coaching question: is load building, flattening, or spiking week to week?',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -135,12 +256,19 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     grouping: 'weekly',
     metrics: [{ field: 'tss', aggregation: 'sum' }],
     units: { y: 'tss' },
-    styling: { showLegend: true }
+    styling: { showLegend: true },
+    flagship: true,
+    insightCopy:
+      'This is the anchor trend for monitoring weekly stress. Sudden jumps matter more than isolated big weeks.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d, rolling30d, squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
   }),
   queryPreset({
     id: 'system-weekly-volume',
     name: 'Weekly Volume Trend',
-    description: 'Track total training duration over time.',
+    description: 'Track how much time the athlete is actually spending training each week.',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -150,12 +278,19 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '90d' },
     grouping: 'weekly',
     metrics: [{ field: 'durationSec', aggregation: 'sum' }],
-    units: { y: 'duration' }
+    units: { y: 'duration' },
+    insightCopy:
+      'Use volume alongside load to separate longer easy weeks from shorter high-intensity blocks.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d, rolling30d, squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
   }),
   queryPreset({
     id: 'system-load-vs-volume',
     name: 'Load vs Volume',
-    description: 'Compare duration and training load across the same time horizon.',
+    description:
+      'See whether training stress is being driven by more time, more intensity, or both.',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -176,12 +311,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     styling: {
       showLegend: true,
       datasetTypes: ['bar', 'line']
-    }
+    },
+    insightCopy:
+      'When load rises faster than volume, intensity is doing more of the work. When both rise together, overall training demand is climbing.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d, previousPeriod]
   }),
   queryPreset({
     id: 'system-recovery-trajectory',
     name: 'Recovery Trajectory',
-    description: 'Follow daily recovery score over time.',
+    description:
+      'Track the athlete recovery signal over time and distinguish noise from a real shift.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -191,12 +331,18 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '30d' },
     grouping: 'daily',
     metrics: [{ field: 'recoveryScore', aggregation: 'avg' }],
-    units: { y: '%' }
+    units: { y: '%' },
+    flagship: true,
+    insightCopy:
+      'Recovery is most useful in context. The baseline band helps show whether today is normal or a genuine dip.',
+    defaultOverlays: ['rolling-7d', 'baseline-band'],
+    availableOverlays: [rolling7d, baselineBand, wellnessEvents]
   }),
   queryPreset({
     id: 'system-hrv-trend',
     name: 'HRV Trend',
-    description: 'Track heart-rate variability trends across your recovery cycle.',
+    description:
+      'Monitor HRV against a moving baseline instead of reacting to one-off daily noise.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -206,12 +352,18 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '30d' },
     grouping: 'daily',
     metrics: [{ field: 'hrv', aggregation: 'avg' }],
-    units: { y: 'ms' }
+    units: { y: 'ms' },
+    flagship: true,
+    insightCopy:
+      'HRV matters most when it drifts away from the athlete own baseline, not when it moves slightly day to day.',
+    defaultOverlays: ['baseline-band'],
+    availableOverlays: [rolling7d, baselineBand, wellnessEvents]
   }),
   queryPreset({
     id: 'system-resting-hr',
     name: 'Resting HR Trend',
-    description: 'Monitor resting heart-rate shifts that often signal readiness changes.',
+    description:
+      'Follow resting heart rate shifts that often flag fatigue, illness, or emerging recovery strain.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -221,12 +373,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '30d' },
     grouping: 'daily',
     metrics: [{ field: 'restingHr', aggregation: 'avg' }],
-    units: { y: 'bpm' }
+    units: { y: 'bpm' },
+    insightCopy:
+      'Resting HR is more actionable when viewed against the athlete recent normal range than as isolated numbers.',
+    defaultOverlays: ['baseline-band'],
+    availableOverlays: [rolling7d, baselineBand, wellnessEvents]
   }),
   queryPreset({
     id: 'system-sleep-duration',
     name: 'Sleep Duration',
-    description: 'Review how much you slept on each day and across each week.',
+    description:
+      'Track nightly sleep duration against a simple target and spot sustained short-sleep blocks.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -236,12 +393,21 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '30d' },
     grouping: 'daily',
     metrics: [{ field: 'sleepHours', aggregation: 'avg' }],
-    units: { y: 'h' }
+    units: { y: 'h' },
+    insightCopy:
+      'Sleep is most useful when you can compare actual duration with the athlete normal target and recent trend.',
+    defaultOverlays: ['sleep-target'],
+    availableOverlays: [
+      rolling7d,
+      previousPeriod,
+      targetLine('sleep-target', '8h Target', 8, '#3b82f6', 'Reference sleep goal.')
+    ]
   }),
   queryPreset({
     id: 'system-readiness-estimate',
     name: 'Readiness Estimate',
-    description: 'Use recovery score as the default readiness signal over time.',
+    description:
+      'Use the readiness signal as a coaching-friendly summary of how prepared the athlete is to absorb work.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -251,12 +417,16 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '30d' },
     grouping: 'daily',
     metrics: [{ field: 'recoveryScore', aggregation: 'avg' }],
-    units: { y: '%' }
+    units: { y: '%' },
+    insightCopy:
+      'Readiness should answer a different question than recovery: how prepared is the athlete to express quality work right now?',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d, baselineBand]
   }),
   queryPreset({
     id: 'system-weight-trend',
     name: 'Body Mass Trend',
-    description: 'Track body mass changes across your training cycle.',
+    description: 'Track body-mass changes without overreacting to single-day fluctuations.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -266,12 +436,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     timeRange: { type: 'rolling', value: '90d' },
     grouping: 'daily',
     metrics: [{ field: 'weight', aggregation: 'avg' }],
-    units: { y: 'kg' }
+    units: { y: 'kg' },
+    insightCopy:
+      'Weight is easier to interpret as a smoothed trend than as a single daily reading.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d, rolling30d]
   }),
   endpointPreset({
     id: 'system-blood-pressure',
-    name: 'Blood Pressure',
-    description: 'View systolic and diastolic values over time.',
+    name: 'Blood Pressure Health Trend',
+    description:
+      'Monitor systolic and diastolic trends against simple health reference thresholds.',
     category: 'recovery',
     audience: 'both',
     recommendedScope: 'self',
@@ -281,12 +456,20 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/correlation',
     timeRange: { type: 'rolling', value: '90d' },
     presetOptions: { mode: 'blood-pressure-trend' },
-    units: { y: 'mmHg', datasets: ['mmHg', 'mmHg'] }
+    units: { y: 'mmHg', datasets: ['mmHg', 'mmHg'] },
+    insightCopy:
+      'This is a monitoring chart rather than a training-performance chart, so threshold references matter more than small day-to-day changes.',
+    defaultOverlays: ['bp-systolic-threshold', 'bp-diastolic-threshold'],
+    availableOverlays: [
+      thresholdLine('bp-systolic-threshold', 'Systolic Ref', 120, '#ef4444'),
+      thresholdLine('bp-diastolic-threshold', 'Diastolic Ref', 80, '#f97316')
+    ]
   }),
   endpointPreset({
     id: 'system-weekly-power-zones',
     name: 'Weekly Power Zone Distribution',
-    description: 'See where your training time lands across power zones each week.',
+    description:
+      'See how weekly power-zone distribution is shifting across easy, moderate, and hard work.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -296,12 +479,15 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/power-duration',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'weekly-power-zones' },
-    units: { y: 'h' }
+    units: { y: 'h' },
+    insightCopy:
+      'Zone distribution is most useful for checking whether the block is staying polarized, threshold-heavy, or drifting off plan.'
   }),
   endpointPreset({
     id: 'system-weekly-hr-zones',
     name: 'Weekly Heart Rate Zone Distribution',
-    description: 'See weekly intensity distribution based on heart-rate zones.',
+    description:
+      'Track heart-rate-based intensity distribution to check how hard the athlete is really working each week.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -311,12 +497,15 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/power-duration',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'weekly-hr-zones' },
-    units: { y: 'h' }
+    units: { y: 'h' },
+    insightCopy:
+      'HR zones give a physiological view of intensity distribution that can differ from power, especially under fatigue or heat.'
   }),
   endpointPreset({
     id: 'system-threshold-exposure',
     name: 'Threshold Exposure Trend',
-    description: 'Track time spent at or above threshold across your training blocks.',
+    description:
+      'Track how much time the athlete is spending at or above threshold from week to week.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -326,12 +515,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/power-duration',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'time-above-threshold' },
-    units: { y: 'h' }
+    units: { y: 'h' },
+    insightCopy:
+      'Threshold work tends to cluster inside specific blocks, so prior-period context is useful for checking progression.',
+    defaultOverlays: ['previous-period'],
+    availableOverlays: [previousPeriod]
   }),
   endpointPreset({
     id: 'system-session-density',
-    name: 'Session Density',
-    description: 'Count how many completed sessions you string together each week.',
+    name: 'Training Frequency',
+    displayNameOverride: 'Training Frequency',
+    description: 'Count how many completed sessions the athlete is stacking each week.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -341,12 +535,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/compliance',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'session-density' },
-    units: { y: 'sessions' }
+    units: { y: 'sessions' },
+    insightCopy:
+      'Use this to see whether consistency is coming from more training days or just larger single days.',
+    defaultOverlays: ['rolling-30d'],
+    availableOverlays: [rolling30d]
   }),
   endpointPreset({
     id: 'system-discipline-mix',
     name: 'Discipline Mix',
-    description: 'Break down your recent training time by discipline.',
+    description:
+      'Break down recent training time by discipline to check whether the block matches intent.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -356,12 +555,16 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/compliance',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'discipline-mix' },
-    units: { x: 'h' }
+    units: { x: 'h' },
+    insightCopy:
+      'This mix chart is best used to validate whether the athlete time allocation matches the block design.'
   }),
   endpointPreset({
     id: 'system-workout-type-distribution',
-    name: 'Workout Type Distribution',
-    description: 'See how your recent sessions are distributed across workout categories.',
+    name: 'Workout Intent Mix',
+    displayNameOverride: 'Workout Intent Mix',
+    description:
+      'See how recent sessions are distributed across workout categories and training intent.',
     category: 'distribution',
     audience: 'both',
     recommendedScope: 'self',
@@ -371,12 +574,15 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/compliance',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'workout-type-distribution' },
-    units: { x: 'sessions' }
+    units: { x: 'sessions' },
+    insightCopy:
+      'This chart is strongest when the workout taxonomy is clean enough to reflect real training intent.'
   }),
   endpointPreset({
     id: 'system-planned-vs-completed-volume',
     name: 'Planned vs Completed Volume',
-    description: 'Compare scheduled and completed training duration week by week.',
+    description:
+      'Compare planned versus completed duration to see whether the athlete is matching the intended volume.',
     category: 'compliance',
     audience: 'coach',
     recommendedScope: 'athlete',
@@ -386,12 +592,15 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/planned-vs-completed',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'volume' },
-    units: { y: 'h', y1: 'h', datasets: ['h', 'h'] }
+    units: { y: 'h', y1: 'h', datasets: ['h', 'h'] },
+    insightCopy:
+      'Use planned versus completed volume to spot when execution is missing the intended volume target, not just the session count.'
   }),
   endpointPreset({
     id: 'system-planned-vs-completed-load',
     name: 'Planned vs Completed Load',
-    description: 'Compare planned versus delivered TSS across each training week.',
+    description:
+      'Compare planned versus delivered load across each training week to reveal execution drift.',
     category: 'compliance',
     audience: 'coach',
     recommendedScope: 'athlete',
@@ -401,12 +610,14 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/planned-vs-completed',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'load' },
-    units: { y: 'tss', y1: 'tss', datasets: ['tss', 'tss'] }
+    units: { y: 'tss', y1: 'tss', datasets: ['tss', 'tss'] },
+    insightCopy:
+      'This is the cleanest chart for spotting athletes who are consistently underdelivering or overshooting the intended stress.'
   }),
   endpointPreset({
     id: 'system-adherence-trend',
     name: 'Adherence Trend',
-    description: 'Track weekly completion percentage against the plan.',
+    description: 'Track weekly completion percentage against the coaching target.',
     category: 'compliance',
     audience: 'coach',
     recommendedScope: 'athlete',
@@ -416,12 +627,19 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/compliance',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'adherence-trend' },
-    units: { y: '%' }
+    units: { y: '%' },
+    insightCopy:
+      'Adherence should be read against a target line so you can tell acceptable execution apart from a real compliance issue.',
+    defaultOverlays: ['adherence-target'],
+    availableOverlays: [
+      targetLine('adherence-target', '85% Target', 85, '#10b981', 'Target adherence threshold.')
+    ]
   }),
   endpointPreset({
     id: 'system-weekly-completion-rate',
     name: 'Weekly Completion Rate',
-    description: 'See the share of planned sessions completed each week.',
+    description:
+      'See the share of planned sessions completed each week, with cohort context when comparing athletes.',
     category: 'compliance',
     audience: 'coach',
     recommendedScope: 'athlete',
@@ -431,12 +649,19 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/compliance',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'weekly-completion-rate' },
-    units: { y: '%' }
+    units: { y: '%' },
+    insightCopy:
+      'This chart works best in compare mode, where the athlete can be read against the squad average rather than in isolation.',
+    defaultOverlays: ['squad-average'],
+    availableOverlays: [squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
   }),
   endpointPreset({
     id: 'system-hrv-recovery',
     name: 'HRV vs Recovery',
-    description: 'Plot HRV against recovery to find your personal response pattern.',
+    description:
+      'Plot HRV against recovery to see whether higher variability aligns with better readiness for this athlete.',
     category: 'correlation',
     audience: 'both',
     recommendedScope: 'self',
@@ -446,12 +671,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/correlation',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'hrv-recovery' },
-    units: { x: 'ms', y: '%' }
+    units: { x: 'ms', y: '%' },
+    insightCopy:
+      'Scatter plots become useful once you add a trendline and enough points to see whether the relationship is directional or noisy.',
+    defaultOverlays: ['regression-line'],
+    availableOverlays: [regressionLine]
   }),
   endpointPreset({
     id: 'system-readiness-performance',
     name: 'Readiness vs Performance',
-    description: 'Compare readiness on the day with the load you were able to express.',
+    description:
+      'Compare readiness on the day with the performance or load the athlete was able to express.',
     category: 'correlation',
     audience: 'both',
     recommendedScope: 'self',
@@ -461,12 +691,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/correlation',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'readiness-performance' },
-    units: { x: '%', y: 'score' }
+    units: { x: '%', y: 'score' },
+    insightCopy:
+      'This relationship is rarely perfect, but a trendline helps you see whether readiness is directionally predictive for this athlete.',
+    defaultOverlays: ['regression-line'],
+    availableOverlays: [regressionLine]
   }),
   endpointPreset({
     id: 'system-sleep-recovery',
     name: 'Sleep vs Recovery',
-    description: 'Spot how sleep duration aligns with your recovery state.',
+    description:
+      'Spot whether more sleep is actually translating into higher recovery for this athlete.',
     category: 'correlation',
     audience: 'both',
     recommendedScope: 'self',
@@ -476,12 +711,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/correlation',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'sleep-recovery' },
-    units: { x: 'h', y: '%' }
+    units: { x: 'h', y: '%' },
+    insightCopy:
+      'This is useful for athletes who say they feel flat despite sleeping more. The pattern may be weaker than expected.',
+    defaultOverlays: ['regression-line'],
+    availableOverlays: [regressionLine]
   }),
   endpointPreset({
     id: 'system-wellness-load-correlation',
     name: 'Wellness vs Load',
-    description: 'Compare subjective recovery and the load you completed.',
+    description:
+      'Compare subjective wellness against completed load to see how hard work is landing on the athlete.',
     category: 'correlation',
     audience: 'both',
     recommendedScope: 'self',
@@ -491,12 +731,17 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/correlation',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'wellness-load' },
-    units: { x: '%', y: 'tss' }
+    units: { x: '%', y: 'tss' },
+    insightCopy:
+      'If wellness is repeatedly low on high-load days, the athlete may be absorbing work poorly or accumulating hidden stress.',
+    defaultOverlays: ['regression-line'],
+    availableOverlays: [regressionLine]
   }),
   endpointPreset({
     id: 'system-power-duration-curve',
     name: 'Power Duration Curve',
-    description: 'View your best average power across key durations.',
+    description:
+      'View best average power across key durations with prior-block context for progression.',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -506,12 +751,18 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/power-duration',
     timeRange: { type: 'rolling', value: '90d' },
     presetOptions: { mode: 'power-duration-curve' },
-    units: { x: 's', y: 'W' }
+    units: { x: 's', y: 'W' },
+    flagship: true,
+    insightCopy:
+      'The curve is most useful when you compare it to a prior block so you can see whether gains are short-duration, aerobic, or broad.',
+    defaultOverlays: ['previous-period'],
+    availableOverlays: [previousPeriod]
   }),
   endpointPreset({
     id: 'system-peak-power-trend',
     name: 'Peak Power Trend (5 min)',
-    description: 'Track weekly best 5-minute power to understand aerobic peak progression.',
+    description:
+      'Track weekly best 5-minute power to understand aerobic peak progression over time.',
     category: 'performance',
     audience: 'both',
     recommendedScope: 'self',
@@ -521,7 +772,11 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/power-duration',
     timeRange: { type: 'rolling', value: '90d' },
     presetOptions: { mode: 'peak-power-trend', durationSec: 300 },
-    units: { y: 'W' }
+    units: { y: 'W' },
+    insightCopy:
+      'This works well as a simple progression chart, especially when you compare it to the immediately preceding block.',
+    defaultOverlays: ['previous-period'],
+    availableOverlays: [previousPeriod]
   }),
   endpointPreset({
     id: 'system-roster-fatigue-heatmap',
@@ -536,7 +791,9 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-heatmap',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'fatigue' },
-    units: { y: 'load' }
+    units: { y: 'load' },
+    insightCopy:
+      'The fatigue heatmap is a screening tool. It helps coaches spot which athletes need a closer look right now.'
   }),
   endpointPreset({
     id: 'system-roster-recovery-heatmap',
@@ -551,7 +808,9 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-heatmap',
     timeRange: { type: 'rolling', value: '30d' },
     presetOptions: { mode: 'recovery' },
-    units: { y: '%' }
+    units: { y: '%' },
+    insightCopy:
+      'Use this to spot clusters of low recovery, not to overreact to isolated rough days.'
   }),
   endpointPreset({
     id: 'system-team-load-comparison',
@@ -566,7 +825,14 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-comparison',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'load' },
-    units: { y: 'tss' }
+    units: { y: 'tss' },
+    flagship: true,
+    insightCopy:
+      'Team load comparison is strongest when the athlete lines are read against the squad average rather than separately.',
+    defaultOverlays: ['squad-average'],
+    availableOverlays: [squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
   }),
   endpointPreset({
     id: 'system-team-ctl-comparison',
@@ -581,7 +847,13 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-comparison',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'ctl' },
-    units: { y: 'load' }
+    units: { y: 'load' },
+    insightCopy:
+      'CTL comparison is useful for checking who is carrying a bigger chronic load and who may be lagging behind the group.',
+    defaultOverlays: ['squad-average'],
+    availableOverlays: [squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
   }),
   endpointPreset({
     id: 'system-team-compliance-comparison',
@@ -596,7 +868,9 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-comparison',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'compliance' },
-    units: { x: '%' }
+    units: { x: '%' },
+    insightCopy:
+      'A simple ranking view makes compliance issues obvious when one athlete is drifting away from the group norm.'
   }),
   endpointPreset({
     id: 'system-athlete-group-comparison',
@@ -611,6 +885,137 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     endpoint: '/api/analytics/presets/team-comparison',
     timeRange: { type: 'rolling', value: '84d' },
     presetOptions: { mode: 'group-comparison' },
-    units: { y: 'tss' }
+    units: { y: 'tss' },
+    insightCopy:
+      'This chart is best used to compare a defined cohort against the wider training plan or against another selected athlete.'
+  }),
+  endpointPreset({
+    id: 'system-hrv-rhr-dual-axis',
+    name: 'HRV + Resting HR',
+    description:
+      'Overlay HRV and resting heart rate to spot supportive or conflicting recovery signals.',
+    category: 'recovery',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'wellness',
+    endpoint: '/api/analytics/presets/correlation',
+    timeRange: { type: 'rolling', value: '30d' },
+    presetOptions: { mode: 'hrv-rhr-dual-axis' },
+    units: { y: 'ms', y1: 'bpm', datasets: ['ms', 'bpm'] },
+    flagship: true,
+    insightCopy:
+      'HRV and resting HR together provide a more useful recovery picture than either signal alone.',
+    defaultOverlays: ['baseline-band'],
+    availableOverlays: [baselineBand, wellnessEvents]
+  }),
+  queryPreset({
+    id: 'system-sleep-recovery-combo',
+    name: 'Sleep + Recovery Combo',
+    description:
+      'Compare sleep duration with next-day recovery to see whether rest is translating into readiness.',
+    category: 'recovery',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'wellness',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'sleepHours', aggregation: 'avg' },
+      { field: 'recoveryScore', aggregation: 'avg' }
+    ],
+    units: { y: 'h', y1: '%', datasets: ['h', '%'] },
+    styling: {
+      showLegend: true,
+      datasetTypes: ['bar', 'line']
+    },
+    insightCopy:
+      'This helps coaches separate a sleep problem from a broader recovery problem when the athlete looks flat.',
+    defaultOverlays: ['sleep-target'],
+    availableOverlays: [
+      rolling7d,
+      targetLine('sleep-target', '8h Target', 8, '#3b82f6', 'Reference sleep goal.')
+    ]
+  }),
+  queryPreset({
+    id: 'system-athlete-vs-squad-average',
+    name: 'Athlete vs Squad Average',
+    description:
+      'Compare one or more selected athletes to the cohort average on the same load trend.',
+    category: 'team',
+    audience: 'coach',
+    recommendedScope: 'athletes',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'workouts',
+    timeRange: { type: 'rolling', value: '84d' },
+    grouping: 'weekly',
+    metrics: [{ field: 'tss', aggregation: 'sum' }],
+    units: { y: 'tss' },
+    insightCopy:
+      'Use this when you want to know whether an athlete is sitting above, below, or right on the load pattern of the squad.',
+    defaultOverlays: ['squad-average'],
+    availableOverlays: [rolling7d, squadAverage],
+    supportsCompareOverlay: true,
+    compareOverlayMode: 'squadAverage'
+  }),
+  endpointPreset({
+    id: 'system-prior-block-vs-current-block',
+    name: 'Prior Block vs Current Block',
+    description:
+      'Compare the current block with the immediately prior block to see whether the athlete is progressing load cleanly.',
+    category: 'performance',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/compliance',
+    timeRange: { type: 'rolling', value: '56d' },
+    presetOptions: { mode: 'prior-block-vs-current-block' },
+    units: { y: 'tss', y1: 'tss', datasets: ['tss', 'tss'] },
+    insightCopy:
+      'This is a progression view. It is best used to compare whether the athlete is repeating, absorbing, or extending the previous block.'
+  }),
+  endpointPreset({
+    id: 'system-training-consistency',
+    name: 'Training Consistency',
+    description:
+      'Track weekly training days and the short rolling baseline that defines current consistency.',
+    category: 'distribution',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/compliance',
+    timeRange: { type: 'rolling', value: '84d' },
+    presetOptions: { mode: 'training-consistency' },
+    units: { y: 'sessions', y1: 'sessions', datasets: ['sessions', 'sessions'] },
+    insightCopy:
+      'Consistency often predicts durability better than isolated big weeks, especially during return-to-train periods.'
+  }),
+  queryPreset({
+    id: 'system-recovery-context-timeline',
+    name: 'Recovery Context Timeline',
+    description:
+      'Review recovery score with contextual wellness events layered directly onto the timeline.',
+    category: 'recovery',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'wellness',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [{ field: 'recoveryScore', aggregation: 'avg' }],
+    units: { y: '%' },
+    insightCopy:
+      'This view is designed for story-telling: how travel, sickness, or recovery tags line up with the trend the athlete is seeing.',
+    defaultOverlays: ['wellness-events', 'rolling-7d'],
+    availableOverlays: [wellnessEvents, rolling7d, baselineBand]
   })
 ]

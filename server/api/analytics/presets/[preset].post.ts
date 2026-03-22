@@ -180,6 +180,26 @@ function buildSingleSeriesChart(
   }
 }
 
+function addAverageDataset(
+  labels: string[],
+  datasets: Array<{ data: number[]; color?: string }>,
+  label: string
+) {
+  if (!datasets.length) return null
+
+  return {
+    label,
+    data: labels.map((_, index) =>
+      round(
+        datasets.reduce((sum, dataset) => sum + Number(dataset.data[index] || 0), 0) /
+          datasets.length
+      )
+    ),
+    color: '#f59e0b',
+    type: 'line' as const
+  }
+}
+
 async function buildComplianceChart(
   userIds: string[],
   startDate: Date,
@@ -246,6 +266,114 @@ async function buildComplianceChart(
       'Completed Sessions',
       buckets.map((key) => totals.get(key) || 0)
     )
+  }
+
+  if (mode === 'training-consistency') {
+    const buckets = buildWeeklyBuckets(startDate, endDate)
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId: { in: userIds },
+        date: { gte: startDate, lte: endDate },
+        isDuplicate: false
+      },
+      select: { date: true }
+    })
+
+    const daysByBucket = new Map<string, Set<string>>()
+    for (const bucket of buckets) {
+      daysByBucket.set(bucket, new Set())
+    }
+
+    for (const workout of workouts) {
+      daysByBucket.get(toWeekKey(workout.date))?.add(toDayKey(workout.date))
+    }
+
+    const counts = buckets.map((bucket) => daysByBucket.get(bucket)?.size || 0)
+    const rolling = counts.map((_, index) => {
+      const slice = counts.slice(Math.max(0, index - 3), index + 1)
+      return round(slice.reduce((sum, value) => sum + value, 0) / slice.length)
+    })
+
+    return {
+      labels: buckets,
+      datasets: [
+        {
+          label: 'Training Days',
+          data: counts,
+          color: CHART_COLORS[0],
+          type: 'bar' as const
+        },
+        {
+          label: '4 Week Avg',
+          data: rolling,
+          color: CHART_COLORS[2],
+          type: 'line' as const
+        }
+      ]
+    }
+  }
+
+  if (mode === 'prior-block-vs-current-block') {
+    const buckets = buildWeeklyBuckets(startDate, endDate)
+    const spanMs = endDate.getTime() - startDate.getTime()
+    const previousStartDate = new Date(startDate.getTime() - spanMs - 24 * 60 * 60 * 1000)
+    const previousEndDate = new Date(startDate.getTime() - 24 * 60 * 60 * 1000)
+
+    const [currentWorkouts, previousWorkouts] = await Promise.all([
+      prisma.workout.findMany({
+        where: {
+          userId: { in: userIds },
+          date: { gte: startDate, lte: endDate },
+          isDuplicate: false
+        },
+        select: { date: true, tss: true }
+      }),
+      prisma.workout.findMany({
+        where: {
+          userId: { in: userIds },
+          date: { gte: previousStartDate, lte: previousEndDate },
+          isDuplicate: false
+        },
+        select: { date: true, tss: true }
+      })
+    ])
+
+    const currentTotals = new Map<string, number>()
+    const previousTotals = new Map<string, number>()
+
+    for (const workout of currentWorkouts) {
+      addToBucket(currentTotals, toWeekKey(workout.date), Number(workout.tss || 0))
+    }
+
+    const previousBuckets = buildWeeklyBuckets(previousStartDate, previousEndDate)
+    previousBuckets.forEach((bucket, index) => {
+      previousTotals.set(buckets[index] || bucket, 0)
+    })
+
+    for (const workout of previousWorkouts) {
+      const previousIndex = previousBuckets.indexOf(toWeekKey(workout.date))
+      const alignedBucket = buckets[previousIndex]
+      if (!alignedBucket) continue
+      addToBucket(previousTotals, alignedBucket, Number(workout.tss || 0))
+    }
+
+    return {
+      labels: buckets,
+      datasets: [
+        {
+          label: 'Current Block',
+          data: buckets.map((bucket) => round(currentTotals.get(bucket) || 0)),
+          color: CHART_COLORS[0],
+          type: 'bar' as const
+        },
+        {
+          label: 'Prior Block',
+          data: buckets.map((bucket) => round(previousTotals.get(bucket) || 0)),
+          color: CHART_COLORS[5],
+          type: 'line' as const
+        }
+      ]
+    }
   }
 
   const buckets = buildWeeklyBuckets(startDate, endDate)
@@ -400,6 +528,49 @@ async function buildCorrelationChart(
           label: 'Diastolic',
           data: buckets.map((key) => byDay.get(key)?.diastolic || null),
           color: CHART_COLORS[3],
+          type: 'line' as const
+        }
+      ]
+    }
+  }
+
+  if (mode === 'hrv-rhr-dual-axis') {
+    const buckets = buildDailyBuckets(startDate, endDate)
+    const wellness = await prisma.wellness.findMany({
+      where: {
+        userId: { in: userIds },
+        date: { gte: startDate, lte: endDate }
+      },
+      select: {
+        date: true,
+        hrv: true,
+        restingHr: true
+      },
+      orderBy: { date: 'asc' }
+    })
+
+    const byDay = new Map<string, { hrv: number | null; restingHr: number | null }>()
+    for (const item of wellness) {
+      byDay.set(toDayKey(item.date), {
+        hrv: item.hrv,
+        restingHr: item.restingHr
+      })
+    }
+
+    return {
+      labels: buckets,
+      datasets: [
+        {
+          label: 'HRV',
+          data: buckets.map((key) => byDay.get(key)?.hrv ?? null),
+          color: CHART_COLORS[4],
+          type: 'line' as const
+        },
+        {
+          label: 'Resting HR',
+          data: buckets.map((key) => byDay.get(key)?.restingHr ?? null),
+          color: CHART_COLORS[3],
+          yAxisID: 'y1' as const,
           type: 'line' as const
         }
       ]
@@ -835,14 +1006,25 @@ async function buildTeamComparisonChart(
       })
       .sort((a, b) => b.value - a.value)
 
+    const values = rows.map((row) => row.value)
+    const teamAverage = values.length
+      ? round(values.reduce((sum, value) => sum + value, 0) / values.length)
+      : 0
+
     return {
       labels: rows.map((row) => row.name),
       datasets: [
         {
           label: 'Adherence %',
-          data: rows.map((row) => row.value),
+          data: values,
           color: CHART_COLORS[1],
           type: 'bar' as const
+        },
+        {
+          label: 'Team Average',
+          data: rows.map(() => teamAverage),
+          color: '#f59e0b',
+          type: 'line' as const
         }
       ]
     }
@@ -878,18 +1060,26 @@ async function buildTeamComparisonChart(
       current.count += 1
     }
 
+    const datasets = userIds.map((userId, index) => ({
+      label: names.get(userId) || `Athlete ${index + 1}`,
+      data: buckets.map((bucket) => {
+        const current = weeklyTotals.get(userId)?.get(bucket)
+        if (!current || current.count === 0) return 0
+        return round(current.total / current.count)
+      }),
+      color: CHART_COLORS[index % CHART_COLORS.length],
+      type: 'line' as const
+    }))
+
+    const averageDataset = addAverageDataset(
+      buckets,
+      datasets as Array<{ data: number[]; color?: string }>,
+      'Squad Average'
+    )
+
     return {
       labels: buckets,
-      datasets: userIds.map((userId, index) => ({
-        label: names.get(userId) || `Athlete ${index + 1}`,
-        data: buckets.map((bucket) => {
-          const current = weeklyTotals.get(userId)?.get(bucket)
-          if (!current || current.count === 0) return 0
-          return round(current.total / current.count)
-        }),
-        color: CHART_COLORS[index % CHART_COLORS.length],
-        type: 'line' as const
-      }))
+      datasets: averageDataset ? [...datasets, averageDataset] : datasets
     }
   }
 
@@ -922,14 +1112,22 @@ async function buildTeamComparisonChart(
     )
   }
 
+  const datasets = userIds.map((userId, index) => ({
+    label: names.get(userId) || `Athlete ${index + 1}`,
+    data: buckets.map((bucket) => round(weeklyTotals.get(userId)?.get(bucket) || 0)),
+    color: CHART_COLORS[index % CHART_COLORS.length],
+    type: 'line' as const
+  }))
+
+  const averageDataset = addAverageDataset(
+    buckets,
+    datasets as Array<{ data: number[]; color?: string }>,
+    'Squad Average'
+  )
+
   return {
     labels: buckets,
-    datasets: userIds.map((userId, index) => ({
-      label: names.get(userId) || `Athlete ${index + 1}`,
-      data: buckets.map((bucket) => round(weeklyTotals.get(userId)?.get(bucket) || 0)),
-      color: CHART_COLORS[index % CHART_COLORS.length],
-      type: 'line' as const
-    }))
+    datasets: averageDataset ? [...datasets, averageDataset] : datasets
   }
 }
 
