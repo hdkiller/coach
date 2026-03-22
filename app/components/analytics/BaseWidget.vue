@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Bar, Line, Scatter } from 'vue-chartjs'
+  import annotationPlugin from 'chartjs-plugin-annotation'
   import {
     BarElement,
     CategoryScale,
@@ -12,6 +13,8 @@
     Title,
     Tooltip
   } from 'chart.js'
+  import type { AnalyticsOverlayOption, AnalyticsOverlayType } from '~/utils/analytics-presets'
+  import { wellnessOverlayPlugin, type WellnessOverlayEvent } from '~/utils/wellness-events'
 
   ChartJS.register(
     CategoryScale,
@@ -22,7 +25,8 @@
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    annotationPlugin
   )
 
   interface WidgetDataset {
@@ -35,6 +39,10 @@
     yAxisID?: string
     showLine?: boolean
     pointRadius?: number
+    fill?: boolean | string
+    tension?: number
+    borderDash?: number[]
+    overlayMeta?: Record<string, any>
   }
 
   interface HeatmapPoint {
@@ -51,6 +59,26 @@
     valueLabel?: string
   }
 
+  interface OverlayAnnotation {
+    type: 'line'
+    scaleID: 'x' | 'y' | 'y1'
+    value: number
+    label: string
+    borderColor?: string
+    borderDash?: number[]
+  }
+
+  interface ChartResponsePayload {
+    labels?: string[]
+    datasets?: WidgetDataset[]
+    chartType?: 'heatmap'
+    xLabels?: string[]
+    yLabels?: string[]
+    matrix?: HeatmapPoint[]
+    valueLabel?: string
+    annotations?: OverlayAnnotation[]
+  }
+
   const props = defineProps<{
     config: any
   }>()
@@ -60,6 +88,7 @@
   const error = ref<string | null>(null)
   const chartData = ref<any>(null)
   const lastFetchedConfig = ref<string | null>(null)
+  const wellnessEvents = ref<WellnessOverlayEvent[]>([])
 
   const chartColors = [
     '#3b82f6',
@@ -92,6 +121,24 @@
 
   const visualType = computed(() => props.config.visualType || props.config.type || 'line')
   const isHeatmap = computed(() => visualType.value === 'heatmap')
+  const chartPlugins = [wellnessOverlayPlugin]
+
+  const overlayDefinitions = computed<AnalyticsOverlayOption[]>(
+    () => props.config.availableOverlays || []
+  )
+
+  const activeOverlayIds = computed<string[]>(() => {
+    const configured = Array.isArray(props.config.overlaySettings?.active)
+      ? props.config.overlaySettings.active
+      : null
+
+    if (configured) return configured
+    return props.config.defaultOverlays || []
+  })
+
+  const activeOverlays = computed(() =>
+    overlayDefinitions.value.filter((overlay) => activeOverlayIds.value.includes(overlay.id))
+  )
 
   function resolveDatasetUnit(index: number) {
     if (props.config.units?.datasets?.[index]) return props.config.units.datasets[index]
@@ -191,6 +238,364 @@
     return { startDate, endDate }
   }
 
+  function resolveOverlayTypeIds(type: AnalyticsOverlayType) {
+    return activeOverlays.value.filter((overlay) => overlay.type === type)
+  }
+
+  function rollingAverage(values: Array<number | null>, window: number) {
+    return values.map((_, index) => {
+      const slice = values
+        .slice(Math.max(0, index - window + 1), index + 1)
+        .filter((value): value is number => value !== null && !Number.isNaN(value))
+
+      if (slice.length === 0) return null
+      return Number((slice.reduce((sum, value) => sum + value, 0) / slice.length).toFixed(2))
+    })
+  }
+
+  function computeBand(values: Array<number | null>, window = 7) {
+    const upper: Array<number | null> = []
+    const lower: Array<number | null> = []
+
+    values.forEach((_, index) => {
+      const slice = values
+        .slice(Math.max(0, index - window + 1), index + 1)
+        .filter((value): value is number => value !== null && !Number.isNaN(value))
+
+      if (slice.length < 2) {
+        upper.push(null)
+        lower.push(null)
+        return
+      }
+
+      const mean = slice.reduce((sum, value) => sum + value, 0) / slice.length
+      const variance =
+        slice.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / slice.length
+      const stdDev = Math.sqrt(variance)
+      upper.push(Number((mean + stdDev).toFixed(2)))
+      lower.push(Number(Math.max(0, mean - stdDev).toFixed(2)))
+    })
+
+    return { upper, lower }
+  }
+
+  function resolvePreviousTimeRange(current: { startDate?: string; endDate?: string }) {
+    if (!current.startDate || !current.endDate) return null
+
+    const start = new Date(current.startDate)
+    const end = new Date(current.endDate)
+    const span = end.getTime() - start.getTime()
+    const previousEnd = new Date(start.getTime() - 1)
+    const previousStart = new Date(previousEnd.getTime() - span)
+
+    return {
+      startDate: previousStart.toISOString(),
+      endDate: previousEnd.toISOString()
+    }
+  }
+
+  function averageSeries(series: Array<Array<number | null>>) {
+    if (series.length === 0) return []
+
+    return series[0].map((_, index) => {
+      const values = series
+        .map((dataset) => dataset[index])
+        .filter((value): value is number => value !== null && !Number.isNaN(value))
+      if (values.length === 0) return null
+      return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2))
+    })
+  }
+
+  function calculateRegression(points: Array<{ x: number; y: number }>) {
+    if (points.length < 2) return []
+
+    const count = points.length
+    const sumX = points.reduce((sum, point) => sum + point.x, 0)
+    const sumY = points.reduce((sum, point) => sum + point.y, 0)
+    const sumXY = points.reduce((sum, point) => sum + point.x * point.y, 0)
+    const sumXX = points.reduce((sum, point) => sum + point.x * point.x, 0)
+    const denominator = count * sumXX - sumX * sumX
+
+    if (!denominator) return []
+
+    const slope = (count * sumXY - sumX * sumY) / denominator
+    const intercept = (sumY - slope * sumX) / count
+    const sorted = [...points].sort((a, b) => a.x - b.x)
+
+    return sorted.map((point) => ({
+      x: point.x,
+      y: Number((slope * point.x + intercept).toFixed(2))
+    }))
+  }
+
+  function normalizeNumericSeries(data: any[]) {
+    return data.map((value) => {
+      if (value === null || value === undefined || value === '') return null
+      const number = Number(value)
+      return Number.isNaN(number) ? null : number
+    })
+  }
+
+  function isOverlayDataset(dataset: any) {
+    return Boolean(dataset?.overlayMeta)
+  }
+
+  function getDateRangeDays(timeRange: { startDate?: string; endDate?: string }) {
+    if (!timeRange.startDate || !timeRange.endDate) return 30
+    const start = new Date(timeRange.startDate)
+    const end = new Date(timeRange.endDate)
+    return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
+  }
+
+  async function fetchWellnessEventOverlays(timeRange: { startDate?: string; endDate?: string }) {
+    if (!resolveOverlayTypeIds('wellnessEvents').length) {
+      wellnessEvents.value = []
+      return
+    }
+
+    if (props.config.source !== 'wellness' || props.config.scope?.target !== 'self') {
+      wellnessEvents.value = []
+      return
+    }
+
+    const days = getDateRangeDays(timeRange)
+
+    try {
+      wellnessEvents.value = await $fetch('/api/wellness/events', {
+        query: {
+          days
+        }
+      })
+    } catch {
+      wellnessEvents.value = []
+    }
+  }
+
+  function buildAnnotations(response: ChartResponsePayload) {
+    const overlays = activeOverlays.value.filter(
+      (overlay) => overlay.type === 'targetLine' || overlay.type === 'thresholdLine'
+    )
+
+    const annotationEntries: Record<string, any> = {}
+
+    response.annotations?.forEach((annotation, index) => {
+      annotationEntries[`response-${index}`] = {
+        type: 'line',
+        scaleID: annotation.scaleID,
+        value: annotation.value,
+        borderColor: annotation.borderColor || '#94a3b8',
+        borderDash: annotation.borderDash || [6, 6],
+        borderWidth: 1.5,
+        label: {
+          display: true,
+          content: annotation.label,
+          color: '#cbd5e1',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          position: 'end'
+        }
+      }
+    })
+
+    overlays.forEach((overlay) => {
+      if (overlay.value === undefined) return
+      annotationEntries[overlay.id] = {
+        type: 'line',
+        scaleID: overlay.axis || 'y',
+        value: overlay.value,
+        borderColor: overlay.color || '#10b981',
+        borderDash: [6, 6],
+        borderWidth: 1.5,
+        label: {
+          display: true,
+          content: overlay.label,
+          color: '#cbd5e1',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          position: 'end'
+        }
+      }
+    })
+
+    return annotationEntries
+  }
+
+  function enhanceDatasets(
+    response: ChartResponsePayload,
+    normalizedDatasets: any[],
+    previousResponse?: ChartResponsePayload | null
+  ) {
+    const extraDatasets: any[] = []
+    const annotations = buildAnnotations(response)
+    const primaryDatasets = normalizedDatasets.filter((dataset) => !isOverlayDataset(dataset))
+
+    const baseline = activeOverlays.value.find((overlay) => overlay.type === 'baselineBand')
+    if (baseline && primaryDatasets[0]?.data?.length && visualType.value !== 'scatter') {
+      const band = computeBand(
+        normalizeNumericSeries(primaryDatasets[0].data),
+        baseline.window || 7
+      )
+
+      extraDatasets.push(
+        normalizeDataset(
+          {
+            label: `${primaryDatasets[0].label} Range Upper`,
+            data: band.upper,
+            color: 'rgba(148, 163, 184, 0)',
+            backgroundColor: theme.isDark.value
+              ? 'rgba(148, 163, 184, 0.06)'
+              : 'rgba(15, 23, 42, 0.05)',
+            pointRadius: 0,
+            overlayMeta: { hiddenFromLegend: true },
+            fill: false
+          } as any,
+          normalizedDatasets.length,
+          response.labels?.length || 0
+        ),
+        normalizeDataset(
+          {
+            label: 'Baseline Band',
+            data: band.lower,
+            color: 'rgba(148, 163, 184, 0)',
+            backgroundColor: theme.isDark.value
+              ? 'rgba(148, 163, 184, 0.06)'
+              : 'rgba(15, 23, 42, 0.05)',
+            pointRadius: 0,
+            overlayMeta: { hiddenFromLegend: true },
+            fill: '-1'
+          } as any,
+          normalizedDatasets.length + 1,
+          response.labels?.length || 0
+        )
+      )
+    }
+
+    resolveOverlayTypeIds('rollingAverage').forEach((overlay, overlayIndex) => {
+      const overlayTargets =
+        primaryDatasets.length > 2 && props.config.scope?.target === 'athletes'
+          ? primaryDatasets.slice(0, 1)
+          : primaryDatasets
+
+      overlayTargets.forEach((dataset, datasetIndex) => {
+        const averaged = rollingAverage(normalizeNumericSeries(dataset.data), overlay.window || 7)
+        extraDatasets.push(
+          normalizeDataset(
+            {
+              label: `${dataset.label} · ${overlay.label}`,
+              data: averaged,
+              color: chartColors[(overlayIndex + datasetIndex + 4) % chartColors.length],
+              type: 'line',
+              pointRadius: 0,
+              overlayMeta: {}
+            } as any,
+            normalizedDatasets.length + extraDatasets.length,
+            response.labels?.length || 0
+          )
+        )
+      })
+    })
+
+    if (resolveOverlayTypeIds('previousPeriod').length && previousResponse?.datasets?.length) {
+      previousResponse.datasets.forEach((dataset, index) => {
+        extraDatasets.push(
+          normalizeDataset(
+            {
+              ...dataset,
+              label: `${dataset.label} · Prior`,
+              type: 'line',
+              pointRadius: 0,
+              color: '#94a3b8',
+              borderColor: '#94a3b8',
+              borderDash: [6, 6],
+              backgroundColor: 'transparent',
+              overlayMeta: {}
+            } as any,
+            normalizedDatasets.length + extraDatasets.length + index,
+            response.labels?.length || 0
+          )
+        )
+      })
+    }
+
+    if (resolveOverlayTypeIds('squadAverage').length && props.config.scope?.target === 'athletes') {
+      const eligibleDatasets = primaryDatasets.filter(
+        (dataset) =>
+          Array.isArray(dataset.data) &&
+          dataset.data.some((value: any) => value !== null && value !== 0)
+      )
+
+      if (eligibleDatasets.length > 1) {
+        const average = averageSeries(
+          eligibleDatasets.map((dataset) => normalizeNumericSeries(dataset.data))
+        )
+        extraDatasets.push(
+          normalizeDataset(
+            {
+              label: 'Squad Average',
+              data: average,
+              type: 'line',
+              pointRadius: 0,
+              color: '#f59e0b',
+              borderColor: '#f59e0b',
+              backgroundColor: 'transparent',
+              overlayMeta: {}
+            } as any,
+            normalizedDatasets.length + extraDatasets.length,
+            response.labels?.length || 0
+          )
+        )
+      }
+    }
+
+    if (visualType.value === 'scatter' && resolveOverlayTypeIds('regressionLine').length) {
+      primaryDatasets.forEach((dataset) => {
+        const regression = calculateRegression(
+          (dataset.data || []).filter(
+            (point: any) => point?.x !== undefined && point?.y !== undefined
+          )
+        )
+        if (!regression.length) return
+
+        extraDatasets.push(
+          normalizeDataset(
+            {
+              label: `${dataset.label} Trendline`,
+              data: regression,
+              type: 'line',
+              pointRadius: 0,
+              showLine: true,
+              color: dataset.borderColor || dataset.color || '#94a3b8',
+              borderColor: dataset.borderColor || dataset.color || '#94a3b8',
+              borderDash: [6, 6],
+              backgroundColor: 'transparent',
+              overlayMeta: {}
+            } as any,
+            normalizedDatasets.length + extraDatasets.length,
+            response.labels?.length || 0
+          )
+        )
+      })
+    }
+
+    return {
+      datasets: [...normalizedDatasets, ...extraDatasets],
+      annotations
+    }
+  }
+
+  async function fetchChartResponse(
+    endpoint: string,
+    requestConfig: Record<string, any>,
+    timeRange: { startDate?: string; endDate?: string }
+  ) {
+    return await $fetch<ChartResponsePayload>(endpoint, {
+      method: 'POST',
+      body: {
+        ...requestConfig,
+        timeRange,
+        overlaySettings: props.config.overlaySettings
+      }
+    })
+  }
+
   function normalizeDataset(ds: WidgetDataset, index: number, labelsLength: number) {
     const datasetType =
       ds.type ||
@@ -207,12 +612,15 @@
         ds.backgroundColor ||
         (isBarDataset ? `${color}80` : visualType.value === 'scatter' ? color : 'transparent'),
       borderWidth: 2,
-      tension: datasetType === 'line' ? 0.35 : 0,
-      fill: false,
+      borderDash: ds.borderDash,
+      tension: ds.tension ?? (datasetType === 'line' ? 0.35 : 0),
+      fill: ds.fill ?? false,
       yAxisID: ds.yAxisID || (visualType.value === 'combo' && datasetType === 'line' ? 'y1' : 'y'),
       pointRadius:
         ds.pointRadius || (visualType.value === 'scatter' ? 4 : labelsLength > 50 ? 0 : 3),
-      pointHoverRadius: visualType.value === 'scatter' ? 5 : 4
+      pointHoverRadius: visualType.value === 'scatter' ? 5 : 4,
+      spanGaps: true,
+      overlayMeta: ds.overlayMeta
     }
   }
 
@@ -227,13 +635,17 @@
       const endpoint = props.config.endpoint || '/api/analytics/query'
       const timeRange = resolveTimeRange()
       const { _meta, instanceId, ...requestConfig } = props.config
-      const response = await $fetch<any>(endpoint, {
-        method: 'POST',
-        body: {
-          ...requestConfig,
-          timeRange
-        }
-      })
+      const response = await fetchChartResponse(endpoint, requestConfig, timeRange)
+
+      const previousRange = resolveOverlayTypeIds('previousPeriod').length
+        ? resolvePreviousTimeRange(timeRange)
+        : null
+      const previousResponse =
+        previousRange && !isHeatmap.value
+          ? await fetchChartResponse(endpoint, requestConfig, previousRange)
+          : null
+
+      await fetchWellnessEventOverlays(timeRange)
 
       if (response?.chartType === 'heatmap') {
         chartData.value = response as HeatmapPayload
@@ -247,9 +659,12 @@
         unit: resolveDatasetUnit(index)
       }))
 
+      const enhanced = enhanceDatasets(response, datasets, previousResponse)
+
       chartData.value = {
         labels,
-        datasets
+        datasets: enhanced.datasets,
+        annotations: enhanced.annotations
       }
       lastFetchedConfig.value = currentConfigStr
     } catch (e: any) {
@@ -271,10 +686,26 @@
       maintainAspectRatio: false,
       indexAxis: isHorizontal ? ('y' as const) : ('x' as const),
       plugins: {
+        wellnessOverlays:
+          resolveOverlayTypeIds('wellnessEvents').length &&
+          !isHeatmap.value &&
+          chartData.value?.labels
+            ? {
+                events: wellnessEvents.value,
+                dateKeys: chartData.value.labels
+              }
+            : undefined,
+        annotation: {
+          annotations: chartData.value?.annotations || {}
+        },
         legend: {
           display: props.config.styling?.showLegend !== false,
           position: 'bottom' as const,
           labels: {
+            filter: (item: any, data: any) => {
+              const dataset = data?.datasets?.[item.datasetIndex]
+              return !dataset?.overlayMeta?.hiddenFromLegend
+            },
             usePointStyle: true,
             boxWidth: 6,
             boxHeight: 6,
@@ -296,6 +727,7 @@
           intersect: isScatter,
           callbacks: {
             label: (context: any) => {
+              if (context.dataset?.overlayMeta?.hiddenFromTooltip) return ''
               const datasetUnit = context.dataset.unit || ''
               if (isScatter) {
                 const xValue = context.raw?.x
@@ -478,7 +910,12 @@
     </div>
 
     <div v-else-if="chartData" class="relative h-full p-2">
-      <Line v-if="visualType === 'line'" :data="chartData" :options="chartOptions" />
+      <Line
+        v-if="visualType === 'line'"
+        :data="chartData"
+        :options="chartOptions"
+        :plugins="chartPlugins"
+      />
       <Bar
         v-else-if="
           visualType === 'bar' ||
@@ -488,8 +925,14 @@
         "
         :data="chartData"
         :options="chartOptions"
+        :plugins="chartPlugins"
       />
-      <Scatter v-else-if="visualType === 'scatter'" :data="chartData" :options="chartOptions" />
+      <Scatter
+        v-else-if="visualType === 'scatter'"
+        :data="chartData"
+        :options="chartOptions"
+        :plugins="chartPlugins"
+      />
       <div v-else class="flex h-full items-center justify-center text-xs italic text-neutral-400">
         Unsupported chart type: {{ visualType }}
       </div>

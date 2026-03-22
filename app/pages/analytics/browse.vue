@@ -2,6 +2,7 @@
   import {
     ANALYTICS_PRESET_CATEGORIES,
     ANALYTICS_SYSTEM_PRESETS,
+    type AnalyticsOverlayOption,
     type AnalyticsPresetCategory,
     type AnalyticsSystemPreset
   } from '~/utils/analytics-presets'
@@ -38,6 +39,7 @@
   const activeCategory = ref<'all' | AnalyticsPresetCategory>('all')
   const rosterMode = ref<'single' | 'compare'>('single')
   const datePickerOpen = ref(false)
+  const overlayPickerOpen = ref(false)
   const selectedRangeKey = ref<'preset' | '14d' | '30d' | '90d' | '180d' | 'ytd' | 'custom'>(
     'preset'
   )
@@ -47,6 +49,7 @@
 
   const selectedAthleteIds = ref<string[]>([])
   const selectedWidget = ref<any>(ANALYTICS_SYSTEM_PRESETS[0])
+  const selectedOverlayIds = ref<string[]>(ANALYTICS_SYSTEM_PRESETS[0]?.defaultOverlays || [])
 
   try {
     athletes.value = (await $fetch('/api/coaching/athletes')) as any[]
@@ -145,6 +148,31 @@
       ANALYTICS_PRESET_CATEGORIES.find((entry) => entry.value === selectedWidget.value?.category)
         ?.label || 'Custom'
   )
+  const overlayOptions = computed<AnalyticsOverlayOption[]>(
+    () => selectedWidget.value?.availableOverlays || []
+  )
+  const hasOverlayControls = computed(
+    () => selectedWidget.value?.isSystem && overlayOptions.value.length > 0
+  )
+  const overlayLabel = computed(() => {
+    if (!hasOverlayControls.value) return 'No overlays'
+    if (selectedOverlayIds.value.length === 0) return 'Overlays Off'
+    if (selectedOverlayIds.value.length === 1) {
+      return (
+        overlayOptions.value.find((overlay) => overlay.id === selectedOverlayIds.value[0])?.label ||
+        '1 Overlay'
+      )
+    }
+    return `${selectedOverlayIds.value.length} Overlays`
+  })
+  const compareContextCopy = computed(() => {
+    if (selectedAthleteIds.value.length <= 1) return null
+    if (selectedWidget.value?.supportsCompareOverlay) {
+      return 'Compare mode shows selected athletes together and can add a squad-average reference for context.'
+    }
+
+    return 'Compare mode is active. This chart will still render the selected athletes together when the preset supports it cleanly.'
+  })
   const presetDefaultTimeRange = computed(
     () => selectedWidget.value?.timeRange || { type: 'rolling', value: '30d' }
   )
@@ -201,6 +229,9 @@
     return {
       ...selectedWidget.value,
       timeRange: effectiveTimeRange.value,
+      overlaySettings: {
+        active: [...selectedOverlayIds.value]
+      },
       scope:
         selectedAthleteIds.value.length > 1
           ? { target: 'athletes', targetIds: selectedAthleteIds.value }
@@ -213,6 +244,7 @@
   watch(
     () => selectedWidget.value?.id,
     () => {
+      selectedOverlayIds.value = [...(selectedWidget.value?.defaultOverlays || [])]
       if (rangeTouched.value) return
       selectedRangeKey.value = 'preset'
       customStartDate.value = ''
@@ -251,7 +283,10 @@
         ...previewConfig.value,
         instanceId: crypto.randomUUID(),
         scopeMode: 'override',
-        timeRangeMode: 'override'
+        timeRangeMode: 'override',
+        overlaySettings: {
+          active: [...selectedOverlayIds.value]
+        }
       })
 
       await $fetch('/api/analytics/dashboards', {
@@ -344,9 +379,23 @@
     rangeTouched.value = false
   }
 
+  function toggleOverlay(overlayId: string) {
+    if (selectedOverlayIds.value.includes(overlayId)) {
+      selectedOverlayIds.value = selectedOverlayIds.value.filter((id) => id !== overlayId)
+      return
+    }
+
+    selectedOverlayIds.value = [...selectedOverlayIds.value, overlayId]
+  }
+
+  function resetOverlays() {
+    selectedOverlayIds.value = [...(selectedWidget.value?.defaultOverlays || [])]
+  }
+
   function closeBrowseOverlays() {
     console.log('[AnalyticsBrowse] closeBrowseOverlays', route.fullPath)
     datePickerOpen.value = false
+    overlayPickerOpen.value = false
   }
 
   onBeforeRouteLeave(() => {
@@ -369,122 +418,102 @@
           <CoachingNavbarLinks />
         </template>
         <template #right>
-          <div class="flex items-center gap-2">
-            <UPopover v-if="selectedWidget" v-model:open="datePickerOpen">
+          <ClientOnly>
+            <div class="flex items-center gap-2">
+              <UPopover v-if="hasOverlayControls" v-model:open="overlayPickerOpen">
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  icon="i-lucide-sliders-horizontal"
+                  size="sm"
+                  class="font-bold"
+                >
+                  <span class="hidden md:inline">{{ overlayLabel }}</span>
+                </UButton>
+
+                <template #content>
+                  <div class="w-[320px] space-y-4 p-3">
+                    <div class="space-y-1">
+                      <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                        Overlays
+                      </div>
+                      <p class="text-xs text-muted">
+                        Add interpretation layers like baselines, targets, trendlines, or cohort
+                        context.
+                      </p>
+                    </div>
+
+                    <div class="space-y-2">
+                      <button
+                        v-for="overlay in overlayOptions"
+                        :key="overlay.id"
+                        class="flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition hover:border-primary/50"
+                        :class="
+                          selectedOverlayIds.includes(overlay.id)
+                            ? 'border-primary/60 bg-primary/5'
+                            : 'border-default/70 bg-default'
+                        "
+                        @click="toggleOverlay(overlay.id)"
+                      >
+                        <div
+                          class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-default/70"
+                          :class="
+                            selectedOverlayIds.includes(overlay.id)
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-default text-transparent'
+                          "
+                        >
+                          <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <div class="text-sm font-bold text-highlighted">
+                            {{ overlay.label }}
+                          </div>
+                          <p class="text-xs text-muted">{{ overlay.description }}</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-default pt-3">
+                      <UButton size="xs" color="neutral" variant="ghost" @click="resetOverlays">
+                        Reset Defaults
+                      </UButton>
+                      <UButton
+                        size="xs"
+                        color="primary"
+                        variant="soft"
+                        @click="overlayPickerOpen = false"
+                      >
+                        Apply
+                      </UButton>
+                    </div>
+                  </div>
+                </template>
+              </UPopover>
+
               <UButton
+                v-if="selectedWidget"
                 color="neutral"
                 variant="outline"
-                icon="i-lucide-calendar-range"
+                icon="i-lucide-edit"
+                label="Edit Visualization"
                 size="sm"
                 class="font-bold"
-              >
-                <span class="hidden md:inline">{{ rangeLabel }}</span>
-              </UButton>
-
-              <template #content>
-                <div class="w-[320px] space-y-4 p-3">
-                  <div class="space-y-1">
-                    <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
-                      Date range
-                    </div>
-                    <p class="text-xs text-muted">
-                      Preview the selected chart over a different time horizon.
-                    </p>
-                  </div>
-
-                  <div class="flex flex-wrap gap-2">
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === '14d' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="applyQuickRange('14d')"
-                      >14D</UButton
-                    >
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="applyQuickRange('30d')"
-                      >30D</UButton
-                    >
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="applyQuickRange('90d')"
-                      >90D</UButton
-                    >
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="applyQuickRange('180d')"
-                      >180D</UButton
-                    >
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="applyQuickRange('ytd')"
-                      >YTD</UButton
-                    >
-                    <UButton
-                      size="xs"
-                      :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
-                      color="neutral"
-                      @click="activateCustomRange"
-                      >Custom</UButton
-                    >
-                  </div>
-
-                  <div v-if="selectedRangeKey === 'custom'" class="grid grid-cols-2 gap-2">
-                    <UFormField label="Start">
-                      <UInput v-model="customStartDate" type="date" size="sm" />
-                    </UFormField>
-                    <UFormField label="End">
-                      <UInput v-model="customEndDate" type="date" size="sm" />
-                    </UFormField>
-                  </div>
-
-                  <div class="flex items-center justify-between border-t border-default pt-3">
-                    <UButton size="xs" color="neutral" variant="ghost" @click="resetToPresetRange">
-                      Reset to preset
-                    </UButton>
-                    <UButton
-                      size="xs"
-                      color="primary"
-                      variant="soft"
-                      @click="datePickerOpen = false"
-                    >
-                      Apply
-                    </UButton>
-                  </div>
-                </div>
-              </template>
-            </UPopover>
-
-            <UButton
-              v-if="selectedWidget"
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-edit"
-              label="Edit Visualization"
-              size="sm"
-              class="font-bold"
-              @click="editWidget"
-            />
-            <UButton
-              v-if="selectedWidget"
-              color="primary"
-              variant="solid"
-              icon="i-lucide-pin"
-              label="Pin to Dashboard"
-              size="sm"
-              class="font-bold"
-              :loading="saving"
-              @click="pinToDashboard"
-            />
-          </div>
+                @click="editWidget"
+              />
+              <UButton
+                v-if="selectedWidget"
+                color="primary"
+                variant="solid"
+                icon="i-lucide-pin"
+                label="Pin to Dashboard"
+                size="sm"
+                class="font-bold"
+                :loading="saving"
+                @click="pinToDashboard"
+              />
+            </div>
+          </ClientOnly>
         </template>
       </UDashboardNavbar>
     </template>
@@ -692,7 +721,13 @@
                         {{ widget.description }}
                       </p>
                       <div class="flex flex-wrap gap-1 pt-1">
+                        <UBadge v-if="widget.flagship" color="warning" variant="soft" size="xs">
+                          Flagship
+                        </UBadge>
                         <UBadge color="primary" variant="soft" size="xs">{{ group.label }}</UBadge>
+                        <UBadge color="neutral" variant="outline" size="xs">{{
+                          widget.visualType
+                        }}</UBadge>
                         <UBadge color="neutral" variant="outline" size="xs">{{
                           audienceLabel(widget)
                         }}</UBadge>
@@ -762,6 +797,15 @@
                   >
                     {{ selectedWidget.name }}
                   </h2>
+                  <UBadge v-if="selectedWidget.flagship" color="warning" variant="soft" size="xs">
+                    Flagship
+                  </UBadge>
+                  <UBadge color="primary" variant="soft" size="xs">{{
+                    selectedCategoryLabel
+                  }}</UBadge>
+                  <UBadge color="neutral" variant="outline" size="xs">{{
+                    selectedWidget.visualType
+                  }}</UBadge>
                   <UBadge
                     :color="selectedWidget.isCustom ? 'neutral' : 'primary'"
                     variant="subtle"
@@ -773,6 +817,12 @@
                 <p class="max-w-2xl text-neutral-500">
                   {{ selectedWidget.description }}
                 </p>
+                <div
+                  v-if="compareContextCopy"
+                  class="max-w-3xl rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted"
+                >
+                  {{ compareContextCopy }}
+                </div>
                 <div
                   class="mt-4 flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-neutral-400"
                 >
@@ -794,6 +844,115 @@
                       selectedWidget.source
                     }}</span>
                   </div>
+                  <ClientOnly>
+                    <UPopover v-if="selectedWidget" v-model:open="datePickerOpen">
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-lucide-calendar-range"
+                        size="xs"
+                        class="h-auto px-0 py-0 font-black uppercase tracking-widest text-neutral-400 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-200"
+                      >
+                        Date:
+                        <span class="text-neutral-600 dark:text-neutral-200">{{ rangeLabel }}</span>
+                      </UButton>
+
+                      <template #content>
+                        <div class="w-[320px] space-y-4 p-3">
+                          <div class="space-y-1">
+                            <div
+                              class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
+                            >
+                              Date range
+                            </div>
+                            <p class="text-xs text-muted">
+                              Preview the selected chart over a different time horizon.
+                            </p>
+                          </div>
+
+                          <div class="flex flex-wrap gap-2">
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === '14d' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="applyQuickRange('14d')"
+                              >14D</UButton
+                            >
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="applyQuickRange('30d')"
+                              >30D</UButton
+                            >
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="applyQuickRange('90d')"
+                              >90D</UButton
+                            >
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="applyQuickRange('180d')"
+                              >180D</UButton
+                            >
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="applyQuickRange('ytd')"
+                              >YTD</UButton
+                            >
+                            <UButton
+                              size="xs"
+                              :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
+                              color="neutral"
+                              @click="activateCustomRange"
+                              >Custom</UButton
+                            >
+                          </div>
+
+                          <div v-if="selectedRangeKey === 'custom'" class="grid grid-cols-2 gap-2">
+                            <UFormField label="Start">
+                              <UInput v-model="customStartDate" type="date" size="sm" />
+                            </UFormField>
+                            <UFormField label="End">
+                              <UInput v-model="customEndDate" type="date" size="sm" />
+                            </UFormField>
+                          </div>
+
+                          <div
+                            class="flex items-center justify-between border-t border-default pt-3"
+                          >
+                            <UButton
+                              size="xs"
+                              color="neutral"
+                              variant="ghost"
+                              @click="resetToPresetRange"
+                            >
+                              Reset to preset
+                            </UButton>
+                            <UButton
+                              size="xs"
+                              color="primary"
+                              variant="soft"
+                              @click="datePickerOpen = false"
+                            >
+                              Apply
+                            </UButton>
+                          </div>
+                        </div>
+                      </template>
+                    </UPopover>
+                  </ClientOnly>
+                  <div v-if="selectedOverlayIds.length" class="flex items-center gap-1.5">
+                    <UIcon name="i-lucide-sliders-horizontal" class="h-3.5 w-3.5" />
+                    Overlays:
+                    <span class="text-neutral-600 dark:text-neutral-200">{{ overlayLabel }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -804,6 +963,15 @@
             >
               <AnalyticsBaseWidget :config="previewConfig" />
             </UCard>
+
+            <div class="mt-6 max-w-3xl rounded-2xl border border-default/60 bg-default/90 p-4">
+              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                Why use this chart
+              </div>
+              <p class="mt-2 text-sm text-highlighted">
+                {{ selectedWidget.insightCopy || selectedWidget.description }}
+              </p>
+            </div>
           </div>
 
           <div v-else class="flex h-full items-center justify-center text-center">
