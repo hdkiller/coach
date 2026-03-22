@@ -77,6 +77,7 @@
     matrix?: HeatmapPoint[]
     valueLabel?: string
     annotations?: OverlayAnnotation[]
+    unsupportedReason?: string
   }
 
   const props = defineProps<{
@@ -102,12 +103,22 @@
   ]
   const metricUnits: Record<string, string> = {
     durationSec: 'duration',
+    elapsedTimeSec: 'duration',
     tss: 'tss',
+    trainingLoad: 'load',
     averageWatts: 'W',
+    normalizedPower: 'W',
     averageHr: 'bpm',
     distanceMeters: 'm',
     intensity: '',
     calories: 'kcal',
+    efficiencyFactor: '',
+    decoupling: '%',
+    powerHrRatio: '',
+    kilojoules: 'kJ',
+    trimp: 'load',
+    hrLoad: 'load',
+    workAboveFtp: 'kJ',
     caloriesGoal: 'kcal',
     protein: 'g',
     proteinGoal: 'g',
@@ -676,6 +687,13 @@
 
       await fetchWellnessEventOverlays(timeRange)
 
+      if ((!response?.datasets || response.datasets.length === 0) && response?.unsupportedReason) {
+        error.value = response.unsupportedReason
+        chartData.value = null
+        lastFetchedConfig.value = currentConfigStr
+        return
+      }
+
       if (response?.chartType === 'heatmap') {
         chartData.value = response as HeatmapPayload
         lastFetchedConfig.value = currentConfigStr
@@ -761,7 +779,8 @@
               if (isScatter) {
                 const xValue = context.raw?.x
                 const yValue = context.raw?.y
-                return `${context.dataset.label}: ${formatUnitValue(xValue, axisUnits.value.x)} / ${formatUnitValue(yValue, axisUnits.value.y)}`
+                const pointLabel = context.raw?.label ? `${context.raw.label}: ` : ''
+                return `${pointLabel}${formatUnitValue(xValue, axisUnits.value.x)} / ${formatUnitValue(yValue, axisUnits.value.y)}`
               }
 
               return `${context.dataset.label}: ${formatUnitValue(context.parsed?.y ?? context.parsed?.x, datasetUnit || axisUnits.value.y)}`
