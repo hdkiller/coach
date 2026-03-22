@@ -108,6 +108,25 @@
     distanceMeters: 'm',
     intensity: '',
     calories: 'kcal',
+    caloriesGoal: 'kcal',
+    protein: 'g',
+    proteinGoal: 'g',
+    carbs: 'g',
+    carbsGoal: 'g',
+    fat: 'g',
+    fatGoal: 'g',
+    fiber: 'g',
+    sugar: 'g',
+    waterMl: 'ml',
+    overallScore: 'score',
+    macroBalanceScore: 'score',
+    qualityScore: 'score',
+    adherenceScore: 'score',
+    hydrationScore: 'score',
+    startingGlycogenPercentage: '%',
+    endingGlycogenPercentage: '%',
+    startingFluidDeficit: 'L',
+    endingFluidDeficit: 'L',
     hrv: 'ms',
     restingHr: 'bpm',
     sleepHours: 'h',
@@ -165,6 +184,11 @@
       return `${Math.round(value)} m`
     }
 
+    if (unit === 'ml') {
+      if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)} L`
+      return `${Math.round(value)} ml`
+    }
+
     if (unit === '%') return `${Math.round(value)}%`
     if (unit === 'tss') return `${roundValue(value)} TSS`
     if (unit === 'load') return roundValue(value)
@@ -193,6 +217,11 @@
     if (unit === 'm') {
       if (Math.abs(numeric) >= 1000) return `${roundValue(numeric / 1000)} km`
       return `${Math.round(numeric)} m`
+    }
+
+    if (unit === 'ml') {
+      if (Math.abs(numeric) >= 1000) return `${roundValue(numeric / 1000)} L`
+      return `${Math.round(numeric)} ml`
     }
 
     if (unit === '%') return `${Math.round(numeric)}%`

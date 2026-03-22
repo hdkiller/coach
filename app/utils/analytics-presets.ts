@@ -1,6 +1,7 @@
 export type AnalyticsPresetCategory =
   | 'performance'
   | 'recovery'
+  | 'nutrition'
   | 'distribution'
   | 'compliance'
   | 'correlation'
@@ -208,6 +209,7 @@ export const ANALYTICS_PRESET_CATEGORIES: Array<{ label: string; value: Analytic
   [
     { label: 'Performance', value: 'performance' },
     { label: 'Recovery', value: 'recovery' },
+    { label: 'Nutrition', value: 'nutrition' },
     { label: 'Distribution', value: 'distribution' },
     { label: 'Compliance', value: 'compliance' },
     { label: 'Correlation', value: 'correlation' },
@@ -337,6 +339,176 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
       'Recovery is most useful in context. The baseline band helps show whether today is normal or a genuine dip.',
     defaultOverlays: ['rolling-7d', 'baseline-band'],
     availableOverlays: [rolling7d, baselineBand, wellnessEvents]
+  }),
+  queryPreset({
+    id: 'system-calories-vs-goal',
+    name: 'Calories vs Goal',
+    description:
+      'Compare logged calories with the athlete daily calorie target to spot under- or over-fueling.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'calories', aggregation: 'avg' },
+      { field: 'caloriesGoal', aggregation: 'avg' }
+    ],
+    units: { y: 'kcal', y1: 'kcal', datasets: ['kcal', 'kcal'] },
+    styling: {
+      showLegend: true,
+      datasetTypes: ['bar', 'line']
+    },
+    flagship: true,
+    insightCopy:
+      'This is the simplest way to see whether daily fueling is actually matching the intended energy target.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d]
+  }),
+  queryPreset({
+    id: 'system-carbs-vs-goal',
+    name: 'Carbs vs Goal',
+    description:
+      'Track carbohydrate intake against the athlete daily target to catch missed fueling support on key days.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'carbs', aggregation: 'avg' },
+      { field: 'carbsGoal', aggregation: 'avg' }
+    ],
+    units: { y: 'g', y1: 'g', datasets: ['g', 'g'] },
+    styling: {
+      showLegend: true,
+      datasetTypes: ['bar', 'line']
+    },
+    insightCopy:
+      'Carb target misses matter most on higher-demand days, so this chart is useful for checking whether the athlete is actually supporting the work.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d]
+  }),
+  queryPreset({
+    id: 'system-protein-vs-goal',
+    name: 'Protein vs Goal',
+    description:
+      'Compare protein intake with the athlete daily target to monitor recovery-supporting intake consistency.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'protein', aggregation: 'avg' },
+      { field: 'proteinGoal', aggregation: 'avg' }
+    ],
+    units: { y: 'g', y1: 'g', datasets: ['g', 'g'] },
+    styling: {
+      showLegend: true,
+      datasetTypes: ['bar', 'line']
+    },
+    insightCopy:
+      'Protein is a consistency metric more than a one-day metric, so the trend is often more useful than isolated misses.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d]
+  }),
+  queryPreset({
+    id: 'system-hydration-trend',
+    name: 'Hydration Trend',
+    description:
+      'Track daily fluid intake across the current block and look for chronic low-hydration days.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [{ field: 'waterMl', aggregation: 'avg' }],
+    units: { y: 'ml' },
+    insightCopy:
+      'Hydration trends are more useful for spotting patterns than for overreacting to a single missed day.',
+    defaultOverlays: ['rolling-7d'],
+    availableOverlays: [rolling7d]
+  }),
+  queryPreset({
+    id: 'system-macro-split',
+    name: 'Macro Split Trend',
+    description:
+      'Compare carbs, protein, and fat over time to see how the athlete intake mix is shifting.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'stackedBar',
+    requiredCapabilities: ['stackedBar'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'carbs', aggregation: 'avg' },
+      { field: 'protein', aggregation: 'avg' },
+      { field: 'fat', aggregation: 'avg' }
+    ],
+    units: { y: 'g', datasets: ['g', 'g', 'g'] },
+    insightCopy:
+      'This chart shows whether the athlete intake mix is drifting toward higher carbs, lower carbs, or unstable distribution over the block.'
+  }),
+  queryPreset({
+    id: 'system-nutrition-quality-trend',
+    name: 'Nutrition Quality Trend',
+    description:
+      'Track overall nutrition quality scores over time to spot stronger or weaker fueling habits.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [{ field: 'overallScore', aggregation: 'avg' }],
+    units: { y: 'score' },
+    insightCopy:
+      'Use this as a summary behavior signal rather than a precision metric. It works best for spotting drift and consistency.'
+  }),
+  queryPreset({
+    id: 'system-glycogen-trend',
+    name: 'Fuel Reserve Trend',
+    description:
+      'Track starting and ending glycogen percentages to see how well the athlete is carrying fuel through each day.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'combo',
+    requiredCapabilities: ['combo'],
+    source: 'nutrition',
+    timeRange: { type: 'rolling', value: '30d' },
+    grouping: 'daily',
+    metrics: [
+      { field: 'startingGlycogenPercentage', aggregation: 'avg' },
+      { field: 'endingGlycogenPercentage', aggregation: 'avg' }
+    ],
+    units: { y: '%', y1: '%', datasets: ['%', '%'] },
+    styling: {
+      showLegend: true,
+      datasetTypes: ['line', 'line']
+    },
+    flagship: true,
+    insightCopy:
+      'This chart gives a higher-level view of whether the athlete is beginning and ending the day in a sustainably fueled state.',
+    defaultOverlays: ['baseline-band'],
+    availableOverlays: [rolling7d, baselineBand]
   }),
   queryPreset({
     id: 'system-hrv-trend',
