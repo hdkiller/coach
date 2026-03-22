@@ -50,6 +50,21 @@
             </UButton>
             <UButton
               v-if="workout"
+              :icon="
+                isWorkoutInComparison(workout.id) ? 'i-lucide-check' : 'i-lucide-git-compare-arrows'
+              "
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="hidden sm:inline-flex font-bold"
+              @click="toggleWorkoutComparison()"
+            >
+              <span>{{
+                isWorkoutInComparison(workout.id) ? 'In Comparison' : 'Add to Comparison'
+              }}</span>
+            </UButton>
+            <UButton
+              v-if="workout"
               icon="i-heroicons-bookmark"
               color="neutral"
               variant="outline"
@@ -74,6 +89,17 @@
                     icon: 'i-heroicons-adjustments-horizontal',
                     class: 'sm:hidden',
                     onSelect: () => (isWorkoutSectionsModalOpen = true)
+                  },
+                  {
+                    label:
+                      workout && isWorkoutInComparison(workout.id)
+                        ? 'Remove from Comparison'
+                        : 'Add to Comparison',
+                    icon:
+                      workout && isWorkoutInComparison(workout.id)
+                        ? 'i-lucide-check'
+                        : 'i-lucide-git-compare-arrows',
+                    onSelect: () => toggleWorkoutComparison()
                   },
                   {
                     label: t('controls_edit'),
@@ -3425,6 +3451,8 @@
       </div>
     </template>
   </UModal>
+
+  <WorkoutsWorkoutComparisonDock />
 </template>
 
 <script setup lang="ts">
@@ -3456,6 +3484,7 @@
   const toast = useToast()
   const config = useRuntimeConfig()
   const upgradeModal = useUpgradeModal()
+  const comparisonStore = useWorkoutComparisonStore()
   const userStore = useUserStore()
   const nutritionEnabled = computed(
     () =>
@@ -3488,6 +3517,29 @@
   const duplicateUnlinkTargetName = ref('')
 
   const stomachFeel = ref<number | null>(null)
+
+  function isWorkoutInComparison(workoutId?: string | null) {
+    return workoutId ? comparisonStore.isSelected(workoutId) : false
+  }
+
+  function toggleWorkoutComparison() {
+    if (!workout.value?.id) return
+
+    comparisonStore.toggleWorkout({
+      id: workout.value.id,
+      title: workout.value.title || 'Workout',
+      type: workout.value.type || null,
+      date: workout.value.date || null,
+      athleteName: userStore.profile?.name || userStore.user?.email || 'Athlete'
+    })
+
+    toast.add({
+      title: comparisonStore.isSelected(workout.value.id)
+        ? 'Workout added to comparison'
+        : 'Workout removed from comparison',
+      color: 'success'
+    })
+  }
 
   const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
     'WORKOUT',

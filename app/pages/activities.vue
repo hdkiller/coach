@@ -572,6 +572,23 @@
                                 </div>
 
                                 <div class="flex items-center gap-2 shrink-0">
+                                  <UButton
+                                    v-if="activity.id"
+                                    :icon="
+                                      isWorkoutInComparison(activity.id)
+                                        ? 'i-lucide-check'
+                                        : 'i-lucide-git-compare-arrows'
+                                    "
+                                    color="neutral"
+                                    :variant="isWorkoutInComparison(activity.id) ? 'soft' : 'ghost'"
+                                    size="xs"
+                                    :aria-label="
+                                      isWorkoutInComparison(activity.id)
+                                        ? 'Remove from comparison'
+                                        : 'Add to comparison'
+                                    "
+                                    @click.stop="toggleWorkoutComparison(activity)"
+                                  />
                                   <MiniWorkoutChart
                                     v-if="activity.structuredWorkout"
                                     :workout="activity"
@@ -667,8 +684,22 @@
                 </template>
 
                 <template #title-cell="{ row }">
-                  <div class="max-w-xs truncate" :title="row.original.title">
-                    {{ row.original.title }}
+                  <div class="flex items-center gap-2">
+                    <div class="max-w-xs truncate" :title="row.original.title">
+                      {{ row.original.title }}
+                    </div>
+                    <UButton
+                      v-if="row.original.id"
+                      :icon="
+                        isWorkoutInComparison(row.original.id)
+                          ? 'i-lucide-check'
+                          : 'i-lucide-git-compare-arrows'
+                      "
+                      color="neutral"
+                      :variant="isWorkoutInComparison(row.original.id) ? 'soft' : 'ghost'"
+                      size="xs"
+                      @click.stop="toggleWorkoutComparison(row.original)"
+                    />
                   </div>
                 </template>
 
@@ -1033,6 +1064,8 @@
       </div>
     </template>
   </UModal>
+
+  <WorkoutsWorkoutComparisonDock />
 </template>
 
 <script setup lang="ts">
@@ -1065,6 +1098,7 @@
   })
 
   const integrationStore = useIntegrationStore()
+  const comparisonStore = useWorkoutComparisonStore()
   const userStore = useUserStore()
   const route = useRoute()
   const router = useRouter()
@@ -1096,6 +1130,22 @@
   const { formatDate, formatDateUTC, formatDateTime, formatTime, getUserLocalDate, timezone } =
     useFormat()
   const { onTaskCompleted } = useUserRunsState()
+
+  function isWorkoutInComparison(workoutId: string) {
+    return comparisonStore.isSelected(workoutId)
+  }
+
+  function toggleWorkoutComparison(activity: any) {
+    if (!activity?.id) return
+
+    comparisonStore.toggleWorkout({
+      id: activity.id,
+      title: activity.title || 'Workout',
+      type: activity.type || null,
+      date: activity.date || null,
+      athleteName: userStore.profile?.name || userStore.user?.email || 'Athlete'
+    })
+  }
 
   // Auto-refresh when relevant background tasks complete
   const REFRESH_TASKS = [

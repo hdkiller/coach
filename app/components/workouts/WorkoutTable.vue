@@ -140,6 +140,14 @@
             </td>
             <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm">
               <UButton
+                icon="i-lucide-git-compare-arrows"
+                color="neutral"
+                :variant="isWorkoutInComparison(workout.id) ? 'soft' : 'ghost'"
+                size="xs"
+                class="mr-1"
+                @click.stop="toggleWorkoutComparison(workout)"
+              />
+              <UButton
                 v-if="workout.source !== 'coach_watts'"
                 icon="i-heroicons-bookmark"
                 color="neutral"
@@ -193,6 +201,7 @@
 
   const { formatDate, formatDateTime, formatTime } = useFormat()
   const toast = useToast()
+  const comparisonStore = useWorkoutComparisonStore()
   const savingId = ref<string | null>(null)
 
   // Constant for items per page (used in pagination display)
@@ -222,6 +231,20 @@
     } finally {
       savingId.value = null
     }
+  }
+
+  function isWorkoutInComparison(workoutId: string) {
+    return comparisonStore.isSelected(workoutId)
+  }
+
+  function toggleWorkoutComparison(workout: any) {
+    comparisonStore.toggleWorkout({
+      id: workout.id,
+      title: workout.title || 'Workout',
+      type: workout.type || null,
+      date: workout.date || null,
+      athleteName: workout.user?.name || workout.user?.email || 'Athlete'
+    })
   }
 
   function formatDuration(seconds: number) {
