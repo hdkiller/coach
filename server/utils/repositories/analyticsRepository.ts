@@ -1,8 +1,9 @@
+import { Prisma, type Workout } from '@prisma/client'
 import { prisma } from '../db'
-import { Prisma } from '@prisma/client'
 
 export interface AnalyticsQueryOptions {
   source: 'workouts' | 'wellness' | 'nutrition'
+  visualType?: 'line' | 'bar' | 'combo' | 'stackedBar' | 'scatter' | 'horizontalBar' | 'heatmap'
   scope: {
     target: 'self' | 'athlete' | 'athletes' | 'athlete_group' | 'team'
     targetId?: string
@@ -13,6 +14,18 @@ export interface AnalyticsQueryOptions {
     endDate: Date
   }
   grouping: 'daily' | 'weekly' | 'monthly'
+  comparison?: {
+    type: 'workouts'
+    mode: 'summary' | 'stream' | 'interval'
+    workoutIds: string[]
+    alignment?: 'elapsed_time' | 'distance' | 'percent_complete' | 'lap_index'
+    field?: string
+  }
+  xAxis?: {
+    type: 'entity_label'
+    sort?: 'selected_order' | 'chronological' | 'metric_desc'
+    sortMetricField?: string
+  }
   metrics: Array<{
     field: string
     aggregation: 'sum' | 'avg' | 'max' | 'min' | 'count'
@@ -24,8 +37,134 @@ export interface AnalyticsQueryOptions {
   }>
 }
 
+type ComparisonWorkout = Pick<
+  Workout,
+  | 'id'
+  | 'userId'
+  | 'date'
+  | 'title'
+  | 'type'
+  | 'durationSec'
+  | 'distanceMeters'
+  | 'averageWatts'
+  | 'normalizedPower'
+  | 'averageHr'
+  | 'tss'
+  | 'intensity'
+  | 'calories'
+  | 'trainingLoad'
+  | 'efficiencyFactor'
+  | 'decoupling'
+  | 'powerHrRatio'
+  | 'elapsedTimeSec'
+  | 'kilojoules'
+  | 'variabilityIndex'
+  | 'trimp'
+  | 'hrLoad'
+  | 'workAboveFtp'
+  | 'customMetrics'
+>
+
+const standardFieldsBySource: Record<AnalyticsQueryOptions['source'], Set<string>> = {
+  workouts: new Set([
+    'durationSec',
+    'tss',
+    'averageWatts',
+    'averageHr',
+    'distanceMeters',
+    'intensity',
+    'calories',
+    'normalizedPower',
+    'trainingLoad',
+    'efficiencyFactor',
+    'decoupling',
+    'powerHrRatio',
+    'elapsedTimeSec',
+    'kilojoules',
+    'variabilityIndex',
+    'trimp',
+    'hrLoad',
+    'workAboveFtp'
+  ]),
+  wellness: new Set([
+    'hrv',
+    'restingHr',
+    'sleepHours',
+    'sleepScore',
+    'weight',
+    'ctl',
+    'atl',
+    'tsb',
+    'recoveryScore'
+  ]),
+  nutrition: new Set([
+    'calories',
+    'protein',
+    'carbs',
+    'fat',
+    'fiber',
+    'sugar',
+    'caloriesGoal',
+    'proteinGoal',
+    'carbsGoal',
+    'fatGoal',
+    'waterMl',
+    'overallScore',
+    'macroBalanceScore',
+    'qualityScore',
+    'adherenceScore',
+    'hydrationScore',
+    'startingGlycogenPercentage',
+    'startingFluidDeficit',
+    'endingGlycogenPercentage',
+    'endingFluidDeficit'
+  ])
+}
+
+const comparisonMetricLabels: Record<string, string> = {
+  tss: 'TSS',
+  trainingLoad: 'Training Load',
+  durationSec: 'Duration',
+  elapsedTimeSec: 'Elapsed Time',
+  distanceMeters: 'Distance',
+  averageWatts: 'Average Power',
+  normalizedPower: 'Normalized Power',
+  averageHr: 'Average HR',
+  calories: 'Calories',
+  intensity: 'Intensity',
+  kilojoules: 'Kilojoules',
+  efficiencyFactor: 'Efficiency Factor',
+  decoupling: 'Decoupling',
+  powerHrRatio: 'Power / HR Ratio',
+  variabilityIndex: 'Variability Index',
+  trimp: 'TRIMP',
+  hrLoad: 'HR Load',
+  workAboveFtp: 'Work Above FTP'
+}
+
+function toDateKey(value: Date | string) {
+  return new Date(value).toISOString().split('T')[0] || ''
+}
+
+function normalizeNumber(value: unknown) {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  return Number.isNaN(number) ? null : number
+}
+
 export const analyticsRepository = {
   async query(userId: string, options: AnalyticsQueryOptions) {
+    if (options.comparison?.type === 'workouts') {
+      if (options.comparison.mode !== 'summary') {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Stream and interval comparison use dedicated endpoints'
+        })
+      }
+
+      return await this.queryWorkoutComparison(userId, options)
+    }
+
     const userIds = await this.resolveTargetUserIds(userId, options.scope)
 
     if (userIds.length === 0) {
@@ -46,9 +185,6 @@ export const analyticsRepository = {
   ): Promise<string[]> {
     if (scope.target === 'self') return [requestingUserId]
 
-    // TODO: Verify permissions for other scopes
-    // Use teamRepository to check access
-
     if (scope.target === 'athlete' && scope.targetId) {
       return [scope.targetId]
     }
@@ -62,14 +198,14 @@ export const analyticsRepository = {
         where: { id: scope.targetId },
         include: { members: true }
       })
-      return group?.members.map((m: any) => m.athleteId) || []
+      return group?.members.map((member: any) => member.athleteId) || []
     }
 
     if (scope.target === 'team' && scope.targetId) {
       const members = await (prisma as any).teamMember.findMany({
         where: { teamId: scope.targetId, role: 'ATHLETE' }
       })
-      return members.map((m: any) => m.userId)
+      return members.map((member: any) => member.userId)
     }
 
     return []
@@ -95,9 +231,7 @@ export const analyticsRepository = {
 
     const labels = Array.from(
       new Set(
-        seriesResults.flatMap((entry) =>
-          entry.results.map((row: any) => new Date(row.bucket).toISOString().split('T')[0])
-        )
+        seriesResults.flatMap((entry) => entry.results.map((row: any) => toDateKey(row.bucket)))
       )
     ).sort()
 
@@ -106,9 +240,7 @@ export const analyticsRepository = {
     )
 
     const datasets = seriesResults.flatMap((entry) => {
-      const valuesByLabel = new Map(
-        entry.results.map((row: any) => [new Date(row.bucket).toISOString().split('T')[0], row])
-      )
+      const valuesByLabel = new Map(entry.results.map((row: any) => [toDateKey(row.bucket), row]))
       const athleteLabel = namesById.get(entry.userId) || 'Unknown athlete'
 
       return options.metrics.map((metric, metricIndex) => ({
@@ -125,6 +257,193 @@ export const analyticsRepository = {
     return { labels, datasets }
   },
 
+  async queryWorkoutComparison(requestingUserId: string, options: AnalyticsQueryOptions) {
+    const comparison = options.comparison
+    if (!comparison || comparison.type !== 'workouts') {
+      throw createError({ statusCode: 400, statusMessage: 'Missing workout comparison config' })
+    }
+
+    const workouts = await this.fetchComparisonWorkouts(requestingUserId, comparison.workoutIds)
+
+    if (workouts.length === 0) {
+      return { labels: [], datasets: [] }
+    }
+
+    const sortMode = options.xAxis?.sort || 'selected_order'
+    const sorted = this.sortComparisonWorkouts(workouts, sortMode, options)
+
+    if (options.visualType === 'scatter') {
+      if (options.metrics.length < 2) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Scatter comparison requires two workout metrics'
+        })
+      }
+
+      if (options.metrics.length > 2) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Scatter comparison supports exactly two workout metrics'
+        })
+      }
+
+      const [xMetric, yMetric] = options.metrics
+      return {
+        labels: [],
+        datasets: [
+          {
+            label: `${this.getMetricLabel(xMetric.field, xMetric.aggregation)} vs ${this.getMetricLabel(yMetric.field, yMetric.aggregation)}`,
+            data: sorted
+              .map((workout) => {
+                const x = this.readWorkoutMetricValue(workout, xMetric.field)
+                const y = this.readWorkoutMetricValue(workout, yMetric.field)
+                if (x === null || y === null) return null
+
+                return {
+                  x,
+                  y,
+                  label: this.getComparisonWorkoutLabel(workout),
+                  workoutId: workout.id
+                }
+              })
+              .filter(Boolean)
+          }
+        ]
+      }
+    }
+
+    const labels = sorted.map((workout) => this.getComparisonWorkoutLabel(workout))
+    const datasets = options.metrics.map((metric) => ({
+      label: this.getMetricLabel(metric.field, metric.aggregation),
+      data: sorted.map((workout) => this.readWorkoutMetricValue(workout, metric.field))
+    }))
+
+    return { labels, datasets }
+  },
+
+  async fetchComparisonWorkouts(requestingUserId: string, workoutIds: string[]) {
+    const customFields = await prisma.customFieldDefinition.findMany({
+      where: {
+        ownerId: requestingUserId,
+        dataType: 'NUMBER',
+        entityType: 'WORKOUT'
+      },
+      select: { fieldKey: true }
+    })
+    const allowedCustomFields = new Set(customFields.map((field) => field.fieldKey))
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        id: { in: workoutIds }
+      },
+      select: {
+        id: true,
+        userId: true,
+        date: true,
+        title: true,
+        type: true,
+        durationSec: true,
+        distanceMeters: true,
+        averageWatts: true,
+        normalizedPower: true,
+        averageHr: true,
+        tss: true,
+        intensity: true,
+        calories: true,
+        trainingLoad: true,
+        efficiencyFactor: true,
+        decoupling: true,
+        powerHrRatio: true,
+        elapsedTimeSec: true,
+        kilojoules: true,
+        variabilityIndex: true,
+        trimp: true,
+        hrLoad: true,
+        workAboveFtp: true,
+        customMetrics: true,
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
+    })
+
+    const byId = new Map(workouts.map((workout) => [workout.id, workout]))
+
+    return workoutIds
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((workout: any) => ({
+        ...workout,
+        _allowedCustomFields: allowedCustomFields
+      }))
+  },
+
+  sortComparisonWorkouts(
+    workouts: Array<ComparisonWorkout & { user?: { name: string | null; email: string | null } }>,
+    sortMode: NonNullable<AnalyticsQueryOptions['xAxis']>['sort'],
+    options: AnalyticsQueryOptions
+  ) {
+    if (sortMode === 'chronological') {
+      return [...workouts].sort(
+        (left, right) => new Date(left.date).getTime() - new Date(right.date).getTime()
+      )
+    }
+
+    if (sortMode === 'metric_desc') {
+      const sortField = options.xAxis?.sortMetricField || options.metrics[0]?.field
+      if (!sortField) return workouts
+
+      return [...workouts].sort((left, right) => {
+        const leftValue = this.readWorkoutMetricValue(left, sortField) ?? Number.NEGATIVE_INFINITY
+        const rightValue = this.readWorkoutMetricValue(right, sortField) ?? Number.NEGATIVE_INFINITY
+        return rightValue - leftValue
+      })
+    }
+
+    return workouts
+  },
+
+  readWorkoutMetricValue(
+    workout: ComparisonWorkout & { _allowedCustomFields?: Set<string> },
+    field: string
+  ) {
+    if (field.startsWith('custom.')) {
+      const fieldKey = field.slice('custom.'.length)
+      if (!workout._allowedCustomFields?.has(fieldKey)) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Unsupported custom metric: ${field}`
+        })
+      }
+
+      const customMetrics = workout.customMetrics as Record<string, any> | null
+      return normalizeNumber(customMetrics?.[fieldKey])
+    }
+
+    if (!standardFieldsBySource.workouts.has(field)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Unsupported workout comparison metric: ${field}`
+      })
+    }
+
+    return normalizeNumber((workout as any)[field])
+  },
+
+  getComparisonWorkoutLabel(
+    workout: ComparisonWorkout & { user?: { name: string | null; email: string | null } }
+  ) {
+    const athleteLabel = workout.user?.name || workout.user?.email || 'Athlete'
+    const dateLabel = new Date(workout.date).toLocaleDateString('en-CA', {
+      month: 'short',
+      day: 'numeric'
+    })
+    return `${dateLabel} · ${workout.title} · ${athleteLabel}`
+  },
+
   async executeAggregatedQuery(
     requestingUserId: string,
     userIds: string[],
@@ -139,51 +458,6 @@ export const analyticsRepository = {
     const dateField = 'date'
     const interval =
       options.grouping === 'daily' ? 'day' : options.grouping === 'weekly' ? 'week' : 'month'
-
-    const standardFieldsBySource: Record<AnalyticsQueryOptions['source'], Set<string>> = {
-      workouts: new Set([
-        'durationSec',
-        'tss',
-        'averageWatts',
-        'averageHr',
-        'distanceMeters',
-        'intensity',
-        'calories'
-      ]),
-      wellness: new Set([
-        'hrv',
-        'restingHr',
-        'sleepHours',
-        'sleepScore',
-        'weight',
-        'ctl',
-        'atl',
-        'tsb',
-        'recoveryScore'
-      ]),
-      nutrition: new Set([
-        'calories',
-        'protein',
-        'carbs',
-        'fat',
-        'fiber',
-        'sugar',
-        'caloriesGoal',
-        'proteinGoal',
-        'carbsGoal',
-        'fatGoal',
-        'waterMl',
-        'overallScore',
-        'macroBalanceScore',
-        'qualityScore',
-        'adherenceScore',
-        'hydrationScore',
-        'startingGlycogenPercentage',
-        'startingFluidDeficit',
-        'endingGlycogenPercentage',
-        'endingFluidDeficit'
-      ])
-    }
 
     const customFields = await prisma.customFieldDefinition.findMany({
       where: {
@@ -273,19 +547,14 @@ export const analyticsRepository = {
   },
 
   formatChartData(results: any[], options: AnalyticsQueryOptions) {
-    const labels = results.map((r) => new Date(r.bucket).toISOString().split('T')[0])
+    const labels = results.map((result) => toDateKey(result.bucket))
 
-    const datasets = options.metrics.map((m, i) => {
-      return {
-        label: `${m.field} (${m.aggregation})`,
-        data: results.map((r) => Number(r[`metric_${i}`]) || 0)
-      }
-    })
+    const datasets = options.metrics.map((metric, index) => ({
+      label: this.getMetricLabel(metric.field, metric.aggregation),
+      data: results.map((result) => Number(result[`metric_${index}`]) || 0)
+    }))
 
-    return {
-      labels,
-      datasets
-    }
+    return { labels, datasets }
   },
 
   getMetricLabel(
@@ -296,6 +565,6 @@ export const analyticsRepository = {
       return field.slice('custom.'.length)
     }
 
-    return `${field} (${aggregation})`
+    return comparisonMetricLabels[field] || `${field} (${aggregation})`
   }
 }

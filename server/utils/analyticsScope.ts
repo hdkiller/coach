@@ -9,39 +9,35 @@ export interface AnalyticsScopeInput {
   targetIds?: string[]
 }
 
+async function hasAnalyticsAthleteAccess(userId: string, athleteId: string) {
+  if (userId === athleteId) return true
+
+  const isCoaching = await coachingRepository.checkRelationship(userId, athleteId)
+  if (isCoaching) return true
+
+  const teams = await teamRepository.getTeamsForUser(userId)
+  for (const team of teams) {
+    const athleteInTeam = await teamRepository.checkTeamAccess(team.teamId, athleteId)
+    if (athleteInTeam) return true
+  }
+
+  return false
+}
+
 export async function assertAnalyticsScopeAccess(userId: string, scope: AnalyticsScopeInput) {
   if (scope.target === 'self') return
 
   if (scope.target === 'athlete' && scope.targetId) {
-    const isCoaching = await coachingRepository.checkRelationship(userId, scope.targetId)
-    if (isCoaching) return
-
-    const teams = await teamRepository.getTeamsForUser(userId)
-    for (const team of teams) {
-      const athleteInTeam = await teamRepository.checkTeamAccess(team.teamId, scope.targetId)
-      if (athleteInTeam) return
-    }
+    const hasAccess = await hasAnalyticsAthleteAccess(userId, scope.targetId)
+    if (hasAccess) return
 
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to this athlete' })
   }
 
   if (scope.target === 'athletes' && scope.targetIds?.length) {
     for (const athleteId of scope.targetIds) {
-      const isCoaching = await coachingRepository.checkRelationship(userId, athleteId)
-      if (isCoaching) continue
-
-      const teams = await teamRepository.getTeamsForUser(userId)
-      let hasTeamAccess = false
-
-      for (const team of teams) {
-        const athleteInTeam = await teamRepository.checkTeamAccess(team.teamId, athleteId)
-        if (athleteInTeam) {
-          hasTeamAccess = true
-          break
-        }
-      }
-
-      if (!hasTeamAccess) {
+      const hasAccess = await hasAnalyticsAthleteAccess(userId, athleteId)
+      if (!hasAccess) {
         throw createError({
           statusCode: 403,
           statusMessage: 'You do not have access to one or more selected athletes'
@@ -87,4 +83,59 @@ export async function assertAnalyticsScopeAccess(userId: string, scope: Analytic
 export async function resolveAnalyticsScopeUserIds(userId: string, scope: AnalyticsScopeInput) {
   await assertAnalyticsScopeAccess(userId, scope)
   return analyticsRepository.resolveTargetUserIds(userId, scope)
+}
+
+export async function assertWorkoutComparisonAccess(userId: string, workoutIds: string[]) {
+  const requestedIds = Array.from(new Set(workoutIds.filter(Boolean)))
+
+  if (requestedIds.length < 2) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Select at least two workouts to compare'
+    })
+  }
+
+  const workouts = await prisma.workout.findMany({
+    where: { id: { in: requestedIds } },
+    select: {
+      id: true,
+      userId: true,
+      isDuplicate: true,
+      duplicateOf: true
+    }
+  })
+
+  if (workouts.length !== requestedIds.length) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'One or more workouts could not be found'
+    })
+  }
+
+  for (const workout of workouts) {
+    const hasAccess = await hasAnalyticsAthleteAccess(userId, workout.userId)
+    if (!hasAccess) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have access to one or more selected workouts'
+      })
+    }
+  }
+
+  const canonicalIds = Array.from(
+    new Set(
+      workouts
+        .filter((workout) => workout.isDuplicate && workout.duplicateOf)
+        .map((workout) => workout.duplicateOf as string)
+    )
+  )
+
+  return requestedIds.map((id) => {
+    const workout = workouts.find((entry) => entry.id === id)
+    if (workout?.isDuplicate && workout.duplicateOf && canonicalIds.includes(workout.duplicateOf)) {
+      return workout.duplicateOf
+    }
+
+    return id
+  })
 }
