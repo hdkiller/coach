@@ -4,8 +4,9 @@ import { Prisma } from '@prisma/client'
 export interface AnalyticsQueryOptions {
   source: 'workouts' | 'wellness' | 'nutrition'
   scope: {
-    target: 'self' | 'athlete' | 'athlete_group' | 'team'
+    target: 'self' | 'athlete' | 'athletes' | 'athlete_group' | 'team'
     targetId?: string
+    targetIds?: string[]
   }
   timeRange: {
     startDate: Date
@@ -26,28 +27,36 @@ export interface AnalyticsQueryOptions {
 export const analyticsRepository = {
   async query(userId: string, options: AnalyticsQueryOptions) {
     const userIds = await this.resolveTargetUserIds(userId, options.scope)
-    
+
     if (userIds.length === 0) {
       return { labels: [], datasets: [] }
     }
 
-    // Determine table and core grouping logic
-    // For now, focusing on SQL-based aggregation for performance
-    
+    if (options.scope.target === 'athletes' && userIds.length > 1) {
+      return await this.queryAthleteComparison(userId, userIds, options)
+    }
+
     const results = await this.executeAggregatedQuery(userId, userIds, options)
     return this.formatChartData(results, options)
   },
 
-  async resolveTargetUserIds(requestingUserId: string, scope: AnalyticsQueryOptions['scope']): Promise<string[]> {
+  async resolveTargetUserIds(
+    requestingUserId: string,
+    scope: AnalyticsQueryOptions['scope']
+  ): Promise<string[]> {
     if (scope.target === 'self') return [requestingUserId]
-    
+
     // TODO: Verify permissions for other scopes
     // Use teamRepository to check access
-    
+
     if (scope.target === 'athlete' && scope.targetId) {
       return [scope.targetId]
     }
-    
+
+    if (scope.target === 'athletes' && scope.targetIds?.length) {
+      return Array.from(new Set(scope.targetIds))
+    }
+
     if (scope.target === 'athlete_group' && scope.targetId) {
       const group = await (prisma as any).athleteGroup.findUnique({
         where: { id: scope.targetId },
@@ -66,6 +75,56 @@ export const analyticsRepository = {
     return []
   },
 
+  async queryAthleteComparison(
+    requestingUserId: string,
+    userIds: string[],
+    options: AnalyticsQueryOptions
+  ) {
+    const [users, seriesResults] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true }
+      }),
+      Promise.all(
+        userIds.map(async (targetUserId) => ({
+          userId: targetUserId,
+          results: await this.executeAggregatedQuery(requestingUserId, [targetUserId], options)
+        }))
+      )
+    ])
+
+    const labels = Array.from(
+      new Set(
+        seriesResults.flatMap((entry) =>
+          entry.results.map((row: any) => new Date(row.bucket).toISOString().split('T')[0])
+        )
+      )
+    ).sort()
+
+    const namesById = new Map(
+      users.map((user) => [user.id, user.name || user.email || 'Unknown athlete'])
+    )
+
+    const datasets = seriesResults.flatMap((entry) => {
+      const valuesByLabel = new Map(
+        entry.results.map((row: any) => [new Date(row.bucket).toISOString().split('T')[0], row])
+      )
+      const athleteLabel = namesById.get(entry.userId) || 'Unknown athlete'
+
+      return options.metrics.map((metric, metricIndex) => ({
+        label:
+          options.metrics.length === 1
+            ? athleteLabel
+            : `${athleteLabel} · ${this.getMetricLabel(metric.field, metric.aggregation)}`,
+        data: labels.map(
+          (label) => Number(valuesByLabel.get(label)?.[`metric_${metricIndex}`]) || 0
+        )
+      }))
+    })
+
+    return { labels, datasets }
+  },
+
   async executeAggregatedQuery(
     requestingUserId: string,
     userIds: string[],
@@ -82,7 +141,15 @@ export const analyticsRepository = {
       options.grouping === 'daily' ? 'day' : options.grouping === 'weekly' ? 'week' : 'month'
 
     const standardFieldsBySource: Record<AnalyticsQueryOptions['source'], Set<string>> = {
-      workouts: new Set(['durationSec', 'tss', 'averageWatts', 'averageHr', 'distance', 'calories']),
+      workouts: new Set([
+        'durationSec',
+        'tss',
+        'averageWatts',
+        'averageHr',
+        'distanceMeters',
+        'intensity',
+        'calories'
+      ]),
       wellness: new Set([
         'hrv',
         'restingHr',
@@ -113,7 +180,10 @@ export const analyticsRepository = {
     const allowedCustomFields = new Set(customFields.map((field) => field.fieldKey))
 
     const metricClauses = options.metrics.map((metric, index) => {
-      const aggregationMap: Record<AnalyticsQueryOptions['metrics'][number]['aggregation'], string> = {
+      const aggregationMap: Record<
+        AnalyticsQueryOptions['metrics'][number]['aggregation'],
+        string
+      > = {
         sum: 'SUM',
         avg: 'AVG',
         max: 'MAX',
@@ -182,12 +252,12 @@ export const analyticsRepository = {
   },
 
   formatChartData(results: any[], options: AnalyticsQueryOptions) {
-    const labels = results.map(r => new Date(r.bucket).toISOString().split('T')[0])
-    
+    const labels = results.map((r) => new Date(r.bucket).toISOString().split('T')[0])
+
     const datasets = options.metrics.map((m, i) => {
       return {
         label: `${m.field} (${m.aggregation})`,
-        data: results.map(r => Number(r[`metric_${i}`]) || 0)
+        data: results.map((r) => Number(r[`metric_${i}`]) || 0)
       }
     })
 
@@ -195,5 +265,16 @@ export const analyticsRepository = {
       labels,
       datasets
     }
+  },
+
+  getMetricLabel(
+    field: string,
+    aggregation: AnalyticsQueryOptions['metrics'][number]['aggregation']
+  ) {
+    if (field.startsWith('custom.')) {
+      return field.slice('custom.'.length)
+    }
+
+    return `${field} (${aggregation})`
   }
 }
