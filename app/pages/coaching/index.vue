@@ -16,170 +16,145 @@
     </template>
 
     <template #body>
-      <div class="p-0 sm:p-6 space-y-6">
-        <!-- Dashboard Branding -->
-        <div class="px-4 sm:px-0">
-          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Coach's Dashboard
-          </h1>
-          <p
-            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
-          >
-            Strategic Overview & Performance Management
-          </p>
+      <div class="p-0 sm:p-6 space-y-8">
+        <!-- 1. Header & Utility Bar -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 sm:px-0">
+          <div>
+            <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+              Strategic Overview
+            </h1>
+            <p
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+            >
+              Performance Roster & Compliance Control
+            </p>
+          </div>
+
+          <!-- Quick Actions Utility Bar -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-calendar-days"
+              label="Calendar"
+              size="sm"
+              class="font-bold whitespace-nowrap"
+              to="/coaching/calendar"
+            />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-user-plus"
+              label="Add Athlete"
+              size="sm"
+              class="font-bold whitespace-nowrap"
+              to="/coaching/athletes"
+            />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-library"
+              label="Library"
+              size="sm"
+              class="font-bold whitespace-nowrap"
+              to="/library/workouts"
+            />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-scroll-text"
+              label="Templates"
+              size="sm"
+              class="font-bold whitespace-nowrap"
+              to="/library/plans"
+            />
+          </div>
         </div>
 
         <CoachingBanner />
 
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <UCard :ui="{ body: 'p-4 sm:p-6' }">
-            <div class="flex items-center gap-4">
-              <div class="bg-primary-50 dark:bg-primary-950/20 p-3 rounded-xl">
-                <UIcon name="i-lucide-users" class="w-6 h-6 text-primary-500" />
-              </div>
-              <div>
-                <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Athletes</p>
-                <p class="text-2xl font-black text-gray-900 dark:text-white">
-                  {{ athletes.length }}
-                </p>
-              </div>
-            </div>
-          </UCard>
-
-          <UCard :ui="{ body: 'p-4 sm:p-6' }">
-            <div class="flex items-center gap-4">
-              <div class="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-xl">
-                <UIcon name="i-lucide-calendar" class="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Events</p>
-                <p class="text-2xl font-black text-gray-900 dark:text-white">
-                  {{ totalEvents }}
-                </p>
-              </div>
-            </div>
-          </UCard>
-
-          <UCard :ui="{ body: 'p-4 sm:p-6' }">
-            <div class="flex items-center gap-4">
-              <div class="bg-green-50 dark:bg-green-950/20 p-3 rounded-xl">
-                <UIcon name="i-lucide-check-circle" class="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Compliance</p>
-                <p class="text-2xl font-black text-gray-900 dark:text-white">--%</p>
-              </div>
-            </div>
-          </UCard>
-
-          <UCard :ui="{ body: 'p-4 sm:p-6' }">
-            <div class="flex items-center gap-4">
-              <div class="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-xl">
-                <UIcon name="i-lucide-shield-alert" class="w-6 h-6 text-orange-500" />
-              </div>
-              <div>
-                <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Alerts</p>
-                <p class="text-2xl font-black text-gray-900 dark:text-white">0</p>
-              </div>
-            </div>
-          </UCard>
+        <!-- Loading State -->
+        <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <USkeleton class="lg:col-span-2 h-[400px] rounded-2xl" />
+          <USkeleton class="h-[400px] rounded-2xl" />
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Recent Athletes Section -->
-          <div class="lg:col-span-2 space-y-4">
+        <!-- Empty State -->
+        <div
+          v-else-if="overviewData.athletes.length === 0"
+          class="py-24 text-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl"
+        >
+          <div class="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full inline-block mb-4">
+            <UIcon name="i-heroicons-users" class="w-12 h-12 text-neutral-400" />
+          </div>
+          <h3 class="text-xl font-bold">Connect Your First Athlete</h3>
+          <p class="text-neutral-500 max-w-sm mx-auto mb-6">
+            Connecting athletes allows you to track their weekly compliance and live activity feed.
+          </p>
+          <UButton color="primary" size="lg" to="/coaching/athletes" label="Go to Athletes" />
+        </div>
+
+        <!-- 2. Main Strategic Grid -->
+        <div v-else class="space-y-8">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <!-- Weekly Compliance (2/3) -->
+            <div class="lg:col-span-2">
+              <CoachingWeeklyCompliance
+                :athletes="overviewData.athletes"
+                :week-days="overviewData.weekDays"
+              />
+            </div>
+
+            <!-- Recent Activity (1/3) -->
+            <div class="h-full">
+              <CoachingActivityFeed :feed="overviewData.feed" />
+            </div>
+          </div>
+
+          <!-- 3. Full Roster Grid (Original Element) -->
+          <div class="space-y-4">
             <div class="flex items-center justify-between px-4 sm:px-0">
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white">Your Roster</h2>
-              <UButton variant="link" color="neutral" to="/coaching/athletes"> View All </UButton>
-            </div>
-
-            <div v-if="loading" class="space-y-4">
-              <UCard v-for="i in 3" :key="i">
-                <div class="flex items-center gap-3">
-                  <USkeleton class="h-10 w-10 rounded-full" />
-                  <USkeleton class="h-4 w-48" />
-                </div>
-              </UCard>
-            </div>
-
-            <div
-              v-else-if="athletes.length === 0"
-              class="p-8 text-center bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800"
-            >
-              <p class="text-gray-500">No athletes connected yet.</p>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                Your Roster
+              </h2>
               <UButton
-                color="primary"
                 variant="link"
+                color="primary"
                 to="/coaching/athletes"
-                class="mt-2 font-bold"
-              >
-                Connect Your First Athlete
-              </UButton>
+                label="Manage Roster"
+                icon="i-heroicons-arrow-right"
+                trailing
+              />
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <UCard
-                v-for="rel in athletes.slice(0, 4)"
-                :key="rel.id"
-                class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer"
+                v-for="athlete in overviewData.athletes.slice(0, 8)"
+                :key="athlete.id"
+                class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group"
                 :ui="{ body: 'p-4' }"
-                @click="router.push(`/coaching/athletes/${rel.athlete.id}`)"
+                @click="router.push(`/coaching/athletes/${athlete.id}`)"
               >
                 <div class="flex items-center gap-3">
-                  <UAvatar :src="rel.athlete.image" :alt="rel.athlete.name" size="md" />
+                  <UAvatar :src="athlete.image" :alt="athlete.name" size="md" />
                   <div class="flex-1 min-w-0">
-                    <p class="font-bold text-sm truncate">{{ rel.athlete.name }}</p>
-                    <p class="text-xs text-gray-500 truncate">{{ rel.athlete.email }}</p>
+                    <p
+                      class="font-bold text-sm truncate group-hover:text-primary-600 transition-colors"
+                    >
+                      {{ athlete.name }}
+                    </p>
+                    <div class="flex gap-1 mt-1">
+                      <div
+                        v-for="(day, idx) in athlete.compliance.slice(-5)"
+                        :key="idx"
+                        class="w-1.5 h-1.5 rounded-full"
+                        :class="getMiniStatusClass(day.status)"
+                      />
+                    </div>
                   </div>
                   <UIcon name="i-heroicons-chevron-right" class="w-4 h-4 text-gray-400" />
                 </div>
               </UCard>
-            </div>
-          </div>
-
-          <!-- Quick Actions -->
-          <div class="space-y-4">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white px-4 sm:px-0">
-              Quick Actions
-            </h2>
-            <div class="grid grid-cols-1 gap-3">
-              <UButton
-                color="neutral"
-                variant="subtle"
-                icon="i-lucide-calendar-days"
-                label="Coaching Calendar"
-                size="lg"
-                class="justify-start"
-                to="/coaching/calendar"
-              />
-              <UButton
-                color="neutral"
-                variant="subtle"
-                icon="i-lucide-user-plus"
-                label="Add Athlete"
-                size="lg"
-                class="justify-start"
-                to="/coaching/athletes"
-              />
-              <UButton
-                color="neutral"
-                variant="subtle"
-                icon="i-lucide-library"
-                label="Workout Library"
-                size="lg"
-                class="justify-start"
-                to="/library/workouts"
-              />
-              <UButton
-                color="neutral"
-                variant="subtle"
-                icon="i-lucide-scroll-text"
-                label="Plan Templates"
-                size="lg"
-                class="justify-start"
-                to="/library/plans"
-              />
             </div>
           </div>
         </div>
@@ -198,29 +173,38 @@
     meta: [
       {
         name: 'description',
-        content: 'Your strategic coaching overview.'
+        content: 'Strategic overview of your athletes performance and compliance.'
       }
     ]
   })
 
-  const athletes = ref<any[]>([])
-  const loading = ref(true)
-  const totalEvents = ref(0)
   const router = useRouter()
   const toast = useToast()
+  const loading = ref(true)
+  const overviewData = ref<any>({
+    athletes: [],
+    feed: [],
+    weekDays: []
+  })
 
   async function fetchData() {
     loading.value = true
     try {
-      const data = await $fetch('/api/coaching/athletes')
-      athletes.value = data as any[]
-      // You could fetch more detailed dashboard stats here
+      const data = await $fetch('/api/coaching/overview')
+      overviewData.value = data
     } catch (e) {
       console.error(e)
-      toast.add({ title: 'Failed to load dashboard data', color: 'error' })
+      toast.add({ title: 'Failed to load coaching overview', color: 'error' })
     } finally {
       loading.value = false
     }
+  }
+
+  function getMiniStatusClass(status: string) {
+    if (status === 'completed' || status === 'unscheduled_completed') return 'bg-green-500'
+    if (status === 'missed') return 'bg-orange-500'
+    if (status === 'planned') return 'bg-blue-500'
+    return 'bg-neutral-200 dark:bg-neutral-800'
   }
 
   onMounted(fetchData)

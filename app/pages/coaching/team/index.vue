@@ -78,6 +78,100 @@
           </div>
         </UCard>
 
+        <!-- My Teams Section (For Coaches) -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Professional Teams</h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                label="Join Team"
+                icon="i-heroicons-ticket"
+                size="xs"
+                class="font-bold"
+                @click="isJoinTeamModalOpen = true"
+              />
+              <UButton
+                color="neutral"
+                variant="outline"
+                label="Create Team"
+                icon="i-heroicons-plus"
+                size="xs"
+                class="font-bold"
+                @click="isCreateTeamModalOpen = true"
+              />
+            </div>
+          </div>
+
+          <div v-if="loadingTeams" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <USkeleton v-for="i in 2" :key="i" class="h-32 w-full rounded-xl" />
+          </div>
+
+          <div
+            v-else-if="teams.length === 0"
+            class="text-center py-12 bg-neutral-50 dark:bg-neutral-800/30 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800"
+          >
+            <div class="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-full mb-3 inline-block">
+              <UIcon name="i-heroicons-shield-check" class="w-6 h-6 text-neutral-400" />
+            </div>
+            <p class="text-neutral-500 text-sm">You haven't created or joined any teams yet.</p>
+            <div class="flex items-center justify-center gap-2 mt-4">
+              <UButton
+                color="primary"
+                variant="link"
+                label="Start a Team"
+                @click="isCreateTeamModalOpen = true"
+              />
+              <span class="text-neutral-400 text-xs">or</span>
+              <UButton
+                color="primary"
+                variant="link"
+                label="Join with Code"
+                @click="isJoinTeamModalOpen = true"
+              />
+            </div>
+          </div>
+
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UCard
+              v-for="membership in teams"
+              :key="membership.id"
+              class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group"
+              @click="viewTeam(membership.team.id)"
+            >
+              <div class="flex items-start justify-between">
+                <div class="space-y-1">
+                  <h3
+                    class="font-bold text-lg text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors"
+                  >
+                    {{ membership.team.name }}
+                  </h3>
+                  <p class="text-xs text-neutral-500 line-clamp-2">
+                    {{ membership.team.description || 'No description provided.' }}
+                  </p>
+                </div>
+                <UBadge color="neutral" variant="subtle" size="xs" class="font-bold uppercase">
+                  {{ membership.role }}
+                </UBadge>
+              </div>
+
+              <div
+                class="mt-4 flex items-center gap-4 text-[10px] font-black uppercase text-neutral-400"
+              >
+                <div class="flex items-center gap-1">
+                  <UIcon name="i-heroicons-users" />
+                  {{ membership.team._count?.members || 0 }} Members
+                </div>
+                <div class="flex items-center gap-1">
+                  <UIcon name="i-heroicons-rectangle-group" />
+                  {{ membership.team._count?.groups || 0 }} Groups
+                </div>
+              </div>
+            </UCard>
+          </div>
+        </div>
+
         <!-- My Coaches List -->
         <div>
           <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">My Coaches</h2>
@@ -138,6 +232,79 @@
       <UButton label="Remove Coach" color="error" :loading="removingCoach" @click="removeCoach" />
     </template>
   </UModal>
+
+  <!-- Create Team Modal -->
+  <UModal
+    v-model:open="isCreateTeamModalOpen"
+    title="Start Professional Team"
+    description="Create a new professional organization to manage your coaching staff and athletes."
+  >
+    <template #body>
+      <div class="space-y-4">
+        <UFormField label="Team Name" help="The official name of your coaching group.">
+          <UInput
+            v-model="newTeam.name"
+            placeholder="e.g., Summit Performance Lab"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField label="Description" help="A brief overview of your team's focus or philosophy.">
+          <UTextarea
+            v-model="newTeam.description"
+            placeholder="What is this team about?"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+    </template>
+    <template #footer>
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="isCreateTeamModalOpen = false"
+      />
+      <UButton label="Create Team" color="primary" :loading="creatingTeam" @click="createTeam" />
+    </template>
+  </UModal>
+
+  <!-- Join Team Modal -->
+  <UModal
+    v-model:open="isJoinTeamModalOpen"
+    title="Join a Professional Team"
+    description="Enter an invitation code to join an existing coaching organization."
+  >
+    <template #body>
+      <div class="space-y-4">
+        <UFormField
+          label="Invitation Code"
+          help="Codes are provided by team managers and are usually 8-10 characters long."
+        >
+          <UInput
+            v-model="joinCode"
+            placeholder="INVITE-CODE"
+            class="font-mono uppercase text-center text-xl w-full"
+            maxlength="10"
+          />
+        </UFormField>
+      </div>
+    </template>
+    <template #footer>
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="isJoinTeamModalOpen = false"
+      />
+      <UButton
+        label="Join Team"
+        color="primary"
+        :loading="joiningTeam"
+        :disabled="!joinCode"
+        @click="joinTeam"
+      />
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -156,33 +323,95 @@
   })
 
   const coaches = ref<any[]>([])
+  const teams = ref<any[]>([])
   const invite = ref<any>({ status: 'NONE' })
 
   const loading = ref(true)
+  const loadingTeams = ref(true)
   const loadingInvite = ref(false)
   const generatingInvite = ref(false)
   const removingCoach = ref(false)
+  const creatingTeam = ref(false)
+  const joiningTeam = ref(false)
 
   const isRemoveModalOpen = ref(false)
+  const isCreateTeamModalOpen = ref(false)
+  const isJoinTeamModalOpen = ref(false)
   const coachToRemove = ref<any>(null)
 
+  const newTeam = ref({
+    name: '',
+    description: ''
+  })
+  const joinCode = ref('')
+
   const toast = useToast()
+  const router = useRouter()
 
   async function fetchData() {
     loading.value = true
+    loadingTeams.value = true
     try {
-      const [coachesData, inviteData] = await Promise.all([
+      const [coachesData, inviteData, teamsData] = await Promise.all([
         $fetch('/api/coaching/coaches'),
-        $fetch('/api/coaching/invite')
+        $fetch('/api/coaching/invite'),
+        $fetch('/api/coaching/teams')
       ])
       coaches.value = coachesData as any[]
       invite.value = inviteData
+      teams.value = teamsData as any[]
     } catch (e) {
       console.error(e)
       toast.add({ title: 'Failed to load coaching data', color: 'error' })
     } finally {
       loading.value = false
+      loadingTeams.value = false
     }
+  }
+
+  async function createTeam() {
+    if (!newTeam.value.name) return
+    creatingTeam.value = true
+    try {
+      await $fetch('/api/coaching/teams', {
+        method: 'POST',
+        body: newTeam.value
+      })
+      toast.add({ title: 'Team created!', color: 'success' })
+      isCreateTeamModalOpen.value = false
+      newTeam.value = { name: '', description: '' }
+      await fetchData()
+    } catch (e) {
+      toast.add({ title: 'Failed to create team', color: 'error' })
+    } finally {
+      creatingTeam.value = false
+    }
+  }
+
+  async function joinTeam() {
+    if (!joinCode.value) return
+    joiningTeam.value = true
+    try {
+      await $fetch('/api/coaching/teams/accept', {
+        method: 'POST',
+        body: { code: joinCode.value.toUpperCase() }
+      })
+      toast.add({ title: 'Successfully joined the team!', color: 'success' })
+      isJoinTeamModalOpen.value = false
+      joinCode.value = ''
+      await fetchData()
+    } catch (err: any) {
+      toast.add({
+        title: 'Failed to join: ' + (err.data?.message || 'Invalid code'),
+        color: 'error'
+      })
+    } finally {
+      joiningTeam.value = false
+    }
+  }
+
+  function viewTeam(teamId: string) {
+    router.push(`/coaching/teams/${teamId}`)
   }
 
   async function createInvite() {
