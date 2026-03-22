@@ -82,7 +82,10 @@ function resolveAlignedSeries(
 
   return {
     labels: sampledAxis.map((value) => formatAlignmentLabel(value, alignment)),
-    values: sampledValues
+    points: sampledAxis.map((value, index) => ({
+      x: Number(value.toFixed(2)),
+      y: sampledValues[index] ?? null
+    }))
   }
 }
 
@@ -156,8 +159,10 @@ export default defineEventHandler(async (event) => {
     labels,
     datasets: resolvedSeries.map((series: any) => ({
       label: series.label,
-      data: labels.map((_, index) => series.values[index] ?? null),
-      type: 'line'
+      data: series.points.filter((point: any) => point.y !== null),
+      type: 'line',
+      showLine: true,
+      pointRadius: 0
     }))
   }
 })
