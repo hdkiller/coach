@@ -1,17 +1,34 @@
 import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
+import { encodeDashboardLayout } from '../../../utils/analyticsDashboardLayout'
 
 const saveDashboardSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(100),
   layout: z.array(z.any()),
-  order: z.number().int().min(0).optional()
+  order: z.number().int().min(0).optional(),
+  scope: z
+    .object({
+      target: z.enum(['self', 'athlete', 'athletes', 'athlete_group', 'team']),
+      targetId: z.string().optional(),
+      targetIds: z.array(z.string()).optional()
+    })
+    .optional(),
+  dateRange: z
+    .object({
+      type: z.enum(['rolling', 'ytd', 'fixed']),
+      value: z.string().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional()
+    })
+    .nullable()
+    .optional()
 })
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   const body = await readBody(event)
-  
+
   const result = saveDashboardSchema.safeParse(body)
   if (!result.success) {
     throw createError({
@@ -20,7 +37,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { id, name, layout, order } = result.data
+  const { id, name, layout, order, scope, dateRange } = result.data
+  const persistedLayout = encodeDashboardLayout(layout, scope, dateRange)
 
   try {
     if (id) {
@@ -43,7 +61,7 @@ export default defineEventHandler(async (event) => {
         where: { id },
         data: {
           name,
-          layout,
+          layout: persistedLayout,
           order: order !== undefined ? order : undefined
         }
       })
@@ -61,16 +79,19 @@ export default defineEventHandler(async (event) => {
       ? await prisma.dashboard.update({
           where: { id: existingDefaultDashboard.id },
           data: {
-            layout,
+            layout: persistedLayout,
             order: order !== undefined ? order : undefined
           }
         })
       : await prisma.dashboard.create({
           data: {
             name,
-            layout,
+            layout: persistedLayout,
             ownerId: user.id,
-            order: order || 0
+            order:
+              order !== undefined
+                ? order
+                : await prisma.dashboard.count({ where: { ownerId: user.id } })
           }
         })
 

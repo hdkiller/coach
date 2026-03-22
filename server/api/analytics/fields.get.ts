@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
     { key: 'tss', label: 'TSS', type: 'NUMBER' },
     { key: 'averageWatts', label: 'Avg Power', type: 'NUMBER', unit: 'W' },
     { key: 'averageHr', label: 'Avg HR', type: 'NUMBER', unit: 'bpm' },
-    { key: 'distance', label: 'Distance', type: 'NUMBER', unit: 'm' },
+    { key: 'distanceMeters', label: 'Distance', type: 'NUMBER', unit: 'm' },
+    { key: 'intensity', label: 'Intensity', type: 'NUMBER' },
     { key: 'calories', label: 'Calories', type: 'NUMBER', unit: 'kcal' }
   ]
 
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
     { key: 'restingHr', label: 'Resting HR', type: 'NUMBER', unit: 'bpm' },
     { key: 'sleepHours', label: 'Sleep Duration', type: 'NUMBER', unit: 'h' },
     { key: 'sleepScore', label: 'Sleep Score', type: 'NUMBER' },
+    { key: 'recoveryScore', label: 'Recovery Score', type: 'NUMBER' },
     { key: 'weight', label: 'Weight', type: 'NUMBER', unit: 'kg' },
     { key: 'ctl', label: 'Fitness (CTL)', type: 'NUMBER' },
     { key: 'atl', label: 'Fatigue (ATL)', type: 'NUMBER' },
@@ -39,8 +41,8 @@ export default defineEventHandler(async (event) => {
   })
 
   const customWorkoutFields = customFields
-    .filter(f => f.entityType === 'WORKOUT' && f.dataType === 'NUMBER')
-    .map(f => ({
+    .filter((f) => f.entityType === 'WORKOUT' && f.dataType === 'NUMBER')
+    .map((f) => ({
       key: `custom.${f.fieldKey}`,
       label: f.label,
       type: f.dataType,
@@ -49,8 +51,8 @@ export default defineEventHandler(async (event) => {
     }))
 
   const customWellnessFields = customFields
-    .filter(f => f.entityType === 'WELLNESS' && f.dataType === 'NUMBER')
-    .map(f => ({
+    .filter((f) => f.entityType === 'WELLNESS' && f.dataType === 'NUMBER')
+    .map((f) => ({
       key: `custom.${f.fieldKey}`,
       label: f.label,
       type: f.dataType,
