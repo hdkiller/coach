@@ -358,6 +358,20 @@
   }
 
   function editWidget(widget: any) {
+    if (widget.comparison?.type === 'workouts') {
+      router.push({
+        path: '/analytics/workout-comparison',
+        query: {
+          preset: widget.comparisonPresetId || undefined,
+          mode: widget.comparison.mode || 'summary',
+          ids: Array.isArray(widget.comparison.workoutIds)
+            ? widget.comparison.workoutIds.join(',')
+            : undefined
+        }
+      })
+      return
+    }
+
     if (widget.id) {
       router.push(`/analytics/builder?id=${widget.id}`)
     } else {
@@ -775,6 +789,16 @@
               size="sm"
               class="font-bold"
               @click="isWidgetLibraryOpen = true"
+            />
+
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-git-compare-arrows"
+              label="Workout Compare"
+              size="sm"
+              class="font-bold"
+              to="/analytics/workout-comparison"
             />
 
             <UButton

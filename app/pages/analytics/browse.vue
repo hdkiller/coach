@@ -789,9 +789,9 @@
 
         <main class="flex-1 overflow-y-auto bg-default/30 p-8">
           <div v-if="selectedWidget" class="mx-auto flex h-full max-w-5xl flex-col">
-            <div class="mb-12 flex items-start justify-between gap-6">
-              <div class="space-y-2">
-                <div class="flex items-center gap-2">
+            <div class="mb-8 rounded-3xl border border-default bg-default p-6 shadow-sm">
+              <div class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
                   <h2
                     class="text-4xl font-black uppercase tracking-tight text-gray-900 dark:text-white"
                   >
