@@ -18,7 +18,11 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
-import { LBS_TO_KG } from '../server/utils/number'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
 import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 import {
@@ -539,15 +543,9 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
 ATHLETE BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${
-        effectiveWeight.value
-          ? user.weightUnits === 'Pounds'
-            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
-            : effectiveWeight.value.toFixed(1) + ' kg'
-          : 'Unknown'
-      }
+- Weight: ${formatPromptWeight(effectiveWeight.value, user?.weightUnits)}
 - Preferred Language: ${user?.language || 'English'}
 - W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm

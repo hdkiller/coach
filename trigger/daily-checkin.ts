@@ -12,6 +12,11 @@ import {
   calculateAge,
   getUserTimezone
 } from '../server/utils/date'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
@@ -336,9 +341,9 @@ Training Style: ${profile.training_characteristics?.training_style || 'Unknown'}
 ATHLETE BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Weight: ${formatPromptWeight(user?.weight, user?.weightUnits)}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 `
       }

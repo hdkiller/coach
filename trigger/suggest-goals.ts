@@ -15,6 +15,11 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Goal suggestions schema for structured JSON output
@@ -352,14 +357,8 @@ Preferred Language: ${user.language || 'English'} (ALL analysis and text respons
 
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
-- Weight: ${
-        effectiveWeight.value
-          ? user.weightUnits === 'Pounds'
-            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
-            : effectiveWeight.value.toFixed(1) + ' kg'
-          : 'Unknown'
-      }
-- Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
+- Weight: ${formatPromptWeight(effectiveWeight.value, user?.weightUnits)}
+- Height: ${formatPromptHeight(user.height, user.heightUnits)}
 - W/kg: ${user.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 
@@ -411,7 +410,7 @@ Goal Types:
 
 Be specific with metrics and targets. For example:
 - Instead of "Improve FTP", suggest "Increase FTP from ${user.ftp || 250}W to ${user.ftp ? Math.round(user.ftp * 1.05) : 265}W over 12 weeks"
-- Instead of "Lose weight", suggest "Reduce weight from ${effectiveWeightDisplay || 75}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} to ${effectiveWeightDisplay ? (effectiveWeightDisplay - 3).toFixed(1) : 72}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} over 8 weeks"
+- Instead of "Lose weight", suggest "Reduce weight from ${formatPromptWeight(effectiveWeight.value, user.weightUnits)} to ${formatPromptWeight(effectiveWeight.value ? effectiveWeight.value - 3 : null, user.weightUnits)} over 8 weeks"
 
 Identify any potential goal conflicts and provide resolution strategies.`
 

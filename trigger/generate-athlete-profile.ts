@@ -25,6 +25,11 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { recommendTodayActivityTask } from './recommend-today-activity'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Athlete Profile schema for structured JSON output
@@ -736,15 +741,9 @@ Adapt your analysis tone and insights to match your **${aiSettings.aiPersona}** 
 USER PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${
-        effectiveWeight.value
-          ? user.weightUnits === 'Pounds'
-            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
-            : effectiveWeight.value.toFixed(1) + ' kg'
-          : 'Unknown'
-      }
+- Weight: ${formatPromptWeight(effectiveWeight.value, user?.weightUnits)}
 - W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 - Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summaries, reasoning, and scores explanations MUST be written in this language)

@@ -19,6 +19,12 @@ import {
   formatDateUTC,
   calculateAge
 } from '../server/utils/date'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 import { buildWorkoutCleanupQuery } from '../server/utils/plans/cleanup'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
@@ -506,9 +512,9 @@ ${profile.recommendations_summary?.action_items?.length ? `Priority Actions:\n${
 USER BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - Global FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Weight: ${formatPromptWeight(user?.weight, user?.weightUnits)}
 - Global Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Consider generating one for better personalized planning.
 `

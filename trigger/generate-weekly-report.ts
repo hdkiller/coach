@@ -9,10 +9,20 @@ import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { userReportsQueue } from './queues'
-import { getUserTimezone, getStartOfDaysAgoUTC, getEndOfDayUTC } from '../server/utils/date'
+import {
+  getUserTimezone,
+  getStartOfDaysAgoUTC,
+  getEndOfDayUTC,
+  formatUserDate,
+  calculateAge
+} from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
-import { LBS_TO_KG } from '../server/utils/number'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance
+} from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Analysis schema for structured JSON output
@@ -306,14 +316,8 @@ Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summ
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${
-        effectiveWeight.value
-          ? user.weightUnits === 'Pounds'
-            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
-            : effectiveWeight.value.toFixed(1) + ' kg'
-          : 'Unknown'
-      }
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Weight: ${formatPromptWeight(effectiveWeight.value, user?.weightUnits)}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 - W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 

@@ -19,6 +19,14 @@ import { createUserNotification } from '../server/utils/notifications'
 import { thresholdDetectionService } from '../server/utils/services/thresholdDetectionService'
 import { pbDetectionService } from '../server/utils/services/pbDetectionService'
 import { KG_TO_LBS } from '../server/utils/number'
+import {
+  formatPromptWeight,
+  formatPromptHeight,
+  formatPromptDistance,
+  formatPromptElevation,
+  formatPromptTemperature,
+  formatPromptPace
+} from '../server/utils/ai-prompt-format'
 import { isWorkoutEligibleForAutomaticInsights } from '../server/utils/automatic-workout-insights'
 import {
   buildAnalysisRequestMetricRules,
@@ -935,19 +943,6 @@ function getAnalysisSectionsGuidance(
    - Each point should be 1-2 sentences maximum`
 }
 
-function formatPromptWeight(
-  weight: number | null | undefined,
-  weightUnits?: string | null
-): string {
-  if (!weight) return ''
-
-  if (weightUnits === 'Pounds') {
-    return `${(weight * KG_TO_LBS).toFixed(1)} lbs`
-  }
-
-  return `${weight.toFixed(1)} kg`
-}
-
 function getFactValueByPath(facts: any, path: string): unknown {
   return path.split('.').reduce<unknown>((acc, key) => {
     if (!acc || typeof acc !== 'object') return undefined
@@ -1208,6 +1203,7 @@ export function buildWorkoutAnalysisPrompt(
     heightUnits?: string | null
     language?: string | null
     temperatureUnits?: string | null
+    distanceUnits?: string | null
   },
 
   aiContext?: string | null,
@@ -1229,13 +1225,6 @@ export function buildWorkoutAnalysisPrompt(
 ): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
-  }
-  const formatPaceFromSecondsPerKm = (secondsPerKm: number | null) => {
-    if (!secondsPerKm || !Number.isFinite(secondsPerKm) || secondsPerKm <= 0) return 'N/A'
-    const total = Math.round(secondsPerKm)
-    const minutes = Math.floor(total / 60)
-    const seconds = total % 60
-    return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
   }
 
   const dateStr = formatUserDate(workoutData.date, timezone, 'yyyy-MM-dd')
@@ -1323,7 +1312,7 @@ ATHLETE CONTEXT:
 
 - Sex: ${userProfile?.sex || 'Unknown'}
 
-- Height: ${userProfile?.height || 'Unknown'} ${userProfile?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(userProfile?.height, userProfile?.heightUnits)}
 
 ${userProfile?.weight ? `- Weight: ${formatPromptWeight(userProfile.weight, userProfile.weightUnits)}` : ''}
 
@@ -1413,11 +1402,11 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
   prompt += buildMetricPriorityPromptBlock(metricPriorityContext)
 
   if (workoutData.distance_m) {
-    prompt += `- **Distance**: ${(workoutData.distance_m / 1000).toFixed(2)} km\n`
+    prompt += `- **Distance**: ${formatPromptDistance(workoutData.distance_m, userProfile?.distanceUnits)}\n`
   }
 
   if (workoutData.elevation_gain) {
-    prompt += `- **Elevation Gain**: ${workoutData.elevation_gain}m\n`
+    prompt += `- **Elevation Gain**: ${formatPromptElevation(workoutData.elevation_gain, userProfile?.distanceUnits)}\n`
   }
 
   if (
@@ -1430,7 +1419,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
         ? workoutData.duration_s / (workoutData.distance_m / 1000)
         : null
     if (avgPaceSecPerKm) {
-      prompt += `- Average Pace: ${formatPaceFromSecondsPerKm(avgPaceSecPerKm)}\n`
+      prompt += `- Average Pace: ${formatPromptPace(avgPaceSecPerKm, userProfile?.distanceUnits)}\n`
     }
     if (workoutData.avg_speed_ms) {
       prompt += `- Average Speed: ${formatMetric(workoutData.avg_speed_ms, 2)} m/s\n`
@@ -1602,7 +1591,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     if (workoutData.trainer !== undefined)
       prompt += `- Indoor Trainer: ${workoutData.trainer ? 'Yes' : 'No'}\n`
     if (workoutData.avg_temp !== undefined)
-      prompt += `- Avg Temperature: ${formatMetric(workoutData.avg_temp, 1)}${userProfile?.temperatureUnits === 'Fahrenheit' ? '°F' : '°C'}\n`
+      prompt += `- Avg Temperature: ${formatPromptTemperature(workoutData.avg_temp, userProfile?.temperatureUnits)}\n`
   }
 
   // Add Strength Exercises if available
@@ -1617,7 +1606,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
         let metricAdded = false
         if (s.weight) {
-          prompt += `${s.weight}kg x ${s.reps}`
+          prompt += `${formatPromptWeight(s.weight, userProfile?.weightUnits)} x ${s.reps}`
           metricAdded = true
         } else if (s.reps) {
           prompt += `${s.reps} reps`
@@ -1649,8 +1638,11 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
     workoutData.lap_splits.forEach((split: any) => {
       prompt += `**Lap ${split.lap}**: `
-      prompt += `${(split.distance_m / 1000).toFixed(2)}km in ${Math.floor(split.time_s / 60)}:${(split.time_s % 60).toString().padStart(2, '0')} `
-      prompt += `(${split.pace_min_per_km}/km pace)`
+      prompt += `${formatPromptDistance(split.distance_m, userProfile?.distanceUnits)} in ${Math.floor(split.time_s / 60)}:${(split.time_s % 60).toString().padStart(2, '0')} `
+
+      const paceSecondsPerKm =
+        split.distance_m > 0 ? split.time_s / (split.distance_m / 1000) : null
+      prompt += `(${formatPromptPace(paceSecondsPerKm, userProfile?.distanceUnits)} pace)`
       if (split.avg_hr) prompt += `, HR ${Math.round(split.avg_hr)} bpm`
       if (split.avg_speed_ms) prompt += `, ${formatMetric(split.avg_speed_ms, 2)} m/s`
       prompt += '\n'
@@ -1684,9 +1676,9 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
             : 'Even Split'
 
       prompt += `\n**Split Strategy**: ${splitType}\n`
-      prompt += `- First half avg: ${formatMetric(firstHalfAvgPace, 1)}s/km\n`
-      prompt += `- Second half avg: ${formatMetric(secondHalfAvgPace, 1)}s/km\n`
-      prompt += `- Difference: ${formatMetric(Math.abs(splitDiff), 1)}s/km ${splitDiff > 0 ? 'slower' : 'faster'} in second half\n`
+      prompt += `- First half avg: ${formatPromptPace(firstHalfAvgPace, userProfile?.distanceUnits)}\n`
+      prompt += `- Second half avg: ${formatPromptPace(secondHalfAvgPace, userProfile?.distanceUnits)}\n`
+      prompt += `- Difference: ${Math.abs(splitDiff).toFixed(1)}s ${splitDiff > 0 ? 'slower' : 'faster'} in second half\n`
     }
 
     prompt += '\n'

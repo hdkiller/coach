@@ -5,6 +5,7 @@ import { sportSettingsRepository } from '../repositories/sportSettingsRepository
 import { generateAthleteProfileTask } from '../../../trigger/generate-athlete-profile'
 import { prisma } from '../../utils/db'
 import { getStartOfDaysAgoUTC, getEndOfDayUTC } from '../../utils/date'
+import { LBS_TO_KG } from '../number'
 import type { AiSettings } from '../ai-user-settings'
 
 export const profileTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
@@ -114,7 +115,29 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
       try {
         const { gender, sex, ...rest } = data
         const normalizedSex = sex ?? gender
-        const payload = normalizedSex ? { ...rest, sex: normalizedSex } : rest
+        const payload: any = normalizedSex ? { ...rest, sex: normalizedSex } : rest
+
+        // Metric Conversion Handling
+        if (payload.weight !== undefined || payload.height !== undefined) {
+          const user = await userRepository.getById(userId)
+
+          // Convert Weight to KG if provided in Pounds
+          if (payload.weight !== undefined) {
+            const weightUnits = payload.weightUnits || user?.weightUnits || 'Kilograms'
+            if (weightUnits === 'Pounds') {
+              payload.weight = payload.weight * LBS_TO_KG
+            }
+          }
+
+          // Convert Height to CM if provided in Feet
+          if (payload.height !== undefined) {
+            const heightUnits = payload.heightUnits || user?.heightUnits || 'Centimeters'
+            if (heightUnits === 'Feet') {
+              payload.height = payload.height * 2.54
+            }
+          }
+        }
+
         await userRepository.update(userId, payload)
         return {
           success: true,
