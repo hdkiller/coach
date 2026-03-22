@@ -157,6 +157,10 @@ model User {
   emailPreferences                   EmailPreference[]
   emailDeliveries                    EmailDelivery[]
   memories                           UserMemory[]
+  athleteGroups                      AthleteGroup[]               @relation("CoachGroups")
+  groupMemberships                   AthleteGroupMember[]         @relation("AthleteGroupMemberships")
+  teamMemberships                    TeamMember[]
+  ownedTeams                         Team[]                       @relation("TeamOwner")
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -2049,4 +2053,89 @@ model PersonalBest {
   @@unique([userId, type]) // Each user has one all-time best per type
   @@index([userId])
   @@index([category])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  COACH
+  ATHLETE
+}
+
+model Team {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  description String?
+  ownerId     String
+  owner       User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+  groups      AthleteGroup[]
+  invites     TeamInvite[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(ATHLETE)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model AthleteGroup {
+  id          String               @id @default(uuid())
+  name        String
+  description String?
+  coachId     String
+  teamId      String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  coach       User                 @relation("CoachGroups", fields: [coachId], references: [id], onDelete: Cascade)
+  team        Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  members     AthleteGroupMember[]
+
+  @@index([coachId])
+  @@index([teamId])
+}
+
+model AthleteGroupMember {
+  id          String       @id @default(uuid())
+  groupId     String
+  athleteId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  athlete     User         @relation("AthleteGroupMemberships", fields: [athleteId], references: [id], onDelete: Cascade)
+  group       AthleteGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, athleteId])
+  @@index([groupId])
+  @@index([athleteId])
+}
+
+model TeamInvite {
+  id        String   @id @default(uuid())
+  teamId    String
+  email     String?  // Optional: restrict to a specific email
+  role      TeamRole @default(ATHLETE)
+  code      String   @unique
+  status    String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED, REVOKED
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([code])
 }
