@@ -35,6 +35,39 @@ export default defineEventHandler(async (event) => {
     { key: 'tsb', label: 'Form (TSB)', type: 'NUMBER' }
   ]
 
+  const nutritionFields = [
+    { key: 'calories', label: 'Calories', type: 'NUMBER', unit: 'kcal' },
+    { key: 'caloriesGoal', label: 'Calories Goal', type: 'NUMBER', unit: 'kcal' },
+    { key: 'carbs', label: 'Carbs', type: 'NUMBER', unit: 'g' },
+    { key: 'carbsGoal', label: 'Carbs Goal', type: 'NUMBER', unit: 'g' },
+    { key: 'protein', label: 'Protein', type: 'NUMBER', unit: 'g' },
+    { key: 'proteinGoal', label: 'Protein Goal', type: 'NUMBER', unit: 'g' },
+    { key: 'fat', label: 'Fat', type: 'NUMBER', unit: 'g' },
+    { key: 'fatGoal', label: 'Fat Goal', type: 'NUMBER', unit: 'g' },
+    { key: 'fiber', label: 'Fiber', type: 'NUMBER', unit: 'g' },
+    { key: 'sugar', label: 'Sugar', type: 'NUMBER', unit: 'g' },
+    { key: 'waterMl', label: 'Water', type: 'NUMBER', unit: 'ml' },
+    { key: 'overallScore', label: 'Overall Score', type: 'NUMBER' },
+    { key: 'macroBalanceScore', label: 'Macro Balance Score', type: 'NUMBER' },
+    { key: 'qualityScore', label: 'Quality Score', type: 'NUMBER' },
+    { key: 'adherenceScore', label: 'Adherence Score', type: 'NUMBER' },
+    { key: 'hydrationScore', label: 'Hydration Score', type: 'NUMBER' },
+    {
+      key: 'startingGlycogenPercentage',
+      label: 'Starting Glycogen',
+      type: 'NUMBER',
+      unit: '%'
+    },
+    {
+      key: 'endingGlycogenPercentage',
+      label: 'Ending Glycogen',
+      type: 'NUMBER',
+      unit: '%'
+    },
+    { key: 'startingFluidDeficit', label: 'Starting Fluid Deficit', type: 'NUMBER', unit: 'L' },
+    { key: 'endingFluidDeficit', label: 'Ending Fluid Deficit', type: 'NUMBER', unit: 'L' }
+  ]
+
   // Fetch Custom Field Definitions
   const customFields = await prisma.customFieldDefinition.findMany({
     where: { ownerId: user.id }
@@ -60,9 +93,19 @@ export default defineEventHandler(async (event) => {
       isCustom: true
     }))
 
+  const customNutritionFields = customFields
+    .filter((f) => f.entityType === 'NUTRITION' && f.dataType === 'NUMBER')
+    .map((f) => ({
+      key: `custom.${f.fieldKey}`,
+      label: f.label,
+      type: f.dataType,
+      unit: f.unit,
+      isCustom: true
+    }))
+
   return {
     workouts: [...workoutFields, ...customWorkoutFields],
     wellness: [...wellnessFields, ...customWellnessFields],
-    nutrition: [] // To be implemented
+    nutrition: [...nutritionFields, ...customNutritionFields]
   }
 })

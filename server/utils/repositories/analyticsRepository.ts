@@ -161,7 +161,28 @@ export const analyticsRepository = {
         'tsb',
         'recoveryScore'
       ]),
-      nutrition: new Set()
+      nutrition: new Set([
+        'calories',
+        'protein',
+        'carbs',
+        'fat',
+        'fiber',
+        'sugar',
+        'caloriesGoal',
+        'proteinGoal',
+        'carbsGoal',
+        'fatGoal',
+        'waterMl',
+        'overallScore',
+        'macroBalanceScore',
+        'qualityScore',
+        'adherenceScore',
+        'hydrationScore',
+        'startingGlycogenPercentage',
+        'startingFluidDeficit',
+        'endingGlycogenPercentage',
+        'endingFluidDeficit'
+      ])
     }
 
     const customFields = await prisma.customFieldDefinition.findMany({
@@ -173,7 +194,7 @@ export const analyticsRepository = {
             ? 'WORKOUT'
             : options.source === 'wellness'
               ? 'WELLNESS'
-              : 'WORKOUT'
+              : 'NUTRITION'
       },
       select: { fieldKey: true }
     })
