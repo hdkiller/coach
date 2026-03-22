@@ -60,6 +60,34 @@ export const workoutRepository = {
   },
 
   /**
+   * Get workouts for multiple users (useful for coaches)
+   */
+  async getForUsers(
+    userIds: string[],
+    options: {
+      startDate?: Date
+      endDate?: Date
+      limit?: number
+      orderBy?: Prisma.WorkoutOrderByWithRelationInput
+      include?: Prisma.WorkoutInclude
+    } = {}
+  ) {
+    return prisma.workout.findMany({
+      where: {
+        userId: { in: userIds },
+        isDuplicate: false,
+        date: {
+          gte: options.startDate,
+          lte: options.endDate
+        }
+      },
+      take: options.limit,
+      orderBy: options.orderBy || { date: 'desc' },
+      include: options.include
+    })
+  },
+
+  /**
    * Get a single workout by ID, ensuring it belongs to the user
    */
   async getById(
