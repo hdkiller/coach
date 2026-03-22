@@ -7,6 +7,7 @@ import historyCommand from './history'
 import compareSourcesCommand from './compare-sources'
 import tableCommand from './table'
 import syncCommand from './sync'
+import dashboardCommand from './dashboard'
 
 const wellnessCommand = new Command('wellness').description('Wellness data debugging tools')
 
@@ -18,5 +19,6 @@ wellnessCommand.addCommand(historyCommand)
 wellnessCommand.addCommand(compareSourcesCommand)
 wellnessCommand.addCommand(tableCommand)
 wellnessCommand.addCommand(syncCommand)
+wellnessCommand.addCommand(dashboardCommand)
 
 export default wellnessCommand

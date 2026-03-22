@@ -233,13 +233,12 @@ export default defineEventHandler(async (event) => {
     const recentHRV = wellnessData?.hrv ?? null
     const recentWeight = effectiveWeight.value
     const recentBodyFat = latestBodyFatWellness?.bodyFat ?? null
-    const recentSleep = hasCurrentDayWellness
-      ? (wellnessData?.sleepHours ??
-        (wellnessData?.sleepSecs != null
-          ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
-          : null))
-      : null
-    const recentRecoveryScore = hasCurrentDayWellness ? (wellnessData?.recoveryScore ?? null) : null
+    const recentSleep =
+      wellnessData?.sleepHours ??
+      (wellnessData?.sleepSecs != null
+        ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
+        : null)
+    const recentRecoveryScore = wellnessData?.recoveryScore ?? null
     const wellnessSource = wellnessData?.lastSource || wellnessData?.source || null
     const latestWellnessDate = wellnessDate
 
@@ -254,12 +253,10 @@ export default defineEventHandler(async (event) => {
     const recentSleepAwake = wellnessData?.sleepAwakeSecs ?? null
     const recentSystolic = wellnessData?.systolic ?? null
     const recentDiastolic = wellnessData?.diastolic ?? null
-    const recentReadiness = hasCurrentDayWellness ? (wellnessData?.readiness ?? null) : null
-    const recentFatigue = hasCurrentDayWellness ? (wellnessData?.fatigue ?? null) : null
-    const recentStress = hasCurrentDayWellness
-      ? normalizeStressScore(wellnessData?.stress ?? null)
-      : null
-    const recentMood = hasCurrentDayWellness ? (wellnessData?.mood ?? null) : null
+    const recentReadiness = wellnessData?.readiness ?? null
+    const recentFatigue = wellnessData?.fatigue ?? null
+    const recentStress = normalizeStressScore(wellnessData?.stress ?? null)
+    const recentMood = wellnessData?.mood ?? null
 
     // Calculate 7-day HRV average if we have wellness data
     let avgRecentHRV = null
