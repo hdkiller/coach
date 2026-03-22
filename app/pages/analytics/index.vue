@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ANALYTICS_SYSTEM_PRESETS } from '~/utils/analytics-presets'
   import draggable from 'vuedraggable'
+  import { useDebounceFn } from '@vueuse/core'
 
   definePageMeta({
     middleware: 'auth'
@@ -16,27 +17,60 @@
     ]
   })
 
+  const router = useRouter()
+  const route = useRoute()
   const activeTab = ref(0)
   const isWidgetLibraryOpen = ref(false)
   const isFieldManagerOpen = ref(false)
   const isNewDashboardModalOpen = ref(false)
+  const isExpandedWidgetOpen = ref(false)
+  const expandedWidgetInstanceId = ref<string | null>(null)
   const newDashboardName = ref('')
   const toast = useToast()
 
   // Data fetching
-  const { data: dashboards, refresh: refreshDashboards, pending: loadingDashboards } = await useFetch('/api/analytics/dashboards')
+  const {
+    data: dashboards,
+    refresh: refreshDashboards,
+    pending: loadingDashboards
+  } = await useFetch('/api/analytics/dashboards')
   const { data: customWidgets, refresh: refreshWidgets } = await useFetch('/api/analytics/widgets')
 
   const activeDashboardId = ref<string | null>(null)
   const activeDashboard = computed(() => {
     const availableDashboards = dashboards.value || []
     if (activeDashboardId.value) {
-      return availableDashboards.find((dashboard: any) => dashboard.id === activeDashboardId.value) || null
+      return (
+        availableDashboards.find((dashboard: any) => dashboard.id === activeDashboardId.value) ||
+        null
+      )
     }
     return availableDashboards[0] || null
   })
   const dashboardWidgets = ref<any[]>([])
   const activeScope = ref({ target: 'self' })
+  const activeDateRange = ref<any>(null)
+  const datePickerOpen = ref(false)
+  const selectedRangeKey = ref<'30d' | '90d' | '180d' | 'ytd' | 'custom'>('90d')
+  const customStartDate = ref('')
+  const customEndDate = ref('')
+  const isHydratingDashboardState = ref(false)
+
+  function analyticsLog(message: string, payload?: any) {
+    console.log(`[AnalyticsDashboard] ${message}`, payload ?? '')
+  }
+
+  function beginHydration(reason: string) {
+    analyticsLog('beginHydration', reason)
+    isHydratingDashboardState.value = true
+  }
+
+  function endHydration() {
+    nextTick(() => {
+      isHydratingDashboardState.value = false
+      analyticsLog('endHydration')
+    })
+  }
 
   // Local state for draggable tabs to avoid computed property jitter
   const localTabs = ref<any[]>([])
@@ -51,25 +85,29 @@
   })
 
   // Sync localTabs whenever dashboards change (but not while dragging)
-  watch(tabs, (newTabs) => {
-    localTabs.value = [...newTabs]
-  }, { immediate: true })
+  watch(
+    tabs,
+    (newTabs) => {
+      localTabs.value = [...newTabs]
+    },
+    { immediate: true }
+  )
 
   async function onTabReorder() {
     try {
       // Find the currently active tab ID before reordering
       const currentActiveId = activeDashboardId.value
-      
+
       await $fetch('/api/analytics/dashboards/reorder', {
         method: 'POST',
-        body: { ids: localTabs.value.map(t => t.id) }
+        body: { ids: localTabs.value.map((t) => t.id) }
       })
-      
+
       await refreshDashboards()
 
       // Restore activeTab index based on the new order of the ID
       if (currentActiveId) {
-        const newIndex = localTabs.value.findIndex(t => t.id === currentActiveId)
+        const newIndex = localTabs.value.findIndex((t) => t.id === currentActiveId)
         if (newIndex !== -1) {
           activeTab.value = newIndex
         }
@@ -88,14 +126,18 @@
   })
 
   // Keep activeTab index in sync if activeDashboardId changes externally
-  watch(activeDashboardId, (newId) => {
-    if (newId) {
-      const index = tabs.value.findIndex(t => t.id === newId)
-      if (index !== -1 && index !== activeTab.value) {
-        activeTab.value = index
+  watch(
+    activeDashboardId,
+    (newId) => {
+      if (newId) {
+        const index = tabs.value.findIndex((t) => t.id === newId)
+        if (index !== -1 && index !== activeTab.value) {
+          activeTab.value = index
+        }
       }
-    }
-  }, { immediate: true })
+    },
+    { immediate: true }
+  )
 
   watch(
     dashboards,
@@ -107,33 +149,101 @@
     { immediate: true }
   )
 
-  // Load widgets from active dashboard layout (ONLY on initial load or ID change)
-  watch(() => activeDashboard.value?.id, (newId, oldId) => {
-    if (newId && activeDashboard.value?.layout) {
-      dashboardWidgets.value = (activeDashboard.value.layout as any[]).map(w => ({
-        ...w,
-        instanceId: w.instanceId || crypto.randomUUID()
-      }))
-    } else if (newId) {
-      dashboardWidgets.value = []
-    }
-  }, { immediate: true })
+  watch(
+    () => activeDashboard.value?.scope,
+    (scope) => {
+      beginHydration('scope')
+      analyticsLog('activeDashboard.scope changed', scope)
+      activeScope.value = (scope as any) || { target: 'self' }
+      endHydration()
+    },
+    { immediate: true, deep: true }
+  )
+
+  watch(
+    () => activeDashboard.value?.dateRange,
+    (dateRange) => {
+      beginHydration('dateRange')
+      analyticsLog('activeDashboard.dateRange changed', dateRange)
+      activeDateRange.value = (dateRange as any) || null
+
+      if (!dateRange) {
+        selectedRangeKey.value = '90d'
+        customStartDate.value = ''
+        customEndDate.value = ''
+        endHydration()
+        return
+      }
+
+      if (dateRange.type === 'fixed') {
+        selectedRangeKey.value = 'custom'
+        customStartDate.value = String(dateRange.startDate || '').slice(0, 10)
+        customEndDate.value = String(dateRange.endDate || '').slice(0, 10)
+        endHydration()
+        return
+      }
+
+      if (dateRange.type === 'ytd') {
+        selectedRangeKey.value = 'ytd'
+        endHydration()
+        return
+      }
+
+      selectedRangeKey.value = (dateRange.value as any) || '90d'
+      endHydration()
+    },
+    { immediate: true, deep: true }
+  )
+
+  function isRenderableWidget(entry: any) {
+    return entry && entry._meta?.type !== 'dashboard-scope'
+  }
+
+  watch(
+    () => activeDashboard.value?.layout,
+    (layout) => {
+      beginHydration('layout')
+      analyticsLog('activeDashboard.layout changed', {
+        dashboardId: activeDashboard.value?.id,
+        items: Array.isArray(layout) ? layout.length : 0
+      })
+      if (activeDashboard.value?.id && Array.isArray(layout)) {
+        dashboardWidgets.value = layout.filter(isRenderableWidget).map((widget) => ({
+          ...widget,
+          instanceId: widget.instanceId || crypto.randomUUID()
+        }))
+      } else if (activeDashboard.value?.id) {
+        dashboardWidgets.value = []
+      }
+      endHydration()
+    },
+    { immediate: true, deep: true }
+  )
 
   const saving = ref(false)
   async function saveDashboard() {
-    if (saving.value) return // Prevent concurrent saves
+    if (saving.value) {
+      analyticsLog('saveDashboard skipped because save is already in progress')
+      return
+    }
     saving.value = true
     try {
+      const payload = {
+        id: activeDashboardId.value || undefined,
+        name: activeDashboard.value?.name || 'Main Dashboard',
+        layout: dashboardWidgets.value,
+        scope: normalizeScope(activeScope.value),
+        dateRange: normalizeDateRange(activeDateRange.value)
+      }
+      analyticsLog('saveDashboard request', payload)
       const dashboard = await $fetch('/api/analytics/dashboards', {
         method: 'POST',
-        body: {
-          id: activeDashboardId.value || undefined,
-          name: activeDashboard.value?.name || 'Main Dashboard',
-          layout: dashboardWidgets.value
-        }
+        body: payload
       })
+      analyticsLog('saveDashboard response', dashboard)
       activeDashboardId.value = (dashboard as any).id
       await refreshDashboards()
+      analyticsLog('refreshDashboards completed after save')
     } catch (e) {
       console.error('Failed to save dashboard:', e)
     } finally {
@@ -152,7 +262,9 @@
         method: 'POST',
         body: {
           name: newDashboardName.value,
-          layout: []
+          layout: [],
+          scope: { target: 'self' },
+          dateRange: { type: 'rolling', value: '90d' }
         }
       })
       await refreshDashboards()
@@ -167,17 +279,73 @@
     }
   }
 
+  const debouncedSave = useDebounceFn(saveDashboard, 1000)
+
   // Auto-save layout changes
-  watch(dashboardWidgets, () => {
-    if (!loadingDashboards.value && activeDashboardId.value) {
-      saveDashboard()
-    }
-  }, { deep: true })
+  watch(
+    dashboardWidgets,
+    (newVal, oldVal) => {
+      // Only save if we have actual changes and it's not the initial load of the dashboard
+      if (isHydratingDashboardState.value) {
+        analyticsLog('dashboardWidgets watcher ignored during hydration')
+        return
+      }
+
+      if (!loadingDashboards.value && activeDashboardId.value && oldVal.length > 0) {
+        analyticsLog('dashboardWidgets watcher triggered save', {
+          widgetCount: newVal.length,
+          previousCount: oldVal.length
+        })
+        debouncedSave()
+      }
+    },
+    { deep: true }
+  )
+
+  watch(
+    activeScope,
+    () => {
+      if (isHydratingDashboardState.value) {
+        analyticsLog('activeScope watcher ignored during hydration')
+        return
+      }
+
+      if (!loadingDashboards.value && activeDashboardId.value) {
+        analyticsLog('activeScope watcher triggered save', normalizeScope(activeScope.value))
+        debouncedSave()
+      }
+    },
+    { deep: true }
+  )
+
+  watch(
+    activeDateRange,
+    () => {
+      if (isHydratingDashboardState.value) {
+        analyticsLog('activeDateRange watcher ignored during hydration')
+        return
+      }
+
+      if (!loadingDashboards.value && activeDashboardId.value) {
+        analyticsLog(
+          'activeDateRange watcher triggered save',
+          normalizeDateRange(activeDateRange.value)
+        )
+        debouncedSave()
+      }
+    },
+    { deep: true }
+  )
 
   function addWidget(widget: any) {
     const newWidget = {
       ...widget,
-      instanceId: crypto.randomUUID()
+      instanceId: crypto.randomUUID(),
+      scopeMode:
+        widget.scope && (widget.scope.target !== 'self' || widget.scope.targetIds?.length)
+          ? 'override'
+          : 'inherit',
+      timeRangeMode: widget.timeRangeMode || 'inherit'
     }
     dashboardWidgets.value.push(newWidget)
     isWidgetLibraryOpen.value = false
@@ -185,7 +353,7 @@
   }
 
   function removeWidget(instanceId: string) {
-    dashboardWidgets.value = dashboardWidgets.value.filter(w => w.instanceId !== instanceId)
+    dashboardWidgets.value = dashboardWidgets.value.filter((w) => w.instanceId !== instanceId)
     toast.add({ title: 'Widget removed', color: 'neutral' })
   }
 
@@ -196,6 +364,226 @@
       toast.add({ title: 'System presets cannot be edited', color: 'warning' })
     }
   }
+
+  function resolveWidgetScope(widget: any) {
+    if (widget.scopeMode === 'override' && widget.scope) {
+      return widget.scope
+    }
+
+    return activeScope.value
+  }
+
+  function normalizeScope(scope: any) {
+    if (!scope || scope.target === 'self') {
+      return { target: 'self' }
+    }
+
+    if (scope.target === 'athlete') {
+      return {
+        target: 'athlete',
+        targetId: scope.targetId
+      }
+    }
+
+    if (scope.target === 'athletes') {
+      return {
+        target: 'athletes',
+        targetIds: Array.isArray(scope.targetIds) ? [...scope.targetIds] : []
+      }
+    }
+
+    return {
+      target: scope.target,
+      targetId: scope.targetId
+    }
+  }
+
+  function normalizeDateRange(range: any) {
+    if (!range) return null
+
+    if (range.type === 'fixed') {
+      return {
+        type: 'fixed',
+        startDate: range.startDate,
+        endDate: range.endDate
+      }
+    }
+
+    if (range.type === 'ytd') {
+      return { type: 'ytd' }
+    }
+
+    return {
+      type: 'rolling',
+      value: range.value || '90d'
+    }
+  }
+
+  function isValidTimeRange(range: any) {
+    if (!range || typeof range !== 'object') return false
+    if (range.type === 'rolling' && range.value) return true
+    if (range.type === 'ytd') return true
+    if (range.type === 'fixed' && range.startDate && range.endDate) return true
+    return false
+  }
+
+  function resolveActiveDateRange() {
+    if (selectedRangeKey.value === 'custom' && customStartDate.value && customEndDate.value) {
+      return {
+        type: 'fixed',
+        startDate: new Date(`${customStartDate.value}T00:00:00.000Z`).toISOString(),
+        endDate: new Date(`${customEndDate.value}T23:59:59.999Z`).toISOString()
+      }
+    }
+
+    if (selectedRangeKey.value === 'ytd') {
+      return { type: 'ytd' }
+    }
+
+    return {
+      type: 'rolling',
+      value: selectedRangeKey.value
+    }
+  }
+
+  const dateRangeLabel = computed(() => {
+    if (selectedRangeKey.value === 'custom' && customStartDate.value && customEndDate.value) {
+      return `${customStartDate.value} - ${customEndDate.value}`
+    }
+
+    return selectedRangeKey.value.toUpperCase()
+  })
+
+  const expandedWidget = computed(
+    () =>
+      dashboardWidgets.value.find(
+        (widget) => widget.instanceId === expandedWidgetInstanceId.value
+      ) || null
+  )
+
+  function pinCurrentScopeToWidget(instanceId: string) {
+    dashboardWidgets.value = dashboardWidgets.value.map((widget) =>
+      widget.instanceId === instanceId
+        ? {
+            ...widget,
+            scopeMode: 'override',
+            scope: normalizeScope(activeScope.value)
+          }
+        : widget
+    )
+    toast.add({ title: 'Widget now uses its own scope', color: 'success' })
+  }
+
+  function resetWidgetScope(instanceId: string) {
+    dashboardWidgets.value = dashboardWidgets.value.map((widget) =>
+      widget.instanceId === instanceId
+        ? {
+            ...widget,
+            scopeMode: 'inherit'
+          }
+        : widget
+    )
+    toast.add({ title: 'Widget now follows the tab scope', color: 'neutral' })
+  }
+
+  function widgetMenuItems(widget: any) {
+    return [
+      {
+        label: 'Edit',
+        icon: 'i-lucide-edit',
+        onSelect: () => editWidget(widget)
+      },
+      widget.scopeMode === 'override'
+        ? {
+            label: 'Use Tab Scope',
+            icon: 'i-lucide-layers-3',
+            onSelect: () => resetWidgetScope(widget.instanceId)
+          }
+        : {
+            label: 'Pin Current Scope',
+            icon: 'i-lucide-pin',
+            onSelect: () => pinCurrentScopeToWidget(widget.instanceId)
+          },
+      {
+        label: 'Remove',
+        icon: 'i-lucide-trash',
+        color: 'error',
+        onSelect: () => removeWidget(widget.instanceId)
+      }
+    ]
+  }
+
+  function resolveWidgetTimeRange(widget: any) {
+    if (widget.timeRangeMode === 'override' && isValidTimeRange(widget.timeRange)) {
+      return widget.timeRange
+    }
+
+    if (isValidTimeRange(activeDateRange.value)) {
+      return activeDateRange.value
+    }
+
+    if (isValidTimeRange(widget.timeRange)) {
+      return widget.timeRange
+    }
+
+    return { type: 'rolling', value: '90d' }
+  }
+
+  function openExpandedWidget(widget: any) {
+    expandedWidgetInstanceId.value = widget.instanceId
+    isExpandedWidgetOpen.value = true
+  }
+
+  function applyQuickRange(range: '30d' | '90d' | '180d' | 'ytd') {
+    selectedRangeKey.value = range
+    activeDateRange.value = resolveActiveDateRange()
+    analyticsLog('applyQuickRange', {
+      selectedRangeKey: selectedRangeKey.value,
+      activeDateRange: activeDateRange.value
+    })
+  }
+
+  function activateCustomRange() {
+    const now = new Date()
+    const start = new Date()
+    start.setDate(now.getDate() - 89)
+    customStartDate.value ||= start.toISOString().slice(0, 10)
+    customEndDate.value ||= now.toISOString().slice(0, 10)
+    selectedRangeKey.value = 'custom'
+    activeDateRange.value = resolveActiveDateRange()
+    analyticsLog('activateCustomRange', {
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+      activeDateRange: activeDateRange.value
+    })
+  }
+
+  function applyCustomRange() {
+    activeDateRange.value = resolveActiveDateRange()
+    datePickerOpen.value = false
+    analyticsLog('applyCustomRange', {
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+      activeDateRange: activeDateRange.value
+    })
+  }
+
+  function closeOverlaysForNavigation() {
+    analyticsLog('closeOverlaysForNavigation', route.fullPath)
+    datePickerOpen.value = false
+    isNewDashboardModalOpen.value = false
+    isFieldManagerOpen.value = false
+    isWidgetLibraryOpen.value = false
+    isExpandedWidgetOpen.value = false
+  }
+
+  onBeforeRouteLeave(() => {
+    closeOverlaysForNavigation()
+  })
+
+  onBeforeUnmount(() => {
+    closeOverlaysForNavigation()
+  })
 </script>
 
 <template>
@@ -213,13 +601,6 @@
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
-            
-            <AnalyticsScopeSelector v-model="activeScope" />
-
-            <div v-if="saving" class="flex items-center gap-1.5 mr-2">
-              <UIcon name="i-heroicons-arrow-path" class="w-3.5 h-3.5 animate-spin text-neutral-400" />
-              <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Saving...</span>
-            </div>
           </div>
         </template>
       </UDashboardNavbar>
@@ -233,16 +614,116 @@
             <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
               Performance Intelligence
             </h1>
-            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic">
+            <p
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+            >
               {{ activeDashboard?.name || 'Custom Insights & Multi-Athlete Analytics' }}
             </p>
           </div>
+
+          <div class="flex flex-wrap items-center justify-end gap-3">
+            <AnalyticsScopeSelector v-model="activeScope" class="w-full md:w-auto" />
+
+            <UPopover v-model:open="datePickerOpen">
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-calendar-range"
+                size="sm"
+                class="font-bold"
+              >
+                <span class="hidden md:inline">{{ dateRangeLabel }}</span>
+              </UButton>
+
+              <template #content>
+                <div class="w-[320px] space-y-4 p-3">
+                  <div class="space-y-1">
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                      Tab Date Range
+                    </div>
+                    <p class="text-xs text-muted">
+                      Widgets inherit this range unless they were pinned with their own explicit
+                      date range.
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <UButton
+                      size="xs"
+                      :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
+                      color="neutral"
+                      @click="applyQuickRange('30d')"
+                      >30D</UButton
+                    >
+                    <UButton
+                      size="xs"
+                      :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
+                      color="neutral"
+                      @click="applyQuickRange('90d')"
+                      >90D</UButton
+                    >
+                    <UButton
+                      size="xs"
+                      :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
+                      color="neutral"
+                      @click="applyQuickRange('180d')"
+                      >180D</UButton
+                    >
+                    <UButton
+                      size="xs"
+                      :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
+                      color="neutral"
+                      @click="applyQuickRange('ytd')"
+                      >YTD</UButton
+                    >
+                    <UButton
+                      size="xs"
+                      :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
+                      color="neutral"
+                      @click="activateCustomRange"
+                      >Custom</UButton
+                    >
+                  </div>
+
+                  <div v-if="selectedRangeKey === 'custom'" class="grid grid-cols-2 gap-2">
+                    <UFormField label="Start">
+                      <UInput v-model="customStartDate" type="date" size="sm" />
+                    </UFormField>
+                    <UFormField label="End">
+                      <UInput v-model="customEndDate" type="date" size="sm" />
+                    </UFormField>
+                  </div>
+
+                  <div class="flex justify-end border-t border-default pt-3">
+                    <UButton size="xs" color="primary" variant="soft" @click="applyCustomRange">
+                      Apply
+                    </UButton>
+                  </div>
+                </div>
+              </template>
+            </UPopover>
+
+            <div
+              v-if="saving"
+              class="flex items-center gap-1.5 rounded-full border border-default bg-default px-3 py-2"
+            >
+              <UIcon
+                name="i-heroicons-arrow-path"
+                class="h-3.5 w-3.5 animate-spin text-neutral-400"
+              />
+              <span class="text-[10px] font-bold uppercase tracking-widest text-neutral-400"
+                >Saving...</span
+              >
+            </div>
+          </div>
         </div>
 
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+        <div
+          class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-2"
+        >
           <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-            <draggable 
-              v-model="localTabs" 
+            <draggable
+              v-model="localTabs"
               item-key="id"
               direction="horizontal"
               class="flex items-center gap-1"
@@ -274,7 +755,7 @@
               @click="isNewDashboardModalOpen = true"
             />
           </div>
-          
+
           <div class="flex items-center gap-2">
             <UButton
               color="neutral"
@@ -315,8 +796,8 @@
           </div>
 
           <div v-else-if="dashboardWidgets.length > 0">
-            <draggable 
-              v-model="dashboardWidgets" 
+            <draggable
+              v-model="dashboardWidgets"
               item-key="instanceId"
               class="grid grid-cols-1 lg:grid-cols-2 gap-6"
               handle=".drag-handle"
@@ -327,9 +808,19 @@
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2 drag-handle cursor-move">
                         <UIcon name="i-lucide-grip-vertical" class="w-4 h-4 text-neutral-400" />
-                        <h3 class="text-xs font-black uppercase tracking-widest text-neutral-500 truncate max-w-[200px]">
+                        <h3
+                          class="text-xs font-black uppercase tracking-widest text-neutral-500 truncate max-w-[200px]"
+                        >
                           {{ element.name }}
                         </h3>
+                        <UBadge
+                          v-if="element.scopeMode === 'override'"
+                          color="primary"
+                          variant="soft"
+                          size="xs"
+                        >
+                          Scoped
+                        </UBadge>
                       </div>
                       <div class="flex items-center gap-1">
                         <UButton
@@ -337,11 +828,9 @@
                           variant="ghost"
                           icon="i-lucide-maximize-2"
                           size="xs"
+                          @click="openExpandedWidget(element)"
                         />
-                        <UDropdownMenu :items="[
-                          { label: 'Edit', icon: 'i-lucide-edit', onSelect: () => editWidget(element) },
-                          { label: 'Remove', icon: 'i-lucide-trash', color: 'error', onSelect: () => removeWidget(element.instanceId) }
-                        ]">
+                        <UDropdownMenu :items="widgetMenuItems(element)">
                           <UButton
                             color="neutral"
                             variant="ghost"
@@ -352,9 +841,15 @@
                       </div>
                     </div>
                   </template>
-                  
+
                   <div class="h-[300px]">
-                    <AnalyticsBaseWidget :config="{ ...element, scope: activeScope }" />
+                    <AnalyticsBaseWidget
+                      :config="{
+                        ...element,
+                        scope: resolveWidgetScope(element),
+                        timeRange: resolveWidgetTimeRange(element)
+                      }"
+                    />
                   </div>
                 </UCard>
               </template>
@@ -362,7 +857,10 @@
           </div>
 
           <!-- Empty State -->
-          <div v-else class="py-24 text-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+          <div
+            v-else
+            class="py-24 text-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl"
+          >
             <div class="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full inline-block mb-4">
               <UIcon name="i-lucide-bar-chart-3" class="w-12 h-12 text-neutral-400" />
             </div>
@@ -371,19 +869,19 @@
               Start by adding a system chart or build your own custom visualization.
             </p>
             <div class="flex items-center justify-center gap-3">
-              <UButton 
-                color="neutral" 
-                variant="outline" 
-                size="lg" 
-                label="Add System Chart" 
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="lg"
+                label="Add System Chart"
                 icon="i-lucide-plus"
                 @click="isWidgetLibraryOpen = true"
               />
-              <UButton 
-                color="primary" 
-                variant="solid" 
-                size="lg" 
-                label="Create Custom Chart" 
+              <UButton
+                color="primary"
+                variant="solid"
+                size="lg"
+                label="Create Custom Chart"
                 icon="i-lucide-gavel"
                 to="/analytics/builder"
               />
@@ -391,13 +889,17 @@
           </div>
         </div>
 
-        <div v-else-if="!loadingDashboards && !tabs.length" class="py-24 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-3xl">
+        <div
+          v-else-if="!loadingDashboards && !tabs.length"
+          class="py-24 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-3xl"
+        >
           <div class="bg-neutral-100 dark:bg-neutral-800 p-8 rounded-full inline-block mb-6">
             <UIcon name="i-lucide-layout" class="w-16 h-16 text-neutral-400" />
           </div>
           <h2 class="text-3xl font-black uppercase tracking-tight mb-2">No Dashboards Yet</h2>
           <p class="text-neutral-500 max-w-md mx-auto mb-8 italic">
-            Dashboards allow you to organize your performance insights. Create your first one to get started.
+            Dashboards allow you to organize your performance insights. Create your first one to get
+            started.
           </p>
           <UButton
             color="primary"
@@ -421,12 +923,29 @@
   >
     <template #body>
       <UFormField label="Dashboard Name" help="e.g., Seasonal Peaks, Recovery Hub, Team Overview">
-        <UInput v-model="newDashboardName" placeholder="Enter name..." class="w-full" autofocus @keyup.enter="createDashboard" />
+        <UInput
+          v-model="newDashboardName"
+          placeholder="Enter name..."
+          class="w-full"
+          autofocus
+          @keyup.enter="createDashboard"
+        />
       </UFormField>
     </template>
     <template #footer>
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="isNewDashboardModalOpen = false" />
-      <UButton label="Create Dashboard" color="primary" variant="solid" :loading="creatingDashboard" @click="createDashboard" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="isNewDashboardModalOpen = false"
+      />
+      <UButton
+        label="Create Dashboard"
+        color="primary"
+        variant="solid"
+        :loading="creatingDashboard"
+        @click="createDashboard"
+      />
     </template>
   </UModal>
 
@@ -455,7 +974,11 @@
       <div class="space-y-8">
         <!-- Custom Widgets Section -->
         <div v-if="customWidgets?.length" class="space-y-2">
-          <h4 class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic text-primary-500">My Visualizations</h4>
+          <h4
+            class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic text-primary-500"
+          >
+            My Visualizations
+          </h4>
           <div class="grid grid-cols-1 gap-3">
             <UButton
               v-for="widget in customWidgets"
@@ -469,7 +992,9 @@
                 <UIcon name="i-lucide-gavel" class="w-5 h-5 text-primary-500" />
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate">
+                <p
+                  class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
+                >
                   {{ widget.name }}
                 </p>
                 <p class="text-[10px] text-neutral-500 font-medium uppercase tracking-tighter">
@@ -482,7 +1007,9 @@
         </div>
 
         <div class="space-y-2">
-          <h4 class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic">System Presets</h4>
+          <h4 class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic">
+            System Presets
+          </h4>
           <div class="grid grid-cols-1 gap-3">
             <UButton
               v-for="preset in ANALYTICS_SYSTEM_PRESETS"
@@ -493,11 +1020,20 @@
               @click="addWidget(preset)"
             >
               <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
-                <UIcon :name="preset.type === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'" class="w-5 h-5 text-primary-500" />
+                <UIcon
+                  :name="preset.type === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'"
+                  class="w-5 h-5 text-primary-500"
+                />
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate">{{ preset.name }}</p>
-                <p class="text-[10px] text-neutral-500 font-normal line-clamp-1">{{ preset.description }}</p>
+                <p
+                  class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
+                >
+                  {{ preset.name }}
+                </p>
+                <p class="text-[10px] text-neutral-500 font-normal line-clamp-1">
+                  {{ preset.description }}
+                </p>
               </div>
               <UIcon name="i-lucide-plus" class="w-4 h-4 text-neutral-400 self-center" />
             </UButton>
@@ -507,6 +1043,33 @@
     </template>
     <template #footer>
       <UButton label="Close" color="neutral" variant="ghost" @click="isWidgetLibraryOpen = false" />
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="isExpandedWidgetOpen"
+    :title="expandedWidget?.name || 'Expanded Chart'"
+    :description="expandedWidget?.description || 'Detailed widget preview.'"
+    :ui="{ content: 'sm:max-w-5xl' }"
+  >
+    <template #body>
+      <div v-if="expandedWidget" class="h-[70vh] min-h-[520px]">
+        <AnalyticsBaseWidget
+          :config="{
+            ...expandedWidget,
+            scope: resolveWidgetScope(expandedWidget),
+            timeRange: resolveWidgetTimeRange(expandedWidget)
+          }"
+        />
+      </div>
+    </template>
+    <template #footer>
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="isExpandedWidgetOpen = false"
+      />
     </template>
   </UModal>
 </template>
