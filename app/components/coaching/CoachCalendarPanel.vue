@@ -14,7 +14,7 @@
               Athlete
             </div>
             <USelectMenu
-              :model-value="selectedAthleteId"
+              :model-value="selectedAthleteId ?? undefined"
               value-key="value"
               :items="athleteOptions"
               :placeholder="placeholder || 'Choose athlete'"

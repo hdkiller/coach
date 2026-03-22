@@ -18,6 +18,8 @@
     { immediate: true }
   )
 
+  provide('isTReady', isTReady)
+
   const config = useRuntimeConfig()
   const { data, refresh } = useAuth()
   const { logout } = useAppLogout()
@@ -199,7 +201,38 @@
         }
       },
       {
-        label: ready ? t.value('navigation_coaching') : 'Coaching',
+        label: ready ? t.value('navigation_chat') : 'AI Chat',
+        icon: 'i-lucide-message-circle',
+        to: '/chat',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
+        label: 'Library',
+        icon: 'i-lucide-library',
+        defaultOpen: route.path.includes('library'),
+        children: [
+          {
+            label: 'Workouts',
+            icon: 'i-lucide-activity',
+            to: '/library/workouts',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Plans',
+            icon: 'i-lucide-scroll-text',
+            to: '/library/plans',
+            onSelect: () => {
+              open.value = false
+            }
+          }
+        ]
+      },
+      {
+        label: 'Coaching',
         icon: 'i-lucide-users',
         defaultOpen: route.path.startsWith('/coaching'),
         children: [
@@ -229,40 +262,25 @@
             }
           },
           {
-            label: 'Team',
-            icon: 'i-lucide-building-2',
-            to: '/coaching/team',
-            onSelect: () => {
-              open.value = false
-            }
-          }
-        ]
-      },
-      {
-        label: ready ? t.value('navigation_chat') : 'AI Chat',
-        icon: 'i-lucide-message-circle',
-        to: '/chat',
-        onSelect: () => {
-          open.value = false
-        }
-      },
-      {
-        label: 'Library',
-        icon: 'i-lucide-library',
-        defaultOpen: route.path.includes('library'),
-        children: [
-          {
-            label: 'Workouts',
-            icon: 'i-lucide-activity',
-            to: '/library/workouts',
+            label: 'Analytics',
+            icon: 'i-lucide-bar-chart-3',
+            to: '/analytics',
             onSelect: () => {
               open.value = false
             }
           },
           {
-            label: 'Plans',
-            icon: 'i-lucide-scroll-text',
-            to: '/library/plans',
+            label: 'Charts',
+            icon: 'i-lucide-area-chart',
+            to: '/analytics/browse',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Team',
+            icon: 'i-lucide-building-2',
+            to: '/coaching/team',
             onSelect: () => {
               open.value = false
             }

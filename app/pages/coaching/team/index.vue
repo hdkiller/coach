@@ -1,9 +1,12 @@
 <template>
   <UDashboardPanel id="coaching-team">
     <template #header>
-      <UDashboardNavbar title="My Team">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex items-center gap-2">

@@ -1,9 +1,12 @@
 <template>
   <UDashboardPanel id="coaching-dashboard">
     <template #header>
-      <UDashboardNavbar title="Coaching Dashboard">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex items-center gap-2">
@@ -33,17 +36,8 @@
           <!-- Quick Actions Utility Bar -->
           <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
             <UButton
-              color="neutral"
-              variant="subtle"
-              icon="i-lucide-calendar-days"
-              label="Calendar"
-              size="sm"
-              class="font-bold whitespace-nowrap"
-              to="/coaching/calendar"
-            />
-            <UButton
-              color="neutral"
-              variant="subtle"
+              color="primary"
+              variant="solid"
               icon="i-lucide-user-plus"
               label="Add Athlete"
               size="sm"
@@ -54,7 +48,7 @@
               color="neutral"
               variant="subtle"
               icon="i-lucide-library"
-              label="Library"
+              label="Workouts"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/library/workouts"
@@ -63,7 +57,7 @@
               color="neutral"
               variant="subtle"
               icon="i-lucide-scroll-text"
-              label="Templates"
+              label="Plans"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/library/plans"

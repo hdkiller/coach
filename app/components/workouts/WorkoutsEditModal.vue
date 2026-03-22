@@ -277,6 +277,45 @@
             </div>
           </section>
 
+          <!-- Section: Custom Metrics -->
+          <section v-if="customFieldDefinitions.length > 0" class="space-y-4">
+            <div
+              class="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-2"
+            >
+              <UIcon name="i-heroicons-puzzle-piece" class="w-4 h-4 text-primary" />
+              <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                Custom Metrics
+              </h4>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <UFormField 
+                v-for="field in customFieldDefinitions" 
+                :key="field.id" 
+                :label="field.label"
+                :help="field.unit ? `Unit: ${field.unit}` : undefined"
+              >
+                <UInput 
+                  v-if="field.dataType === 'NUMBER'"
+                  v-model.number="customMetrics[field.fieldKey]"
+                  type="number"
+                  class="w-full"
+                  size="lg"
+                />
+                <UInput 
+                  v-else-if="field.dataType === 'STRING'"
+                  v-model="customMetrics[field.fieldKey]"
+                  class="w-full"
+                  size="lg"
+                />
+                <UCheckbox 
+                  v-else-if="field.dataType === 'BOOLEAN'"
+                  v-model="customMetrics[field.fieldKey]"
+                />
+              </UFormField>
+            </div>
+          </section>
+
           <!-- Section: Additional Info -->
           <section class="space-y-4">
             <div
@@ -390,6 +429,8 @@
   const durationMinutes = ref(0)
   const durationSeconds = ref(0)
   const localTags = ref<string[]>([])
+  const customMetrics = ref<Record<string, any>>({})
+  const customFieldDefinitions = ref<any[]>([])
 
   const activityOptions = [
     { label: 'Cycling', value: 'Ride' },
@@ -468,10 +509,23 @@
         }
 
         localTags.value = [...splitWorkoutTags(newWorkout.tags).local]
+        customMetrics.value = newWorkout.customMetrics ? { ...newWorkout.customMetrics } : {}
+
+        // Fetch Custom Field Definitions
+        fetchCustomFields()
       }
     },
     { immediate: true }
   )
+
+  async function fetchCustomFields() {
+    try {
+      const fieldsData = await $fetch('/api/analytics/fields/definitions')
+      customFieldDefinitions.value = (fieldsData as any[]).filter(f => f.entityType === 'WORKOUT')
+    } catch (e) {
+      console.error('Failed to fetch custom fields:', e)
+    }
+  }
 
   function estimateTSS() {
     const totalMinutes =
@@ -560,7 +614,8 @@
           trainingLoad: state.trainingLoad,
           tss: state.trainingLoad, // Sync both for compatibility
           calories: state.calories,
-          elevationGain: state.elevationGain
+          elevationGain: state.elevationGain,
+          customMetrics: customMetrics.value
         }
       })
 

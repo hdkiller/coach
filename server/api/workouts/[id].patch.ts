@@ -22,7 +22,8 @@ const patchSchema = z.object({
   elevationGain: z.number().int().optional().nullable(),
   addTags: z.array(z.string()).optional(),
   removeTags: z.array(z.string()).optional(),
-  setLocalTags: z.array(z.string()).optional()
+  setLocalTags: z.array(z.string()).optional(),
+  customMetrics: z.record(z.any()).optional()
 })
 
 defineRouteMeta({
@@ -112,7 +113,8 @@ export default defineEventHandler(async (event) => {
     elevationGain,
     addTags,
     removeTags,
-    setLocalTags
+    setLocalTags,
+    customMetrics
   } = body
 
   // Ensure workout belongs to user
@@ -136,6 +138,7 @@ export default defineEventHandler(async (event) => {
   if (tss !== undefined) updateData.tss = tss
   if (calories !== undefined) updateData.calories = calories
   if (elevationGain !== undefined) updateData.elevationGain = elevationGain
+  if (customMetrics !== undefined) updateData.customMetrics = customMetrics
 
   if (hasProtectedIntervalsTags(addTags) || hasProtectedIntervalsTags(removeTags)) {
     throw createError({

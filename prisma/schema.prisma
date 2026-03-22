@@ -161,6 +161,9 @@ model User {
   groupMemberships                   AthleteGroupMember[]         @relation("AthleteGroupMemberships")
   teamMemberships                    TeamMember[]
   ownedTeams                         Team[]                       @relation("TeamOwner")
+  dashboards                         Dashboard[]
+  widgets                            Widget[]
+  customFieldDefinitions             CustomFieldDefinition[]
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -564,6 +567,7 @@ model Workout {
   completenessScore               Int?
   duplicateOf                     String?
   isDuplicate                     Boolean           @default(false)
+  customMetrics                   Json?             @default("{}")
   notes                           String?
   notesUpdatedAt                  DateTime?
   plannedWorkoutId                String?
@@ -900,8 +904,10 @@ model Wellness {
   spO2             Float?
   ctl              Float?
   atl              Float?
+  tsb              Float?
   comments         String?
   rawJson          Json?
+  customMetrics    Json?     @default("{}")
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   abdomen          Float?
@@ -2022,8 +2028,11 @@ model BodyMeasurementEntry {
   sourceRefType String?
   sourceRefId   String?
   notes         String?
-  isDeleted     Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  isDuplicate     Boolean          @default(false)
+  isDeleted       Boolean          @default(false)
+  customMetrics   Json?            @default("{}")
+  createdAt       DateTime         @default(now())
+
   updatedAt     DateTime @updatedAt
 
   @@index([userId, metricKey, recordedAt(sort: Desc)])
@@ -2138,4 +2147,50 @@ model TeamInvite {
 
   @@index([teamId])
   @@index([code])
+}
+
+model CustomFieldDefinition {
+  id          String   @id @default(uuid())
+  ownerId     String   // The User who defined this field
+  entityType  String   // "WELLNESS" | "WORKOUT"
+  fieldKey    String   // The key in the JSONB object
+  label       String   // Display name
+  dataType    String   // "NUMBER" | "BOOLEAN" | "STRING"
+  unit        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@unique([ownerId, entityType, fieldKey])
+}
+
+model Dashboard {
+  id        String   @id @default(uuid())
+  ownerId   String
+  name      String
+  layout    Json     // [{ widgetId: string, x: number, y: number, w: number, h: number }]
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  widgets   Widget[]
+
+  @@index([ownerId])
+  @@index([ownerId, order])
+}
+
+model Widget {
+  id          String    @id @default(uuid())
+  ownerId     String
+  dashboardId String?
+  name        String
+  config      Json      // The AQL configuration
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  dashboard   Dashboard? @relation(fields: [dashboardId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([dashboardId])
 }

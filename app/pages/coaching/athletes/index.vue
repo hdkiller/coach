@@ -1,36 +1,18 @@
 <template>
   <UDashboardPanel id="coaching-athletes">
     <template #header>
-      <UDashboardNavbar title="Athletes">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex items-center gap-2">
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
-            <UButton
-              v-if="athletes.length > 0"
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-calendar-days"
-              size="sm"
-              class="font-bold"
-              to="/coaching/calendar"
-            >
-              Calendar
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-user-group"
-              size="sm"
-              class="font-bold"
-              to="/coaching/team"
-            >
-              Team
-            </UButton>
             <UButton
               color="primary"
               variant="solid"

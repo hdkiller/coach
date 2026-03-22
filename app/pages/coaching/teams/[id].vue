@@ -1,14 +1,20 @@
 <template>
   <UDashboardPanel id="team-dashboard">
     <template #header>
-      <UDashboardNavbar :title="team?.name || 'Team Dashboard'">
+      <UDashboardNavbar>
         <template #leading>
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-arrow-left"
-            to="/coaching/team"
-          />
+          <div class="flex items-center gap-1">
+            <UDashboardSidebarCollapse />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-arrow-left"
+              to="/coaching/team"
+            />
+          </div>
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex items-center gap-2">

@@ -1,15 +1,21 @@
 <template>
   <UDashboardPanel id="athlete-detail">
     <template #header>
-      <UDashboardNavbar :title="athleteName">
+      <UDashboardNavbar>
         <template #leading>
-          <UButton
-            icon="i-heroicons-arrow-left"
-            color="gray"
-            variant="ghost"
-            to="/coaching/athletes"
-            class="mr-2"
-          />
+          <div class="flex items-center gap-1">
+            <UDashboardSidebarCollapse />
+            <UButton
+              icon="i-heroicons-arrow-left"
+              color="gray"
+              variant="ghost"
+              to="/coaching/athletes"
+              class="mr-2"
+            />
+          </div>
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex items-center gap-2">

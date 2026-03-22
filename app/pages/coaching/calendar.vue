@@ -1,12 +1,12 @@
 <template>
   <UDashboardPanel id="coaching-calendar">
     <template #header>
-      <UDashboardNavbar title="Coaching Calendar">
+      <UDashboardNavbar>
         <template #leading>
-          <div class="flex items-center gap-1">
-            <UDashboardSidebarCollapse />
-            <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" to="/coaching" />
-          </div>
+          <UDashboardSidebarCollapse />
+        </template>
+        <template #title>
+          <CoachingNavbarLinks />
         </template>
         <template #right>
           <div class="flex flex-wrap items-center justify-end gap-2">
@@ -91,14 +91,15 @@
             >
               <button
                 v-for="rel in filteredAthletes"
-                :key="rel.athlete.id"
+                :key="rel.athleteId"
                 class="w-full rounded-2xl border p-3 text-left transition hover:border-primary/50"
                 :class="
-                  primaryAthleteId === rel.athlete.id || secondaryAthleteId === rel.athlete.id
+                  (primaryAthleteId && primaryAthleteId === rel.athleteId) ||
+                  (secondaryAthleteId && secondaryAthleteId === rel.athleteId)
                     ? 'border-primary/60 bg-primary/5'
                     : 'border-default/70 bg-default'
                 "
-                @click="setPrimaryAthlete(rel.athlete.id)"
+                @click="setPrimaryAthlete(rel.athleteId)"
               >
                 <div class="flex items-center gap-3">
                   <UAvatar :src="rel.athlete.image" :alt="rel.athlete.name" size="md" />
@@ -111,18 +112,18 @@
                 <div class="mt-3 flex items-center gap-2">
                   <UButton
                     size="xs"
-                    :color="primaryAthleteId === rel.athlete.id ? 'primary' : 'neutral'"
-                    :variant="primaryAthleteId === rel.athlete.id ? 'solid' : 'soft'"
-                    @click.stop="setPrimaryAthlete(rel.athlete.id)"
+                    :color="primaryAthleteId === rel.athleteId ? 'primary' : 'neutral'"
+                    :variant="primaryAthleteId === rel.athleteId ? 'solid' : 'soft'"
+                    @click.stop="setPrimaryAthlete(rel.athleteId)"
                   >
                     Primary
                   </UButton>
                   <UButton
                     size="xs"
-                    :color="secondaryAthleteId === rel.athlete.id ? 'primary' : 'neutral'"
-                    :variant="secondaryAthleteId === rel.athlete.id ? 'solid' : 'soft'"
-                    :disabled="!isSplitView && secondaryAthleteId !== rel.athlete.id"
-                    @click.stop="setSecondaryAthlete(rel.athlete.id)"
+                    :color="secondaryAthleteId === rel.athleteId ? 'primary' : 'neutral'"
+                    :variant="secondaryAthleteId === rel.athleteId ? 'solid' : 'soft'"
+                    :disabled="!isSplitView && secondaryAthleteId !== rel.athleteId"
+                    @click.stop="setSecondaryAthlete(rel.athleteId)"
                   >
                     Compare
                   </UButton>
@@ -476,10 +477,10 @@
   })
 
   const primaryAthlete = computed(
-    () => athletes.value.find((rel) => rel.athlete.id === primaryAthleteId.value)?.athlete || null
+    () => athletes.value.find((rel) => rel.athleteId === primaryAthleteId.value)?.athlete || null
   )
   const secondaryAthlete = computed(
-    () => athletes.value.find((rel) => rel.athlete.id === secondaryAthleteId.value)?.athlete || null
+    () => athletes.value.find((rel) => rel.athleteId === secondaryAthleteId.value)?.athlete || null
   )
   const filteredAthletes = computed(() => {
     const query = athleteSearch.value.trim().toLowerCase()
@@ -491,16 +492,16 @@
   const athletePickerOptions = computed(() =>
     athletes.value.map((rel) => ({
       label: rel.athlete.name,
-      value: rel.athlete.id,
+      value: rel.athleteId,
       avatar: rel.athlete.image ? { src: rel.athlete.image, alt: rel.athlete.name } : undefined
     }))
   )
   const comparisonAthletePickerOptions = computed(() =>
     athletes.value
-      .filter((rel) => rel.athlete.id !== primaryAthleteId.value)
+      .filter((rel) => rel.athleteId !== primaryAthleteId.value)
       .map((rel) => ({
         label: rel.athlete.name,
-        value: rel.athlete.id,
+        value: rel.athleteId,
         avatar: rel.athlete.image ? { src: rel.athlete.image, alt: rel.athlete.name } : undefined
       }))
   )
@@ -577,15 +578,15 @@
         typeof route.query.athlete === 'string' ? route.query.athlete : null
       if (
         requestedAthleteId &&
-        athletes.value.some((rel) => rel.athlete.id === requestedAthleteId)
+        athletes.value.some((rel) => rel.athleteId === requestedAthleteId)
       ) {
         setPrimaryAthlete(requestedAthleteId)
       }
-      if (!primaryAthleteId.value && athletes.value[0]?.athlete?.id) {
-        setPrimaryAthlete(athletes.value[0].athlete.id)
+      if (!primaryAthleteId.value && athletes.value[0]?.athleteId) {
+        setPrimaryAthlete(athletes.value[0].athleteId)
       }
-      if (!secondaryAthleteId.value && athletes.value[1]?.athlete?.id) {
-        setSecondaryAthlete(athletes.value[1].athlete.id)
+      if (!secondaryAthleteId.value && athletes.value[1]?.athleteId) {
+        setSecondaryAthlete(athletes.value[1].athleteId)
       }
     } catch (error) {
       toast.add({ title: 'Failed to load athletes', color: 'error' })
@@ -600,7 +601,7 @@
     }
     if (!secondaryAthleteId.value || secondaryAthleteId.value === primaryAthleteId.value) {
       const fallback =
-        athletes.value.find((rel) => rel.athlete.id !== primaryAthleteId.value)?.athlete?.id || null
+        athletes.value.find((rel) => rel.athleteId !== primaryAthleteId.value)?.athleteId || null
       if (fallback) {
         setSecondaryAthlete(fallback)
       }
@@ -907,7 +908,7 @@
   watch(primaryAthleteId, (nextPrimary) => {
     if (!nextPrimary || secondaryAthleteId.value !== nextPrimary) return
     const fallback =
-      athletes.value.find((rel) => rel.athlete.id !== nextPrimary)?.athlete?.id || null
+      athletes.value.find((rel) => rel.athleteId !== nextPrimary)?.athleteId || null
     secondaryAthleteId.value = fallback
   })
 

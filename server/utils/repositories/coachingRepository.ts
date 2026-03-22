@@ -124,7 +124,12 @@ export const coachingRepository = {
         return {
           ...rel,
           athlete: {
-            ...rel.athlete,
+            id: rel.athlete.id,
+            name: rel.athlete.name,
+            email: rel.athlete.email,
+            image: rel.athlete.image,
+            currentFitnessScore: rel.athlete.currentFitnessScore,
+            profileLastUpdated: rel.athlete.profileLastUpdated,
             performanceSummary: {
               currentCTL: performanceSummary.ctl,
               currentATL: performanceSummary.atl,
