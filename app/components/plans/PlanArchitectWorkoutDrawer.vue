@@ -34,7 +34,7 @@
           </div>
           <div class="hidden min-w-0 sm:block">
             <div class="text-[10px] font-black uppercase tracking-[0.22em] text-primary/80">
-              Library Drawer
+              Workouts Drawer
             </div>
             <div class="truncate text-base font-semibold text-highlighted sm:text-sm">
               Drag items from {{ selectedFolderLabel.toLowerCase() }}
@@ -71,8 +71,8 @@
                   variant="ghost"
                   icon="i-heroicons-ellipsis-horizontal"
                   class="h-9 w-9 shrink-0 justify-center rounded-xl p-0"
-                  title="Library actions"
-                  aria-label="Library actions"
+                  title="Workout actions"
+                  aria-label="Workout actions"
                 />
               </UDropdownMenu>
             </div>
@@ -199,15 +199,9 @@
               <span class="truncate">{{ selectedFolderLabel }}</span>
             </UButton>
 
-            <UInput
-              v-model="localSearch"
-              placeholder="Search items..."
-              size="sm"
-              icon="i-heroicons-magnifying-glass"
-              class="min-w-[220px] flex-1"
-            />
+            <div class="mx-1 h-6 w-px shrink-0 bg-default/70" />
 
-            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar">
               <UTooltip text="All Types">
                 <UButton
                   size="xs"
@@ -228,125 +222,87 @@
                   @click="selectedType = type.value"
                 />
               </UTooltip>
-            </div>
 
-            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <div class="mx-1 h-6 w-px shrink-0 bg-default/70" />
+
               <UButton
                 v-for="range in durationRanges"
                 :key="range.label"
                 size="xs"
                 :color="selectedDuration === range.value ? 'primary' : 'neutral'"
                 :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
-                class="h-8 shrink-0 rounded-xl px-2 text-[10px] font-bold uppercase tracking-wider"
+                class="h-8 shrink-0 rounded-xl px-3 text-[10px] font-bold uppercase tracking-wider"
                 @click="selectedDuration = range.value"
               >
                 {{ range.label }}
               </UButton>
             </div>
 
-            <div class="flex shrink-0 items-center gap-1">
+            <div class="flex items-center gap-2 pl-2">
               <UButton
                 size="xs"
-                color="primary"
-                variant="soft"
+                color="neutral"
+                variant="ghost"
                 icon="i-heroicons-plus"
-                class="h-8 w-8 justify-center p-0"
-                title="New workout"
-                aria-label="New workout"
+                class="h-8 w-8 shrink-0 justify-center rounded-xl p-0"
+                title="Create item"
                 @click="openCreateModal('workout')"
               />
               <UButton
                 size="xs"
                 color="neutral"
-                variant="soft"
-                icon="i-heroicons-document-text"
-                class="h-8 w-8 justify-center p-0"
-                title="New note"
-                aria-label="New note"
-                @click="openCreateModal('note')"
-              />
-              <UButton
-                to="/library/workouts"
-                size="xs"
-                color="neutral"
                 variant="ghost"
-                icon="i-heroicons-arrow-top-right-on-square"
-                class="h-8 w-8 justify-center p-0"
-                title="Open workout library"
-                aria-label="Open workout library"
+                :icon="open ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+                class="h-8 w-8 shrink-0 justify-center rounded-xl p-0"
+                @click="$emit('toggle')"
               />
             </div>
           </div>
 
-          <div v-if="!isRailSurface" class="flex flex-col gap-2.5 sm:hidden">
-            <div class="flex items-center gap-2">
-              <div class="flex min-w-0 flex-1 items-center gap-2">
-                <UButton
-                  size="xs"
-                  :color="selectedScope === 'all' ? 'primary' : 'neutral'"
-                  :variant="selectedScope === 'all' ? 'solid' : 'ghost'"
-                  icon="i-heroicons-squares-2x2"
-                  class="h-9 shrink-0 justify-center rounded-xl px-3"
-                  :disabled="librarySource === 'all'"
-                  @click="setSelectedScope('all')"
+          <!-- Mobile Toolbar -->
+          <div class="flex flex-col gap-3 sm:hidden">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
                 >
-                  All
-                </UButton>
-
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  icon="i-heroicons-folder-open"
-                  class="min-w-0 flex-1 justify-start rounded-xl px-3 h-9"
-                  :disabled="librarySource === 'all'"
-                  @click="showFolderPicker = true"
-                >
-                  <span class="truncate">{{ selectedFolderLabel }}</span>
-                </UButton>
+                  <UIcon name="i-heroicons-rectangle-stack" class="h-4 w-4" />
+                </div>
+                <div class="text-sm font-bold text-highlighted">Workouts</div>
               </div>
 
-              <div class="flex shrink-0 items-center gap-1">
+              <div class="flex items-center gap-1">
                 <UButton
-                  size="xs"
+                  size="sm"
                   color="neutral"
                   variant="ghost"
                   icon="i-heroicons-magnifying-glass"
-                  class="h-9 w-9 justify-center rounded-xl p-0"
-                  :title="mobileSearchOpen ? 'Hide search' : 'Show search'"
-                  :aria-label="mobileSearchOpen ? 'Hide search' : 'Show search'"
+                  class="h-9 w-9 rounded-xl p-0"
                   @click="mobileSearchOpen = !mobileSearchOpen"
                 />
                 <UButton
-                  size="xs"
-                  color="primary"
-                  variant="soft"
-                  icon="i-heroicons-plus"
-                  class="h-9 w-9 justify-center rounded-xl p-0"
-                  title="New workout"
-                  aria-label="New workout"
-                  @click="openCreateModal('workout')"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-folder-open"
+                  class="h-9 w-9 rounded-xl p-0"
+                  @click="showFolderPicker = true"
                 />
-
                 <UDropdownMenu :items="mobileActionMenuItems" :content="{ align: 'end' }">
                   <UButton
-                    size="xs"
+                    size="sm"
                     color="neutral"
-                    variant="soft"
+                    variant="ghost"
                     icon="i-heroicons-ellipsis-horizontal"
-                    class="h-9 w-9 justify-center rounded-xl p-0"
-                    title="More actions"
-                    aria-label="More actions"
+                    class="h-9 w-9 rounded-xl p-0"
                   />
                 </UDropdownMenu>
-
                 <UButton
-                  size="xs"
+                  size="sm"
                   color="neutral"
                   variant="ghost"
                   :icon="open ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
-                  class="h-9 w-9 justify-center rounded-xl p-0"
-                  :title="open ? 'Collapse drawer' : 'Expand drawer'"
+                  class="h-9 w-9 rounded-xl p-0"
                   :aria-label="open ? 'Collapse drawer' : 'Expand drawer'"
                   @click.stop="$emit('toggle')"
                 />
@@ -410,7 +366,7 @@
             v-else-if="error"
             color="warning"
             variant="soft"
-            title="Library unavailable"
+            title="Workouts unavailable"
             description="Workout templates failed to load."
           />
 
@@ -443,7 +399,7 @@
                     v-if="librarySource === 'all' && template.ownerScope"
                     class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary/80"
                   >
-                    {{ template.ownerScope === 'coach' ? 'Coach library' : 'Athlete library' }}
+                    {{ template.ownerScope === 'coach' ? 'Coach workouts' : 'Athlete workouts' }}
                   </div>
                   <div
                     v-if="template.description"
@@ -453,69 +409,41 @@
                   </div>
                 </div>
 
-                <div class="flex items-start gap-2 shrink-0">
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    icon="i-heroicons-arrow-top-right-on-square"
-                    class="h-7 w-7 p-0 opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover/card:opacity-100"
-                    title="View Details"
-                    @click.stop="previewTemplateId = template.id"
-                  />
-                  <MiniWorkoutChart
-                    v-if="template.structuredWorkout && !isNoteTemplate(template)"
-                    :workout="template"
-                    class="mt-0.5 h-8 w-14 opacity-80 sm:h-8 sm:w-12 sm:opacity-75"
-                  />
-                </div>
-              </div>
-
-              <div
-                class="mt-3 flex items-center justify-between gap-3 text-[11px] text-muted sm:mt-4"
-              >
-                <div class="flex items-center gap-2.5 sm:gap-3">
-                  <span v-if="isNoteTemplate(template)">Note</span>
-                  <template v-else>
-                    <span>{{ formatMinutes(Math.round((template.durationSec || 0) / 60)) }}</span>
-                    <span>{{ Math.round(template.tss || 0) }} TSS</span>
-                  </template>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                  <UDropdownMenu
-                    v-if="scheduleMenuItems(template).length"
-                    :items="scheduleMenuItems(template)"
-                    :content="{ align: 'end' }"
-                    class="sm:hidden"
-                  >
+                <div class="flex flex-col items-end gap-2">
+                  <UDropdownMenu :items="scheduleMenuItems(template)" :content="{ align: 'end' }">
                     <UButton
                       size="xs"
                       color="primary"
                       variant="soft"
                       icon="i-heroicons-plus"
-                      class="h-7 w-7 items-center justify-center p-0"
+                      class="h-8 w-8 rounded-xl p-0 opacity-0 transition-opacity group-hover/card:opacity-100 sm:h-7 sm:w-7"
                       title="Add to calendar"
-                      aria-label="Add to calendar"
                       @click.stop
                     />
                   </UDropdownMenu>
-                  <UButton
-                    v-if="!template.structuredWorkout && !isNoteTemplate(template)"
-                    size="xs"
-                    color="primary"
-                    variant="ghost"
-                    icon="i-heroicons-sparkles"
-                    class="h-7 w-7 p-0 sm:h-6 sm:w-6"
-                    title="Generate Structure"
-                    :loading="generatingId === template.id"
-                    @click.stop="generateTemplateStructure(template.id)"
-                  />
-                  <UIcon
-                    :name="getWorkoutIcon(template.type)"
-                    class="h-[18px] w-[18px] shrink-0 text-primary sm:h-4 sm:w-4"
-                  />
+
+                  <div class="text-right">
+                    <div class="text-[13px] font-black text-highlighted sm:text-xs">
+                      {{ formatMinutes((template.durationSec || 0) / 60) }}
+                    </div>
+                    <div
+                      v-if="template.tss"
+                      class="text-[10px] font-bold uppercase tracking-wider text-muted sm:text-[9px]"
+                    >
+                      {{ template.tss }} TSS
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              <div
+                v-if="template.structuredWorkout?.steps"
+                class="mt-3.5 overflow-hidden rounded-xl border border-default/60 bg-default sm:mt-3"
+              >
+                <MiniWorkoutChart
+                  :steps="template.structuredWorkout.steps"
+                  class="h-14 w-full sm:h-12"
+                />
               </div>
             </div>
           </div>
@@ -525,86 +453,30 @@
   </div>
 
   <WorkoutTemplatePreviewModal
-    v-model:template-id="previewTemplateId"
+    v-model:open="previewTemplateId"
+    :template-id="previewTemplateId!"
     :template-owner-scope="
       normalizedTemplates.find((item) => item.id === previewTemplateId)?.ownerScope
     "
     @view="onPreviewViewDetails"
   />
 
-  <UModal
-    v-if="!isMobileFolderPicker"
+  <LibraryScopeModal
     v-model:open="showFolderPicker"
+    mode="workout"
     title="Choose Folder"
-    description="Choose the library source and folder scope for this rail."
-  >
-    <template #body>
-      <div class="space-y-4 p-4">
-        <div v-if="isCoachingMode" class="space-y-1">
-          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-            Library source
-          </div>
-          <USelectMenu
-            :model-value="librarySource"
-            value-key="value"
-            :items="librarySourceOptions"
-            size="sm"
-            class="w-full"
-            :ui="railCompactSelectUi"
-            @update:model-value="updateLibrarySourceFromPicker"
-          />
-        </div>
-
-        <WorkoutFolderSelector
-          title="Drawer Scope"
-          :tree="folderTree"
-          :counts="folderCounts"
-          :selected-scope="selectedScope"
-          :expanded-set="expandedSet"
-          :allow-manage="librarySource !== 'all'"
-          @select-scope="selectScopeFromPicker"
-          @toggle-folder="toggleExpanded"
-        />
-      </div>
-    </template>
-  </UModal>
-
-  <USlideover
-    v-if="isMobileFolderPicker"
-    v-model:open="showFolderPicker"
-    side="right"
-    title="Choose Folder"
-  >
-    <template #body>
-      <div class="space-y-4 p-4">
-        <div v-if="isCoachingMode" class="space-y-1">
-          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-            Library source
-          </div>
-          <USelectMenu
-            :model-value="librarySource"
-            value-key="value"
-            :items="librarySourceOptions"
-            size="sm"
-            class="w-full"
-            :ui="railCompactSelectUi"
-            @update:model-value="updateLibrarySourceFromPicker"
-          />
-        </div>
-
-        <WorkoutFolderSelector
-          title="Drawer Scope"
-          :tree="folderTree"
-          :counts="folderCounts"
-          :selected-scope="selectedScope"
-          :expanded-set="expandedSet"
-          :allow-manage="librarySource !== 'all'"
-          @select-scope="selectScopeFromPicker"
-          @toggle-folder="toggleExpanded"
-        />
-      </div>
-    </template>
-  </USlideover>
+    description="Choose the workout source and folder scope for this drawer."
+    :source="librarySource"
+    :source-options="librarySourceOptions"
+    :is-coaching-mode="isCoachingMode"
+    :folder-tree="folderTree"
+    :folder-counts="folderCounts"
+    :selected-scope="selectedScope"
+    :expanded-set="expandedSet"
+    @update:source="updateLibrarySourceFromPicker"
+    @select-scope="selectScopeFromPicker"
+    @toggle-folder="toggleExpanded"
+  />
 
   <!-- Technical View Modal -->
   <WorkoutTechnicalViewModal
@@ -618,7 +490,7 @@
     :title="createMode === 'note' ? 'Create note' : 'Create workout'"
   >
     <template #body>
-      <div class="space-y-4">
+      <div class="space-y-4 p-4">
         <UFormField :label="createMode === 'note' ? 'Note title' : 'Workout title'">
           <UInput v-model="draftTemplate.title" />
         </UFormField>
@@ -647,7 +519,7 @@
       </div>
     </template>
     <template #footer>
-      <div class="flex justify-end gap-2">
+      <div class="flex justify-end gap-2 p-4 pt-0">
         <UButton color="neutral" variant="ghost" @click="isCreateModalOpen = false">Cancel</UButton>
         <UButton color="primary" :loading="creatingTemplate" @click="createLibraryTemplate"
           >Create</UButton
@@ -661,6 +533,7 @@
   import { useMediaQuery } from '@vueuse/core'
   import { useAttrs } from 'vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import LibraryScopeModal from '~/components/library/LibraryScopeModal.vue'
   import WorkoutFolderSelector from '~/components/workouts/library/WorkoutFolderSelector.vue'
   import WorkoutTemplatePreviewModal from '~/components/workouts/WorkoutTemplatePreviewModal.vue'
   import WorkoutTechnicalViewModal from '~/components/workouts/WorkoutTechnicalViewModal.vue'
@@ -743,8 +616,13 @@
   const resizeStartY = ref(0)
   const resizeStartHeight = ref(420)
   const showFolderPicker = ref(false)
-  const isMobileFolderPicker = useMediaQuery('(max-width: 767px)')
   const librarySource = computed(() => props.librarySource || 'athlete')
+
+  const { options: librarySourceOptions, isCoachingMode: isCoachingLibraryMode } = useLibrarySource(
+    'workout-drawer',
+    { itemLabel: 'workouts' }
+  )
+
   const {
     tree: folderTree,
     counts: folderCounts,
@@ -762,11 +640,7 @@
   // Technical Modal state
   const showTechnicalModal = ref(false)
   const technicalWorkout = ref<any>(null)
-  const librarySourceOptions = [
-    { label: 'Coach', value: 'coach' as const },
-    { label: 'Athlete', value: 'athlete' as const },
-    { label: 'Both', value: 'all' as const }
-  ]
+
   const normalizedTemplates = computed(() => {
     if (Array.isArray(props.templates)) {
       return props.templates
@@ -871,7 +745,8 @@
   )
   const selectedScopeLabel = computed(() => {
     const sourceLabel =
-      librarySourceOptions.find((option) => option.value === librarySource.value)?.label || 'Coach'
+      librarySourceOptions.value.find((option) => option.value === librarySource.value)?.label ||
+      'Coach'
     const folderLabel =
       selectedScope.value === 'all'
         ? 'All workouts'
