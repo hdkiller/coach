@@ -57,7 +57,7 @@
             </ClientOnly>
           </div>
           <div class="hidden sm:flex items-center gap-2">
-            <UButton v-if="route.path !== '/login'" to="/login" variant="ghost" color="gray">{{
+            <UButton v-if="route.path !== '/login'" to="/login" variant="ghost" color="neutral">{{
               t('nav.sign_in')
             }}</UButton>
             <UButton v-if="route.path !== '/join'" to="/join" color="primary">{{
@@ -66,7 +66,7 @@
           </div>
 
           <UPopover class="lg:hidden">
-            <UButton icon="i-lucide-menu" color="gray" variant="ghost" />
+            <UButton icon="i-lucide-menu" color="neutral" variant="ghost" />
             <template #content>
               <div class="p-4 w-48 flex flex-col gap-4">
                 <NuxtLink
@@ -107,7 +107,7 @@
                   v-if="route.path !== '/login'"
                   to="/login"
                   variant="ghost"
-                  color="gray"
+                  color="neutral"
                   block
                   >{{ t('nav.sign_in') }}</UButton
                 >

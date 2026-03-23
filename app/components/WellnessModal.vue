@@ -72,7 +72,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.hrv"
+                :current="wellnessData.hrv ?? 0"
                 :previous="trendData.map((d) => d.hrv).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -99,7 +99,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.hoursSlept"
+                :current="wellnessData.hoursSlept ?? 0"
                 :previous="trendData.map((d) => d.hoursSlept).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -128,7 +128,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.restingHr"
+                :current="wellnessData.restingHr ?? 0"
                 :previous="trendData.map((d) => d.restingHr).filter((v) => v != null)"
                 type="lower-is-better"
                 compact
@@ -157,7 +157,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.recoveryScore"
+                :current="wellnessData.recoveryScore ?? 0"
                 :previous="trendData.map((d) => d.recoveryScore).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -183,7 +183,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.readiness"
+                :current="wellnessData.readiness ?? 0"
                 :previous="trendData.map((d) => d.readiness).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -209,7 +209,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.weight"
+                :current="wellnessData.weight ?? 0"
                 :previous="trendData.map((d) => d.weight).filter((v) => v != null)"
                 type="neutral"
                 compact
@@ -236,7 +236,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.spO2"
+                :current="wellnessData.spO2 ?? 0"
                 :previous="trendData.map((d) => d.spO2).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -263,7 +263,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.systolic"
+                :current="wellnessData.systolic ?? 0"
                 :previous="trendData.map((d) => d.systolic).filter((v) => v != null)"
                 type="lower-is-better"
                 compact
@@ -292,7 +292,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="normalizedStress"
+                :current="normalizedStress ?? 0"
                 :previous="normalizedStressTrend"
                 type="lower-is-better"
                 compact
@@ -324,7 +324,7 @@
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.mood"
+                :current="wellnessData.mood ?? 0"
                 :previous="trendData.map((d) => d.mood).filter((v) => v != null)"
                 type="higher-is-better"
                 compact
@@ -669,27 +669,62 @@
         </div>
 
         <!-- 4. Daily Logs & Custom Metrics -->
-        <div v-if="wellnessData.id" class="space-y-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+        <div
+          v-if="wellnessData.id"
+          class="space-y-6 pt-6 border-t border-gray-100 dark:border-gray-800"
+        >
           <div>
-            <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1 mb-4">
+            <h4
+              class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1 mb-4"
+            >
               Daily Logs & Subjective Metrics
             </h4>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 px-1">
               <UFormField label="Mood" :help="getMoodLabel(localWellness.mood)">
-                <URange v-model="localWellness.mood" :min="1" :max="10" :step="1" color="yellow" />
+                <USlider
+                  v-model="localWellness.mood"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  color="warning"
+                />
               </UFormField>
 
               <UFormField label="Stress" :help="getStressLabel(localWellness.stress)">
-                <URange v-model="localWellness.stress" :min="1" :max="10" :step="1" color="orange" />
+                <USlider
+                  v-model="localWellness.stress"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  color="warning"
+                />
               </UFormField>
 
-              <UFormField label="Fatigue" :help="localWellness.fatigue > 7 ? 'Feeling very tired' : 'Normal fatigue'">
-                <URange v-model="localWellness.fatigue" :min="1" :max="10" :step="1" color="purple" />
+              <UFormField
+                label="Fatigue"
+                :help="localWellness.fatigue > 7 ? 'Feeling very tired' : 'Normal fatigue'"
+              >
+                <USlider
+                  v-model="localWellness.fatigue"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  color="neutral"
+                />
               </UFormField>
 
-              <UFormField label="Soreness" :help="localWellness.soreness > 7 ? 'Significant muscle pain' : 'Normal recovery'">
-                <URange v-model="localWellness.soreness" :min="1" :max="10" :step="1" color="red" />
+              <UFormField
+                label="Soreness"
+                :help="localWellness.soreness > 7 ? 'Significant muscle pain' : 'Normal recovery'"
+              >
+                <USlider
+                  v-model="localWellness.soreness"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  color="error"
+                />
               </UFormField>
             </div>
           </div>
@@ -700,24 +735,24 @@
               Custom Fields
             </h5>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-1">
-              <UFormField 
-                v-for="field in customFieldDefinitions" 
-                :key="field.id" 
+              <UFormField
+                v-for="field in customFieldDefinitions"
+                :key="field.id"
                 :label="field.label"
                 :help="field.unit ? `Unit: ${field.unit}` : undefined"
               >
-                <UInput 
+                <UInput
                   v-if="field.dataType === 'NUMBER'"
                   v-model.number="localWellness.customMetrics[field.fieldKey]"
                   type="number"
                   class="w-full"
                 />
-                <UInput 
+                <UInput
                   v-else-if="field.dataType === 'STRING'"
                   v-model="localWellness.customMetrics[field.fieldKey]"
                   class="w-full"
                 />
-                <UCheckbox 
+                <UCheckbox
                   v-else-if="field.dataType === 'BOOLEAN'"
                   v-model="localWellness.customMetrics[field.fieldKey]"
                 />
@@ -726,22 +761,22 @@
           </div>
 
           <UFormField label="Daily Comments">
-            <UTextarea 
-              v-model="localWellness.comments" 
-              placeholder="How did you feel today? Any specific notes for your coach?" 
+            <UTextarea
+              v-model="localWellness.comments"
+              placeholder="How did you feel today? Any specific notes for your coach?"
               class="w-full"
               :rows="3"
             />
           </UFormField>
 
           <div class="flex justify-end gap-3">
-            <UButton 
-              color="primary" 
-              label="Save Logs" 
-              icon="i-heroicons-check" 
+            <UButton
+              color="primary"
+              label="Save Logs"
+              icon="i-heroicons-check"
               :loading="savingWellness"
               :disabled="!hasChanges"
-              @click="saveWellness" 
+              @click="saveWellness"
             />
           </div>
         </div>
@@ -801,7 +836,7 @@
   const trendData = ref<any[]>([])
   const analyzingWellness = ref(false)
   const savingWellness = ref(false)
-  
+
   const localWellness = ref({
     mood: 5,
     stress: 5,
@@ -821,7 +856,8 @@
       localWellness.value.fatigue !== (wellnessData.value.fatigue || 5) ||
       localWellness.value.soreness !== (wellnessData.value.soreness || 5) ||
       localWellness.value.comments !== (wellnessData.value.comments || '') ||
-      JSON.stringify(localWellness.value.customMetrics) !== JSON.stringify(wellnessData.value.customMetrics || {})
+      JSON.stringify(localWellness.value.customMetrics) !==
+        JSON.stringify(wellnessData.value.customMetrics || {})
     )
   })
 
@@ -903,7 +939,9 @@
 
       // Fetch Custom Field Definitions
       const fieldsData = await $fetch('/api/analytics/fields/definitions')
-      customFieldDefinitions.value = (fieldsData as any[]).filter(f => f.entityType === 'WELLNESS')
+      customFieldDefinitions.value = (fieldsData as any[]).filter(
+        (f) => f.entityType === 'WELLNESS'
+      )
     } catch (error) {
       console.error('Error fetching wellness data:', error)
       wellnessData.value = null

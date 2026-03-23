@@ -7,7 +7,7 @@
             <UDashboardSidebarCollapse />
             <UButton
               icon="i-heroicons-arrow-left"
-              color="gray"
+              color="neutral"
               variant="ghost"
               to="/coaching/athletes"
               class="mr-2"
@@ -20,7 +20,7 @@
         <template #right>
           <div class="flex items-center gap-2">
             <UButton
-              color="gray"
+              color="neutral"
               variant="ghost"
               icon="i-heroicons-chat-bubble-left-right"
               @click="messageAthlete"
@@ -44,7 +44,7 @@
 
       <div v-else-if="error" class="p-6">
         <UAlert
-          color="red"
+          color="error"
           icon="i-heroicons-exclamation-triangle"
           title="Error loading athlete"
           :description="error.message || 'Could not load athlete profile.'"
@@ -245,7 +245,7 @@
                         <p class="text-xs text-gray-500">Planned sessions scheduled next.</p>
                       </div>
                       <UButton
-                        color="gray"
+                        color="neutral"
                         variant="ghost"
                         size="xs"
                         @click="selectedTab = 'calendar'"

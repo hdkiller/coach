@@ -89,21 +89,21 @@
         <div class="flex flex-wrap justify-center gap-4">
           <UButton
             icon="i-simple-icons-discord"
-            color="gray"
+            color="neutral"
             variant="ghost"
             to="https://discord.gg/dPYkzg49T9"
             target="_blank"
           />
           <UButton
             icon="i-simple-icons-github"
-            color="gray"
+            color="neutral"
             variant="ghost"
             to="https://github.com/newpush/coach"
             target="_blank"
           />
           <UButton
             icon="i-lucide-twitter"
-            color="gray"
+            color="neutral"
             variant="ghost"
             to="https://twitter.com"
             target="_blank"

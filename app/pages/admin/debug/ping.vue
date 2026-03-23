@@ -117,9 +117,6 @@
 
           <div v-if="result.headers" class="border-b border-gray-200 dark:border-gray-800">
             <UAccordion
-              color="white"
-              variant="soft"
-              size="sm"
               :items="[
                 { label: 'Response Headers', slot: 'headers', icon: 'i-heroicons-list-bullet' }
               ]"
