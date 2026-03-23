@@ -22,6 +22,8 @@
   const activeTab = ref(0)
   const isWidgetLibraryOpen = ref(false)
   const isFieldManagerOpen = ref(false)
+  const widgetSearch = ref('')
+  const activeCategory = ref<'all' | AnalyticsPresetCategory>('all')
   const isNewDashboardModalOpen = ref(false)
   const isRenameDashboardModalOpen = ref(false)
   const isRenameWidgetModalOpen = ref(false)
@@ -41,6 +43,56 @@
     pending: loadingDashboards
   } = await useFetch('/api/analytics/dashboards')
   const { data: customWidgets, refresh: refreshWidgets } = await useFetch('/api/analytics/widgets')
+
+  const filteredCustomWidgets = computed(() => {
+    const search = widgetSearch.value.trim().toLowerCase()
+    const base = ((customWidgets.value as any[]) || []).map((widget) => ({
+      ...widget.config,
+      id: widget.id,
+      name: widget.name,
+      description: widget.description || 'Custom visualization',
+      isCustom: true,
+      category: 'custom' as const,
+      audience: 'both',
+      visualType: widget.config.visualType || widget.config.type || 'line'
+    }))
+
+    return base.filter((widget) => {
+      const matchesCategory = activeCategory.value === 'all' || activeCategory.value === 'custom'
+      if (!matchesCategory) return false
+
+      if (!search) return true
+      return [widget.name, widget.description, widget.source].some((value) =>
+        String(value || '')
+          .toLowerCase()
+          .includes(search)
+      )
+    })
+  })
+
+  const filteredSystemWidgets = computed(() => {
+    const search = widgetSearch.value.trim().toLowerCase()
+
+    return ANALYTICS_SYSTEM_PRESETS.filter((widget) => {
+      const matchesCategory =
+        activeCategory.value === 'all' || widget.category === activeCategory.value
+      if (!matchesCategory) return false
+
+      if (!search) return true
+
+      return [
+        widget.name,
+        widget.description,
+        widget.source,
+        widget.category,
+        widget.audience
+      ].some((value) =>
+        String(value || '')
+          .toLowerCase()
+          .includes(search)
+      )
+    })
+  })
 
   const activeDashboardId = ref<string | null>(null)
   const activeDashboard = computed(() => {
@@ -1138,74 +1190,162 @@
     v-model:open="isWidgetLibraryOpen"
     title="Widget Library"
     description="Choose a pre-configured system chart or one of your custom visualizations."
+    :ui="{ content: 'sm:max-w-xl' }"
   >
     <template #body>
-      <div class="space-y-8">
-        <!-- Custom Widgets Section -->
-        <div v-if="customWidgets?.length" class="space-y-2">
-          <h4
-            class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic text-primary-500"
-          >
-            My Visualizations
-          </h4>
-          <div class="grid grid-cols-1 gap-3">
+      <div class="space-y-6">
+        <!-- Explorer Shortcut -->
+        <UButton
+          color="primary"
+          variant="subtle"
+          class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group border-2 border-primary-500/20"
+          to="/analytics/browse"
+          @click="isWidgetLibraryOpen = false"
+        >
+          <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg">
+            <UIcon name="i-lucide-monitor-play" class="w-5 h-5 text-primary-600" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors truncate">
+              Go to Chart Explorer
+            </p>
+            <p class="text-[10px] text-neutral-500 font-medium">
+              Browse, preview, and configure performance charts before pinning.
+            </p>
+          </div>
+          <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-primary-400 self-center" />
+        </UButton>
+
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model="widgetSearch"
+              icon="i-heroicons-magnifying-glass"
+              placeholder="Search charts..."
+              size="sm"
+              class="flex-1"
+            />
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
             <UButton
-              v-for="widget in customWidgets"
-              :key="widget.id"
-              color="neutral"
-              variant="subtle"
-              class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
-              @click="addWidget({ ...widget.config, name: widget.name, id: widget.id })"
+              size="xs"
+              :color="activeCategory === 'all' ? 'primary' : 'neutral'"
+              :variant="activeCategory === 'all' ? 'soft' : 'outline'"
+              class="rounded-full"
+              @click="activeCategory = 'all'"
             >
-              <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
-                <UIcon name="i-lucide-gavel" class="w-5 h-5 text-primary-500" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p
-                  class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
-                >
-                  {{ widget.name }}
-                </p>
-                <p class="text-[10px] text-neutral-500 font-medium uppercase tracking-tighter">
-                  {{ widget.config.source }} • {{ widget.config.grouping }}
-                </p>
-              </div>
-              <UIcon name="i-lucide-plus" class="w-4 h-4 text-neutral-400 self-center" />
+              All
+            </UButton>
+            <UButton
+              v-for="category in ANALYTICS_PRESET_CATEGORIES"
+              :key="category.value"
+              size="xs"
+              :color="activeCategory === category.value ? 'primary' : 'neutral'"
+              :variant="activeCategory === category.value ? 'soft' : 'outline'"
+              class="rounded-full"
+              @click="activeCategory = category.value"
+            >
+              {{ category.label }}
+            </UButton>
+            <UButton
+              size="xs"
+              :color="activeCategory === 'custom' ? 'primary' : 'neutral'"
+              :variant="activeCategory === 'custom' ? 'soft' : 'outline'"
+              class="rounded-full"
+              @click="activeCategory = 'custom'"
+            >
+              My Visuals
             </UButton>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <h4 class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic">
-            System Presets
-          </h4>
-          <div class="grid grid-cols-1 gap-3">
-            <UButton
-              v-for="preset in ANALYTICS_SYSTEM_PRESETS"
-              :key="preset.id"
-              color="neutral"
-              variant="subtle"
-              class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
-              @click="addWidget(preset)"
+        <div class="space-y-6 max-h-[50vh] overflow-y-auto pr-1">
+          <!-- Custom Widgets Section -->
+          <div v-if="filteredCustomWidgets?.length" class="space-y-2">
+            <h4
+              class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic text-primary-500"
             >
-              <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
-                <UIcon
-                  :name="preset.type === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'"
-                  class="w-5 h-5 text-primary-500"
-                />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p
-                  class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
-                >
-                  {{ preset.name }}
-                </p>
-                <p class="text-[10px] text-neutral-500 font-normal line-clamp-1">
-                  {{ preset.description }}
-                </p>
-              </div>
-              <UIcon name="i-lucide-plus" class="w-4 h-4 text-neutral-400 self-center" />
-            </UButton>
+              My Visualizations
+            </h4>
+            <div class="grid grid-cols-1 gap-3">
+              <UButton
+                v-for="widget in filteredCustomWidgets"
+                :key="widget.id"
+                color="neutral"
+                variant="subtle"
+                class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
+                @click="addWidget({ ...widget.config, name: widget.name, id: widget.id })"
+              >
+                <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
+                  <UIcon name="i-lucide-gavel" class="w-5 h-5 text-primary-500" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p
+                    class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
+                  >
+                    {{ widget.name }}
+                  </p>
+                  <p class="text-[10px] text-neutral-500 font-medium uppercase tracking-tighter">
+                    {{ widget.config.source }} • {{ widget.config.grouping }}
+                  </p>
+                </div>
+                <UIcon name="i-lucide-plus" class="w-4 h-4 text-neutral-400 self-center" />
+              </UButton>
+            </div>
+          </div>
+
+          <div v-if="filteredSystemWidgets?.length" class="space-y-2">
+            <h4 class="text-[10px] font-black uppercase text-neutral-400 tracking-widest italic">
+              System Presets
+            </h4>
+            <div class="grid grid-cols-1 gap-3">
+              <UButton
+                v-for="preset in filteredSystemWidgets"
+                :key="preset.id"
+                color="neutral"
+                variant="subtle"
+                class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
+                @click="addWidget(preset)"
+              >
+                <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
+                  <UIcon
+                    :name="preset.visualType === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'"
+                    class="w-5 h-5 text-primary-500"
+                  />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p
+                    class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate"
+                  >
+                    {{ preset.name }}
+                  </p>
+                  <p class="text-[10px] text-neutral-500 font-normal line-clamp-1">
+                    {{ preset.description }}
+                  </p>
+                </div>
+                <UIcon name="i-lucide-plus" class="w-4 h-4 text-neutral-400 self-center" />
+              </UButton>
+            </div>
+          </div>
+
+          <div
+            v-if="!filteredCustomWidgets?.length && !filteredSystemWidgets?.length"
+            class="py-12 text-center border-2 border-dashed border-neutral-100 dark:border-neutral-800 rounded-2xl"
+          >
+            <p class="text-sm text-neutral-400">No charts match your filters.</p>
+            <UButton
+              color="neutral"
+              variant="link"
+              label="Clear filters"
+              size="xs"
+              @click="
+                () => {
+                  widgetSearch = ''
+                  activeCategory = 'all'
+                }
+              "
+            />
           </div>
         </div>
       </div>

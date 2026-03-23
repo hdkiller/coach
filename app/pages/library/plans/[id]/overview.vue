@@ -183,6 +183,69 @@
             </UCard>
           </section>
 
+          <!-- Plan Metrics Section -->
+          <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Weekly TSS & Duration Chart -->
+            <UCard class="md:col-span-2">
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h2 class="text-lg font-bold text-highlighted">Weekly Volume & Load</h2>
+                  <div class="flex gap-4 text-xs">
+                    <div class="flex items-center gap-1.5">
+                      <div class="h-3 w-3 rounded-sm bg-primary-500"></div>
+                      <span class="text-muted">Duration (h)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <div class="h-3 w-3 rounded-full bg-warning-500"></div>
+                      <span class="text-muted">TSS</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div class="h-64">
+                <ClientOnly>
+                  <Bar
+                    v-if="weeklyMetricsChartData"
+                    :data="weeklyMetricsChartData"
+                    :options="weeklyMetricsChartOptions"
+                  />
+                </ClientOnly>
+              </div>
+            </UCard>
+
+            <!-- Sport Distribution Chart -->
+            <UCard>
+              <template #header>
+                <h2 class="text-lg font-bold text-highlighted">Activity Mix</h2>
+              </template>
+              <div class="h-64">
+                <ClientOnly>
+                  <Doughnut
+                    v-if="sportDistributionChartData"
+                    :data="sportDistributionChartData"
+                    :options="doughnutOptions"
+                  />
+                </ClientOnly>
+              </div>
+            </UCard>
+
+            <!-- Category Distribution Chart -->
+            <UCard>
+              <template #header>
+                <h2 class="text-lg font-bold text-highlighted">Intensity Focus</h2>
+              </template>
+              <div class="h-64">
+                <ClientOnly>
+                  <Doughnut
+                    v-if="categoryDistributionChartData"
+                    :data="categoryDistributionChartData"
+                    :options="doughnutOptions"
+                  />
+                </ClientOnly>
+              </div>
+            </UCard>
+          </section>
+
           <section class="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
             <UCard>
               <template #header>
@@ -340,6 +403,33 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import { buildPublicPlanPath, getPublicSportByValue } from '#shared/public-plans'
+  import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    ArcElement,
+    Filler
+  } from 'chart.js'
+  import { Bar, Doughnut } from 'vue-chartjs'
+
+  ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    ArcElement,
+    Filler
+  )
 
   const route = useRoute()
   const { formatDateUTC, formatDuration, getUserLocalDate } = useFormat()
@@ -402,6 +492,206 @@
   useSeoMeta({
     title: computed(() => (plan.value?.name ? `${plan.value.name} Overview` : 'Plan Overview'))
   })
+
+  // --- Chart Data Computation ---
+
+  const weeksList = computed(() => {
+    if (!plan.value?.blocks) return []
+    const allWeeks: any[] = []
+    plan.value.blocks.forEach((block: any) => {
+      if (block.weeks) {
+        allWeeks.push(...block.weeks)
+      }
+    })
+    return allWeeks
+  })
+
+  const weeklyMetricsChartData = computed(() => {
+    if (!weeksList.value.length) return null
+
+    const labels = weeksList.value.map((_, i) => `Week ${i + 1}`)
+    const tssData = weeksList.value.map((week) => {
+      return (
+        week.workouts?.reduce((sum: number, w: any) => sum + (Number(w.tss) || 0), 0) || 0
+      )
+    })
+    const durationData = weeksList.value.map((week) => {
+      const seconds =
+        week.workouts?.reduce((sum: number, w: any) => sum + (Number(w.durationSec) || 0), 0) || 0
+      return Math.round((seconds / 3600) * 10) / 10
+    })
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Duration (h)',
+          data: durationData,
+          backgroundColor: '#3b82f6', // blue-500
+          borderRadius: 4,
+          yAxisID: 'y'
+        },
+        {
+          label: 'TSS',
+          data: tssData,
+          borderColor: '#f59e0b', // warning-500
+          backgroundColor: '#f59e0b',
+          type: 'line' as const,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          yAxisID: 'y1'
+        }
+      ]
+    }
+  })
+
+  const weeklyMetricsChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1f2937',
+        titleColor: '#f3f4f6',
+        bodyColor: '#d1d5db',
+        padding: 12,
+        borderRadius: 8
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#9ca3af' }
+      },
+      y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        grid: { color: 'rgba(156, 163, 175, 0.1)' },
+        ticks: { color: '#9ca3af' },
+        title: { display: true, text: 'Hours', color: '#9ca3af' }
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#9ca3af' },
+        title: { display: true, text: 'TSS', color: '#9ca3af' }
+      }
+    }
+  }
+
+  const sportDistributionChartData = computed(() => {
+    if (!plan.value?.blocks) return null
+
+    const sportCounts: Record<string, number> = {}
+    weeksList.value.forEach((week) => {
+      week.workouts?.forEach((workout: any) => {
+        const type = workout.type || 'Other'
+        sportCounts[type] = (sportCounts[type] || 0) + 1
+      })
+    })
+
+    const labels = Object.keys(sportCounts)
+    const data = Object.values(sportCounts)
+
+    if (!labels.length) return null
+
+    const colors: Record<string, string> = {
+      Ride: '#ef4444',
+      VirtualRide: '#ef4444',
+      Run: '#3b82f6',
+      Swim: '#0ea5e9',
+      WeightTraining: '#f59e0b',
+      Gym: '#f59e0b',
+      Walk: '#10b981',
+      Yoga: '#8b5cf6',
+      Other: '#9ca3af'
+    }
+
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: labels.map((l) => colors[l] || '#6366f1'),
+          borderWidth: 0,
+          hoverOffset: 10
+        }
+      ]
+    }
+  })
+
+  const categoryDistributionChartData = computed(() => {
+    if (!plan.value?.blocks) return null
+
+    const categoryCounts: Record<string, number> = {}
+    weeksList.value.forEach((week) => {
+      week.workouts?.forEach((workout: any) => {
+        const cat = workout.category || 'Other'
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
+      })
+    })
+
+    const labels = Object.keys(categoryCounts)
+    const data = Object.values(categoryCounts)
+
+    if (!labels.length) return null
+
+    const colors: Record<string, string> = {
+      Endurance: '#10b981', // emerald-500
+      Recovery: '#34d399', // emerald-400
+      Threshold: '#f59e0b', // warning-500
+      VO2Max: '#ef4444', // error-500
+      Anaerobic: '#ec4899', // pink-500
+      SweetSpot: '#fbbf24', // amber-400
+      Sprint: '#8b5cf6', // purple-500
+      Other: '#9ca3af'
+    }
+
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: labels.map((l) => colors[l] || '#6366f1'),
+          borderWidth: 0,
+          hoverOffset: 10
+        }
+      ]
+    }
+  })
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          color: '#9ca3af',
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
+          font: { size: 11 }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1f2937',
+        padding: 12,
+        borderRadius: 8
+      }
+    },
+    cutout: '70%'
+  }
+
+  // --- End of Chart Data ---
 
   function formatAccessState(value?: string | null) {
     if (value === 'FREE') return 'Free'
