@@ -1,4 +1,4 @@
-export const PLAN_VISIBILITY_OPTIONS = ['PRIVATE', 'PUBLIC'] as const
+export const PLAN_VISIBILITY_OPTIONS = ['PRIVATE', 'PUBLIC', 'TEAM'] as const
 export const PLAN_ACCESS_STATE_OPTIONS = ['PRIVATE', 'RESTRICTED', 'FREE'] as const
 export const PLAN_SKILL_LEVEL_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const
 export const PLAN_VOLUME_BAND_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'] as const

@@ -147,6 +147,8 @@ model User {
   wellness                           Wellness[]
   workouts                           Workout[]
   metricHistory                      MetricHistory[]
+  trainingPlanFolders                TrainingPlanFolder[]
+  favoriteTrainingPlans              FavoriteTrainingPlan[]
   bodyMeasurementEntries             BodyMeasurementEntry[]
   personalBests                      PersonalBest[]
   workoutTemplates                   WorkoutTemplate[]
@@ -1267,17 +1269,24 @@ model TrainingPlan {
   customInstructions     String?
   recoveryRhythm         Int             @default(4)
   hasBeenSavedAsTemplate Boolean         @default(false)
+  folderId               String?
+  teamId                 String?
   blocks                 TrainingBlock[]
   sampleWeeks            TrainingPlanPublicSampleWeek[]
   template               TrainingPlan?   @relation("PlanTemplate", fields: [fromTemplateId], references: [id])
   derivedPlans           TrainingPlan[]  @relation("PlanTemplate")
   goal                   Goal?           @relation(fields: [goalId], references: [id], onDelete: Cascade)
   user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder                 TrainingPlanFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  team                   Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  favorites              FavoriteTrainingPlan[]
 
   @@index([userId, status])
   @@index([isTemplate])
   @@index([isPublic])
   @@index([slug])
+  @@index([folderId])
+  @@index([teamId])
   @@index([visibility, accessState])
   @@index([primarySport, sportSubtype])
   @@index([skillLevel, daysPerWeek])
@@ -2087,6 +2096,7 @@ model Team {
   members     TeamMember[]
   groups      AthleteGroup[]
   invites     TeamInvite[]
+  trainingPlans TrainingPlan[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -2202,4 +2212,36 @@ model Widget {
 
   @@index([ownerId])
   @@index([dashboardId])
+}
+
+model TrainingPlanFolder {
+  id          String   @id @default(uuid())
+  userId      String
+  parentId    String?
+  name        String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      TrainingPlanFolder?   @relation("TrainingPlanFolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    TrainingPlanFolder[]  @relation("TrainingPlanFolderHierarchy")
+  plans       TrainingPlan[]
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+model FavoriteTrainingPlan {
+  id        String   @id @default(uuid())
+  userId    String
+  planId    String
+  createdAt DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, planId])
+  @@index([userId])
+  @@index([planId])
 }
