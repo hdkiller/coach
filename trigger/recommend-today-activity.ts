@@ -8,7 +8,15 @@ import { activityRecommendationRepository } from '../server/utils/repositories/a
 import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
-import { formatUserDate, getUserLocalDate, formatDateUTC, calculateAge } from '../server/utils/date'
+import {
+  formatUserDate,
+  getUserLocalDate,
+  formatDateUTC,
+  calculateAge,
+  getEndOfDayUTC,
+  getStartOfDaysAgoUTC,
+  getTimestampDateKey
+} from '../server/utils/date'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { analyzeWellness } from '../server/utils/services/wellness-analysis'
 import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
@@ -238,6 +246,9 @@ export const recommendTodayActivityTask = task({
     // Use effectiveDate for all subsequent queries
     const today = effectiveDate
 
+    const recentWorkoutsStartDate = getStartOfDaysAgoUTC(userTimezone, 6, today)
+    const recentWorkoutsEndDate = getEndOfDayUTC(userTimezone, today)
+
     // Fetch remaining data
     const [
       plannedWorkouts,
@@ -277,7 +288,8 @@ export const recommendTodayActivityTask = task({
 
       // Last 7 days of workouts for context
       workoutRepository.getForUser(userId, {
-        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        startDate: recentWorkoutsStartDate,
+        endDate: recentWorkoutsEndDate,
         orderBy: { date: 'desc' },
         includeDuplicates: false,
         include: {
@@ -497,19 +509,18 @@ export const recommendTodayActivityTask = task({
     // Use target date string for the prompt to ensure alignment with "Today"
     // Since 'today' is now strictly User Local Date @ UTC Midnight,
     // toISOString().split('T')[0] will give the correct YYYY-MM-DD
-    const targetDateStr = today.toISOString().split('T')[0]
+    const targetDateStr = formatDateUTC(today, 'yyyy-MM-dd')
 
-    // Format for display (Friday, January 10, 2026)
-    // We construct it based on the effective today
-    const targetDateObj = new Date(targetDateStr + 'T12:00:00') // Noon Local
-    const localDate = formatUserDate(targetDateObj, userTimezone, 'EEEE, MMMM d, yyyy')
+    // `today` is a date-only value stored at UTC midnight, so keep display formatting
+    // anchored to its calendar date instead of re-zoning it like a timestamp.
+    const localDate = formatDateUTC(today, 'EEEE, MMMM d, yyyy')
 
     // Split workouts into "Today's" and "Past"
     const todaysWorkouts = recentWorkouts.filter(
-      (w) => formatUserDate(w.date, userTimezone, 'yyyy-MM-dd') === targetDateStr
+      (w) => getTimestampDateKey(w.date, userTimezone) === targetDateStr
     )
     const pastWorkouts = recentWorkouts.filter(
-      (w) => formatUserDate(w.date, userTimezone, 'yyyy-MM-dd') !== targetDateStr
+      (w) => getTimestampDateKey(w.date, userTimezone) !== targetDateStr
     )
 
     // Build athlete profile context
