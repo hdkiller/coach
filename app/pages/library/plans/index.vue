@@ -74,7 +74,7 @@
                   :color="selectedTab === tab.value ? 'primary' : 'neutral'"
                   :variant="selectedTab === tab.value ? 'soft' : 'ghost'"
                   :icon="tab.icon"
-                  @click="selectedTab = tab.value"
+                  @click="selectPlanTab(tab.value)"
                 >
                   <span class="flex-1 text-sm font-medium">{{ tab.label }}</span>
                 </UButton>
@@ -111,9 +111,7 @@
               class="flex flex-wrap items-center justify-between gap-3 rounded-none border-y border-primary/20 bg-primary/5 px-4 py-4 sm:rounded-2xl sm:border sm:p-4"
             >
               <div class="text-sm font-medium text-highlighted">
-                {{ selectedPlanIds.length }} plan{{
-                  selectedPlanIds.length === 1 ? '' : 's'
-                }}
+                {{ selectedPlanIds.length }} plan{{ selectedPlanIds.length === 1 ? '' : 's' }}
                 selected
               </div>
               <div class="flex items-center gap-2">
@@ -359,10 +357,7 @@
             :color="selectedTab === tab.value ? 'primary' : 'neutral'"
             :variant="selectedTab === tab.value ? 'soft' : 'ghost'"
             :icon="tab.icon"
-            @click="
-              selectedTab = tab.value
-              showFolderSlideover = false
-            "
+            @click="selectPlanTab(tab.value, { closeSlideover: true })"
           >
             <span class="flex-1 text-sm font-medium">{{ tab.label }}</span>
           </UButton>
@@ -521,6 +516,13 @@
   }
   function editStructure(id: string) {
     navigateTo(`/library/plans/${id}/architect`)
+  }
+
+  function selectPlanTab(tab: typeof selectedTab.value, options?: { closeSlideover?: boolean }) {
+    selectedTab.value = tab
+    if (options?.closeSlideover) {
+      showFolderSlideover.value = false
+    }
   }
 
   async function toggleFavorite(plan: any) {
