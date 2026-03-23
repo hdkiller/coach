@@ -48,6 +48,7 @@ export const planPublicationSchema = z.object({
   faq: z.string().max(6000).nullable().optional(),
   extraContent: z.string().max(6000).nullable().optional(),
   isFeatured: z.boolean().optional(),
+  teamId: z.string().nullable().optional(),
   sampleWeekIds: z.array(z.string()).max(24).optional()
 })
 
