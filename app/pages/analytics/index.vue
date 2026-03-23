@@ -23,9 +23,15 @@
   const isWidgetLibraryOpen = ref(false)
   const isFieldManagerOpen = ref(false)
   const isNewDashboardModalOpen = ref(false)
+  const isRenameDashboardModalOpen = ref(false)
+  const isRenameWidgetModalOpen = ref(false)
   const isExpandedWidgetOpen = ref(false)
   const expandedWidgetInstanceId = ref<string | null>(null)
   const newDashboardName = ref('')
+  const renameDashboardId = ref<string | null>(null)
+  const renameDashboardName = ref('')
+  const renameWidgetInstanceId = ref<string | null>(null)
+  const renameWidgetName = ref('')
   const toast = useToast()
 
   // Data fetching
@@ -357,6 +363,62 @@
     toast.add({ title: 'Widget removed', color: 'neutral' })
   }
 
+  function openRenameWidget(widget: any) {
+    renameWidgetInstanceId.value = widget.instanceId
+    renameWidgetName.value = widget.name || 'Untitled Widget'
+    isRenameWidgetModalOpen.value = true
+  }
+
+  function saveWidgetRename() {
+    if (!renameWidgetInstanceId.value || !renameWidgetName.value.trim()) return
+
+    dashboardWidgets.value = dashboardWidgets.value.map((widget) =>
+      widget.instanceId === renameWidgetInstanceId.value
+        ? {
+            ...widget,
+            name: renameWidgetName.value.trim()
+          }
+        : widget
+    )
+
+    isRenameWidgetModalOpen.value = false
+    toast.add({ title: 'Widget renamed', color: 'success' })
+  }
+
+  function openRenameDashboard(dashboardId: string) {
+    const dashboard = (dashboards.value || []).find((entry: any) => entry.id === dashboardId)
+    if (!dashboard) return
+    renameDashboardId.value = dashboardId
+    renameDashboardName.value = dashboard.name || 'Untitled Dashboard'
+    isRenameDashboardModalOpen.value = true
+  }
+
+  async function saveDashboardRename() {
+    if (!renameDashboardId.value || !renameDashboardName.value.trim()) return
+
+    const dashboard = (dashboards.value || []).find((entry: any) => entry.id === renameDashboardId.value)
+    if (!dashboard) return
+
+    try {
+      await $fetch('/api/analytics/dashboards', {
+        method: 'POST',
+        body: {
+          id: dashboard.id,
+          name: renameDashboardName.value.trim(),
+          layout: dashboard.layout || [],
+          scope: dashboard.scope || { target: 'self' },
+          dateRange: dashboard.dateRange || null
+        }
+      })
+      await refreshDashboards()
+      isRenameDashboardModalOpen.value = false
+      toast.add({ title: 'Dashboard renamed', color: 'success' })
+    } catch (error) {
+      console.error(error)
+      toast.add({ title: 'Failed to rename dashboard', color: 'error' })
+    }
+  }
+
   function editWidget(widget: any) {
     if (widget.comparison?.type === 'workouts') {
       router.push({
@@ -503,6 +565,11 @@
   function widgetMenuItems(widget: any) {
     return [
       {
+        label: 'Rename',
+        icon: 'i-lucide-pencil-line',
+        onSelect: () => openRenameWidget(widget)
+      },
+      {
         label: 'Edit',
         icon: 'i-lucide-edit',
         onSelect: () => editWidget(widget)
@@ -523,6 +590,16 @@
         icon: 'i-lucide-trash',
         color: 'error',
         onSelect: () => removeWidget(widget.instanceId)
+      }
+    ]
+  }
+
+  function tabMenuItems(dashboardId: string) {
+    return [
+      {
+        label: 'Rename Tab',
+        icon: 'i-lucide-pencil-line',
+        onSelect: () => openRenameDashboard(dashboardId)
       }
     ]
   }
@@ -586,6 +663,8 @@
     analyticsLog('closeOverlaysForNavigation', route.fullPath)
     datePickerOpen.value = false
     isNewDashboardModalOpen.value = false
+    isRenameDashboardModalOpen.value = false
+    isRenameWidgetModalOpen.value = false
     isFieldManagerOpen.value = false
     isWidgetLibraryOpen.value = false
     isExpandedWidgetOpen.value = false
@@ -744,19 +823,31 @@
               @change="onTabReorder"
             >
               <template #item="{ element, index }">
-                <UButton
-                  :color="activeTab === index ? 'primary' : 'neutral'"
-                  :variant="activeTab === index ? 'soft' : 'ghost'"
-                  size="sm"
-                  class="font-bold shrink-0 transition-all duration-200"
-                  :class="activeTab === index ? 'px-4' : 'px-3 opacity-60 hover:opacity-100'"
-                  @click="activeTab = index"
-                >
-                  <template #leading>
-                    <UIcon :name="element.icon" class="w-4 h-4" />
-                  </template>
-                  {{ element.label }}
-                </UButton>
+                <div class="group flex items-center gap-1">
+                  <UButton
+                    :color="activeTab === index ? 'primary' : 'neutral'"
+                    :variant="activeTab === index ? 'soft' : 'ghost'"
+                    size="sm"
+                    class="font-bold shrink-0 transition-all duration-200"
+                    :class="activeTab === index ? 'px-4' : 'px-3 opacity-60 hover:opacity-100'"
+                    @click="activeTab = index"
+                  >
+                    <template #leading>
+                      <UIcon :name="element.icon" class="w-4 h-4" />
+                    </template>
+                    {{ element.label }}
+                  </UButton>
+                  <UDropdownMenu :items="tabMenuItems(element.id)">
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-lucide-more-vertical"
+                      size="xs"
+                      class="shrink-0 opacity-0 transition group-hover:opacity-100"
+                      @click.stop
+                    />
+                  </UDropdownMenu>
+                </div>
               </template>
             </draggable>
 
@@ -970,6 +1061,60 @@
         :loading="creatingDashboard"
         @click="createDashboard"
       />
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="isRenameDashboardModalOpen"
+    title="Rename Tab"
+    description="Update the name of this dashboard tab."
+  >
+    <template #body>
+      <UFormField label="Tab Name">
+        <UInput
+          v-model="renameDashboardName"
+          placeholder="Enter tab name..."
+          class="w-full"
+          autofocus
+          @keyup.enter="saveDashboardRename"
+        />
+      </UFormField>
+    </template>
+    <template #footer>
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="isRenameDashboardModalOpen = false"
+      />
+      <UButton label="Save" color="primary" variant="solid" @click="saveDashboardRename" />
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="isRenameWidgetModalOpen"
+    title="Rename Widget"
+    description="Give this chart a clearer title on the dashboard."
+  >
+    <template #body>
+      <UFormField label="Widget Name">
+        <UInput
+          v-model="renameWidgetName"
+          placeholder="Enter widget name..."
+          class="w-full"
+          autofocus
+          @keyup.enter="saveWidgetRename"
+        />
+      </UFormField>
+    </template>
+    <template #footer>
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="isRenameWidgetModalOpen = false"
+      />
+      <UButton label="Save" color="primary" variant="solid" @click="saveWidgetRename" />
     </template>
   </UModal>
 

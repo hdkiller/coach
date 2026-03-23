@@ -30,7 +30,7 @@
     '/api/analytics/dashboards'
   )
 
-  const leftRailTab = ref<'workouts' | 'library'>('workouts')
+  const leftRailTab = ref<'selected' | 'workouts' | 'library'>('selected')
   const workoutSearch = ref('')
   const librarySearch = ref('')
   const activeCategory = ref<'all' | WorkoutComparisonCategory>('all')
@@ -242,6 +242,10 @@
     }
   )
 
+  const selectedWorkoutDetails = computed(() =>
+    Array.isArray(selectedWorkoutsData.value) ? (selectedWorkoutsData.value as any[]) : []
+  )
+
   watch(
     selectedWorkoutsData,
     (workouts) => {
@@ -300,6 +304,45 @@
 
   const browserWorkouts = computed(() => ((browserData.value as any)?.workouts || []) as any[])
   const selectedWorkouts = computed(() => comparisonStore.selectedWorkouts)
+  const canFindSimilar = computed(() => selectedWorkoutDetails.value.length > 0)
+  const selectedWorkoutIdsSet = computed(() => new Set(workoutIds.value))
+
+  const similarityReference = computed(() => {
+    if (!selectedWorkoutDetails.value.length) return null
+
+    const durations = selectedWorkoutDetails.value
+      .map((workout) => Number(workout.durationSec || 0))
+      .filter((value) => value > 0)
+    const distances = selectedWorkoutDetails.value
+      .map((workout) => Number(workout.distanceMeters || 0))
+      .filter((value) => value > 0)
+    const loads = selectedWorkoutDetails.value
+      .map((workout) => Number(workout.trainingLoad || workout.tss || 0))
+      .filter((value) => value > 0)
+
+    const average = (values: number[]) =>
+      values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+
+    const typeCounts = new Map<string, number>()
+    const sourceCounts = new Map<string, number>()
+
+    selectedWorkoutDetails.value.forEach((workout) => {
+      if (workout.type) typeCounts.set(workout.type, (typeCounts.get(workout.type) || 0) + 1)
+      if (workout.source)
+        sourceCounts.set(workout.source, (sourceCounts.get(workout.source) || 0) + 1)
+    })
+
+    const topKey = (entries: Map<string, number>) =>
+      Array.from(entries.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] || null
+
+    return {
+      duration: average(durations),
+      distance: average(distances),
+      load: average(loads),
+      type: topKey(typeCounts),
+      source: topKey(sourceCounts)
+    }
+  })
 
   const filteredPresets = computed(() => {
     const search = librarySearch.value.trim().toLowerCase()
@@ -385,6 +428,118 @@
     return `${(meters / 1000).toFixed(1)} km`
   }
 
+  function formatLoad(value: number | null | undefined, suffix = 'load') {
+    if (value === null || value === undefined) return '—'
+    return `${Math.round(value)} ${suffix}`
+  }
+
+  function workoutTypeIcon(type: string | null | undefined) {
+    const normalized = String(type || '')
+      .toLowerCase()
+      .trim()
+
+    if (normalized.includes('ride') || normalized.includes('bike') || normalized.includes('cycling')) {
+      return 'i-lucide-bike'
+    }
+
+    if (normalized.includes('run')) return 'i-lucide-person-standing'
+    if (normalized.includes('swim')) return 'i-lucide-waves'
+    if (
+      normalized.includes('strength') ||
+      normalized.includes('gym') ||
+      normalized.includes('lift')
+    ) {
+      return 'i-lucide-dumbbell'
+    }
+
+    if (normalized.includes('walk') || normalized.includes('hike')) return 'i-lucide-footprints'
+
+    return 'i-lucide-activity'
+  }
+
+  function formatAlignmentLabel(value: string) {
+    if (value === 'elapsed_time') return 'Elapsed Time'
+    if (value === 'distance') return 'Distance'
+    if (value === 'percent_complete') return 'Percent Complete'
+    return value
+  }
+
+  function applySimilarWorkoutFilters() {
+    if (!selectedWorkoutDetails.value.length) return
+
+    const anchor = selectedWorkoutDetails.value[0]
+    const allTypesSame = selectedWorkoutDetails.value.every(
+      (workout) => workout.type && workout.type === anchor.type
+    )
+    const allSourcesSame = selectedWorkoutDetails.value.every(
+      (workout) => workout.source && workout.source === anchor.source
+    )
+    const allAthletesSame = selectedWorkoutDetails.value.every(
+      (workout) => workout.userId && workout.userId === anchor.userId
+    )
+
+    if (allTypesSame && anchor.type) workoutTypeFilter.value = anchor.type
+    if (allSourcesSame && anchor.source) workoutSourceFilter.value = anchor.source
+    if (allAthletesSame && anchor.userId) athleteFilter.value = anchor.userId
+
+    leftRailTab.value = 'workouts'
+    toast.add({
+      title: 'Workout browser tuned for similar sessions',
+      description: 'Matching type, source, and athlete filters were applied from the current basket.',
+      color: 'success'
+    })
+  }
+
+  function computeSimilarityScore(workout: any) {
+    if (!similarityReference.value || selectedWorkoutIdsSet.value.has(workout.id)) return null
+
+    let score = 0
+    let weight = 0
+
+    const relativeScore = (candidate: number | null | undefined, target: number | null) => {
+      if (!candidate || !target || target <= 0) return null
+      const diffRatio = Math.abs(candidate - target) / target
+      return Math.max(0, 1 - diffRatio)
+    }
+
+    const durationScore = relativeScore(Number(workout.durationSec || 0), similarityReference.value.duration)
+    if (durationScore !== null) {
+      score += durationScore * 0.3
+      weight += 0.3
+    }
+
+    const distanceScore = relativeScore(
+      Number(workout.distanceMeters || 0),
+      similarityReference.value.distance
+    )
+    if (distanceScore !== null) {
+      score += distanceScore * 0.25
+      weight += 0.25
+    }
+
+    const loadScore = relativeScore(
+      Number(workout.trainingLoad || workout.tss || 0),
+      similarityReference.value.load
+    )
+    if (loadScore !== null) {
+      score += loadScore * 0.25
+      weight += 0.25
+    }
+
+    if (similarityReference.value.type) {
+      score += workout.type === similarityReference.value.type ? 0.15 : 0
+      weight += 0.15
+    }
+
+    if (similarityReference.value.source) {
+      score += workout.source === similarityReference.value.source ? 0.05 : 0
+      weight += 0.05
+    }
+
+    if (!weight) return null
+    return Math.round((score / weight) * 100)
+  }
+
   function presetIcon(preset: WorkoutComparisonPreset) {
     if (preset.visualType === 'scatter') return 'i-lucide-chart-scatter'
     if (preset.mode === 'stream') return 'i-lucide-waveform'
@@ -463,7 +618,7 @@
     if (selectedPreset.value.mode === 'stream') {
       return {
         ...base,
-        visualType: 'line',
+        visualType: 'scatter',
         endpoint: '/api/analytics/workout-comparison/streams',
         comparison: {
           ...base.comparison,
@@ -499,7 +654,7 @@
   async function pinToDashboard() {
     if (workoutIds.value.length < 2) {
       toast.add({ title: 'Select at least two workouts to compare', color: 'warning' })
-      leftRailTab.value = 'workouts'
+      leftRailTab.value = 'selected'
       return
     }
 
@@ -597,6 +752,15 @@
             >
               <UButton
                 size="sm"
+                :color="leftRailTab === 'selected' ? 'primary' : 'neutral'"
+                :variant="leftRailTab === 'selected' ? 'soft' : 'ghost'"
+                class="flex-1"
+                @click="leftRailTab = 'selected'"
+              >
+                Selected
+              </UButton>
+              <UButton
+                size="sm"
                 :color="leftRailTab === 'workouts' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'workouts' ? 'soft' : 'ghost'"
                 class="flex-1"
@@ -615,14 +779,11 @@
               </UButton>
             </div>
 
-            <div v-if="leftRailTab === 'workouts'" class="flex min-h-0 flex-1 flex-col gap-4">
+            <div v-if="leftRailTab === 'selected'" class="flex min-h-0 flex-1 flex-col gap-4">
               <div class="space-y-1">
                 <div class="text-[11px] font-black uppercase tracking-[0.24em] text-muted">
                   Selected workouts
                 </div>
-                <p class="text-sm text-muted">
-                  Choose at least two sessions to unlock summary, stream, and interval comparisons.
-                </p>
               </div>
 
               <div class="space-y-2">
@@ -640,14 +801,29 @@
 
                 <div v-else class="space-y-2">
                   <div
-                    v-for="workout in selectedWorkouts"
+                    v-for="workout in selectedWorkoutDetails"
                     :key="workout.id"
-                    class="flex items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3"
+                    class="flex items-start justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3"
                   >
-                    <div class="min-w-0 flex-1">
+                    <div
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-default/60"
+                    >
+                      <UIcon
+                        :name="workoutTypeIcon(workout.type)"
+                        class="h-4 w-4 text-primary"
+                      />
+                    </div>
+                    <div class="min-w-0 flex-1 space-y-2">
                       <div class="truncate font-bold text-highlighted">{{ workout.title }}</div>
                       <div class="truncate text-xs text-muted">
                         {{ workout.athleteName || 'Athlete' }} · {{ formatDateLabel(workout.date) }}
+                      </div>
+                      <div class="flex flex-wrap gap-2 text-[11px] text-muted">
+                        <span>{{ workout.type || 'Workout' }}</span>
+                        <span>{{ formatDuration(workout.durationSec) }}</span>
+                        <span>{{ formatDistance(workout.distanceMeters) }}</span>
+                        <span>{{ formatLoad(workout.tss, 'TSS') }}</span>
+                        <span>{{ formatLoad(workout.trainingLoad) }}</span>
                       </div>
                     </div>
                     <UButton
@@ -658,56 +834,81 @@
                       @click="comparisonStore.removeWorkout(workout.id)"
                     />
                   </div>
+
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    size="sm"
+                    icon="i-lucide-plus"
+                    class="w-full font-bold"
+                    @click="leftRailTab = 'workouts'"
+                  >
+                    Add Workouts
+                  </UButton>
                 </div>
               </div>
+            </div>
 
-              <div class="space-y-3 border-t border-default/70 pt-4">
-                <div class="space-y-2">
-                  <div class="text-[11px] font-black uppercase tracking-[0.24em] text-muted">
-                    Workout browser
-                  </div>
+            <div v-else-if="leftRailTab === 'workouts'" class="flex min-h-0 flex-1 flex-col gap-4">
+              <div class="space-y-2">
+                <div class="text-[11px] font-black uppercase tracking-[0.24em] text-muted">
+                  Workout browser
+                </div>
+                <div class="flex items-center gap-2">
                   <UInput
                     v-model="workoutSearch"
                     icon="i-heroicons-magnifying-glass"
                     placeholder="Search workouts, athletes, or session types"
                     size="sm"
-                  />
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                  <USelectMenu
-                    v-model="athleteFilter"
-                    value-key="value"
-                    :items="athleteOptions"
-                    size="sm"
-                    class="w-full"
-                  />
-                  <USelectMenu
-                    v-model="workoutTypeFilter"
-                    value-key="value"
-                    :items="workoutTypeOptions"
-                    size="sm"
-                    class="w-full"
-                  />
-                  <USelectMenu
-                    v-model="workoutSourceFilter"
-                    value-key="value"
-                    :items="workoutSourceOptions"
-                    size="sm"
-                    class="w-full"
+                    class="flex-1"
                   />
                   <UButton
+                    v-if="canFindSimilar"
                     color="neutral"
                     variant="outline"
                     size="sm"
-                    class="font-bold"
-                    @click="resetWorkoutFilters"
+                    icon="i-lucide-sparkles"
+                    class="shrink-0 font-bold"
+                    @click="applySimilarWorkoutFilters"
                   >
-                    Reset
+                    Find Similar
                   </UButton>
-                  <UInput v-model="startDateFilter" type="date" size="sm" class="w-full" />
-                  <UInput v-model="endDateFilter" type="date" size="sm" class="w-full" />
                 </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <USelectMenu
+                  v-model="athleteFilter"
+                  value-key="value"
+                  :items="athleteOptions"
+                  size="sm"
+                  class="w-full"
+                />
+                <USelectMenu
+                  v-model="workoutTypeFilter"
+                  value-key="value"
+                  :items="workoutTypeOptions"
+                  size="sm"
+                  class="w-full"
+                />
+                <USelectMenu
+                  v-model="workoutSourceFilter"
+                  value-key="value"
+                  :items="workoutSourceOptions"
+                  size="sm"
+                  class="w-full"
+                />
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                  class="font-bold"
+                  @click="resetWorkoutFilters"
+                >
+                  Reset
+                </UButton>
+                <UInput v-model="startDateFilter" type="date" size="sm" class="w-full" />
+                <UInput v-model="endDateFilter" type="date" size="sm" class="w-full" />
               </div>
 
               <div class="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -736,8 +937,26 @@
                     @click="toggleWorkout(workout)"
                   >
                     <div class="flex items-start justify-between gap-3">
+                      <div
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-default/60 bg-muted/30"
+                      >
+                        <UIcon
+                          :name="workoutTypeIcon(workout.type)"
+                          class="h-4 w-4 text-primary"
+                        />
+                      </div>
                       <div class="min-w-0 flex-1">
-                        <div class="truncate font-bold text-highlighted">{{ workout.title }}</div>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <div class="truncate font-bold text-highlighted">{{ workout.title }}</div>
+                          <UBadge
+                            v-if="canFindSimilar && computeSimilarityScore(workout) !== null"
+                            color="neutral"
+                            variant="soft"
+                            size="xs"
+                          >
+                            {{ computeSimilarityScore(workout) }}% match
+                          </UBadge>
+                        </div>
                         <div class="mt-1 truncate text-xs text-muted">
                           {{ workout.user?.name || workout.user?.email || 'Athlete' }} ·
                           {{ formatDateLabel(workout.date) }}
@@ -921,6 +1140,15 @@
                   Source:
                   <span class="font-semibold text-highlighted">{{
                     selectedWorkoutSourceLabel
+                  }}</span>
+                </div>
+                <div
+                  v-if="selectedPreset.mode === 'stream'"
+                  class="rounded-full border border-default bg-muted/20 px-3 py-1.5"
+                >
+                  Alignment:
+                  <span class="font-semibold text-highlighted">{{
+                    formatAlignmentLabel(streamAlignment)
                   }}</span>
                 </div>
               </div>
