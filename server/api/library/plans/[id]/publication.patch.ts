@@ -76,7 +76,8 @@ export default defineEventHandler(async (event) => {
         whoItsFor: body.whoItsFor,
         faq: body.faq,
         extraContent: body.extraContent,
-        isFeatured: body.isFeatured
+        isFeatured: body.isFeatured,
+        teamId: body.teamId
       }
     })
 

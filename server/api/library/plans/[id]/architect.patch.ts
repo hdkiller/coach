@@ -131,7 +131,7 @@ export default defineEventHandler(async (event) => {
         // Create new block
         const newBlock = await tx.trainingBlock.create({
           data: {
-            trainingPlan: { connect: { id } },
+            plan: { connect: { id } },
             name: bData.name,
             type: bData.type,
             primaryFocus: bData.primaryFocus,
