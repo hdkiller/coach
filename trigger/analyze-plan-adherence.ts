@@ -5,11 +5,29 @@ import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
+import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import {
   buildWorkoutAnalysisFactsV2,
   formatActualIntervalsForPrompt,
   getActualIntervalsSourceForAnalysis
 } from '../server/utils/workout-analysis-facts'
+
+interface AdherenceAnalysis {
+  overallScore: number
+  intensityScore: number
+  durationScore: number
+  executionScore: number
+  cadenceScore: number
+  summary: string
+  deviations: Array<{
+    metric: string
+    planned: string
+    actual: string
+    deviation: string
+    impact: string
+  }>
+  recommendations: string[]
+}
 
 const adherenceSchema = {
   type: 'object',
@@ -41,14 +59,15 @@ const adherenceSchema = {
   required: ['overallScore', 'summary', 'deviations']
 }
 
-export function buildPlanAdherencePrompt(workout: any, plan: any): string {
+export function buildPlanAdherencePrompt(workout: any, plan: any, sportSettings?: any): string {
   const structuredPlan = formatStructuredPlanForPrompt(plan.structuredWorkout, {
-    ftp: workout.ftp || workout.user?.ftp || null
+    ftp: workout.ftp || sportSettings?.ftp || workout.user?.ftp || null
   })
   const actualIntervals = formatActualIntervalsForPrompt(workout, plan)
   const actualIntervalsSource = getActualIntervalsSourceForAnalysis(workout, plan)
   const adherenceFacts = buildWorkoutAnalysisFactsV2({
     workout,
+    sportSettings,
     plannedWorkout: plan,
     userProfile: {
       language: workout.user?.language || null
@@ -60,6 +79,27 @@ export function buildPlanAdherencePrompt(workout: any, plan: any): string {
       : actualIntervalsSource === 'raw'
         ? 'synced raw intervals'
         : 'none'
+
+  let zoneDefinitions = ''
+  if (sportSettings) {
+    zoneDefinitions += `\n      ## Defined Training Zones (Reference)\n`
+    if (sportSettings.ftp) zoneDefinitions += `      - **FTP**: ${sportSettings.ftp} W\n`
+    if (sportSettings.lthr) zoneDefinitions += `      - **LTHR**: ${sportSettings.lthr} bpm\n`
+
+    if (sportSettings.hrZones && Array.isArray(sportSettings.hrZones)) {
+      zoneDefinitions += '      - **Heart Rate Zones**:\n'
+      sportSettings.hrZones.forEach((z: any) => {
+        zoneDefinitions += `        - ${z.name}: ${z.min}-${z.max} bpm\n`
+      })
+    }
+
+    if (sportSettings.powerZones && Array.isArray(sportSettings.powerZones)) {
+      zoneDefinitions += '      - **Power Zones**:\n'
+      sportSettings.powerZones.forEach((z: any) => {
+        zoneDefinitions += `        - ${z.name}: ${z.min}-${z.max} W\n`
+      })
+    }
+  }
 
   return `Analyze the adherence of this completed workout to the planned workout.
       
@@ -95,9 +135,9 @@ export function buildPlanAdherencePrompt(workout: any, plan: any): string {
       - Cadence Assessable: ${adherenceFacts.cadenceAssessable ? 'Yes' : 'No'}
       - Structure Matched: ${adherenceFacts.structureMatched ? 'Yes' : 'No'}
       - Execution Classification: ${adherenceFacts.executionClassification}
-      
+      ${zoneDefinitions}
       USER CONTEXT:
-      - FTP: ${workout.user.ftp || 'N/A'}W
+      - FTP: ${sportSettings?.ftp || workout.ftp || workout.user.ftp || 'N/A'}W
       - Preferred Language: ${workout.user.language || 'English'} (CRITICAL: ALL analysis, reasoning, summaries, and feedback MUST be written in this language)
       
       INSTRUCTIONS:
@@ -138,6 +178,12 @@ export const analyzePlanAdherenceTask = task({
 
     if (!workout || !plan) throw new Error('Workout or Plan not found')
 
+    // Fetch Sport Specific Settings
+    const sportSettings = await sportSettingsRepository.getForActivityType(
+      workout.userId,
+      workout.type || ''
+    )
+
     // Create/Update initial adherence record
     await prisma.planAdherence.upsert({
       where: { workoutId },
@@ -152,14 +198,19 @@ export const analyzePlanAdherenceTask = task({
     })
 
     try {
-      const prompt = buildPlanAdherencePrompt(workout, plan)
+      const prompt = buildPlanAdherencePrompt(workout, plan, sportSettings)
 
-      const analysis = await generateStructuredAnalysis(prompt, adherenceSchema, 'flash', {
-        userId: workout.userId,
-        operation: 'analyze_plan_adherence',
-        entityType: 'PlanAdherence',
-        entityId: workoutId
-      })
+      const analysis = await generateStructuredAnalysis<AdherenceAnalysis>(
+        prompt,
+        adherenceSchema,
+        'flash',
+        {
+          userId: workout.userId,
+          operation: 'analyze_plan_adherence',
+          entityType: 'PlanAdherence',
+          entityId: workoutId
+        }
+      )
 
       // Save results
       await prisma.planAdherence.update({
