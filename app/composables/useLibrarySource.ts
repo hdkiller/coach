@@ -3,9 +3,17 @@ import { useCoachingStore } from '~/stores/coaching'
 
 export type LibrarySource = 'athlete' | 'coach' | 'all'
 
-export function useLibrarySource(storageKey = 'default', options?: { includeAll?: boolean }) {
+export function useLibrarySource(
+  storageKey = 'default',
+  options?: {
+    includeAll?: boolean
+    itemLabel?: string // e.g. "workouts" or "plans"
+  }
+) {
   const coachingStore = useCoachingStore()
   const includeAll = options?.includeAll !== false
+  const itemLabel = options?.itemLabel || 'library'
+
   const fallbackSource = computed<LibrarySource>(() =>
     coachingStore.isCoachingMode ? 'coach' : 'athlete'
   )
@@ -19,12 +27,12 @@ export function useLibrarySource(storageKey = 'default', options?: { includeAll?
 
   const optionsList = computed(() => {
     if (!coachingStore.isCoachingMode) {
-      return [{ label: 'My library', value: 'athlete' as const }]
+      return [{ label: `My ${itemLabel}`, value: 'athlete' as const }]
     }
 
     return [
-      { label: 'Coach library', value: 'coach' as const },
-      { label: 'Athlete library', value: 'athlete' as const },
+      { label: `Coach ${itemLabel}`, value: 'coach' as const },
+      { label: `Athlete ${itemLabel}`, value: 'athlete' as const },
       ...(includeAll ? [{ label: 'Both', value: 'all' as const }] : [])
     ]
   })
