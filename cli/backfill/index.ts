@@ -18,6 +18,7 @@ import backfillOuraCommand from './wellness-oura'
 import backfillChatRoomsCommand from './chat-rooms'
 import backfillChatEmptyFailuresCommand from './chat-empty-failures'
 import backfillWorkoutSummaryNotesCommand from './workout-summary-notes'
+import removeWorkoutSummaryNotesCommand from './remove-workout-summary-notes'
 import backfillPowerSummaryFromStreamsCommand from './power-summary-from-streams'
 import backfillFitExtrasMetaCommand from './fit-extras-meta'
 import backfillElevationGainCommand from './elevation-gain'
@@ -50,6 +51,7 @@ backfill
   .addCommand(backfillChatRoomsCommand)
   .addCommand(backfillChatEmptyFailuresCommand)
   .addCommand(backfillWorkoutSummaryNotesCommand)
+  .addCommand(removeWorkoutSummaryNotesCommand)
   .addCommand(backfillPowerSummaryFromStreamsCommand)
   .addCommand(backfillFitExtrasMetaCommand)
   .addCommand(backfillElevationGainCommand)

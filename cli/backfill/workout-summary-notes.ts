@@ -4,31 +4,7 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { updateIntervalsActivityDescription } from '../../server/utils/intervals'
-
-const SUMMARY_BLOCK_HEADER = 'CoachWatts Workout Analysis'
-const SUMMARY_ATTRIBUTION_URL = '🔗 https://CoachWatts.com - AI Endurance Coaching'
-
-function upsertSummaryBlock(
-  existingDescription: string | null | undefined,
-  summary: string
-): string {
-  const current = (existingDescription || '').trim()
-  const previousBlockPatterns = [
-    /\n?\[CoachWatts\.com AI Summary\][\s\S]*?\[\/CoachWatts\.com AI Summary\]\n?/g,
-    /\n?\[CoachWatts AI Summary\][\s\S]*?\[\/CoachWatts AI Summary\]\n?/g,
-    /\n?\[CoachWatts Workout Analyisis\][\s\S]*?\[\/CoachWatts Workout Analyisis\]\n?/g,
-    /\n?\[CoachWatts Workout Analysis\][\s\S]*?\[\/CoachWatts Workout Analysis\]\n?/g,
-    /\n?CoachWatts Workout Analyisis[\s\S]*?🔗 https:\/\/CoachWatts\.com - AI Endurance Coaching\n?/g,
-    /\n?CoachWatts Workout Analysis[\s\S]*?🔗 https:\/\/CoachWatts\.com - AI Endurance Coaching\n?/g,
-    /\n?\[AI Workout Summary\][\s\S]*?\[\/AI Workout Summary\]\n?/g
-  ]
-  const withoutPreviousSummary = previousBlockPatterns
-    .reduce((text, pattern) => text.replace(pattern, ''), current)
-    .trim()
-  const nextBlock = `${SUMMARY_BLOCK_HEADER}\n\n${summary.trim()}\n\n${SUMMARY_ATTRIBUTION_URL}`
-
-  return withoutPreviousSummary ? `${nextBlock}\n\n${withoutPreviousSummary}` : nextBlock
-}
+import { upsertWorkoutSummaryBlock } from '../../server/utils/services/workout-summary-publish'
 
 const backfillWorkoutSummaryNotesCommand = new Command('workout-summary-notes')
 
@@ -169,7 +145,9 @@ backfillWorkoutSummaryNotesCommand
             source: 'intervals',
             isDuplicate: false,
             aiAnalysisJson: { not: Prisma.JsonNull },
-            ...(days !== null ? { date: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) } } : {})
+            ...(days !== null
+              ? { date: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) } }
+              : {})
           },
           orderBy: { date: 'desc' },
           take: workoutsPerUser,
@@ -200,7 +178,7 @@ backfillWorkoutSummaryNotesCommand
             continue
           }
 
-          const mergedDescription = upsertSummaryBlock(workout.description, summary)
+          const mergedDescription = upsertWorkoutSummaryBlock(workout.description, summary)
           workoutsWouldPublish++
 
           if (estimateOnly) {
@@ -246,7 +224,9 @@ backfillWorkoutSummaryNotesCommand
       console.log(`Errors:            ${workoutsErrored}`)
 
       if (estimateOnly) {
-        console.log(chalk.cyan('\nEstimate complete. Re-run without --estimate-only to apply changes.'))
+        console.log(
+          chalk.cyan('\nEstimate complete. Re-run without --estimate-only to apply changes.')
+        )
       } else if (isDryRun) {
         console.log(chalk.cyan('\nRun without --dry-run to apply changes.'))
       }
