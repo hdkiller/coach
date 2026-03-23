@@ -787,9 +787,9 @@
           </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto bg-default/30 p-8">
+        <main class="flex-1 overflow-y-auto bg-default/30 px-6 pb-8 pt-3 lg:px-8">
           <div v-if="selectedWidget" class="mx-auto flex h-full max-w-5xl flex-col">
-            <div class="mb-8 rounded-3xl border border-default bg-default p-6 shadow-sm">
+            <div class="mb-6 rounded-3xl border border-default bg-default p-6 shadow-sm">
               <div class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2">
                   <h2
