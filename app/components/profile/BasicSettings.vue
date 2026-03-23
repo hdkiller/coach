@@ -268,14 +268,14 @@
       </div>
     </UCard>
 
-    <!-- Location Card -->
+    <!-- Privacy & Location Card -->
     <UCard>
       <template #header>
         <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-          {{ t('basic_location_title') }}
+          Privacy & Location
         </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('basic_location_description') }}
+          Control your visibility and location details.
         </p>
       </template>
 
@@ -312,6 +312,23 @@
           <USelectMenu
             v-model="localProfile.visibility"
             :items="['Private', 'Public', 'Followers Only']"
+            class="w-full"
+            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+          />
+        </UFormField>
+
+        <UFormField
+          label="Team Data Visibility"
+          name="teamVisibility"
+          help="Control who can see your detailed metrics in professional teams."
+        >
+          <USelectMenu
+            v-model="localProfile.teamVisibility"
+            :items="[
+              { label: 'Coaches Only', value: 'COACHES_ONLY' },
+              { label: 'Teammates & Coaches', value: 'TEAMMATES' }
+            ]"
+            value-key="value"
             class="w-full"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
           />

@@ -30,11 +30,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Team ID is required' })
   }
 
-  // Only team staff (OWNER, ADMIN, COACH) can see the full roster
-  const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
-  if (!isStaff) {
-    throw createError({ statusCode: 403, message: 'Only team staff can view the athlete roster' })
+  // Check if user is a member of the team (any role)
+  const hasAccess = await teamRepository.checkTeamAccess(teamId, user.id)
+  if (!hasAccess) {
+    throw createError({
+      statusCode: 403,
+      message: 'You must be a member of the team to view the roster'
+    })
   }
 
-  return await teamRepository.getTeamRoster(teamId)
+  // Only team staff (OWNER, ADMIN, COACH) can see the full roster with detailed metrics
+  const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
+
+  return await teamRepository.getTeamRoster(teamId, { maskSensitiveData: !isStaff })
 })

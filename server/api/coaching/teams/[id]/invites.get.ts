@@ -30,11 +30,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Team ID is required' })
   }
 
-  // Only admins/owners can see invites
-  const isAdmin = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN'])
-  if (!isAdmin) {
+  // Team staff can access invites; coaches only need athlete invites for roster onboarding.
+  const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
+  if (!isStaff) {
     throw createError({ statusCode: 403, message: 'Forbidden' })
   }
 
-  return await teamRepository.getTeamInvites(teamId)
+  const invites = await teamRepository.getTeamInvites(teamId)
+  const isAdmin = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN'])
+
+  return isAdmin ? invites : invites.filter((invite: any) => invite.role === 'ATHLETE')
 })

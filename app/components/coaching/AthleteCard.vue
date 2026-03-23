@@ -1,7 +1,11 @@
 <template>
   <UCard
-    class="flex flex-col h-full hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer overflow-hidden group"
-    @click="$emit('view', athlete)"
+    class="flex flex-col h-full transition-all overflow-hidden group"
+    :class="{
+      'hover:ring-2 hover:ring-primary-500 cursor-pointer': !athlete.isMasked,
+      'opacity-80 grayscale-[0.5]': athlete.isMasked
+    }"
+    @click="athlete.isMasked ? null : $emit('view', athlete)"
   >
     <template #header>
       <div class="flex items-start justify-between">
@@ -14,15 +18,24 @@
           />
           <div class="min-w-0">
             <h4
-              class="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-600 transition-colors"
+              class="font-bold text-gray-900 dark:text-white truncate transition-colors"
+              :class="{ 'group-hover:text-primary-600': !athlete.isMasked }"
             >
               {{ athlete.name }}
             </h4>
-            <p class="text-xs text-neutral-500 truncate">{{ athlete.email }}</p>
+            <p v-if="!athlete.isMasked" class="text-xs text-neutral-500 truncate">
+              {{ athlete.email }}
+            </p>
+            <p
+              v-else
+              class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5"
+            >
+              Teammate
+            </p>
           </div>
         </div>
 
-        <div class="flex flex-col items-end gap-1">
+        <div v-if="!athlete.isMasked" class="flex flex-col items-end gap-1">
           <UBadge
             v-if="athlete.recommendations?.length"
             :color="getRecommendationColor(athlete.recommendations[0].recommendation)"
@@ -36,6 +49,9 @@
             {{ formatRelativeTime(athlete.profileLastUpdated) }}
           </p>
         </div>
+        <div v-else>
+          <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-300" />
+        </div>
       </div>
     </template>
 
@@ -46,18 +62,27 @@
           class="bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-center border border-gray-100 dark:border-gray-800"
         >
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">Fitness</p>
-          <p class="text-lg font-black text-blue-600 dark:text-blue-400 leading-tight">
+          <p
+            v-if="!athlete.isMasked"
+            class="text-lg font-black text-blue-600 dark:text-blue-400 leading-tight"
+          >
             {{ currentCTL !== undefined && currentCTL !== null ? Math.round(currentCTL) : '--' }}
           </p>
+          <p v-else class="text-lg font-black text-neutral-300 leading-tight">--</p>
           <p class="text-[9px] text-neutral-400">CTL</p>
         </div>
         <div
           class="bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg text-center border border-gray-100 dark:border-gray-800"
         >
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">Form</p>
-          <p class="text-lg font-black leading-tight" :class="getTSBColor(currentTSB)">
+          <p
+            v-if="!athlete.isMasked"
+            class="text-lg font-black leading-tight"
+            :class="getTSBColor(currentTSB)"
+          >
             {{ currentTSB !== null ? Math.round(currentTSB) : '--' }}
           </p>
+          <p v-else class="text-lg font-black text-neutral-300 leading-tight">--</p>
           <p class="text-[9px] text-neutral-400">TSB</p>
         </div>
         <div
@@ -65,11 +90,13 @@
         >
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">7d Comp.</p>
           <p
+            v-if="!athlete.isMasked"
             class="text-lg font-black leading-tight"
             :class="(athlete.stats?.adherence7d || 0) >= 80 ? 'text-green-600' : 'text-orange-500'"
           >
             {{ athlete.stats?.adherence7d ?? '--' }}%
           </p>
+          <p v-else class="text-lg font-black text-neutral-300 leading-tight">--%</p>
           <p class="text-[9px] text-neutral-400">
             {{ athlete.stats?.completedCount ?? 0 }}/{{ athlete.stats?.plannedCount ?? 0 }}
           </p>
@@ -77,7 +104,7 @@
       </div>
 
       <!-- 2. Sparkline (Fitness Trend) -->
-      <div class="h-16 w-full px-1 relative">
+      <div v-if="!athlete.isMasked" class="h-16 w-full px-1 relative">
         <LineChart v-if="chartData" :data="chartData" :options="chartOptions" />
         <div
           v-else
@@ -92,18 +119,24 @@
           :title="isOvertrained ? 'High Fatigue Alert' : 'Low Compliance Alert'"
         />
       </div>
+      <div
+        v-else
+        class="h-16 w-full bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-dashed border-neutral-200 dark:border-neutral-800 flex items-center justify-center"
+      >
+        <UIcon name="i-heroicons-eye-slash" class="w-5 h-5 text-neutral-200" />
+      </div>
 
       <!-- 3. Training Preview -->
       <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
         <div class="flex items-center justify-between text-xs">
           <span class="font-bold text-neutral-400 uppercase tracking-tighter">Next Session</span>
-          <span v-if="nextWorkout" class="text-neutral-500 font-medium">{{
+          <span v-if="nextWorkout && !athlete.isMasked" class="text-neutral-500 font-medium">{{
             formatDate(nextWorkout.date)
           }}</span>
         </div>
 
         <div
-          v-if="nextWorkout"
+          v-if="nextWorkout && !athlete.isMasked"
           class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-800/30 p-2 rounded border border-dashed border-gray-200 dark:border-gray-700"
         >
           <UIcon
@@ -123,13 +156,20 @@
             {{ Math.round(nextWorkout.tss) }} TSS
           </UBadge>
         </div>
+        <div
+          v-else-if="athlete.isMasked"
+          class="text-[11px] text-neutral-400 italic py-1 flex items-center gap-1"
+        >
+          <UIcon name="i-heroicons-lock-closed" class="w-3 h-3" />
+          Private Profile
+        </div>
         <div v-else class="text-[11px] text-neutral-400 italic py-1">
           No upcoming workouts planned.
         </div>
 
         <!-- Next Major Event -->
         <div
-          v-if="nextEvent"
+          v-if="nextEvent && !athlete.isMasked"
           class="flex items-center gap-2 mt-2 px-1 text-orange-600 dark:text-orange-400"
         >
           <UIcon name="i-heroicons-flag" class="w-3.5 h-3.5" />
@@ -144,13 +184,15 @@
       <div class="flex gap-2">
         <UButton
           class="flex-1 font-bold"
-          label="Analyze Athlete"
-          icon="i-heroicons-chart-bar"
-          variant="soft"
+          :label="athlete.isMasked ? 'Private Profile' : 'Analyze Athlete'"
+          :icon="athlete.isMasked ? 'i-heroicons-lock-closed' : 'i-heroicons-chart-bar'"
+          :variant="athlete.isMasked ? 'ghost' : 'soft'"
+          :color="athlete.isMasked ? 'neutral' : 'primary'"
           size="sm"
+          :disabled="athlete.isMasked"
           @click.stop="$emit('view', athlete)"
         />
-        <UTooltip text="Message Athlete">
+        <UTooltip v-if="!athlete.isMasked" text="Message Athlete">
           <UButton
             color="neutral"
             variant="ghost"

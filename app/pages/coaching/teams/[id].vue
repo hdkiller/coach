@@ -102,6 +102,85 @@
                   @message="messageAthlete"
                 />
               </div>
+
+              <UCard
+                v-if="canShareAthleteInvite"
+                :ui="{
+                  body: 'p-6',
+                  root: 'overflow-hidden border-2 border-primary-500/20 bg-primary-50/30 dark:bg-primary-950/10'
+                }"
+              >
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                  <div class="space-y-3 max-w-2xl">
+                    <div class="space-y-1">
+                      <p
+                        class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300"
+                      >
+                        Team Invite
+                      </p>
+                      <h3
+                        class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                      >
+                        Invite Athletes to {{ team.name }}
+                      </h3>
+                      <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                        Share one link or QR code so athletes can join the team directly. You can
+                        still add an existing coached athlete or use their personal coach code in
+                        the modal below.
+                      </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                      <UFormField
+                        label="Auto-Assign Group"
+                        help="Optional: New athletes joining from this link will be added to the selected group."
+                        class="w-full sm:max-w-xs"
+                      >
+                        <USelect
+                          v-model="shareInviteGroupId"
+                          :items="shareInviteGroupOptions"
+                          class="w-full"
+                        />
+                      </UFormField>
+
+                      <div
+                        v-if="shareableAthleteInvite?.group"
+                        class="self-end text-[10px] font-bold uppercase tracking-[0.15em] text-primary-700 dark:text-primary-300"
+                      >
+                        Current link adds athletes to {{ shareableAthleteInvite.group.name }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col items-center gap-3 xl:min-w-[24rem]">
+                    <div v-if="shareableAthleteInvite">
+                      <CoachingInviteLink :code="shareableAthleteInvite.code" />
+                    </div>
+                    <div
+                      v-else
+                      class="h-14 w-full max-w-sm rounded-xl border-2 border-dashed border-primary-200 dark:border-primary-800 bg-white/80 dark:bg-gray-950/40 flex items-center justify-center px-4 text-center text-xs font-bold uppercase tracking-[0.15em] text-primary-700 dark:text-primary-300"
+                    >
+                      Generate a link to start inviting athletes
+                    </div>
+
+                    <UButton
+                      :label="
+                        shareableAthleteInvite ? 'Generate New Invite Link' : 'Generate Invite Link'
+                      "
+                      color="primary"
+                      icon="i-heroicons-link"
+                      :loading="creatingAthleteInvite"
+                      @click="createAthleteShareInvite"
+                    />
+                    <p
+                      v-if="shareableAthleteInvite"
+                      class="text-[10px] text-neutral-500 uppercase font-bold text-center"
+                    >
+                      Expires {{ formatRelative(shareableAthleteInvite.expiresAt) }}
+                    </p>
+                  </div>
+                </div>
+              </UCard>
             </div>
           </template>
 
@@ -190,20 +269,33 @@
                   >
                     <div>
                       <div class="flex items-center gap-2">
-                        <span class="font-mono font-bold text-primary-600">{{ inv.code }}</span>
-                        <UBadge size="xs" color="neutral">{{ inv.role }}</UBadge>
+                        <CoachingInviteLink :code="inv.code" />
+                        <UBadge size="xs" color="neutral" class="uppercase font-bold">
+                          {{ inv.role }}
+                        </UBadge>
+                        <UBadge
+                          v-if="inv.group"
+                          size="xs"
+                          color="primary"
+                          variant="subtle"
+                          class="uppercase font-bold"
+                        >
+                          {{ inv.group.name }}
+                        </UBadge>
                       </div>
-                      <p v-if="inv.email" class="text-xs text-neutral-500">{{ inv.email }}</p>
-                      <p class="text-[10px] text-neutral-400">
+                      <p v-if="inv.email" class="text-xs text-neutral-500 mt-1 pl-1">
+                        Restricted to: {{ inv.email }}
+                      </p>
+                      <p class="text-[10px] text-neutral-400 mt-1 pl-1">
                         Expires {{ formatRelative(inv.expiresAt) }}
                       </p>
                     </div>
                     <UButton
-                      color="neutral"
+                      color="error"
                       variant="ghost"
-                      icon="i-heroicons-clipboard"
+                      icon="i-heroicons-trash"
                       size="xs"
-                      @click="copyInvite(inv.code)"
+                      @click="revokeInvite(inv.id)"
                     />
                   </div>
                 </div>
@@ -269,6 +361,18 @@
             class="w-full"
           />
         </UFormField>
+        <UFormField
+          v-if="newInvite.role === 'ATHLETE'"
+          label="Auto-Assign to Group"
+          help="Optional: The member will be automatically added to this group upon joining."
+        >
+          <USelect
+            v-model="newInvite.groupId"
+            :items="groupOptions"
+            placeholder="None (Team Roster only)"
+            class="w-full"
+          />
+        </UFormField>
       </div>
     </template>
     <template #footer>
@@ -285,37 +389,126 @@
   <!-- Quick Add Athlete Modal -->
   <UModal
     v-model:open="isQuickAddModalOpen"
-    title="Add Connected Athlete"
-    description="Directly add an athlete you already coach to this professional team."
+    title="Add Athlete"
+    description="Onboard an athlete to your team workspace."
   >
     <template #body>
-      <div class="space-y-4">
-        <UFormField
-          label="Select Athlete"
-          help="Only athletes you currently have a direct coaching relationship with are listed here."
-        >
-          <USelect
-            v-model="selectedAthleteToQuickAdd"
-            :items="availableCoachedAthletes"
-            placeholder="Select from your coached athletes..."
-            class="w-full"
-          />
-        </UFormField>
-      </div>
+      <UTabs
+        :items="[
+          { label: 'Share Invite', slot: 'share', icon: 'i-heroicons-link' },
+          { label: 'From My Athletes', slot: 'connected', icon: 'i-heroicons-user-group' },
+          { label: 'By Invite Code', slot: 'by-code', icon: 'i-heroicons-ticket' }
+        ]"
+        class="w-full"
+      >
+        <template #share>
+          <div class="space-y-4 pt-4">
+            <p class="text-sm text-neutral-500 text-center">
+              Send athletes a direct team join link, or let them scan the QR code from their phone.
+            </p>
+
+            <UFormField
+              label="Auto-Assign Group"
+              help="Optional: Anyone joining from this link will be added to this group automatically."
+            >
+              <USelect
+                v-model="shareInviteGroupId"
+                :items="shareInviteGroupOptions"
+                class="w-full"
+              />
+            </UFormField>
+
+            <div
+              class="rounded-2xl border border-primary-200/60 dark:border-primary-900 bg-primary-50/50 dark:bg-primary-950/10 p-4 flex flex-col items-center gap-4"
+            >
+              <div v-if="shareableAthleteInvite">
+                <CoachingInviteLink :code="shareableAthleteInvite.code" />
+              </div>
+              <div
+                v-else
+                class="w-full rounded-xl border-2 border-dashed border-primary-200 dark:border-primary-800 bg-white/80 dark:bg-gray-950/30 px-4 py-5 text-center text-xs font-bold uppercase tracking-[0.15em] text-primary-700 dark:text-primary-300"
+              >
+                Generate an athlete invite to unlock the share link and QR code
+              </div>
+
+              <p
+                v-if="shareableAthleteInvite?.group"
+                class="text-[10px] font-bold uppercase tracking-[0.15em] text-primary-700 dark:text-primary-300 text-center"
+              >
+                Current invite adds athletes to {{ shareableAthleteInvite.group.name }}
+              </p>
+
+              <UButton
+                :label="
+                  shareableAthleteInvite ? 'Generate New Invite Link' : 'Generate Invite Link'
+                "
+                color="primary"
+                block
+                :loading="creatingAthleteInvite"
+                icon="i-heroicons-link"
+                @click="createAthleteShareInvite"
+              />
+            </div>
+          </div>
+        </template>
+
+        <template #connected>
+          <div class="space-y-4 pt-4">
+            <UFormField
+              label="Select Athlete"
+              help="Only athletes you currently have a direct coaching relationship with are listed here."
+            >
+              <USelect
+                v-model="selectedAthleteToQuickAdd"
+                :items="availableCoachedAthletes"
+                placeholder="Select from your coached athletes..."
+                class="w-full"
+              />
+            </UFormField>
+            <UButton
+              label="Add to Team"
+              color="primary"
+              block
+              :loading="quickAdding"
+              :disabled="!selectedAthleteToQuickAdd"
+              @click="quickAddAthlete"
+            />
+          </div>
+        </template>
+
+        <template #by-code>
+          <div class="space-y-4 pt-4 text-center">
+            <p class="text-sm text-neutral-500">
+              Enter the athlete's personal "Invite a Coach" code. They will be automatically
+              connected to you AND added to this team.
+            </p>
+            <UFormField label="Athlete Code">
+              <UInput
+                v-model="athleteCodeToJoin"
+                placeholder="INVITE-CODE"
+                class="font-mono uppercase text-center text-xl w-full"
+                maxlength="10"
+              />
+            </UFormField>
+            <UButton
+              label="Add via Code"
+              color="primary"
+              block
+              :loading="quickAdding"
+              :disabled="!athleteCodeToJoin"
+              @click="addAthleteByCode"
+            />
+          </div>
+        </template>
+      </UTabs>
     </template>
     <template #footer>
       <UButton
         label="Cancel"
         color="neutral"
         variant="ghost"
+        block
         @click="isQuickAddModalOpen = false"
-      />
-      <UButton
-        label="Add to Team"
-        color="primary"
-        :loading="quickAdding"
-        :disabled="!selectedAthleteToQuickAdd"
-        @click="quickAddAthlete"
       />
     </template>
   </UModal>
@@ -338,23 +531,51 @@
   const myCoachedAthletes = ref<any[]>([])
   const loading = ref(true)
   const creatingInvite = ref(false)
+  const creatingAthleteInvite = ref(false)
   const isInviteModalOpen = ref(false)
   const isQuickAddModalOpen = ref(false)
   const quickAdding = ref(false)
   const selectedAthleteToQuickAdd = ref('')
+  const athleteCodeToJoin = ref('')
   const activeGroupId = ref('all')
+  const shareInviteGroupId = ref<string | undefined>(undefined)
 
   const newInvite = ref({
     email: '',
-    role: 'ATHLETE' as any
+    role: 'ATHLETE' as any,
+    groupId: undefined as string | undefined
+  })
+
+  const groupOptions = computed(() => {
+    if (!team.value?.groups) return []
+    return team.value.groups.map((g: any) => ({
+      label: g.name,
+      value: g.id
+    }))
+  })
+
+  const shareInviteGroupOptions = computed(() => [
+    { label: 'No auto-assignment', value: undefined },
+    ...groupOptions.value
+  ])
+
+  const canShareAthleteInvite = computed(() => ['OWNER', 'ADMIN', 'COACH'].includes(myRole.value))
+
+  const shareableAthleteInvite = computed(() => {
+    return (
+      invites.value.find((invite) => invite.role === 'ATHLETE' && !invite.email) ||
+      invites.value.find((invite) => invite.role === 'ATHLETE')
+    )
   })
 
   const tabs = computed(() => {
     const isStaff = ['OWNER', 'ADMIN', 'COACH'].includes(myRole.value)
 
     const items = []
+    // Roster is visible to all members, but content is masked for non-staff
+    items.push({ label: 'Roster', slot: 'roster', icon: 'i-heroicons-users' })
+
     if (isStaff) {
-      items.push({ label: 'Roster', slot: 'roster', icon: 'i-heroicons-users' })
       items.push({ label: 'Groups', slot: 'groups', icon: 'i-heroicons-rectangle-group' })
     }
 
@@ -425,6 +646,28 @@
     }
   }
 
+  async function addAthleteByCode() {
+    if (!athleteCodeToJoin.value) return
+    quickAdding.value = true
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/join-by-code`, {
+        method: 'POST',
+        body: { code: athleteCodeToJoin.value.toUpperCase() }
+      })
+      toast.add({ title: 'Athlete added via code!', color: 'success' })
+      isQuickAddModalOpen.value = false
+      athleteCodeToJoin.value = ''
+      await refreshTeam()
+    } catch (err: any) {
+      toast.add({
+        title: 'Failed: ' + (err.data?.message || 'Invalid code'),
+        color: 'error'
+      })
+    } finally {
+      quickAdding.value = false
+    }
+  }
+
   async function refreshTeam() {
     const teamId = route.params.id as string
     try {
@@ -446,13 +689,19 @@
   async function createInvite() {
     creatingInvite.value = true
     try {
+      const payload = {
+        ...newInvite.value,
+        email: newInvite.value.email || undefined,
+        groupId: newInvite.value.groupId || undefined
+      }
+
       await $fetch(`/api/coaching/teams/${team.value.id}/invites`, {
         method: 'POST',
-        body: newInvite.value
+        body: payload
       })
       toast.add({ title: 'Invite code generated!', color: 'success' })
       isInviteModalOpen.value = false
-      newInvite.value = { email: '', role: 'ATHLETE' }
+      newInvite.value = { email: '', role: 'ATHLETE', groupId: undefined }
       await refreshTeam()
     } catch (e) {
       toast.add({ title: 'Failed to create invite', color: 'error' })
@@ -461,9 +710,39 @@
     }
   }
 
-  function copyInvite(code: string) {
-    navigator.clipboard.writeText(code)
-    toast.add({ title: 'Code copied to clipboard', color: 'primary' })
+  async function createAthleteShareInvite() {
+    creatingAthleteInvite.value = true
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/invites`, {
+        method: 'POST',
+        body: {
+          role: 'ATHLETE',
+          groupId: shareInviteGroupId.value || undefined
+        }
+      })
+      toast.add({ title: 'Invite link generated!', color: 'success' })
+      await refreshTeam()
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to generate invite link',
+        color: 'error'
+      })
+    } finally {
+      creatingAthleteInvite.value = false
+    }
+  }
+
+  async function revokeInvite(inviteId: string) {
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/invites`, {
+        method: 'DELETE',
+        body: { inviteId }
+      })
+      toast.add({ title: 'Invite revoked', color: 'success' })
+      await refreshTeam()
+    } catch (e) {
+      toast.add({ title: 'Failed to revoke invite', color: 'error' })
+    }
   }
 
   function viewAthlete(athlete: any) {

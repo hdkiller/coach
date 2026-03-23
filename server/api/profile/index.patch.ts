@@ -190,6 +190,7 @@ export default defineEventHandler(async (event) => {
         temperatureUnits: true,
         restingHr: true,
         visibility: true,
+        teamVisibility: true,
         sex: true,
         city: true,
         state: true,

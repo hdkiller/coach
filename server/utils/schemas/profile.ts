@@ -18,6 +18,7 @@ export const profileUpdateSchema = z.object({
   lthr: z.number().nullable().optional(),
   ftp: z.number().nullable().optional(),
   visibility: z.enum(['Private', 'Public', 'Followers Only']).optional(),
+  teamVisibility: z.enum(['COACHES_ONLY', 'TEAMMATES']).optional(),
   sex: z.enum(['Male', 'Female', 'Other', 'M', 'F']).nullable().optional(),
   dob: z.string().nullable().optional(), // YYYY-MM-DD
   city: z.string().nullable().optional(),

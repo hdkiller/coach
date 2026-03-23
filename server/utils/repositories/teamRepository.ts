@@ -128,6 +128,26 @@ export const teamRepository = {
     })
   },
 
+  /**
+   * Combined flow: Accepts an athlete's personal "Invite a Coach" code,
+   * creates the coaching relationship, and adds them to the professional team.
+   */
+  async addAthleteToTeamByPersonalCode(teamId: string, coachId: string, code: string) {
+    // 1. Verify coach is staff in the team
+    const isStaff = await this.checkTeamAccess(teamId, coachId, ['OWNER', 'ADMIN', 'COACH'])
+    if (!isStaff) throw new Error('Insufficient permissions in team')
+
+    // 2. Connect via coaching code
+    const relationship = await coachingRepository.connectAthleteWithCode(coachId, code)
+
+    // 3. Add to team
+    return await (prisma as any).teamMember.upsert({
+      where: { teamId_userId: { teamId, userId: relationship.athleteId } },
+      update: { status: 'ACTIVE', role: 'ATHLETE' },
+      create: { teamId, userId: relationship.athleteId, role: 'ATHLETE' }
+    })
+  },
+
   async checkTeamAccess(teamId: string, userId: string, roles?: TeamRole[]) {
     const member = await (prisma as any).teamMember.findUnique({
       where: { teamId_userId: { teamId, userId } }
@@ -141,7 +161,7 @@ export const teamRepository = {
   /**
    * Fetches all athletes in a team with their metrics (CTL, TSB, etc.)
    */
-  async getTeamRoster(teamId: string) {
+  async getTeamRoster(teamId: string, options: { maskSensitiveData?: boolean } = {}) {
     const memberships = await (prisma as any).teamMember.findMany({
       where: { teamId, role: 'ATHLETE', status: 'ACTIVE' },
       include: {
@@ -151,6 +171,7 @@ export const teamRepository = {
             name: true,
             email: true,
             image: true,
+            teamVisibility: true,
             currentFitnessScore: true,
             profileLastUpdated: true,
             recommendations: {
@@ -183,12 +204,24 @@ export const teamRepository = {
     })
 
     // Reuse the enrichment logic from coachingRepository
-    // We'll simulate the "relationship" structure so we can reuse logic if needed
-    // or just manually enrich here.
     return await Promise.all(
       memberships.map(async (m: any) => {
-        // Enriched structure similar to coachingRepository.getAthletesForCoach
-        // but scoped to team context.
+        const shouldMask = options.maskSensitiveData && m.user.teamVisibility === 'COACHES_ONLY'
+
+        // If masking, we still fetch basic name/image but skip detailed metrics
+        if (shouldMask) {
+          return {
+            ...m,
+            athlete: {
+              id: m.user.id,
+              name: m.user.name,
+              email: m.user.email,
+              image: m.user.image,
+              isMasked: true
+            }
+          }
+        }
+
         const athlete = await coachingRepository.getEnrichedAthleteForCoach(m.teamId, m.user.id)
         const finalAthlete = athlete || m.user
 
@@ -212,7 +245,25 @@ export const teamRepository = {
 
   // --- Team Invitation Management ---
 
-  async createTeamInvite(teamId: string, data: { email?: string; role: TeamRole }) {
+  async createTeamInvite(
+    teamId: string,
+    data: { email?: string; role: TeamRole; groupId?: string }
+  ) {
+    if (data.groupId) {
+      if (data.role !== 'ATHLETE') {
+        throw new Error('Only athlete invites can be assigned to groups')
+      }
+
+      const group = await (prisma as any).athleteGroup.findUnique({
+        where: { id: data.groupId },
+        select: { id: true, teamId: true }
+      })
+
+      if (!group || group.teamId !== teamId) {
+        throw new Error('Selected group does not belong to this team')
+      }
+    }
+
     // Generate a simple 8-char code
     const code = Math.random().toString(36).substring(2, 10).toUpperCase()
 
@@ -221,6 +272,7 @@ export const teamRepository = {
         teamId,
         email: data.email?.toLowerCase(),
         role: data.role,
+        groupId: data.groupId,
         code,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         status: 'PENDING'
@@ -231,15 +283,24 @@ export const teamRepository = {
   async getTeamInvites(teamId: string) {
     return await (prisma as any).teamInvite.findMany({
       where: { teamId, status: 'PENDING', expiresAt: { gt: new Date() } },
+      include: {
+        group: { select: { id: true, name: true } }
+      },
       orderBy: { createdAt: 'desc' }
     })
   },
 
-  async revokeInvite(inviteId: string) {
-    return await (prisma as any).teamInvite.update({
-      where: { id: inviteId },
+  async revokeInvite(teamId: string, inviteId: string) {
+    const result = await (prisma as any).teamInvite.updateMany({
+      where: { id: inviteId, teamId, status: 'PENDING' },
       data: { status: 'REVOKED' }
     })
+
+    if (result.count === 0) {
+      throw new Error('Invite not found')
+    }
+
+    return result
   },
 
   async acceptInvite(userId: string, code: string) {
@@ -264,6 +325,15 @@ export const teamRepository = {
         update: { role: invite.role, status: 'ACTIVE' },
         create: { teamId: invite.teamId, userId, role: invite.role }
       })
+
+      // Auto-assign to group if present
+      if (invite.groupId) {
+        await (tx as any).athleteGroupMember.upsert({
+          where: { groupId_athleteId: { groupId: invite.groupId, athleteId: userId } },
+          update: {},
+          create: { groupId: invite.groupId, athleteId: userId }
+        })
+      }
 
       await (tx as any).teamInvite.update({
         where: { id: invite.id },

@@ -2,17 +2,15 @@ import { z } from 'zod'
 import { requireAuth } from '../../../../utils/auth-guard'
 import { teamRepository } from '../../../../utils/repositories/teamRepository'
 
-const createInviteSchema = z.object({
-  email: z.preprocess((val) => (val === '' ? undefined : val), z.string().email().optional()),
-  role: z.enum(['ADMIN', 'COACH', 'ATHLETE']).default('ATHLETE'),
-  groupId: z.string().optional()
+const deleteInviteSchema = z.object({
+  inviteId: z.string().uuid()
 })
 
 defineRouteMeta({
   openAPI: {
     tags: ['Coaching', 'Teams'],
-    summary: 'Create team invite',
-    description: 'Generates a new invite code for the team.',
+    summary: 'Revoke team invite',
+    description: 'Revokes a pending team invite code.',
     parameters: [
       {
         name: 'id',
@@ -22,7 +20,7 @@ defineRouteMeta({
       }
     ],
     responses: {
-      201: { description: 'Created' },
+      200: { description: 'Success' },
       401: { description: 'Unauthorized' },
       403: { description: 'Forbidden' }
     }
@@ -33,13 +31,12 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['coaching:write'])
   const teamId = getRouterParam(event, 'id')
   const body = await readBody(event)
-  const result = createInviteSchema.safeParse(body)
+  const result = deleteInviteSchema.safeParse(body)
 
   if (!teamId || !result.success) {
     throw createError({ statusCode: 400, message: 'Invalid input' })
   }
 
-  // Team staff can create athlete invites; only admins/owners can create staff invites.
   const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
   if (!isStaff) {
     throw createError({ statusCode: 403, message: 'Forbidden' })
@@ -47,20 +44,16 @@ export default defineEventHandler(async (event) => {
 
   const isAdmin = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN'])
 
-  if (result.data.role !== 'ATHLETE' && !isAdmin) {
-    throw createError({ statusCode: 403, message: 'Only admins can invite staff members' })
-  }
+  if (!isAdmin) {
+    const invites = await teamRepository.getTeamInvites(teamId)
+    const invite = invites.find((entry: any) => entry.id === result.data.inviteId)
 
-  // Safety: only OWNER can invite other ADMINS
-  if (result.data.role === 'ADMIN') {
-    const isOwner = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER'])
-    if (!isOwner) {
-      throw createError({ statusCode: 403, message: 'Only team owners can invite admins' })
+    if (!invite || invite.role !== 'ATHLETE') {
+      throw createError({ statusCode: 403, message: 'Coaches can only revoke athlete invites' })
     }
   }
 
-  const invite = await teamRepository.createTeamInvite(teamId, result.data)
+  await teamRepository.revokeInvite(teamId, result.data.inviteId)
 
-  setResponseStatus(event, 201)
-  return invite
+  return { success: true }
 })

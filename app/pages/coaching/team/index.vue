@@ -48,18 +48,8 @@
             </div>
 
             <div class="flex flex-col items-center gap-3">
-              <div v-if="invite.code" class="flex items-center gap-2">
-                <div
-                  class="px-6 py-3 bg-white dark:bg-gray-900 border-2 border-primary-500 rounded-lg font-mono text-2xl font-bold tracking-widest shadow-inner text-primary-600 dark:text-primary-400"
-                >
-                  {{ invite.code }}
-                </div>
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-heroicons-clipboard"
-                  @click="copyInvite"
-                />
+              <div v-if="invite.code">
+                <CoachingInviteLink :code="invite.code" />
               </div>
               <div
                 v-else-if="loadingInvite"

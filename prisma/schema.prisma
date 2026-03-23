@@ -48,6 +48,7 @@ model User {
   visibility                         String?                      @default("Private")
   weightUnits                        String?                      @default("Kilograms")
   weightSourceMode                   String                       @default("AUTO")
+  teamVisibility                     TeamVisibility?              @default(COACHES_ONLY)
   hrZones                            Json?
   powerZones                         Json?
   aiAutoAnalyzeNutrition             Boolean                      @default(false)
@@ -1745,6 +1746,11 @@ enum SubscriptionTier {
   PRO
 }
 
+enum TeamVisibility {
+  COACHES_ONLY
+  TEAMMATES
+}
+
 enum SubscriptionStatus {
   ACTIVE
   CANCELED
@@ -2114,6 +2120,7 @@ model AthleteGroup {
   coach       User                 @relation("CoachGroups", fields: [coachId], references: [id], onDelete: Cascade)
   team        Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   members     AthleteGroupMember[]
+  invites     TeamInvite[]
 
   @@index([coachId])
   @@index([teamId])
@@ -2141,9 +2148,11 @@ model TeamInvite {
   code      String   @unique
   status    String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED, REVOKED
   expiresAt DateTime
+  groupId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  group     AthleteGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([teamId])
   @@index([code])
