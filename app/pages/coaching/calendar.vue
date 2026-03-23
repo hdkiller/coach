@@ -26,7 +26,7 @@
               size="sm"
               @click="toggleLibraryPanel"
             >
-              {{ isLibraryPanelVisible ? 'Hide library' : 'Show library' }}
+              {{ isLibraryPanelVisible ? 'Hide workouts' : 'Show workouts' }}
             </UButton>
             <UButton
               icon="i-heroicons-rectangle-stack"
@@ -48,16 +48,16 @@
           class="overflow-hidden border-r border-default bg-default/80 transition-all duration-200"
           :class="railCollapsed ? 'w-0 border-r-0 opacity-0' : 'w-80 opacity-100'"
         >
-          <div class="p-3 space-y-3">
+          <div class="p-3 space-y-3 h-full flex flex-col overflow-hidden">
             <div
               v-if="isLibraryDockedLeft"
-              class="inline-flex w-full items-center rounded-2xl border border-default bg-muted/20 p-1"
+              class="inline-flex w-full items-center rounded-2xl border border-default bg-muted/20 p-1 shrink-0"
             >
               <UButton
                 size="sm"
                 :color="leftRailTab === 'roster' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'roster' ? 'soft' : 'ghost'"
-                class="flex-1"
+                class="flex-1 rounded-xl"
                 @click="leftRailTab = 'roster'"
               >
                 Roster
@@ -66,14 +66,23 @@
                 size="sm"
                 :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
-                class="flex-1"
+                class="flex-1 rounded-xl"
                 @click="leftRailTab = 'library'"
               >
-                Library
+                Workouts
+              </UButton>
+              <UButton
+                size="sm"
+                :color="leftRailTab === 'plans' ? 'primary' : 'neutral'"
+                :variant="leftRailTab === 'plans' ? 'soft' : 'ghost'"
+                class="flex-1 rounded-xl"
+                @click="leftRailTab = 'plans'"
+              >
+                Plans
               </UButton>
             </div>
 
-            <div v-if="leftRailTab === 'roster'" class="space-y-1">
+            <div v-if="leftRailTab === 'roster'" class="space-y-1 shrink-0">
               <div class="text-[10px] font-black uppercase tracking-[0.24em] text-muted">
                 Athlete roster
               </div>
@@ -87,7 +96,7 @@
 
             <div
               v-if="leftRailTab === 'roster'"
-              class="space-y-2 overflow-y-auto max-h-[calc(100vh-220px)] pr-1"
+              class="space-y-2 overflow-y-auto flex-1 pr-1 no-scrollbar"
             >
               <button
                 v-for="rel in filteredAthletes"
@@ -131,21 +140,33 @@
               </button>
             </div>
 
-            <div v-else class="h-[calc(100vh-180px)] min-h-[520px]">
+            <div v-else-if="leftRailTab === 'library'" class="flex-1 overflow-hidden">
               <PlanArchitectWorkoutDrawer
                 surface="rail"
                 :open="true"
                 :templates="workoutTemplates || []"
                 :loading="workoutTemplateStatus === 'pending'"
                 :error="workoutTemplateStatus === 'error'"
-                :library-source="workoutLibrarySource"
+                :library-source="workoutLibraryScope"
                 :is-coaching-mode="true"
                 allow-calendar-target
                 :schedule-targets="workoutDrawerScheduleTargets"
                 @created="refreshWorkoutTemplates"
-                @update:library-source="workoutLibrarySource = $event"
+                @update:library-source="workoutLibraryScope = $event"
                 @open-calendar-picker="openTemplateCalendarPicker"
                 @schedule-template="onQuickScheduleTemplate"
+              />
+            </div>
+
+            <div v-else-if="leftRailTab === 'plans'" class="flex-1 overflow-hidden">
+              <CoachingPlanSidebar
+                :templates="planTemplates || []"
+                :loading="planTemplateStatus === 'pending'"
+                :library-scope="planLibraryScope"
+                :schedule-targets="workoutDrawerScheduleTargets"
+                @schedule-template="onQuickScheduleTemplate"
+                @update:library-scope="planLibraryScope = $event"
+                @refresh="refreshPlanTemplates"
               />
             </div>
           </div>
@@ -297,14 +318,14 @@
           :templates="workoutTemplates || []"
           :loading="workoutTemplateStatus === 'pending'"
           :error="workoutTemplateStatus === 'error'"
-          :library-source="workoutLibrarySource"
+          :library-source="workoutLibraryScope"
           :is-coaching-mode="true"
           allow-calendar-target
           :schedule-targets="workoutDrawerScheduleTargets"
           class="z-[70]"
           @toggle="isWorkoutDrawerOpen = !isWorkoutDrawerOpen"
           @created="refreshWorkoutTemplates"
-          @update:library-source="workoutLibrarySource = $event"
+          @update:library-source="workoutLibraryScope = $event"
           @open-calendar-picker="openTemplateCalendarPicker"
           @schedule-template="onQuickScheduleTemplate"
         />
@@ -409,6 +430,7 @@
 <script setup lang="ts">
   import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
   import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
+  import CoachingPlanSidebar from '~/components/coaching/CoachingPlanSidebar.vue'
   import CoachCalendarPanel from '~/components/coaching/CoachCalendarPanel.vue'
   import { useCoachCalendar } from '~/composables/useCoachCalendar'
 
@@ -422,7 +444,7 @@
   const comparisonStore = useWorkoutComparisonStore()
   const athleteSearch = ref('')
   const railCollapsed = ref(false)
-  const leftRailTab = ref<'roster' | 'library'>('roster')
+  const leftRailTab = ref<'roster' | 'library' | 'plans'>('roster')
   const isLibraryDockedLeft = ref(true)
   const showTemplateCalendarPicker = ref(false)
   const calendarPickerTemplate = ref<any | null>(null)
@@ -436,7 +458,15 @@
 
   const athletes = ref<any[]>([])
   const loadingAthletes = ref(true)
-  const workoutLibrarySource = ref<'coach' | 'athlete' | 'all'>('coach')
+
+  // Scopes
+  const { source: workoutLibraryScope } = useLibrarySource('coaching-calendar-workouts', {
+    itemLabel: 'workouts'
+  })
+  const { source: planLibraryScope } = useLibrarySource('coaching-calendar-plans', {
+    itemLabel: 'plans'
+  })
+
   const isWorkoutDrawerVisible = ref(false)
   const isWorkoutDrawerOpen = ref(false)
 
@@ -463,7 +493,19 @@
     server: false,
     default: () => [],
     query: computed(() => ({
-      scope: workoutLibrarySource.value
+      scope: workoutLibraryScope.value
+    }))
+  })
+
+  const {
+    data: planTemplates,
+    status: planTemplateStatus,
+    refresh: refreshPlanTemplates
+  } = useLazyFetch<any[]>('/api/library/plans', {
+    server: false,
+    default: () => [],
+    query: computed(() => ({
+      scope: planLibraryScope.value
     }))
   })
 
@@ -523,7 +565,10 @@
       : ''
   )
   const isLibraryPanelVisible = computed(
-    () => !railCollapsed.value && isLibraryDockedLeft.value && leftRailTab.value === 'library'
+    () =>
+      !railCollapsed.value &&
+      isLibraryDockedLeft.value &&
+      (leftRailTab.value === 'library' || leftRailTab.value === 'plans')
   )
   const calendarGridClass = computed(() => {
     if (viewMode.value === 'week-board') return 'grid-cols-1 content-start'
@@ -571,7 +616,9 @@
       return
     }
     railCollapsed.value = false
-    leftRailTab.value = 'library'
+    if (leftRailTab.value === 'roster') {
+      leftRailTab.value = 'library'
+    }
   }
 
   async function fetchAthletes() {
