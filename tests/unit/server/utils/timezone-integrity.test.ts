@@ -109,6 +109,22 @@ describe('Timezone Integrity across Utilities', () => {
       expect(summary).toContain('**L/R Balance (Left%/Right%)**: 47.0/53.0')
       expect(summary).toContain('**L/R Dominance**: Right')
     })
+
+    it('should render a workout date using the athlete local day instead of UTC', () => {
+      const workouts = [
+        {
+          date: new Date('2026-02-11T01:00:55.000Z'),
+          title: 'Late Evening Ride',
+          durationSec: 3600,
+          type: 'Ride'
+        }
+      ]
+
+      const summary = buildWorkoutSummary(workouts, timezone)
+
+      expect(summary).toContain('**Date**: Feb 10, 2026')
+      expect(summary).not.toContain('**Date**: Feb 11, 2026')
+    })
   })
 
   describe('workoutTools (AI SDK)', () => {

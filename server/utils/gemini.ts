@@ -590,7 +590,9 @@ export async function generateStructuredAnalysis<T>(
 export function buildWorkoutSummary(workouts: any[], timezone?: string): string {
   return workouts
     .map((w, idx) => {
-      const dateStr = formatDateUTC(w.date, 'MMM d, yyyy')
+      const dateStr = timezone
+        ? formatUserDate(w.date, timezone, 'MMM d, yyyy')
+        : formatDateUTC(w.date, 'MMM d, yyyy')
       const analysisFacts = buildWorkoutAnalysisFactsV2({ workout: w })
 
       const lines = [
