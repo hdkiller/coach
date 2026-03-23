@@ -77,12 +77,27 @@
             </div>
 
             <div v-else-if="!draftPlan">
-              <UAlert
-                color="error"
-                variant="soft"
-                title="Blueprint not found"
-                description="The requested training plan could not be loaded."
-              />
+              <div class="space-y-4">
+                <UAlert
+                  color="error"
+                  variant="soft"
+                  title="Blueprint not found"
+                  description="The requested training plan could not be loaded."
+                />
+                <div class="flex flex-wrap gap-3">
+                  <UButton
+                    color="primary"
+                    icon="i-heroicons-plus"
+                    :loading="isImportingPlan"
+                    @click="importPlanToLibrary"
+                  >
+                    Add to my library
+                  </UButton>
+                  <UButton color="neutral" variant="ghost" @click="navigateTo('/library/plans')">
+                    Back to library
+                  </UButton>
+                </div>
+              </div>
             </div>
 
             <div v-else class="space-y-6 pb-32">
@@ -662,6 +677,7 @@
   const planId = route.params.id as string
   const toast = useToast()
   const { isCoachingMode: isCoachingLibraryMode } = useLibrarySource(`plan-architect:${planId}`)
+  const isImportingPlan = ref(false)
 
   const {
     DAYS,
@@ -716,6 +732,30 @@
     findBlock,
     orderedWeeks
   } = usePlanArchitect(planId)
+
+  async function importPlanToLibrary() {
+    if (isImportingPlan.value) return
+
+    isImportingPlan.value = true
+    try {
+      const imported: any = await $fetch(`/api/library/plans/${planId}/import`, {
+        method: 'POST'
+      })
+      toast.add({
+        title: imported.imported ? 'Plan added to your library' : 'Plan opened from your library',
+        color: 'success'
+      })
+      await navigateTo(`/library/plans/${imported.planId}/architect`)
+    } catch (error: any) {
+      toast.add({
+        title: 'Could not add plan to library',
+        description: error?.data?.message || 'Please try again.',
+        color: 'error'
+      })
+    } finally {
+      isImportingPlan.value = false
+    }
+  }
 
   function formatMinutes(minutes: number) {
     const safeMinutes = Math.max(0, Math.round(minutes || 0))

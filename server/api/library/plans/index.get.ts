@@ -73,7 +73,8 @@ export default defineEventHandler(async (event) => {
     ...template,
     isFavorite: template.favorites.length > 0,
     ownerUserId: template.userId,
-    ownerScope: template.userId === context.actorUserId ? 'coach' : 'athlete'
+    ownerScope: template.userId === context.actorUserId ? 'coach' : 'athlete',
+    isEditable: template.userId === userId
   }))
 
   if (scope === 'all' && !type && !folderId) {
