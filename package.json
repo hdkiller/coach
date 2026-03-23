@@ -161,7 +161,7 @@
     "i18n:push": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['push', '--api-url', process.env.TOLGEE_API_URL], { stdio: 'inherit', shell: true })\""
   },
   "type": "module",
-  "version": "0.5.23",
+  "version": "0.5.24",
   "pnpm": {
     "overrides": {
       "@vercel/nft": "^0.27.4"
