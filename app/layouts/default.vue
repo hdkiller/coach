@@ -211,7 +211,7 @@
       {
         label: 'Library',
         icon: 'i-lucide-library',
-        defaultOpen: route.path.includes('library'),
+        defaultOpen: route.path.includes('library') || route.path.includes('analytics/browse'),
         children: [
           {
             label: 'Workouts',
@@ -225,6 +225,14 @@
             label: 'Plans',
             icon: 'i-lucide-scroll-text',
             to: '/library/plans',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Charts',
+            icon: 'i-lucide-area-chart',
+            to: '/analytics/browse',
             onSelect: () => {
               open.value = false
             }
