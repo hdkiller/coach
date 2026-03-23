@@ -30,8 +30,12 @@
             >
               Visit public page
             </UButton>
+            <UButton color="primary" size="sm" icon="i-heroicons-play" @click="openUseModal">
+              Use
+            </UButton>
             <UButton
-              color="primary"
+              color="neutral"
+              variant="outline"
               size="sm"
               icon="i-heroicons-pencil-square"
               @click="navigateTo(`/library/plans/${route.params.id}/architect`)"
@@ -295,6 +299,42 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal
+    v-model:open="isUseModalOpen"
+    title="Use Plan"
+    description="Choose when this plan should start and who it should be applied to."
+  >
+    <template #body>
+      <div class="space-y-4 p-4">
+        <UFormField label="Start Date">
+          <UInput v-model="startDate" type="date" />
+        </UFormField>
+
+        <UFormField v-if="isCoachingMode && athleteTargetOptions.length > 1" label="Apply To">
+          <USelectMenu
+            v-model="selectedTargetUserId"
+            value-key="value"
+            :items="athleteTargetOptions"
+            placeholder="Choose target"
+          />
+        </UFormField>
+
+        <UCheckbox
+          v-model="replaceFutureWorkouts"
+          label="Replace future workouts from start date"
+          description="Remove incomplete planned workouts on or after the selected start date before applying this plan."
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="isUseModalOpen = false">Cancel</UButton>
+        <UButton color="primary" :loading="isApplyingPlan" @click="confirmUsePlan">Apply Plan</UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -302,11 +342,24 @@
   import { buildPublicPlanPath, getPublicSportByValue } from '#shared/public-plans'
 
   const route = useRoute()
-  const { formatDateUTC, formatDuration } = useFormat()
+  const { formatDateUTC, formatDuration, getUserLocalDate } = useFormat()
+  const toast = useToast()
+  const coachingStore = useCoachingStore()
 
   const { data, pending } = await useFetch(`/api/library/plans/${route.params.id}/architect`)
+  const { data: coachedAthletes } = await useLazyFetch<any[]>('/api/coaching/athletes', {
+    server: false,
+    default: () => [],
+    immediate: coachingStore.isCoachingMode
+  })
 
   const plan = computed<any | null>(() => data.value || null)
+  const isCoachingMode = computed(() => coachingStore.isCoachingMode)
+  const isUseModalOpen = ref(false)
+  const isApplyingPlan = ref(false)
+  const startDate = ref(getUserLocalDate().toISOString().split('T')[0])
+  const selectedTargetUserId = ref<string>('self')
+  const replaceFutureWorkouts = ref(false)
 
   const totalBlocks = computed(() => plan.value?.blocks?.length || 0)
   const totalWeeks = computed(
@@ -336,6 +389,14 @@
   const publicPagePath = computed(() => {
     if (!plan.value || plan.value.visibility !== 'PUBLIC') return null
     return buildPublicPlanPath(plan.value)
+  })
+  const athleteTargetOptions = computed(() => {
+    const base = [{ label: 'My calendar', value: 'self' }]
+    const athletes = (coachedAthletes.value || []).map((entry: any) => ({
+      label: entry.athlete?.name || entry.athlete?.email || 'Athlete',
+      value: entry.athleteId
+    }))
+    return [...base, ...athletes]
   })
 
   useSeoMeta({
@@ -381,5 +442,67 @@
   function openPublicPage() {
     if (!publicPagePath.value || !import.meta.client) return
     window.open(publicPagePath.value, '_blank', 'noopener,noreferrer')
+  }
+
+  function openUseModal() {
+    selectedTargetUserId.value = 'self'
+    startDate.value = getUserLocalDate().toISOString().split('T')[0]
+    replaceFutureWorkouts.value = false
+    isUseModalOpen.value = true
+  }
+
+  async function confirmUsePlan() {
+    if (!plan.value?.id) return
+
+    isApplyingPlan.value = true
+    try {
+      if (selectedTargetUserId.value === 'self') {
+        await $fetch(`/api/plans/${plan.value.id}/activate`, {
+          method: 'POST',
+          body: {
+            startDate: new Date(`${startDate.value}T00:00:00`).toISOString()
+          }
+        })
+
+        toast.add({
+          title: 'Plan activated',
+          description: 'The plan was applied to your calendar.',
+          color: 'success'
+        })
+        isUseModalOpen.value = false
+        await navigateTo('/plan')
+        return
+      }
+
+      const response: any = await $fetch(`/api/library/plans/${plan.value.id}/apply`, {
+        method: 'POST',
+        body: {
+          startDate: new Date(`${startDate.value}T00:00:00`).toISOString(),
+          athleteId: selectedTargetUserId.value,
+          replaceFutureWorkouts: replaceFutureWorkouts.value
+        }
+      })
+
+      toast.add({
+        title: 'Plan applied',
+        description:
+          `${response.createdCount} workout${response.createdCount === 1 ? '' : 's'} added` +
+          (response.deletedCount
+            ? `, ${response.deletedCount} future workout${response.deletedCount === 1 ? '' : 's'} removed.`
+            : '.'),
+        color: 'success'
+      })
+
+      isUseModalOpen.value = false
+      await navigateTo(`/coaching/calendar?athlete=${selectedTargetUserId.value}`)
+    } catch (error: any) {
+      toast.add({
+        title: 'Could not apply plan',
+        description: error?.data?.message || 'Please try again.',
+        color: 'error'
+      })
+    } finally {
+      isApplyingPlan.value = false
+    }
   }
 </script>
