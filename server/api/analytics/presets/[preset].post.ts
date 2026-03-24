@@ -5,7 +5,12 @@ import {
   type AnalyticsScopeInput
 } from '../../../utils/analyticsScope'
 import { prisma } from '../../../utils/db'
-import { calculateHrZones, calculatePowerZones, identifyZone } from '../../../utils/zones'
+import {
+  calculateHrZones,
+  calculatePaceZones,
+  calculatePowerZones,
+  identifyZone
+} from '../../../utils/zones'
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 
 type PresetRoute =
@@ -171,7 +176,7 @@ function normalizeWorkoutType(type?: string | null) {
 function buildSingleSeriesChart(
   labels: string[],
   label: string,
-  data: number[],
+  data: (number | null)[],
   color = CHART_COLORS[0]
 ) {
   return {
@@ -311,6 +316,89 @@ async function buildComplianceChart(
         }
       ]
     }
+  }
+
+  if (mode === 'aerobic-decoupling') {
+    const buckets = buildDailyBuckets(startDate, endDate)
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId: { in: userIds },
+        date: { gte: startDate, lte: endDate },
+        isDuplicate: false,
+        durationSec: { gte: 1800 } // At least 30 min for meaningful decoupling
+      },
+      select: { date: true, decoupling: true },
+      orderBy: { date: 'asc' }
+    })
+
+    const byDay = new Map<string, number | null>()
+    for (const item of workouts) {
+      if (item.decoupling !== null) {
+        byDay.set(toDayKey(item.date), Number(item.decoupling))
+      }
+    }
+
+    return {
+      labels: buckets,
+      datasets: [
+        {
+          label: 'Aerobic Decoupling',
+          data: buckets.map((key) => byDay.get(key) ?? null),
+          color: CHART_COLORS[1],
+          type: 'line' as const,
+          spanGaps: true
+        }
+      ]
+    }
+  }
+
+  if (mode === 'acwr') {
+    const buckets = buildDailyBuckets(startDate, endDate)
+    const historyStart = new Date(startDate.getTime() - 28 * 24 * 60 * 60 * 1000)
+    const wellness = await prisma.wellness.findMany({
+      where: {
+        userId: { in: userIds },
+        date: { gte: historyStart, lte: endDate }
+      },
+      select: { userId: true, date: true, trainingLoad: true },
+      orderBy: { date: 'asc' }
+    })
+
+    const userWellness = new Map<string, Array<{ date: string; load: number }>>()
+    for (const item of wellness) {
+      if (!userWellness.has(item.userId)) userWellness.set(item.userId, [])
+      userWellness.get(item.userId)?.push({
+        date: toDayKey(item.date),
+        load: Number(item.trainingLoad || 0)
+      })
+    }
+
+    const datasets = userIds.map((userId, idx) => {
+      const history = userWellness.get(userId) || []
+      return {
+        label: userIds.length > 1 ? `Athlete ${idx + 1}` : 'ACWR',
+        data: buckets.map((day) => {
+          const dayIdx = history.findIndex((h) => h.date === day)
+          if (dayIdx < 0) return null
+
+          // Acute: 7-day average
+          const acuteSlice = history.slice(Math.max(0, dayIdx - 6), dayIdx + 1)
+          const acute = acuteSlice.reduce((sum, h) => sum + h.load, 0) / 7
+
+          // Chronic: 28-day average
+          const chronicSlice = history.slice(Math.max(0, dayIdx - 27), dayIdx + 1)
+          const chronic = chronicSlice.reduce((sum, h) => sum + h.load, 0) / 28
+
+          if (chronic <= 0) return null
+          return round(acute / chronic, 2)
+        }),
+        color: CHART_COLORS[idx % CHART_COLORS.length],
+        type: 'line' as const,
+        spanGaps: true
+      }
+    })
+
+    return { labels: buckets, datasets }
   }
 
   if (mode === 'prior-block-vs-current-block') {
@@ -577,6 +665,64 @@ async function buildCorrelationChart(
     }
   }
 
+  if (mode === 'macro-accuracy-delta') {
+    const buckets = buildDailyBuckets(startDate, endDate)
+    const nutrition = await prisma.userNutrition.findMany({
+      where: {
+        userId: { in: userIds },
+        date: { gte: startDate, lte: endDate }
+      },
+      select: {
+        date: true,
+        carbs: true,
+        carbsGoal: true,
+        protein: true,
+        proteinGoal: true,
+        fat: true,
+        fatGoal: true
+      },
+      orderBy: { date: 'asc' }
+    })
+
+    const byDay = new Map<string, any>()
+    for (const item of nutrition) {
+      byDay.set(toDayKey(item.date), item)
+    }
+
+    return {
+      labels: buckets,
+      datasets: [
+        {
+          label: 'Carbs Delta',
+          data: buckets.map((key) => {
+            const d = byDay.get(key)
+            return d ? round(Number(d.carbs || 0) - Number(d.carbsGoal || 0)) : null
+          }),
+          color: CHART_COLORS[0],
+          type: 'bar' as const
+        },
+        {
+          label: 'Protein Delta',
+          data: buckets.map((key) => {
+            const d = byDay.get(key)
+            return d ? round(Number(d.protein || 0) - Number(d.proteinGoal || 0)) : null
+          }),
+          color: CHART_COLORS[1],
+          type: 'bar' as const
+        },
+        {
+          label: 'Fat Delta',
+          data: buckets.map((key) => {
+            const d = byDay.get(key)
+            return d ? round(Number(d.fat || 0) - Number(d.fatGoal || 0)) : null
+          }),
+          color: CHART_COLORS[2],
+          type: 'bar' as const
+        }
+      ]
+    }
+  }
+
   if (mode === 'hrv-recovery' || mode === 'sleep-recovery') {
     const wellness = await prisma.wellness.findMany({
       where: {
@@ -709,7 +855,8 @@ async function buildPowerDurationChart(
         select: {
           time: true,
           watts: true,
-          heartrate: true
+          heartrate: true,
+          velocity_smooth: true
         }
       }
     },
@@ -718,15 +865,22 @@ async function buildPowerDurationChart(
 
   const userProfiles = await loadUserProfiles(userIds)
 
-  if (mode === 'weekly-power-zones' || mode === 'weekly-hr-zones') {
+  if (mode === 'weekly-power-zones' || mode === 'weekly-hr-zones' || mode === 'weekly-pace-zones') {
     const buckets = buildWeeklyBuckets(startDate, endDate)
-    const usePower = mode === 'weekly-power-zones'
-    const templateLabels = usePower
-      ? calculatePowerZones(userProfiles.get(userIds[0] || '')?.ftp || 200).map((zone) => zone.name)
-      : calculateHrZones(
-          userProfiles.get(userIds[0] || '')?.lthr || null,
-          userProfiles.get(userIds[0] || '')?.maxHr || 190
-        ).map((zone) => zone.name)
+    const type =
+      mode === 'weekly-power-zones' ? 'power' : mode === 'weekly-hr-zones' ? 'hr' : 'pace'
+
+    const templateLabels =
+      type === 'power'
+        ? calculatePowerZones(userProfiles.get(userIds[0] || '')?.ftp || 200).map((z) => z.name)
+        : type === 'hr'
+          ? calculateHrZones(
+              userProfiles.get(userIds[0] || '')?.lthr || null,
+              userProfiles.get(userIds[0] || '')?.maxHr || 190
+            ).map((z) => z.name)
+          : calculatePaceZones(userProfiles.get(userIds[0] || '')?.thresholdPace || 4.5).map(
+              (z) => z.name
+            )
 
     const weeklyTotals = new Map<string, number[]>()
     for (const bucket of buckets) {
@@ -738,16 +892,22 @@ async function buildPowerDurationChart(
       if (!bucket) continue
 
       const profile = userProfiles.get(workout.userId)
-      const zones = usePower
-        ? calculatePowerZones(workout.ftp || profile?.ftp || 200)
-        : calculateHrZones(profile?.lthr || null, profile?.maxHr || 190)
+      const zones =
+        type === 'power'
+          ? calculatePowerZones(workout.ftp || profile?.ftp || 200)
+          : type === 'hr'
+            ? calculateHrZones(profile?.lthr || null, profile?.maxHr || 190)
+            : calculatePaceZones(profile?.thresholdPace || 4.5)
 
       if (zones.length === 0) continue
 
       const time = (workout.streams?.time as number[] | undefined) || []
-      const values = usePower
-        ? (workout.streams?.watts as number[] | undefined) || []
-        : (workout.streams?.heartrate as number[] | undefined) || []
+      const values =
+        type === 'power'
+          ? (workout.streams?.watts as number[] | undefined) || []
+          : type === 'hr'
+            ? (workout.streams?.heartrate as number[] | undefined) || []
+            : (workout.streams?.velocity_smooth as number[] | undefined) || []
 
       if (time.length > 1 && values.length > 1) {
         for (let index = 1; index < time.length; index++) {
@@ -761,9 +921,12 @@ async function buildPowerDurationChart(
           }
         }
       } else {
-        const fallbackValue = usePower
-          ? Number(workout.averageWatts || 0)
-          : Number(workout.averageHr || 0)
+        const fallbackValue =
+          type === 'power'
+            ? Number(workout.averageWatts || 0)
+            : type === 'hr'
+              ? Number(workout.averageHr || 0)
+              : 0
         if (!fallbackValue || !workout.durationSec) continue
         const zone = identifyZone(fallbackValue, zones)
         const zoneIndex = zones.findIndex((entry) => entry.name === zone?.name)
@@ -777,7 +940,14 @@ async function buildPowerDurationChart(
       labels: buckets,
       datasets: templateLabels.map((label, index) => ({
         label,
-        data: buckets.map((bucket) => round((weeklyTotals.get(bucket)?.[index] || 0) / 3600)),
+        data: buckets.map((bucket) => {
+          const totalSeconds = weeklyTotals.get(bucket)?.[index] || 0
+          if (presetOptions.output === 'percent') {
+            const weekTotal = (weeklyTotals.get(bucket) || []).reduce((s, v) => s + v, 0)
+            return weekTotal > 0 ? round((totalSeconds / weekTotal) * 100) : 0
+          }
+          return round(totalSeconds / 3600)
+        }),
         color: CHART_COLORS[index % CHART_COLORS.length],
         type: 'bar' as const
       }))
@@ -1138,7 +1308,8 @@ async function loadUserProfiles(userIds: string[]) {
       id: true,
       ftp: true,
       lthr: true,
-      maxHr: true
+      maxHr: true,
+      thresholdPace: true
     }
   })
 
@@ -1155,26 +1326,27 @@ async function loadUserProfiles(userIds: string[]) {
       {
         ftp: defaultMap.get(user.id)?.ftp || user.ftp || 200,
         lthr: defaultMap.get(user.id)?.lthr || user.lthr || null,
-        maxHr: defaultMap.get(user.id)?.maxHr || user.maxHr || 190
+        maxHr: defaultMap.get(user.id)?.maxHr || user.maxHr || 190,
+        thresholdPace: defaultMap.get(user.id)?.thresholdPace || user.thresholdPace || 4.5
       }
     ])
   )
 }
 
-function getBestAverageForDuration(time: number[], watts: number[], durationSec: number) {
+function getBestAverageForDuration(time: number[], values: number[], durationSec: number) {
   let best = 0
   let start = 0
   let rollingSum = 0
 
   for (let end = 0; end < time.length; end++) {
-    rollingSum += watts[end] || 0
+    rollingSum += values[end] || 0
 
     while (start < end && (time[end] || 0) - (time[start] || 0) >= durationSec) {
       const sampleCount = end - start + 1
       if (sampleCount > 0) {
         best = Math.max(best, rollingSum / sampleCount)
       }
-      rollingSum -= watts[start] || 0
+      rollingSum -= values[start] || 0
       start += 1
     }
   }
