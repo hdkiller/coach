@@ -2,6 +2,9 @@ import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
 import { assertSingleWorkoutAccess } from '../../../utils/analyticsScope'
 import { prisma } from '../../../utils/db'
+import { lttb } from '../../../utils/analytics/lttb'
+import { calculateVirtualStream, type VirtualField } from '../../../utils/analytics/virtual-streams'
+import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 
 const schema = z.object({
   analysis: z.object({
@@ -9,31 +12,25 @@ const schema = z.object({
     mode: z.literal('stream'),
     workoutId: z.string().min(1),
     alignment: z.enum(['elapsed_time', 'distance', 'percent_complete']).default('elapsed_time'),
-    field: z
-      .enum(['watts', 'heartrate', 'cadence', 'velocity', 'altitude', 'grade'])
-      .default('watts')
+    field: z.string().default('watts'), // Can be raw field or virtual field
+    limit: z.number().int().min(10).max(2000).default(1000),
+    range: z
+      .object({
+        start: z.number(),
+        end: z.number(),
+        alignment: z.enum(['elapsed_time', 'distance']).default('elapsed_time')
+      })
+      .nullable()
+      .optional()
   })
 })
 
-function toNumberArray(stream: unknown) {
+function toNumberArray(stream: unknown): number[] {
   if (!Array.isArray(stream)) return []
-  return stream
-    .map((value) => {
-      const numeric = Number(value)
-      return Number.isNaN(numeric) ? null : numeric
-    })
-    .filter((value): value is number => value !== null)
-}
-
-function evenlySampleIndices(length: number, targetPoints: number) {
-  if (length <= targetPoints) {
-    return Array.from({ length }, (_, index) => index)
-  }
-
-  const step = length / targetPoints
-  return Array.from({ length: targetPoints }, (_, index) =>
-    Math.min(length - 1, Math.floor(index * step))
-  )
+  return stream.map((value) => {
+    const numeric = Number(value)
+    return Number.isNaN(numeric) ? 0 : numeric
+  })
 }
 
 function formatAlignmentLabel(
@@ -54,46 +51,6 @@ function formatAlignmentLabel(
   return `${Math.round(value)}%`
 }
 
-function resolveAlignedSeries(
-  workoutStream: any,
-  field: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade',
-  alignment: 'elapsed_time' | 'distance' | 'percent_complete'
-) {
-  const valueStream = toNumberArray(workoutStream?.[field])
-  if (valueStream.length === 0) return null
-
-  let axisStream: number[] = []
-
-  if (alignment === 'elapsed_time') {
-    axisStream = toNumberArray(workoutStream?.time)
-  } else if (alignment === 'distance') {
-    axisStream = toNumberArray(workoutStream?.distance)
-  } else {
-    axisStream = Array.from({ length: valueStream.length }, (_, index) =>
-      valueStream.length === 1 ? 100 : (index / (valueStream.length - 1)) * 100
-    )
-  }
-
-  if (axisStream.length === 0) return null
-
-  const indices = evenlySampleIndices(Math.min(axisStream.length, valueStream.length), 180)
-  const sampledAxis = indices.map((index) => axisStream[index] ?? 0)
-  const sampledValues = indices.map((index) => {
-    const rawValue = valueStream[index]
-    if (rawValue === null || rawValue === undefined) return null
-    if (field === 'velocity') return Number((rawValue * 3.6).toFixed(1))
-    return rawValue
-  })
-
-  return {
-    labels: sampledAxis.map((value) => formatAlignmentLabel(value, alignment)),
-    points: sampledAxis.map((value, index) => ({
-      x: Number(value.toFixed(2)),
-      y: sampledValues[index] ?? null
-    }))
-  }
-}
-
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   const body = await readBody(event)
@@ -107,14 +64,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const analysis = result.data.analysis
+  const { analysis } = result.data
   const workoutId = await assertSingleWorkoutAccess(user.id, analysis.workoutId)
 
+  // 1. Fetch Workout and Streams
   const workout = await prisma.workout.findFirst({
     where: { id: workoutId },
     select: {
       title: true,
       date: true,
+      type: true,
       user: { select: { name: true, email: true } },
       streams: {
         select: {
@@ -125,37 +84,133 @@ export default defineEventHandler(async (event) => {
           cadence: true,
           velocity: true,
           altitude: true,
-          grade: true
+          grade: true,
+          latlng: true
         }
       }
     }
   })
 
-  if (!workout) {
-    throw createError({ statusCode: 404, statusMessage: 'Workout not found' })
+  if (!workout || !workout.streams) {
+    throw createError({ statusCode: 404, statusMessage: 'Workout streams not found' })
   }
 
-  const series = resolveAlignedSeries(workout.streams, analysis.field, analysis.alignment)
-  if (!series) {
+  const rawStreams = {
+    time: toNumberArray(workout.streams.time),
+    distance: toNumberArray(workout.streams.distance),
+    watts: toNumberArray(workout.streams.watts),
+    heartrate: toNumberArray(workout.streams.heartrate),
+    cadence: toNumberArray(workout.streams.cadence),
+    velocity: toNumberArray(workout.streams.velocity),
+    altitude: toNumberArray(workout.streams.altitude),
+    grade: toNumberArray(workout.streams.grade)
+  }
+
+  // 2. Resolve requested field (raw or virtual)
+  let values: number[] = []
+  const rawFields = ['watts', 'heartrate', 'cadence', 'velocity', 'altitude', 'grade']
+
+  if (rawFields.includes(analysis.field)) {
+    values = rawStreams[analysis.field as keyof typeof rawStreams] || []
+    if (analysis.field === 'velocity') {
+      values = values.map((v) => Number((v * 3.6).toFixed(1))) // m/s to km/h
+    }
+  } else {
+    // Check if it's a virtual field
+    const sportSettings = await sportSettingsRepository.getForActivityType(
+      user.id,
+      workout.type || 'Cycling'
+    )
+    const ftp = sportSettings?.ftp || 200
+    const wPrime = sportSettings?.wPrime || 20000
+
+    values = calculateVirtualStream(analysis.field as VirtualField, rawStreams, {
+      ftp,
+      w_prime: wPrime
+    })
+  }
+
+  if (values.length === 0) {
     return {
       labels: [],
       datasets: [],
-      unsupportedReason: `No ${analysis.field} stream data was available for this workout.`
+      unsupportedReason: `No ${analysis.field} data was available for this workout.`
     }
   }
+
+  // 3. Resolve Alignment Axis
+  let axis: number[] = []
+  if (analysis.alignment === 'elapsed_time') {
+    axis = rawStreams.time
+  } else if (analysis.alignment === 'distance') {
+    axis = rawStreams.distance
+  } else {
+    axis = values.map((_, i) => (i / (values.length - 1)) * 100)
+  }
+
+  // 4. Combine and Crop if range is provided
+  interface Point {
+    x: number
+    y: number
+    lat?: number
+    lng?: number
+  }
+  let dataPoints: Point[] = axis.map((x, i) => ({ x, y: values[i] || 0 }))
+
+  if (analysis.range) {
+    const { start, end } = analysis.range
+    dataPoints = dataPoints.filter((p) => p.x >= start && p.x <= end)
+  }
+
+  // Include lat/lng if available for map synchronization
+  const latlng = workout.streams.latlng as any[]
+  if (Array.isArray(latlng) && latlng.length === axis.length) {
+    // We need to map latlng back to the potentially cropped dataPoints
+    // The easiest way is to do it BEFORE filtering, or using the original index
+    const fullPoints: Point[] = axis.map((x, i) => {
+      const p: Point = { x, y: values[i] || 0 }
+      const coord = latlng[i]
+      if (Array.isArray(coord) && coord.length >= 2) {
+        p.lat = coord[0]
+        p.lng = coord[1]
+      }
+      return p
+    })
+
+    if (analysis.range) {
+      const { start, end } = analysis.range
+      dataPoints = fullPoints.filter((p) => p.x >= start && p.x <= end)
+    } else {
+      dataPoints = fullPoints
+    }
+  }
+
+  const sampledPoints = lttb(
+    dataPoints,
+    analysis.limit,
+    (p) => p.x,
+    (p) => p.y
+  )
 
   const athleteLabel = workout.user?.name || workout.user?.email || 'Athlete'
 
   return {
-    labels: series.labels,
+    labels: sampledPoints.map((p) => formatAlignmentLabel(p.x, analysis.alignment)),
     datasets: [
       {
         label: `${new Date(workout.date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} · ${workout.title} · ${athleteLabel}`,
-        data: series.points.filter((point) => point.y !== null),
+        data: sampledPoints,
         type: 'line',
         showLine: true,
         pointRadius: 0
       }
-    ]
+    ],
+    // Metadata for frontend map/interaction
+    meta: {
+      field: analysis.field,
+      alignment: analysis.alignment,
+      workoutId: analysis.workoutId,
+      hasGPS: Array.isArray(latlng) && latlng.length > 0
+    }
   }
 })

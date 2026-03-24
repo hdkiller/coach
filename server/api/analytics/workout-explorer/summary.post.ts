@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
 import { assertSingleWorkoutAccess } from '../../../utils/analyticsScope'
 import { prisma } from '../../../utils/db'
+import { calculateSegmentSummary } from '../../../utils/analytics/segment-summary'
 import {
   allowedWorkoutExplorerSummaryMetrics,
   normalizeWorkoutMetricValue,
@@ -18,7 +19,15 @@ const schema = z.object({
   summaryType: z.enum(['metrics', 'zones']).optional(),
   metrics: z.array(z.object({ field: z.string() })).default([]),
   zoneType: z.enum(['power', 'hr']).optional(),
-  visualType: z.enum(['bar', 'line']).optional()
+  visualType: z.enum(['bar', 'line']).optional(),
+  range: z
+    .object({
+      start: z.number(),
+      end: z.number(),
+      alignment: z.enum(['elapsed_time', 'distance']).default('elapsed_time')
+    })
+    .nullable()
+    .optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -34,7 +43,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { analysis, metrics, visualType, summaryType, zoneType } = result.data
+  const { analysis, metrics, visualType, summaryType, zoneType, range } = result.data
   const workoutId = await assertSingleWorkoutAccess(user.id, analysis.workoutId)
 
   if (summaryType === 'zones') {
@@ -45,10 +54,16 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const { calculateZoneDistribution } = await import('../../../utils/training-metrics')
-
-    const distribution = await calculateZoneDistribution([workoutId], user.id, prisma)
-    const zoneDistribution = zoneType === 'hr' ? distribution.hr : distribution.power
+    let zoneDistribution: any
+    if (range) {
+      const segment = await calculateSegmentSummary(user.id, workoutId, range)
+      zoneDistribution =
+        zoneType === 'hr' ? segment.zoneDistribution?.hr : segment.zoneDistribution?.power
+    } else {
+      const { calculateZoneDistribution } = await import('../../../utils/training-metrics')
+      const distribution = await calculateZoneDistribution([workoutId], user.id, prisma)
+      zoneDistribution = zoneType === 'hr' ? distribution.hr : distribution.power
+    }
 
     if (!zoneDistribution || zoneDistribution.zones.length === 0) {
       return {
@@ -87,35 +102,37 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const workout = await prisma.workout.findFirst({
-    where: { id: workoutId },
-    select: {
-      id: true,
-      trainingLoad: true,
-      tss: true,
-      kilojoules: true,
-      calories: true,
-      elevationGain: true,
-      averageWatts: true,
-      maxWatts: true,
-      normalizedPower: true,
-      averageHr: true,
-      maxHr: true,
-      averageCadence: true,
-      averageSpeed: true,
-      intensity: true,
-      efficiencyFactor: true,
-      decoupling: true,
-      powerHrRatio: true,
-      variabilityIndex: true,
-      durationSec: true,
-      elapsedTimeSec: true,
-      distanceMeters: true,
-      trimp: true,
-      hrLoad: true,
-      workAboveFtp: true
-    }
-  })
+  const workout = range
+    ? await calculateSegmentSummary(user.id, workoutId, range)
+    : await prisma.workout.findFirst({
+        where: { id: workoutId },
+        select: {
+          id: true,
+          trainingLoad: true,
+          tss: true,
+          kilojoules: true,
+          calories: true,
+          elevationGain: true,
+          averageWatts: true,
+          maxWatts: true,
+          normalizedPower: true,
+          averageHr: true,
+          maxHr: true,
+          averageCadence: true,
+          averageSpeed: true,
+          intensity: true,
+          efficiencyFactor: true,
+          decoupling: true,
+          powerHrRatio: true,
+          variabilityIndex: true,
+          durationSec: true,
+          elapsedTimeSec: true,
+          distanceMeters: true,
+          trimp: true,
+          hrLoad: true,
+          workAboveFtp: true
+        }
+      })
 
   if (!workout) {
     throw createError({
