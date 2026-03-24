@@ -7,7 +7,7 @@ export type WorkoutExplorerCategory =
   | 'power'
   | 'efficiency'
 
-export type WorkoutExplorerMode = 'summary' | 'stream' | 'interval'
+export type WorkoutExplorerMode = 'summary' | 'stream' | 'interval' | 'density'
 
 export interface WorkoutExplorerPreset {
   id: string
@@ -15,7 +15,7 @@ export interface WorkoutExplorerPreset {
   description: string
   category: WorkoutExplorerCategory
   mode: WorkoutExplorerMode
-  visualType: 'line' | 'bar' | 'scatter'
+  visualType: 'line' | 'bar' | 'scatter' | 'map' | 'map-heatmap' | 'density-heatmap' | 'radar'
   insightCopy: string
   flagship?: boolean
   sourceLabel: 'Workout Summary' | 'Workout Streams' | 'Workout Intervals' | 'Workout Zones'
@@ -26,11 +26,29 @@ export interface WorkoutExplorerPreset {
     zoneType?: 'power' | 'hr'
   }
   stream?: {
-    field: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'
+    field:
+      | 'watts'
+      | 'heartrate'
+      | 'cadence'
+      | 'velocity'
+      | 'altitude'
+      | 'grade'
+      | 'torque'
+      | 'vam'
+      | 'w_balance'
+      | 'power_hr_ratio'
     alignment: 'elapsed_time' | 'distance' | 'percent_complete'
   }
   interval?: {
     field: 'avgPower' | 'avgHr' | 'duration' | 'distance'
+  }
+  density?: {
+    xField: 'cadence' | 'heartrate' | 'velocity'
+    yField: 'watts' | 'torque'
+  }
+  scales?: {
+    x?: { type: 'linear' | 'logarithmic' | 'category' }
+    y?: { type: 'linear' | 'logarithmic' }
   }
 }
 
@@ -300,6 +318,79 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     },
     insightCopy:
       'This is a simple structure check when the athlete performed uneven reps, mixed sets, or changing work-rest durations.'
+  },
+  {
+    id: 'map-power-heatmap',
+    name: 'Power Heatmap Map',
+    description: 'Visualize your power output intensity geographically.',
+    category: 'power',
+    mode: 'stream',
+    visualType: 'map-heatmap',
+    flagship: true,
+    sourceLabel: 'Workout Streams',
+    stream: {
+      field: 'watts',
+      alignment: 'distance'
+    },
+    insightCopy:
+      'Identify precisely which sections of the route required the most intensity and where you recovered.'
+  },
+  {
+    id: 'aerobic-decoupling-trace',
+    name: 'Aerobic Decoupling Trace',
+    description: 'Real-time efficiency ratio throughout the session.',
+    category: 'efficiency',
+    mode: 'stream',
+    visualType: 'line',
+    sourceLabel: 'Workout Streams',
+    stream: {
+      field: 'power_hr_ratio',
+      alignment: 'elapsed_time'
+    },
+    insightCopy:
+      'A downward trend indicates aerobic drift, suggesting fatigue or heat stress as the workout progresses.'
+  },
+  {
+    id: 'w-balance-trace',
+    name: "W' Balance (Anaerobic Tank)",
+    description: 'Track your anaerobic battery depletion and recharge.',
+    category: 'power',
+    mode: 'stream',
+    visualType: 'line',
+    sourceLabel: 'Workout Streams',
+    stream: {
+      field: 'w_balance',
+      alignment: 'elapsed_time'
+    },
+    insightCopy: 'Visualize how many "matches" you had left during high-intensity efforts.'
+  },
+  {
+    id: 'quadrant-analysis-density',
+    name: 'Quadrant Analysis (Power-Cadence)',
+    description: '2D density map of force vs. velocity.',
+    category: 'power',
+    mode: 'density',
+    visualType: 'density-heatmap',
+    sourceLabel: 'Workout Streams',
+    density: {
+      xField: 'cadence',
+      yField: 'watts'
+    },
+    insightCopy: 'See if you were "grinding" or "spinning" throughout the session.'
+  },
+  {
+    id: 'climb-vam-profile',
+    name: 'Climbing VAM Profile',
+    description: 'Vertical Ascent Meters (m/h) for every detected climb or lap.',
+    category: 'terrain',
+    mode: 'stream',
+    visualType: 'bar',
+    sourceLabel: 'Workout Streams',
+    stream: {
+      field: 'vam',
+      alignment: 'distance'
+    },
+    insightCopy: 'Evaluate your climbing speed performance across different segments of the ride.'
   }
 ]
 
