@@ -278,14 +278,6 @@
             }
           },
           {
-            label: 'Charts',
-            icon: 'i-lucide-area-chart',
-            to: '/analytics/browse',
-            onSelect: () => {
-              open.value = false
-            }
-          },
-          {
             label: 'Team',
             icon: 'i-lucide-building-2',
             to: '/coaching/team',
