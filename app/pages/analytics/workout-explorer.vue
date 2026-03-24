@@ -6,6 +6,7 @@
     type WorkoutExplorerCategory,
     type WorkoutExplorerPreset
   } from '~/utils/workout-explorer-presets'
+  import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
 
   interface PinnedExplorerChart {
     id: string
@@ -53,6 +54,33 @@
   const saving = ref(false)
   const pinnedCharts = ref<PinnedExplorerChart[]>([])
 
+  const activeRange = ref<{
+    start: number
+    end: number
+    alignment: 'elapsed_time' | 'distance'
+  } | null>(null)
+  const { onZoom, onSelection } = useAnalyticsBus()
+
+  onZoom((event) => {
+    if (event.workoutId === selectedWorkoutId.value) {
+      activeRange.value = {
+        start: event.startX,
+        end: event.endX,
+        alignment: streamAlignment.value === 'distance' ? 'distance' : 'elapsed_time'
+      }
+    }
+  })
+
+  onSelection((event) => {
+    if (event.workoutId === selectedWorkoutId.value) {
+      activeRange.value = {
+        start: event.startX,
+        end: event.endX,
+        alignment: streamAlignment.value === 'distance' ? 'distance' : 'elapsed_time'
+      }
+    }
+  })
+
   const selectedWorkoutId = ref<string | null>(null)
   const selectedPreset = ref<WorkoutExplorerPreset>(
     findWorkoutExplorerPresetById((route.query.preset as string) || '') ||
@@ -60,9 +88,18 @@
   )
 
   const summaryChartType = ref<'bar' | 'line'>('bar')
-  const streamField = ref<'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'>(
-    'watts'
-  )
+  const streamField = ref<
+    | 'watts'
+    | 'heartrate'
+    | 'cadence'
+    | 'velocity'
+    | 'altitude'
+    | 'grade'
+    | 'torque'
+    | 'vam'
+    | 'w_balance'
+    | 'power_hr_ratio'
+  >('watts')
   const streamAlignment = ref<'elapsed_time' | 'distance' | 'percent_complete'>('elapsed_time')
   const intervalField = ref<'avgPower' | 'avgHr' | 'duration' | 'distance'>('avgPower')
 
@@ -98,7 +135,11 @@
     cadence: 'rpm',
     velocity: 'km/h',
     altitude: 'm',
-    grade: '%'
+    grade: '%',
+    torque: 'Nm',
+    vam: 'm/h',
+    w_balance: 'J',
+    power_hr_ratio: ''
   }
 
   const streamAlignmentUnits: Record<string, string> = {
@@ -331,40 +372,87 @@
       Boolean(selectedWorkoutId.value) && !loadingSelectedWorkout.value && !selectedWorkout.value
   )
 
+  const { data: rangeSummary, pending: loadingRangeSummary } = await useFetch(
+    '/api/analytics/workout-explorer/summary',
+    {
+      method: 'POST',
+      body: computed(() => ({
+        analysis: {
+          type: 'single_workout',
+          mode: 'summary',
+          workoutId: selectedWorkoutId.value
+        },
+        metrics: [
+          { field: 'averageWatts' },
+          { field: 'maxWatts' },
+          { field: 'normalizedPower' },
+          { field: 'averageHr' },
+          { field: 'maxHr' },
+          { field: 'averageCadence' },
+          { field: 'elevationGain' },
+          { field: 'durationSec' },
+          { field: 'distanceMeters' }
+        ],
+        range: activeRange.value
+      })),
+      watch: [selectedWorkoutId, activeRange]
+    }
+  )
+
   const workoutHeadlineStats = computed(() => {
     if (!selectedWorkout.value) return []
 
     const workout = selectedWorkout.value
+    const rs = rangeSummary.value as any
+    const isRange = Boolean(activeRange.value && rs?.datasets)
+
+    // Map labels to values for easy access
+    const rangeMap: Record<string, any> = {}
+    if (isRange) {
+      rs.datasets.forEach((ds: any) => {
+        rangeMap[ds.label] = ds.data[0]
+      })
+    }
+
+    const getVal = (field: string, label: string, unit: string) => {
+      if (isRange && rangeMap[label] !== undefined) {
+        return formatNumberWithUnit(rangeMap[label], unit)
+      }
+      return formatNumberWithUnit((workout as any)[field], unit)
+    }
 
     return [
       {
-        label: 'Elapsed',
-        value: formatDuration(workout.elapsedTimeSec || workout.durationSec),
+        label: isRange ? 'Segment Time' : 'Elapsed',
+        value:
+          isRange && rangeMap['Duration'] !== undefined
+            ? formatDuration(rangeMap['Duration'])
+            : formatDuration(workout.elapsedTimeSec || workout.durationSec),
         icon: 'i-lucide-clock-3'
       },
       {
-        label: 'Elevation',
-        value: formatMeters(workout.elevationGain),
+        label: isRange ? 'Segment Gain' : 'Elevation',
+        value: getVal('elevationGain', 'Elevation Gain', 'm'),
         icon: 'i-lucide-mountain'
       },
       {
-        label: 'Avg Power',
-        value: formatNumberWithUnit(workout.averageWatts, 'W'),
+        label: isRange ? 'Segment Avg' : 'Avg Power',
+        value: getVal('averageWatts', 'Average Power', 'W'),
         icon: 'i-lucide-zap'
       },
       {
-        label: 'Max Power',
-        value: formatNumberWithUnit(workout.maxWatts, 'W'),
+        label: isRange ? 'Segment NP' : 'NP',
+        value: getVal('normalizedPower', 'Normalized Power', 'W'),
         icon: 'i-lucide-rocket'
       },
       {
-        label: 'Avg HR',
-        value: formatNumberWithUnit(workout.averageHr, 'bpm'),
+        label: isRange ? 'Segment HR' : 'Avg HR',
+        value: getVal('averageHr', 'Average HR', 'bpm'),
         icon: 'i-lucide-heart-pulse'
       },
       {
-        label: 'Cadence',
-        value: formatNumberWithUnit(workout.averageCadence, 'rpm'),
+        label: isRange ? 'Segment Cad' : 'Cadence',
+        value: getVal('averageCadence', 'Average Cadence', 'rpm'),
         icon: 'i-lucide-gauge'
       }
     ].filter((item) => item.value !== '—')
@@ -374,10 +462,21 @@
     preset: WorkoutExplorerPreset
     workoutId: string
     summaryChartType: 'bar' | 'line'
-    streamField: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'
+    streamField:
+      | 'watts'
+      | 'heartrate'
+      | 'cadence'
+      | 'velocity'
+      | 'altitude'
+      | 'grade'
+      | 'torque'
+      | 'vam'
+      | 'w_balance'
+      | 'power_hr_ratio'
     streamAlignment: 'elapsed_time' | 'distance' | 'percent_complete'
     intervalField: 'avgPower' | 'avgHr' | 'duration' | 'distance'
     instanceId?: string
+    range?: { start: number; end: number; alignment: 'elapsed_time' | 'distance' } | null
   }) {
     const base = {
       name: options.preset.name,
@@ -391,7 +490,8 @@
         mode: options.preset.mode,
         workoutId: options.workoutId
       },
-      instanceId: options.instanceId
+      instanceId: options.instanceId,
+      range: options.range
     }
 
     if (options.preset.mode === 'summary') {
@@ -419,7 +519,8 @@
       return {
         ...base,
         endpoint: '/api/analytics/workout-explorer/streams',
-        visualType: 'scatter' as const,
+        visualType:
+          options.preset.visualType === 'map-heatmap' ? 'map-heatmap' : ('scatter' as const),
         analysis: {
           ...base.analysis,
           field: options.streamField,
@@ -429,6 +530,22 @@
           x: streamAlignmentUnits[options.streamAlignment] || '',
           y: streamFieldUnits[options.streamField] || '',
           datasets: [streamFieldUnits[options.streamField] || '']
+        },
+        metrics: []
+      }
+    }
+
+    if (options.preset.mode === 'density') {
+      return {
+        ...base,
+        endpoint: '/api/analytics/workout-explorer/density',
+        visualType: 'density-heatmap' as const,
+        analysis: {
+          ...base.analysis,
+          xField: options.preset.density?.xField || 'cadence',
+          yField: options.preset.density?.yField || 'watts',
+          xBins: 40,
+          yBins: 40
         },
         metrics: []
       }
@@ -459,7 +576,8 @@
       summaryChartType: summaryChartType.value,
       streamField: streamField.value,
       streamAlignment: streamAlignment.value,
-      intervalField: intervalField.value
+      intervalField: intervalField.value,
+      range: activeRange.value
     })
   })
 
@@ -481,7 +599,8 @@
             streamField: chart.streamField,
             streamAlignment: chart.streamAlignment,
             intervalField: chart.intervalField,
-            instanceId: chart.id
+            instanceId: chart.id,
+            range: activeRange.value
           })
         }
       })
@@ -1138,7 +1257,11 @@
                   { label: 'Cadence', value: 'cadence' },
                   { label: 'Velocity', value: 'velocity' },
                   { label: 'Altitude', value: 'altitude' },
-                  { label: 'Grade', value: 'grade' }
+                  { label: 'Grade', value: 'grade' },
+                  { label: 'Torque', value: 'torque' },
+                  { label: 'VAM', value: 'vam' },
+                  { label: 'W\' Balance', value: 'w_balance' },
+                  { label: 'Efficiency Ratio', value: 'power_hr_ratio' }
                 ]"
                 size="sm"
                 class="w-44"
@@ -1153,6 +1276,16 @@
                 size="sm"
                 class="w-44"
               />
+              <UButton
+                v-if="activeRange"
+                size="xs"
+                color="neutral"
+                variant="soft"
+                icon="i-lucide-x"
+                @click="activeRange = null"
+              >
+                Clear Selection
+              </UButton>
             </div>
 
             <div
