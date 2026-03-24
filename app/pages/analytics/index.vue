@@ -448,7 +448,9 @@
   async function saveDashboardRename() {
     if (!renameDashboardId.value || !renameDashboardName.value.trim()) return
 
-    const dashboard = (dashboards.value || []).find((entry: any) => entry.id === renameDashboardId.value)
+    const dashboard = (dashboards.value || []).find(
+      (entry: any) => entry.id === renameDashboardId.value
+    )
     if (!dashboard) return
 
     try {
@@ -937,6 +939,26 @@
             <UButton
               color="neutral"
               variant="outline"
+              icon="i-lucide-monitor-play"
+              label="Chart Explorer"
+              size="sm"
+              class="font-bold"
+              to="/analytics/browse"
+            />
+
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-activity"
+              label="Workout Explorer"
+              size="sm"
+              class="font-bold"
+              to="/analytics/workout-explorer"
+            />
+
+            <UButton
+              color="neutral"
+              variant="outline"
               icon="i-lucide-git-compare-arrows"
               label="Workout Compare"
               size="sm"
@@ -1216,6 +1238,30 @@
           <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-primary-400 self-center" />
         </UButton>
 
+        <UButton
+          color="neutral"
+          variant="subtle"
+          class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group border-2 border-default/60"
+          to="/analytics/workout-explorer"
+          @click="isWidgetLibraryOpen = false"
+        >
+          <div class="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+            <UIcon
+              name="i-lucide-activity"
+              class="w-5 h-5 text-neutral-600 dark:text-neutral-300"
+            />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors truncate">
+              Open Workout Explorer
+            </p>
+            <p class="text-[10px] text-neutral-500 font-medium">
+              Analyze a single workout with summary, stream, and interval views.
+            </p>
+          </div>
+          <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-neutral-400 self-center" />
+        </UButton>
+
         <div class="space-y-3">
           <div class="flex items-center gap-2">
             <UInput
@@ -1310,7 +1356,9 @@
               >
                 <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
                   <UIcon
-                    :name="preset.visualType === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'"
+                    :name="
+                      preset.visualType === 'line' ? 'i-lucide-line-chart' : 'i-lucide-bar-chart'
+                    "
                     class="w-5 h-5 text-primary-500"
                   />
                 </div>

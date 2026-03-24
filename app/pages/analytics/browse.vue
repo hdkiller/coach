@@ -6,6 +6,7 @@
     type AnalyticsPresetCategory,
     type AnalyticsSystemPreset
   } from '~/utils/analytics-presets'
+  import WidgetSettingsModal from '~/components/analytics/WidgetSettingsModal.vue'
 
   definePageMeta({
     middleware: 'auth'
@@ -27,6 +28,8 @@
 
   const athletes = ref<any[]>([])
   const loadingAthletes = ref(true)
+  const isSettingsModalOpen = ref(false)
+  const previewSettings = ref<any>({})
 
   const { data: customWidgets } = await useFetch('/api/analytics/widgets')
   const { data: dashboards, refresh: refreshDashboards } = await useFetch(
@@ -155,15 +158,15 @@
     () => selectedWidget.value?.isSystem && overlayOptions.value.length > 0
   )
   const overlayLabel = computed(() => {
-    if (!hasOverlayControls.value) return 'No overlays'
-    if (selectedOverlayIds.value.length === 0) return 'Overlays Off'
+    if (!hasOverlayControls.value) return 'None'
+    if (selectedOverlayIds.value.length === 0) return 'Off'
     if (selectedOverlayIds.value.length === 1) {
       return (
         overlayOptions.value.find((overlay) => overlay.id === selectedOverlayIds.value[0])?.label ||
-        '1 Overlay'
+        '1 Active'
       )
     }
-    return `${selectedOverlayIds.value.length} Overlays`
+    return `${selectedOverlayIds.value.length} Active`
   })
   const compareContextCopy = computed(() => {
     if (selectedAthleteIds.value.length <= 1) return null
@@ -214,10 +217,10 @@
     if (selectedRangeKey.value === 'preset') {
       const presetRange = presetDefaultTimeRange.value
       if (presetRange?.type === 'rolling' && presetRange.value) {
-        return `Preset • ${String(presetRange.value).toUpperCase()}`
+        return `${String(presetRange.value).toUpperCase()}`
       }
-      if (presetRange?.type === 'ytd') return 'Preset • YTD'
-      return 'Preset Range'
+      if (presetRange?.type === 'ytd') return 'YTD'
+      return 'Default'
     }
 
     return selectedRangeKey.value.toUpperCase()
@@ -232,6 +235,10 @@
       overlaySettings: {
         active: [...selectedOverlayIds.value]
       },
+      settings: {
+        ...previewSettings.value,
+        ...(selectedWidget.value.settings || {})
+      },
       scope:
         selectedAthleteIds.value.length > 1
           ? { target: 'athletes', targetIds: selectedAthleteIds.value }
@@ -245,6 +252,7 @@
     () => selectedWidget.value?.id,
     () => {
       selectedOverlayIds.value = [...(selectedWidget.value?.defaultOverlays || [])]
+      previewSettings.value = { ...(selectedWidget.value?.settings || {}) }
       if (rangeTouched.value) return
       selectedRangeKey.value = 'preset'
       customStartDate.value = ''
@@ -283,10 +291,7 @@
         ...previewConfig.value,
         instanceId: crypto.randomUUID(),
         scopeMode: 'override',
-        timeRangeMode: 'override',
-        overlaySettings: {
-          active: [...selectedOverlayIds.value]
-        }
+        timeRangeMode: 'override'
       })
 
       await $fetch('/api/analytics/dashboards', {
@@ -392,8 +397,11 @@
     selectedOverlayIds.value = [...(selectedWidget.value?.defaultOverlays || [])]
   }
 
+  function clearOverlays() {
+    selectedOverlayIds.value = []
+  }
+
   function closeBrowseOverlays() {
-    console.log('[AnalyticsBrowse] closeBrowseOverlays', route.fullPath)
     datePickerOpen.value = false
     overlayPickerOpen.value = false
   }
@@ -420,87 +428,17 @@
         <template #right>
           <ClientOnly>
             <div class="flex items-center gap-2">
-              <UPopover v-if="hasOverlayControls" v-model:open="overlayPickerOpen">
-                <UButton
-                  color="neutral"
-                  variant="outline"
-                  icon="i-lucide-sliders-horizontal"
-                  size="sm"
-                  class="font-bold"
-                >
-                  <span class="hidden md:inline">{{ overlayLabel }}</span>
-                </UButton>
-
-                <template #content>
-                  <div class="w-[320px] space-y-4 p-3">
-                    <div class="space-y-1">
-                      <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
-                        Overlays
-                      </div>
-                      <p class="text-xs text-muted">
-                        Add interpretation layers like baselines, targets, trendlines, or cohort
-                        context.
-                      </p>
-                    </div>
-
-                    <div class="space-y-2">
-                      <button
-                        v-for="overlay in overlayOptions"
-                        :key="overlay.id"
-                        class="flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition hover:border-primary/50"
-                        :class="
-                          selectedOverlayIds.includes(overlay.id)
-                            ? 'border-primary/60 bg-primary/5'
-                            : 'border-default/70 bg-default'
-                        "
-                        @click="toggleOverlay(overlay.id)"
-                      >
-                        <div
-                          class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-default/70"
-                          :class="
-                            selectedOverlayIds.includes(overlay.id)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-default text-transparent'
-                          "
-                        >
-                          <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                          <div class="text-sm font-bold text-highlighted">
-                            {{ overlay.label }}
-                          </div>
-                          <p class="text-xs text-muted">{{ overlay.description }}</p>
-                        </div>
-                      </button>
-                    </div>
-
-                    <div class="flex items-center justify-between border-t border-default pt-3">
-                      <UButton size="xs" color="neutral" variant="ghost" @click="resetOverlays">
-                        Reset Defaults
-                      </UButton>
-                      <UButton
-                        size="xs"
-                        color="primary"
-                        variant="soft"
-                        @click="overlayPickerOpen = false"
-                      >
-                        Apply
-                      </UButton>
-                    </div>
-                  </div>
-                </template>
-              </UPopover>
-
               <UButton
                 v-if="selectedWidget"
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-edit"
-                label="Edit Visualization"
+                label="Edit Source"
                 size="sm"
-                class="font-bold"
+                class="font-bold hidden md:flex"
                 @click="editWidget"
               />
+
               <UButton
                 v-if="selectedWidget"
                 color="primary"
@@ -823,20 +761,15 @@
                 >
                   {{ compareContextCopy }}
                 </div>
+
                 <div
-                  class="mt-4 flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-neutral-400"
+                  class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-widest text-neutral-400"
                 >
                   <div class="flex items-center gap-1.5">
                     <UIcon name="i-lucide-user" class="h-3.5 w-3.5" />
                     Viewing: <span class="text-primary-500">{{ selectedAudienceLabel }}</span>
                   </div>
-                  <div class="flex items-center gap-1.5">
-                    <UIcon name="i-lucide-layers-3" class="h-3.5 w-3.5" />
-                    Category:
-                    <span class="text-neutral-600 dark:text-neutral-200">{{
-                      selectedCategoryLabel
-                    }}</span>
-                  </div>
+
                   <div class="flex items-center gap-1.5">
                     <UIcon name="i-lucide-database" class="h-3.5 w-3.5" />
                     Source:
@@ -844,115 +777,224 @@
                       selectedWidget.source
                     }}</span>
                   </div>
+
                   <ClientOnly>
-                    <UPopover v-if="selectedWidget" v-model:open="datePickerOpen">
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                      <UPopover v-if="selectedWidget" v-model:open="datePickerOpen">
+                        <UButton
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-lucide-calendar-range"
+                          size="xs"
+                          class="h-auto px-0 py-0 font-black uppercase tracking-widest text-neutral-400 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-200"
+                        >
+                          Date:
+                          <span class="text-neutral-600 dark:text-neutral-200">{{
+                            rangeLabel
+                          }}</span>
+                        </UButton>
+
+                        <template #content>
+                          <div class="w-[320px] space-y-4 p-3">
+                            <div class="space-y-1">
+                              <div
+                                class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
+                              >
+                                Date range
+                              </div>
+                              <p class="text-xs text-muted">
+                                Preview the selected chart over a different time horizon.
+                              </p>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === '14d' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="applyQuickRange('14d')"
+                                >14D</UButton
+                              >
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="applyQuickRange('30d')"
+                                >30D</UButton
+                              >
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="applyQuickRange('90d')"
+                                >90D</UButton
+                              >
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="applyQuickRange('180d')"
+                                >180D</UButton
+                              >
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="applyQuickRange('ytd')"
+                                >YTD</UButton
+                              >
+                              <UButton
+                                size="xs"
+                                :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
+                                color="neutral"
+                                @click="activateCustomRange"
+                                >Custom</UButton
+                              >
+                            </div>
+
+                            <div
+                              v-if="selectedRangeKey === 'custom'"
+                              class="grid grid-cols-2 gap-2"
+                            >
+                              <UFormField label="Start">
+                                <UInput v-model="customStartDate" type="date" size="sm" />
+                              </UFormField>
+                              <UFormField label="End">
+                                <UInput v-model="customEndDate" type="date" size="sm" />
+                              </UFormField>
+                            </div>
+
+                            <div
+                              class="flex items-center justify-between border-t border-default pt-3"
+                            >
+                              <UButton
+                                size="xs"
+                                color="neutral"
+                                variant="ghost"
+                                @click="resetToPresetRange"
+                              >
+                                Reset to preset
+                              </UButton>
+                              <UButton
+                                size="xs"
+                                color="primary"
+                                variant="soft"
+                                @click="datePickerOpen = false"
+                              >
+                                Apply
+                              </UButton>
+                            </div>
+                          </div>
+                        </template>
+                      </UPopover>
+
+                      <UPopover v-if="hasOverlayControls" v-model:open="overlayPickerOpen">
+                        <UButton
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-lucide-sliders-horizontal"
+                          size="xs"
+                          class="h-auto px-0 py-0 font-black uppercase tracking-widest text-neutral-400 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-200"
+                        >
+                          Overlays:
+                          <span class="text-neutral-600 dark:text-neutral-200">{{
+                            overlayLabel
+                          }}</span>
+                        </UButton>
+
+                        <template #content>
+                          <div class="w-[320px] space-y-4 p-3">
+                            <div class="space-y-1">
+                              <div
+                                class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
+                              >
+                                Overlays
+                              </div>
+                              <p class="text-xs text-muted">
+                                Add interpretation layers like baselines, targets, trendlines, or
+                                cohort context.
+                              </p>
+                            </div>
+
+                            <div class="space-y-2">
+                              <button
+                                v-for="overlay in overlayOptions"
+                                :key="overlay.id"
+                                class="flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition hover:border-primary/50"
+                                :class="
+                                  selectedOverlayIds.includes(overlay.id)
+                                    ? 'border-primary/60 bg-primary/5'
+                                    : 'border-default/70 bg-default'
+                                "
+                                @click="toggleOverlay(overlay.id)"
+                              >
+                                <div
+                                  class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-default/70"
+                                  :class="
+                                    selectedOverlayIds.includes(overlay.id)
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-default text-transparent'
+                                  "
+                                >
+                                  <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                  <div class="text-sm font-bold text-highlighted">
+                                    {{ overlay.label }}
+                                  </div>
+                                  <p class="text-xs text-muted">{{ overlay.description }}</p>
+                                </div>
+                              </button>
+                            </div>
+
+                            <div
+                              class="flex items-center justify-between border-t border-default pt-3"
+                            >
+                              <div class="flex items-center gap-2">
+                                <UButton
+                                  size="xs"
+                                  color="neutral"
+                                  variant="ghost"
+                                  @click="clearOverlays"
+                                >
+                                  Turn Off
+                                </UButton>
+                                <UButton
+                                  size="xs"
+                                  color="neutral"
+                                  variant="ghost"
+                                  @click="resetOverlays"
+                                >
+                                  Reset Defaults
+                                </UButton>
+                              </div>
+                              <UButton
+                                size="xs"
+                                color="primary"
+                                variant="soft"
+                                @click="overlayPickerOpen = false"
+                              >
+                                Apply
+                              </UButton>
+                            </div>
+                          </div>
+                        </template>
+                      </UPopover>
+
                       <UButton
+                        v-if="selectedWidget"
                         color="neutral"
                         variant="ghost"
-                        icon="i-lucide-calendar-range"
+                        icon="i-lucide-settings-2"
                         size="xs"
                         class="h-auto px-0 py-0 font-black uppercase tracking-widest text-neutral-400 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-200"
+                        @click="isSettingsModalOpen = true"
                       >
-                        Date:
-                        <span class="text-neutral-600 dark:text-neutral-200">{{ rangeLabel }}</span>
+                        Settings:
+                        <span class="text-neutral-600 dark:text-neutral-200">Customize</span>
                       </UButton>
-
-                      <template #content>
-                        <div class="w-[320px] space-y-4 p-3">
-                          <div class="space-y-1">
-                            <div
-                              class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
-                            >
-                              Date range
-                            </div>
-                            <p class="text-xs text-muted">
-                              Preview the selected chart over a different time horizon.
-                            </p>
-                          </div>
-
-                          <div class="flex flex-wrap gap-2">
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === '14d' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="applyQuickRange('14d')"
-                              >14D</UButton
-                            >
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="applyQuickRange('30d')"
-                              >30D</UButton
-                            >
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="applyQuickRange('90d')"
-                              >90D</UButton
-                            >
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="applyQuickRange('180d')"
-                              >180D</UButton
-                            >
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="applyQuickRange('ytd')"
-                              >YTD</UButton
-                            >
-                            <UButton
-                              size="xs"
-                              :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
-                              color="neutral"
-                              @click="activateCustomRange"
-                              >Custom</UButton
-                            >
-                          </div>
-
-                          <div v-if="selectedRangeKey === 'custom'" class="grid grid-cols-2 gap-2">
-                            <UFormField label="Start">
-                              <UInput v-model="customStartDate" type="date" size="sm" />
-                            </UFormField>
-                            <UFormField label="End">
-                              <UInput v-model="customEndDate" type="date" size="sm" />
-                            </UFormField>
-                          </div>
-
-                          <div
-                            class="flex items-center justify-between border-t border-default pt-3"
-                          >
-                            <UButton
-                              size="xs"
-                              color="neutral"
-                              variant="ghost"
-                              @click="resetToPresetRange"
-                            >
-                              Reset to preset
-                            </UButton>
-                            <UButton
-                              size="xs"
-                              color="primary"
-                              variant="soft"
-                              @click="datePickerOpen = false"
-                            >
-                              Apply
-                            </UButton>
-                          </div>
-                        </div>
-                      </template>
-                    </UPopover>
+                    </div>
                   </ClientOnly>
-                  <div v-if="selectedOverlayIds.length" class="flex items-center gap-1.5">
-                    <UIcon name="i-lucide-sliders-horizontal" class="h-3.5 w-3.5" />
-                    Overlays:
-                    <span class="text-neutral-600 dark:text-neutral-200">{{ overlayLabel }}</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -986,4 +1028,10 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <WidgetSettingsModal
+    v-if="selectedWidget"
+    v-model="isSettingsModalOpen"
+    v-model:config="selectedWidget"
+  />
 </template>
