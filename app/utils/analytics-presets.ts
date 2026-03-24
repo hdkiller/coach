@@ -62,6 +62,15 @@ export interface AnalyticsPresetConfig {
     y1?: string
     datasets?: string[]
   }
+  settings?: {
+    smooth?: boolean
+    yScale?: 'dynamic' | 'fixed'
+    yMin?: number
+    showDelta?: boolean
+    showRegression?: boolean
+    showPoints?: boolean
+    opacity?: number
+  }
   [key: string]: any
 }
 
@@ -672,6 +681,104 @@ export const ANALYTICS_SYSTEM_PRESETS: AnalyticsSystemPreset[] = [
     units: { y: 'h' },
     insightCopy:
       'HR zones give a physiological view of intensity distribution that can differ from power, especially under fatigue or heat.'
+  }),
+  endpointPreset({
+    id: 'system-hr-zone-time',
+    name: 'Time in HR Zones',
+    description:
+      'Track the total time spent in each heart rate zone per week to monitor high-intensity volume.',
+    category: 'distribution',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'stackedBar',
+    requiredCapabilities: ['stackedBar'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/power-duration',
+    timeRange: { type: 'rolling', value: '84d' },
+    presetOptions: { mode: 'weekly-hr-zones', output: 'absolute' },
+    units: { y: 'h' },
+    insightCopy:
+      'While percentage distribution shows the mix, absolute time shows the real volume of strain being applied to the aerobic system.'
+  }),
+  endpointPreset({
+    id: 'system-weekly-pace-zones',
+    name: 'Weekly Pace Zone Distribution',
+    description:
+      'See how weekly running time is distributed across pace-based zones from recovery to sprint.',
+    category: 'distribution',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'stackedBar',
+    requiredCapabilities: ['stackedBar'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/power-duration',
+    timeRange: { type: 'rolling', value: '84d' },
+    presetOptions: { mode: 'weekly-pace-zones' },
+    units: { y: 'h' },
+    insightCopy:
+      'Pace zones are the runners primary distribution metric, showing whether the training block is building speed, endurance, or maintenance.'
+  }),
+  endpointPreset({
+    id: 'system-aerobic-decoupling',
+    name: 'Aerobic Decoupling Trend',
+    description:
+      'Track Pa:Hr (Pace to Heart Rate) or Pw:Hr (Power to Heart Rate) decoupling to monitor aerobic efficiency gains.',
+    category: 'performance',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/compliance',
+    timeRange: { type: 'rolling', value: '90d' },
+    presetOptions: { mode: 'aerobic-decoupling' },
+    units: { y: '%' },
+    insightCopy:
+      'Lower decoupling over time indicate building aerobic efficiency. A sudden spike can flag fatigue, heat stress, or incoming illness.',
+    defaultOverlays: ['rolling-7d', 'baseline-band'],
+    availableOverlays: [rolling7d, baselineBand]
+  }),
+  endpointPreset({
+    id: 'system-macro-delta',
+    name: 'Macro Accuracy (Delta to Goal)',
+    description:
+      'Visualize the gap between actual macro intake and the daily target to fine-tune fueling precision.',
+    category: 'nutrition',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'bar',
+    requiredCapabilities: ['bar'],
+    source: 'nutrition',
+    endpoint: '/api/analytics/presets/correlation',
+    timeRange: { type: 'rolling', value: '30d' },
+    presetOptions: { mode: 'macro-accuracy-delta' },
+    units: { y: 'g' },
+    insightCopy:
+      'This chart makes it obvious when you are consistently missing specific targets, allowing for surgical adjustments to your meal planning.'
+  }),
+  endpointPreset({
+    id: 'system-acwr-trend',
+    name: 'Training Load Balance (ACWR)',
+    description:
+      'Monitor the Acute:Chronic Workload Ratio to keep training stress within the productive "sweet spot" and minimize injury risk.',
+    category: 'performance',
+    audience: 'both',
+    recommendedScope: 'self',
+    visualType: 'line',
+    requiredCapabilities: ['line'],
+    source: 'workouts',
+    endpoint: '/api/analytics/presets/compliance',
+    timeRange: { type: 'rolling', value: '90d' },
+    presetOptions: { mode: 'acwr' },
+    units: { y: 'ratio' },
+    insightCopy:
+      'An ACWR between 0.8 and 1.3 is generally considered the sweet spot. Ratios above 1.5 indicate rapidly increasing injury risk.',
+    defaultOverlays: ['acwr-sweet-spot'],
+    availableOverlays: [
+      baselineBand,
+      thresholdLine('acwr-sweet-spot', 'Sweet Spot (1.3)', 1.3, '#10b981'),
+      thresholdLine('acwr-danger-zone', 'Danger Zone (1.5)', 1.5, '#ef4444')
+    ]
   }),
   endpointPreset({
     id: 'system-threshold-exposure',
