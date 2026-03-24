@@ -4,6 +4,8 @@
   import type { WellnessOverlayEvent } from '~/utils/wellness-events'
   import ChartRenderer from './ChartRenderer.vue'
   import HeatmapGrid from './HeatmapGrid.vue'
+  import MapRenderer from './MapRenderer.vue'
+  import DensityHeatmap from './DensityHeatmap.vue'
 
   interface WidgetDataset {
     label: string
@@ -130,6 +132,8 @@
 
   const visualType = computed(() => props.config.visualType || props.config.type || 'line')
   const isHeatmap = computed(() => visualType.value === 'heatmap')
+  const isDensityHeatmap = computed(() => visualType.value === 'density-heatmap')
+  const isMap = computed(() => visualType.value === 'map' || visualType.value === 'map-heatmap')
 
   const overlayDefinitions = computed<AnalyticsOverlayOption[]>(
     () => props.config.availableOverlays || []
@@ -658,6 +662,10 @@
       :data="chartData"
       :mode="config.presetOptions?.mode"
     />
+
+    <DensityHeatmap v-else-if="isDensityHeatmap && chartData" :data="chartData" :config="config" />
+
+    <MapRenderer v-else-if="isMap && chartData" :data="chartData" :config="config" />
 
     <ChartRenderer
       v-else-if="chartData"

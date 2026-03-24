@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Bar, Line, Scatter } from 'vue-chartjs'
+  import { Bar, Line, Scatter, Radar } from 'vue-chartjs'
   import annotationPlugin from 'chartjs-plugin-annotation'
   import {
     BarElement,
@@ -9,6 +9,7 @@
     Legend,
     LineElement,
     LinearScale,
+    RadialLinearScale,
     PointElement,
     Title,
     Tooltip,
@@ -16,10 +17,12 @@
     type ScriptableContext
   } from 'chart.js'
   import { wellnessOverlayPlugin } from '~/utils/wellness-events'
+  import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
 
   ChartJS.register(
     CategoryScale,
     LinearScale,
+    RadialLinearScale,
     PointElement,
     LineElement,
     BarElement,
@@ -125,11 +128,28 @@
     const isScatter = visualType === 'scatter'
     const isCombo = visualType === 'combo'
     const settings = props.config.settings || {}
+    const { triggerScrub, triggerZoom } = useAnalyticsBus()
 
     return {
       responsive: true,
       maintainAspectRatio: false,
       indexAxis: isHorizontal ? ('y' as const) : ('x' as const),
+      onHover: (event: any, elements: any[]) => {
+        if (elements.length > 0) {
+          const index = elements[0].index
+          const datasetIndex = elements[0].datasetIndex
+          const point = props.data.datasets[datasetIndex].data[index]
+          if (point) {
+            triggerScrub({
+              x: point.x,
+              lat: point.lat,
+              lng: point.lng,
+              workoutId: props.config.analysis?.workoutId,
+              index
+            })
+          }
+        }
+      },
       plugins: {
         wellnessOverlays:
           props.wellnessEvents?.length && props.data?.labels
@@ -193,75 +213,102 @@
               zoom: {
                 wheel: { enabled: true },
                 pinch: { enabled: true },
-                mode: 'x' as const
+                mode: 'x' as const,
+                onZoomComplete: ({ chart }: any) => {
+                  const x = chart.scales.x
+                  triggerZoom({
+                    startX: x.min,
+                    endX: x.max,
+                    workoutId: props.config.analysis?.workoutId
+                  })
+                }
               }
             }
           : undefined
       },
-      scales: {
-        x: {
-          type: isScatter ? ('linear' as const) : ('category' as const),
-          stacked,
-          grid: {
-            display: !isHorizontal,
-            color: theme.isDark.value ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)'
-          },
-          ticks: {
-            color: '#94a3b8',
-            font: { size: 10, weight: '600' as const },
-            maxTicksLimit: isScatter ? 6 : 8,
-            autoSkip: !isScatter,
-            callback: (value: number | string) =>
-              isScatter || isHorizontal ? formatAxisTick(value, props.axisUnits.x) : value
-          },
-          title: {
-            display: Boolean(props.axisUnits.x) && (isScatter || isHorizontal),
-            text: props.axisUnits.x
-          },
-          border: { display: false }
-        },
-        y: {
-          position: 'right' as const,
-          stacked,
-          min: settings.yScale === 'fixed' ? settings.yMin || 0 : undefined,
-          grid: {
-            color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
-            drawTicks: false
-          },
-          ticks: {
-            color: '#94a3b8',
-            font: { size: 10, weight: '600' as const },
-            maxTicksLimit: 6,
-            callback: (value: number | string) =>
-              !isHorizontal ? formatAxisTick(value, props.axisUnits.y) : value
-          },
-          title: {
-            display: Boolean(props.axisUnits.y) && !isHorizontal,
-            text: props.axisUnits.y
-          },
-          border: { display: false }
-        },
-        ...(isCombo
+      scales:
+        props.visualType === 'radar'
           ? {
-              y1: {
-                position: 'left' as const,
-                grid: { display: false },
+              r: {
+                angleLines: {
+                  color: theme.isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                },
+                grid: {
+                  color: theme.isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                },
+                pointLabels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } },
+                ticks: { display: false }
+              }
+            }
+          : {
+              x: {
+                type: isScatter
+                  ? ('linear' as const)
+                  : props.config.scales?.x?.type || ('category' as const),
+                stacked,
+                grid: {
+                  display: !isHorizontal,
+                  color: theme.isDark.value ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)'
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { size: 10, weight: '600' as const },
+                  maxTicksLimit: isScatter ? 6 : 8,
+                  autoSkip: !isScatter,
+                  callback: (value: number | string) =>
+                    isScatter || isHorizontal || props.config.scales?.x?.type === 'logarithmic'
+                      ? formatAxisTick(value, props.axisUnits.x)
+                      : value
+                },
+                title: {
+                  display: Boolean(props.axisUnits.x) && (isScatter || isHorizontal),
+                  text: props.axisUnits.x
+                },
+                border: { display: false }
+              },
+              y: {
+                type: props.config.scales?.y?.type || ('linear' as const),
+                position: 'right' as const,
+                stacked,
+                min: settings.yScale === 'fixed' ? settings.yMin || 0 : undefined,
+                grid: {
+                  color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                  drawTicks: false
+                },
                 ticks: {
                   color: '#94a3b8',
                   font: { size: 10, weight: '600' as const },
                   maxTicksLimit: 6,
                   callback: (value: number | string) =>
-                    formatAxisTick(value, props.axisUnits.y1 || props.axisUnits.y)
+                    !isHorizontal ? formatAxisTick(value, props.axisUnits.y) : value
                 },
                 title: {
-                  display: Boolean(props.axisUnits.y1),
-                  text: props.axisUnits.y1
+                  display: Boolean(props.axisUnits.y) && !isHorizontal,
+                  text: props.axisUnits.y
                 },
                 border: { display: false }
-              }
-            }
-          : {})
-      },
+              },
+              ...(isCombo
+                ? {
+                    y1: {
+                      position: 'left' as const,
+                      grid: { display: false },
+                      ticks: {
+                        color: '#94a3b8',
+                        font: { size: 10, weight: '600' as const },
+                        maxTicksLimit: 6,
+                        callback: (value: number | string) =>
+                          formatAxisTick(value, props.axisUnits.y1 || props.axisUnits.y)
+                      },
+                      title: {
+                        display: Boolean(props.axisUnits.y1),
+                        text: props.axisUnits.y1
+                      },
+                      border: { display: false }
+                    }
+                  }
+                : {})
+            },
       interaction: {
         mode: isScatter ? ('nearest' as const) : ('index' as const),
         axis: isScatter ? ('xy' as const) : ('x' as const),
@@ -322,6 +369,7 @@
       :options="chartOptions"
       :plugins="[wellnessOverlayPlugin]"
     />
+    <Radar v-else-if="visualType === 'radar'" :data="processedData" :options="chartOptions" />
     <div v-else class="flex h-full items-center justify-center text-xs italic text-neutral-400">
       Unsupported chart type: {{ visualType }}
     </div>
