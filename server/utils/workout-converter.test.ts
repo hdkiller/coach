@@ -320,16 +320,26 @@ describe('WorkoutConverter', () => {
       expect(result).not.toContain('80%')
     })
 
-    it('prefers generation snapshot targeting policy over current sport settings', () => {
+    it('prefers current sport settings targeting policy over generation snapshot', () => {
       const workout = {
         title: 'Snapshot Policy',
         type: 'Run',
-        sportSettings: { loadPreference: 'POWER_HR_PACE' },
-        generationSettingsSnapshot: {
+        sportSettings: {
           loadPreference: 'HR_POWER_PACE',
           targetPolicy: {
             primaryMetric: 'heartRate',
             fallbackOrder: ['heartRate', 'power', 'pace'],
+            strictPrimary: true,
+            allowMixedTargetsPerStep: false,
+            defaultTargetStyle: 'range',
+            preferRangesForSteady: true
+          }
+        },
+        generationSettingsSnapshot: {
+          loadPreference: 'POWER_HR_PACE',
+          targetPolicy: {
+            primaryMetric: 'power',
+            fallbackOrder: ['power', 'heartRate', 'pace'],
             strictPrimary: true,
             allowMixedTargetsPerStep: false,
             defaultTargetStyle: 'range',

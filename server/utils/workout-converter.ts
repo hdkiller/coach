@@ -648,15 +648,13 @@ export const WorkoutConverter = {
     const isSwim = sportType.includes('swim')
     const isRun = !isSwim && sportType.includes('run')
     const fallbackLoadPreference = isRun || isSwim ? 'HR_PACE_POWER' : 'POWER_HR_PACE'
-    const hasGenerationPolicy =
-      Boolean(workout.generationSettingsSnapshot?.targetPolicy) ||
-      Boolean(workout.generationSettingsSnapshot?.loadPreference)
-    const policySource = hasGenerationPolicy
-      ? workout.generationSettingsSnapshot
-      : workout.sportSettings
+    const currentPolicySource = workout.sportSettings || null
+    const snapshotPolicySource = workout.generationSettingsSnapshot || null
     const normalizedPolicy = normalizeTargetPolicy(
-      policySource?.targetPolicy,
-      policySource?.loadPreference || fallbackLoadPreference
+      currentPolicySource?.targetPolicy || snapshotPolicySource?.targetPolicy,
+      currentPolicySource?.loadPreference ||
+        snapshotPolicySource?.loadPreference ||
+        fallbackLoadPreference
     )
     const metricPriority = normalizedPolicy.fallbackOrder.map((metric) => {
       if (metric === 'heartRate') return 'hr'
@@ -786,7 +784,8 @@ export const WorkoutConverter = {
         }
 
         const power = normalizeTarget(step.power) || normalizeTarget(parentStep?.power)
-        const rawHeartRate = normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate)
+        const rawHeartRate =
+          normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate)
         const heartRate = normalizeHrTargetForExport(
           rawHeartRate || deriveRunHeartRateTargetFromPower(power)
         )
