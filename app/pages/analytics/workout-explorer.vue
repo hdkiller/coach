@@ -1183,6 +1183,16 @@
                       {{ selectedPreset.sourceLabel }}
                     </div>
                   </div>
+                  <UButton
+                    size="sm"
+                    color="primary"
+                    variant="soft"
+                    icon="i-lucide-plus"
+                    :disabled="!selectedWorkoutId"
+                    @click="pinCurrentChartToExplorer"
+                  >
+                    Pin to Explorer
+                  </UButton>
                 </div>
               </template>
 
@@ -1200,6 +1210,99 @@
                   This workout is unavailable. Choose another one from the browser to continue.
                 </div>
                 <AnalyticsBaseWidget v-else-if="previewConfig" :config="previewConfig" />
+              </div>
+            </UCard>
+
+            <UCard v-if="selectedWorkoutId" :ui="{ body: 'p-4 sm:p-4' }">
+              <template #header>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div class="text-xs font-black uppercase tracking-widest text-neutral-500">
+                      Pinned Charts
+                    </div>
+                    <div class="mt-1 text-sm text-muted">
+                      Stack supporting charts here to build a deeper read on this workout.
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UBadge color="neutral" variant="outline" size="sm">
+                      {{ pinnedChartConfigs.length }} pinned
+                    </UBadge>
+                    <UButton
+                      v-if="pinnedChartConfigs.length"
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      @click="clearPinnedCharts"
+                    >
+                      Clear
+                    </UButton>
+                  </div>
+                </div>
+              </template>
+
+              <div v-if="pinnedChartConfigs.length" class="space-y-4">
+                <UCard
+                  v-for="(entry, index) in pinnedChartConfigs"
+                  :key="entry.chart.id"
+                  :ui="{ body: 'p-0 sm:p-0 overflow-hidden' }"
+                >
+                  <template #header>
+                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <div class="text-sm font-bold text-highlighted">
+                          {{ entry.preset.name }}
+                        </div>
+                        <div class="mt-1 text-xs text-muted">
+                          {{ entry.preset.sourceLabel }} · {{ entry.preset.description }}
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <UButton
+                          size="xs"
+                          color="neutral"
+                          variant="outline"
+                          icon="i-lucide-arrow-up"
+                          :disabled="index === 0"
+                          @click="movePinnedChart(entry.chart.id, -1)"
+                        >
+                          Up
+                        </UButton>
+                        <UButton
+                          size="xs"
+                          color="neutral"
+                          variant="outline"
+                          icon="i-lucide-arrow-down"
+                          :disabled="index === pinnedChartConfigs.length - 1"
+                          @click="movePinnedChart(entry.chart.id, 1)"
+                        >
+                          Down
+                        </UButton>
+                        <UButton
+                          size="xs"
+                          color="error"
+                          variant="ghost"
+                          icon="i-lucide-trash-2"
+                          @click="removePinnedChart(entry.chart.id)"
+                        >
+                          Remove
+                        </UButton>
+                      </div>
+                    </div>
+                  </template>
+
+                  <div class="h-[320px]">
+                    <AnalyticsBaseWidget :config="entry.config" />
+                  </div>
+                </UCard>
+              </div>
+
+              <div
+                v-else
+                class="rounded-2xl border border-dashed border-default/70 bg-muted/10 p-6 text-sm text-muted"
+              >
+                Pin charts from the main preview to stack them here for deeper single-workout
+                analysis.
               </div>
             </UCard>
           </div>
