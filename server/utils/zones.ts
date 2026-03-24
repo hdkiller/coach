@@ -126,6 +126,45 @@ export function calculateHrZones(lthr: number | null, maxHr: number | null): Zon
 }
 
 /**
+ * Calculate Pace Zones based on Threshold Pace (m/s)
+ * Standard 6-zone model for running.
+ */
+export function calculatePaceZones(thresholdPace: number | null): Zone[] {
+  if (!thresholdPace) return []
+
+  // Values are percentages of threshold speed (m/s)
+  // Higher speed = faster pace
+  return [
+    { name: 'Z1 Recovery', min: 0, max: thresholdPace * 0.8, color: 'gray' },
+    {
+      name: 'Z2 Aerobic',
+      min: thresholdPace * 0.8 + 0.01,
+      max: thresholdPace * 0.89,
+      color: 'blue'
+    },
+    {
+      name: 'Z3 Tempo',
+      min: thresholdPace * 0.89 + 0.01,
+      max: thresholdPace * 0.95,
+      color: 'green'
+    },
+    {
+      name: 'Z4 Threshold',
+      min: thresholdPace * 0.95 + 0.01,
+      max: thresholdPace * 1.05,
+      color: 'yellow'
+    },
+    {
+      name: 'Z5 VO2 Max',
+      min: thresholdPace * 1.05 + 0.01,
+      max: thresholdPace * 1.15,
+      color: 'orange'
+    },
+    { name: 'Z6 Speed', min: thresholdPace * 1.15 + 0.01, max: 20, color: 'red' }
+  ]
+}
+
+/**
  * Format zone for display (e.g. "200-250W")
  */
 export function formatZoneRange(zone: Zone, unit: 'W' | 'bpm'): string {

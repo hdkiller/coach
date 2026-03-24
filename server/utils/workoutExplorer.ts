@@ -1,0 +1,63 @@
+export const workoutExplorerMetricLabels: Record<string, string> = {
+  durationSec: 'Duration',
+  elapsedTimeSec: 'Elapsed Time',
+  distanceMeters: 'Distance',
+  elevationGain: 'Elevation Gain',
+  trainingLoad: 'Training Load',
+  tss: 'TSS',
+  kilojoules: 'Kilojoules',
+  calories: 'Calories',
+  averageWatts: 'Average Power',
+  maxWatts: 'Max Power',
+  normalizedPower: 'Normalized Power',
+  averageHr: 'Average HR',
+  maxHr: 'Max HR',
+  averageCadence: 'Average Cadence',
+  averageSpeed: 'Average Speed',
+  intensity: 'Intensity',
+  efficiencyFactor: 'Efficiency Factor',
+  decoupling: 'Decoupling',
+  powerHrRatio: 'Power / HR Ratio',
+  variabilityIndex: 'Variability Index',
+  trimp: 'TRIMP',
+  hrLoad: 'HR Load',
+  workAboveFtp: 'Work Above FTP'
+}
+
+export const workoutExplorerMetricUnits: Record<string, string> = {
+  durationSec: 'duration',
+  elapsedTimeSec: 'duration',
+  distanceMeters: 'm',
+  elevationGain: 'm',
+  trainingLoad: 'load',
+  tss: 'tss',
+  kilojoules: 'kJ',
+  calories: 'kcal',
+  averageWatts: 'W',
+  maxWatts: 'W',
+  normalizedPower: 'W',
+  averageHr: 'bpm',
+  maxHr: 'bpm',
+  averageCadence: 'rpm',
+  averageSpeed: 'km/h',
+  intensity: '',
+  efficiencyFactor: '',
+  decoupling: '%',
+  powerHrRatio: '',
+  variabilityIndex: '',
+  trimp: 'load',
+  hrLoad: 'load',
+  workAboveFtp: 'kJ'
+}
+
+export const allowedWorkoutExplorerSummaryMetrics = new Set(
+  Object.keys(workoutExplorerMetricLabels)
+)
+
+export function normalizeWorkoutMetricValue(field: string, value: unknown) {
+  if (value === null || value === undefined || value === '') return null
+  const numeric = Number(value)
+  if (Number.isNaN(numeric)) return null
+  if (field === 'averageSpeed') return Number((numeric * 3.6).toFixed(1))
+  return numeric
+}

@@ -86,12 +86,26 @@ export async function resolveAnalyticsScopeUserIds(userId: string, scope: Analyt
 }
 
 export async function assertWorkoutComparisonAccess(userId: string, workoutIds: string[]) {
+  return assertWorkoutSelectionAccess(userId, workoutIds, 2)
+}
+
+export async function assertSingleWorkoutAccess(userId: string, workoutId: string) {
+  const [resolvedWorkoutId] = await assertWorkoutSelectionAccess(userId, [workoutId], 1)
+  return resolvedWorkoutId
+}
+
+async function assertWorkoutSelectionAccess(
+  userId: string,
+  workoutIds: string[],
+  minCount: number
+) {
   const requestedIds = Array.from(new Set(workoutIds.filter(Boolean)))
 
-  if (requestedIds.length < 2) {
+  if (requestedIds.length < minCount) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Select at least two workouts to compare'
+      statusMessage:
+        minCount === 1 ? 'Select a workout to analyze' : 'Select at least two workouts to compare'
     })
   }
 
