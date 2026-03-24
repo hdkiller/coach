@@ -7,6 +7,15 @@
     type WorkoutExplorerPreset
   } from '~/utils/workout-explorer-presets'
 
+  interface PinnedExplorerChart {
+    id: string
+    presetId: string
+    summaryChartType: 'bar' | 'line'
+    streamField: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'
+    streamAlignment: 'elapsed_time' | 'distance' | 'percent_complete'
+    intervalField: 'avgPower' | 'avgHr' | 'duration' | 'distance'
+  }
+
   definePageMeta({
     middleware: 'auth'
   })
@@ -42,6 +51,7 @@
   const endDateFilter = ref('')
   const showAdvanced = ref(false)
   const saving = ref(false)
+  const pinnedCharts = ref<PinnedExplorerChart[]>([])
 
   const selectedWorkoutId = ref<string | null>(null)
   const selectedPreset = ref<WorkoutExplorerPreset>(
@@ -360,25 +370,32 @@
     ].filter((item) => item.value !== '—')
   })
 
-  const previewConfig = computed(() => {
-    if (!selectedWorkoutId.value) return null
-
+  function buildPreviewConfig(options: {
+    preset: WorkoutExplorerPreset
+    workoutId: string
+    summaryChartType: 'bar' | 'line'
+    streamField: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'
+    streamAlignment: 'elapsed_time' | 'distance' | 'percent_complete'
+    intervalField: 'avgPower' | 'avgHr' | 'duration' | 'distance'
+    instanceId?: string
+  }) {
     const base = {
-      name: selectedPreset.value.name,
-      explorerPresetId: selectedPreset.value.id,
-      explorerPresetCategory: selectedPreset.value.category,
+      name: options.preset.name,
+      explorerPresetId: options.preset.id,
+      explorerPresetCategory: options.preset.category,
       scope: { target: 'self' as const },
       source: 'workouts' as const,
       timeRange: { type: 'rolling', value: '180d' },
       analysis: {
         type: 'single_workout' as const,
-        mode: selectedPreset.value.mode,
-        workoutId: selectedWorkoutId.value
-      }
+        mode: options.preset.mode,
+        workoutId: options.workoutId
+      },
+      instanceId: options.instanceId
     }
 
-    if (selectedPreset.value.mode === 'summary') {
-      const metrics = (selectedPreset.value.summary?.metrics || []).map((field) => ({
+    if (options.preset.mode === 'summary') {
+      const metrics = (options.preset.summary?.metrics || []).map((field) => ({
         field,
         aggregation: 'avg' as const
       }))
@@ -386,32 +403,32 @@
       return {
         ...base,
         endpoint: '/api/analytics/workout-explorer/summary',
-        visualType: summaryChartType.value,
+        visualType: options.summaryChartType,
         grouping: 'daily' as const,
         units: {
-          y: selectedPreset.value.summary?.type === 'zones' ? '%' : '',
+          y: options.preset.summary?.type === 'zones' ? '%' : '',
           datasets: metrics.map((metric) => workoutMetricUnits[metric.field] || '')
         },
         metrics,
-        summaryType: selectedPreset.value.summary?.type || 'metrics',
-        zoneType: selectedPreset.value.summary?.zoneType
+        summaryType: options.preset.summary?.type || 'metrics',
+        zoneType: options.preset.summary?.zoneType
       }
     }
 
-    if (selectedPreset.value.mode === 'stream') {
+    if (options.preset.mode === 'stream') {
       return {
         ...base,
         endpoint: '/api/analytics/workout-explorer/streams',
         visualType: 'scatter' as const,
         analysis: {
           ...base.analysis,
-          field: streamField.value,
-          alignment: streamAlignment.value
+          field: options.streamField,
+          alignment: options.streamAlignment
         },
         units: {
-          x: streamAlignmentUnits[streamAlignment.value] || '',
-          y: streamFieldUnits[streamField.value] || '',
-          datasets: [streamFieldUnits[streamField.value] || '']
+          x: streamAlignmentUnits[options.streamAlignment] || '',
+          y: streamFieldUnits[options.streamField] || '',
+          datasets: [streamFieldUnits[options.streamField] || '']
         },
         metrics: []
       }
@@ -423,14 +440,56 @@
       visualType: 'line' as const,
       analysis: {
         ...base.analysis,
-        field: intervalField.value
+        field: options.intervalField
       },
       units: {
-        y: intervalFieldUnits[intervalField.value] || '',
-        datasets: [intervalFieldUnits[intervalField.value] || '']
+        y: intervalFieldUnits[options.intervalField] || '',
+        datasets: [intervalFieldUnits[options.intervalField] || '']
       },
       metrics: []
     }
+  }
+
+  const previewConfig = computed(() => {
+    if (!selectedWorkoutId.value) return null
+
+    return buildPreviewConfig({
+      preset: selectedPreset.value,
+      workoutId: selectedWorkoutId.value,
+      summaryChartType: summaryChartType.value,
+      streamField: streamField.value,
+      streamAlignment: streamAlignment.value,
+      intervalField: intervalField.value
+    })
+  })
+
+  const pinnedChartConfigs = computed(() => {
+    if (!selectedWorkoutId.value) return []
+
+    return pinnedCharts.value
+      .map((chart) => {
+        const preset = findWorkoutExplorerPresetById(chart.presetId)
+        if (!preset) return null
+
+        return {
+          chart,
+          preset,
+          config: buildPreviewConfig({
+            preset,
+            workoutId: selectedWorkoutId.value!,
+            summaryChartType: chart.summaryChartType,
+            streamField: chart.streamField,
+            streamAlignment: chart.streamAlignment,
+            intervalField: chart.intervalField,
+            instanceId: chart.id
+          })
+        }
+      })
+      .filter(Boolean) as Array<{
+      chart: PinnedExplorerChart
+      preset: WorkoutExplorerPreset
+      config: any
+    }>
   })
 
   function formatDateLabel(date: string | Date | null | undefined) {
@@ -503,6 +562,55 @@
 
   function selectWorkout(workout: any) {
     selectedWorkoutId.value = workout.id
+  }
+
+  function pinCurrentChartToExplorer() {
+    if (!selectedWorkoutId.value) {
+      toast.add({
+        title: 'Select a workout first',
+        description: 'Choose a workout before pinning explorer charts.',
+        color: 'warning'
+      })
+      leftRailTab.value = 'workout'
+      return
+    }
+
+    pinnedCharts.value.push({
+      id: crypto.randomUUID(),
+      presetId: selectedPreset.value.id,
+      summaryChartType: summaryChartType.value,
+      streamField: streamField.value,
+      streamAlignment: streamAlignment.value,
+      intervalField: intervalField.value
+    })
+
+    toast.add({
+      title: 'Chart pinned to explorer',
+      description: 'Stack more charts underneath to build a deeper read on this workout.',
+      color: 'success'
+    })
+  }
+
+  function removePinnedChart(chartId: string) {
+    pinnedCharts.value = pinnedCharts.value.filter((chart) => chart.id !== chartId)
+  }
+
+  function movePinnedChart(chartId: string, direction: -1 | 1) {
+    const currentIndex = pinnedCharts.value.findIndex((chart) => chart.id === chartId)
+    if (currentIndex < 0) return
+
+    const nextIndex = currentIndex + direction
+    if (nextIndex < 0 || nextIndex >= pinnedCharts.value.length) return
+
+    const nextCharts = [...pinnedCharts.value]
+    const [chart] = nextCharts.splice(currentIndex, 1)
+    if (!chart) return
+    nextCharts.splice(nextIndex, 0, chart)
+    pinnedCharts.value = nextCharts
+  }
+
+  function clearPinnedCharts() {
+    pinnedCharts.value = []
   }
 
   function toggleComparison(workout: any) {
