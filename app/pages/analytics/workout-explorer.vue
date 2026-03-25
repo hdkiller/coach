@@ -4,15 +4,29 @@
     WORKOUT_EXPLORER_PRESETS,
     findWorkoutExplorerPresetById,
     type WorkoutExplorerCategory,
-    type WorkoutExplorerPreset
+    type WorkoutExplorerPreset,
+    type WorkoutExplorerVisualType
   } from '~/utils/workout-explorer-presets'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
+
+  type ExplorerSummaryChartType = 'bar' | 'line' | 'combo' | 'radar'
+  type ExplorerStreamField =
+    | 'watts'
+    | 'heartrate'
+    | 'cadence'
+    | 'velocity'
+    | 'altitude'
+    | 'grade'
+    | 'torque'
+    | 'vam'
+    | 'w_balance'
+    | 'power_hr_ratio'
 
   interface PinnedExplorerChart {
     id: string
     presetId: string
-    summaryChartType: 'bar' | 'line'
-    streamField: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade'
+    summaryChartType: ExplorerSummaryChartType
+    streamField: ExplorerStreamField
     streamAlignment: 'elapsed_time' | 'distance' | 'percent_complete'
     intervalField: 'avgPower' | 'avgHr' | 'duration' | 'distance'
   }
@@ -54,54 +68,61 @@
   const saving = ref(false)
   const pinnedCharts = ref<PinnedExplorerChart[]>([])
 
-  const activeRange = ref<{
-    start: number
-    end: number
-    alignment: 'elapsed_time' | 'distance'
-  } | null>(null)
-  const { onZoom, onSelection } = useAnalyticsBus()
-
-  onZoom((event) => {
-    if (event.workoutId === selectedWorkoutId.value) {
-      activeRange.value = {
-        start: event.startX,
-        end: event.endX,
-        alignment: streamAlignment.value === 'distance' ? 'distance' : 'elapsed_time'
-      }
-    }
-  })
-
-  onSelection((event) => {
-    if (event.workoutId === selectedWorkoutId.value) {
-      activeRange.value = {
-        start: event.startX,
-        end: event.endX,
-        alignment: streamAlignment.value === 'distance' ? 'distance' : 'elapsed_time'
-      }
-    }
-  })
-
   const selectedWorkoutId = ref<string | null>(null)
   const selectedPreset = ref<WorkoutExplorerPreset>(
     findWorkoutExplorerPresetById((route.query.preset as string) || '') ||
       WORKOUT_EXPLORER_PRESETS[0]!
   )
 
-  const summaryChartType = ref<'bar' | 'line'>('bar')
-  const streamField = ref<
-    | 'watts'
-    | 'heartrate'
-    | 'cadence'
-    | 'velocity'
-    | 'altitude'
-    | 'grade'
-    | 'torque'
-    | 'vam'
-    | 'w_balance'
-    | 'power_hr_ratio'
-  >('watts')
+  const summaryChartType = ref<ExplorerSummaryChartType>('bar')
+  const streamField = ref<ExplorerStreamField>('watts')
   const streamAlignment = ref<'elapsed_time' | 'distance' | 'percent_complete'>('elapsed_time')
   const intervalField = ref<'avgPower' | 'avgHr' | 'duration' | 'distance'>('avgPower')
+
+  const activeRange = ref<{
+    start: number
+    end: number
+    alignment: 'elapsed_time' | 'distance' | 'percent_complete'
+  } | null>(null)
+  const { onZoom, onSelection } = useAnalyticsBus()
+
+  const stopZoom = onZoom((event) => {
+    if (event.workoutId === selectedWorkoutId.value) {
+      activeRange.value = {
+        start: event.startX,
+        end: event.endX,
+        alignment: streamAlignment.value
+      }
+    }
+  })
+
+  const stopSelection = onSelection((event) => {
+    if (event.workoutId === selectedWorkoutId.value) {
+      activeRange.value = {
+        start: event.startX,
+        end: event.endX,
+        alignment: streamAlignment.value
+      }
+    }
+  })
+
+  onUnmounted(() => {
+    stopZoom.off()
+    stopSelection.off()
+  })
+
+  // Reset zoom when workout or critical view settings change
+  watch([selectedWorkoutId, streamAlignment], () => {
+    activeRange.value = null
+  })
+
+  // Also reset zoom when mode changes (e.g. from stream to density)
+  watch(
+    () => selectedPreset.value.mode,
+    (newMode, oldMode) => {
+      if (newMode !== oldMode) activeRange.value = null
+    }
+  )
 
   const workoutMetricUnits: Record<string, string> = {
     trainingLoad: 'load',
@@ -155,6 +176,23 @@
     distance: 'm'
   }
 
+  const streamFieldOptions = [
+    { label: 'Power', value: 'watts' },
+    { label: 'Heart Rate', value: 'heartrate' },
+    { label: 'Cadence', value: 'cadence' },
+    { label: 'Velocity', value: 'velocity' },
+    { label: 'Altitude', value: 'altitude' },
+    { label: 'Grade', value: 'grade' },
+    { label: 'Torque', value: 'torque' },
+    { label: 'VAM', value: 'vam' },
+    { label: "W' Balance", value: 'w_balance' },
+    { label: 'Efficiency Ratio', value: 'power_hr_ratio' }
+  ] satisfies Array<{ label: string; value: ExplorerStreamField }>
+
+  const streamFieldOptionMap = Object.fromEntries(
+    streamFieldOptions.map((option) => [option.value, option.label])
+  ) as Record<ExplorerStreamField, string>
+
   function applyPreset(preset: WorkoutExplorerPreset) {
     selectedPreset.value = preset
 
@@ -163,7 +201,7 @@
     }
 
     if (preset.mode === 'stream' && preset.stream) {
-      streamField.value = preset.stream.field
+      streamField.value = preset.stream.field || preset.stream.fields?.[0] || 'watts'
       streamAlignment.value = preset.stream.alignment
     }
 
@@ -188,7 +226,8 @@
     () => route.query.mode,
     (value) => {
       if (typeof route.query.preset === 'string') return
-      if (value !== 'summary' && value !== 'stream' && value !== 'interval') return
+      if (value !== 'summary' && value !== 'stream' && value !== 'interval' && value !== 'density')
+        return
 
       const fallbackPreset =
         WORKOUT_EXPLORER_PRESETS.find((preset) => preset.mode === value) ||
@@ -255,6 +294,7 @@
   const selectedWorkoutData = ref<any>(null)
   const loadingSelectedWorkout = ref(false)
   const selectedWorkoutError = ref<any>(null)
+  const selectedWorkoutRequestId = ref(0)
 
   async function fetchSelectedWorkout() {
     if (!selectedWorkoutId.value) {
@@ -263,21 +303,50 @@
       return
     }
 
+    const requestId = selectedWorkoutRequestId.value + 1
+    selectedWorkoutRequestId.value = requestId
     loadingSelectedWorkout.value = true
     selectedWorkoutError.value = null
+    selectedWorkoutData.value = null
+
+    if (import.meta.dev) {
+      console.debug('[WorkoutExplorer] workout:fetch:start', {
+        requestId,
+        workoutId: selectedWorkoutId.value
+      })
+    }
 
     try {
-      selectedWorkoutData.value = await $fetch('/api/analytics/workout-explorer/workout', {
+      const response = await $fetch('/api/analytics/workout-explorer/workout', {
         method: 'POST',
         body: {
           workoutId: selectedWorkoutId.value
         }
       })
+      if (requestId !== selectedWorkoutRequestId.value) return
+      selectedWorkoutData.value = response
+      if (import.meta.dev) {
+        console.debug('[WorkoutExplorer] workout:fetch:success', {
+          requestId,
+          workoutId: response?.id,
+          title: response?.title
+        })
+      }
     } catch (error: any) {
+      if (requestId !== selectedWorkoutRequestId.value) return
       selectedWorkoutData.value = null
       selectedWorkoutError.value = error
+      if (import.meta.dev) {
+        console.error('[WorkoutExplorer] workout:fetch:error', {
+          requestId,
+          workoutId: selectedWorkoutId.value,
+          message: error?.data?.statusMessage || error?.message || error
+        })
+      }
     } finally {
-      loadingSelectedWorkout.value = false
+      if (requestId === selectedWorkoutRequestId.value) {
+        loadingSelectedWorkout.value = false
+      }
     }
   }
 
@@ -356,10 +425,27 @@
   const selectedModeLabel = computed(() => {
     if (selectedPreset.value.mode === 'stream') return 'Streams'
     if (selectedPreset.value.mode === 'interval') return 'Intervals'
+    if (selectedPreset.value.mode === 'density') return 'Density'
     return 'Summary'
   })
 
   const selectedWorkoutSourceLabel = computed(() => selectedPreset.value.sourceLabel)
+  const selectedStreamFields = computed<ExplorerStreamField[]>(() => {
+    if (selectedPreset.value.mode !== 'stream') return []
+    const presetFields = selectedPreset.value.stream?.fields
+    if (presetFields?.length) return presetFields
+    return selectedPreset.value.stream?.field
+      ? [selectedPreset.value.stream.field]
+      : [streamField.value]
+  })
+  const supportsStreamFieldSelection = computed(
+    () => selectedPreset.value.mode === 'stream' && selectedStreamFields.value.length === 1
+  )
+  const canToggleSummaryChartType = computed(
+    () =>
+      selectedPreset.value.mode === 'summary' &&
+      selectedPreset.value.summary?.allowChartToggle !== false
+  )
 
   const selectedWorkout = computed(() => {
     const workout = selectedWorkoutData.value as any
@@ -461,22 +547,16 @@
   function buildPreviewConfig(options: {
     preset: WorkoutExplorerPreset
     workoutId: string
-    summaryChartType: 'bar' | 'line'
-    streamField:
-      | 'watts'
-      | 'heartrate'
-      | 'cadence'
-      | 'velocity'
-      | 'altitude'
-      | 'grade'
-      | 'torque'
-      | 'vam'
-      | 'w_balance'
-      | 'power_hr_ratio'
+    summaryChartType: ExplorerSummaryChartType
+    streamField: ExplorerStreamField
     streamAlignment: 'elapsed_time' | 'distance' | 'percent_complete'
     intervalField: 'avgPower' | 'avgHr' | 'duration' | 'distance'
     instanceId?: string
-    range?: { start: number; end: number; alignment: 'elapsed_time' | 'distance' } | null
+    range?: {
+      start: number
+      end: number
+      alignment: 'elapsed_time' | 'distance' | 'percent_complete'
+    } | null
   }) {
     const base = {
       name: options.preset.name,
@@ -499,39 +579,82 @@
         field,
         aggregation: 'avg' as const
       }))
+      const isMmp = options.preset.summary?.advancedMode === 'mmp_curve'
+      // MMP renders as scatter; other advanced/toggle presets use their own chart type
+      const summaryVisualType = isMmp
+        ? 'scatter'
+        : options.preset.summary?.allowChartToggle
+          ? options.summaryChartType
+          : (options.preset.visualType as Extract<
+              WorkoutExplorerVisualType,
+              ExplorerSummaryChartType
+            >)
 
       return {
         ...base,
         endpoint: '/api/analytics/workout-explorer/summary',
-        visualType: options.summaryChartType,
+        visualType: summaryVisualType,
         grouping: 'daily' as const,
         units: {
-          y: options.preset.summary?.type === 'zones' ? '%' : '',
-          datasets: metrics.map((metric) => workoutMetricUnits[metric.field] || '')
+          x: isMmp ? 'duration' : '',
+          y: isMmp
+            ? 'W'
+            : options.preset.summary?.type === 'zones'
+              ? '%'
+              : options.preset.summary?.advancedMode === 'half_split_power_hr'
+                ? 'W'
+                : options.preset.summary?.advancedMode === 'coasting_breakdown'
+                  ? '%'
+                  : '',
+          y1: options.preset.summary?.advancedMode === 'half_split_power_hr' ? 'bpm' : '',
+          datasets:
+            options.preset.summary?.type === 'advanced'
+              ? []
+              : metrics.map((metric) => workoutMetricUnits[metric.field] || '')
         },
+        scales: isMmp ? { x: { type: 'logarithmic' as const } } : options.preset.scales,
         metrics,
         summaryType: options.preset.summary?.type || 'metrics',
-        zoneType: options.preset.summary?.zoneType
+        zoneType: options.preset.summary?.zoneType,
+        advancedMode: options.preset.summary?.advancedMode,
+        styling:
+          options.preset.summary?.advancedMode === 'half_split_power_hr'
+            ? { datasetTypes: ['bar', 'line'] }
+            : undefined
       }
     }
 
     if (options.preset.mode === 'stream') {
+      const streamFields = options.preset.stream?.fields?.length
+        ? options.preset.stream.fields
+        : [options.streamField]
+      const primaryUnit = streamFieldUnits[streamFields[0]!] || ''
+      const secondaryUnit = streamFields[1] ? streamFieldUnits[streamFields[1]] || '' : ''
+
       return {
         ...base,
         endpoint: '/api/analytics/workout-explorer/streams',
-        visualType:
-          options.preset.visualType === 'map-heatmap' ? 'map-heatmap' : ('scatter' as const),
+        visualType: options.preset.visualType,
+        // Stream data always uses {x, y} objects — force linear x scale so Chart.js
+        // positions points by value rather than index (was previously handled by scatter type)
+        scales: { x: { type: 'linear' as const } },
         analysis: {
           ...base.analysis,
-          field: options.streamField,
-          alignment: options.streamAlignment
+          field: streamFields[0],
+          fields: streamFields,
+          alignment: options.streamAlignment,
+          range: options.range
         },
         units: {
           x: streamAlignmentUnits[options.streamAlignment] || '',
-          y: streamFieldUnits[options.streamField] || '',
-          datasets: [streamFieldUnits[options.streamField] || '']
+          y: primaryUnit,
+          y1: options.preset.visualType === 'combo' ? secondaryUnit : '',
+          datasets: streamFields.map((field) => streamFieldUnits[field] || '')
         },
-        metrics: []
+        metrics: [],
+        styling: options.preset.stream?.datasetTypes
+          ? { datasetTypes: options.preset.stream.datasetTypes }
+          : undefined
       }
     }
 
@@ -545,7 +668,8 @@
           xField: options.preset.density?.xField || 'cadence',
           yField: options.preset.density?.yField || 'watts',
           xBins: 40,
-          yBins: 40
+          yBins: 40,
+          range: options.range
         },
         metrics: []
       }
@@ -674,7 +798,7 @@
   }
 
   function presetIcon(preset: WorkoutExplorerPreset) {
-    if (preset.mode === 'stream') return 'i-lucide-waveform'
+    if (preset.mode === 'stream') return 'i-lucide-activity'
     if (preset.mode === 'interval') return 'i-lucide-split'
     return preset.visualType === 'bar' ? 'i-lucide-bar-chart-3' : 'i-lucide-line-chart'
   }
@@ -1226,7 +1350,10 @@
               </div>
             </div>
 
-            <div v-if="selectedPreset.mode === 'summary'" class="flex flex-wrap items-center gap-2">
+            <div
+              v-if="selectedPreset.mode === 'summary' && canToggleSummaryChartType"
+              class="flex flex-wrap items-center gap-2"
+            >
               <UButton
                 size="xs"
                 :color="summaryChartType === 'bar' ? 'primary' : 'neutral'"
@@ -1250,22 +1377,23 @@
               class="flex flex-wrap items-center gap-2"
             >
               <USelect
+                v-if="supportsStreamFieldSelection"
                 v-model="streamField"
-                :items="[
-                  { label: 'Power', value: 'watts' },
-                  { label: 'Heart Rate', value: 'heartrate' },
-                  { label: 'Cadence', value: 'cadence' },
-                  { label: 'Velocity', value: 'velocity' },
-                  { label: 'Altitude', value: 'altitude' },
-                  { label: 'Grade', value: 'grade' },
-                  { label: 'Torque', value: 'torque' },
-                  { label: 'VAM', value: 'vam' },
-                  { label: 'W\' Balance', value: 'w_balance' },
-                  { label: 'Efficiency Ratio', value: 'power_hr_ratio' }
-                ]"
+                :items="streamFieldOptions"
                 size="sm"
                 class="w-44"
               />
+              <div v-else class="flex flex-wrap items-center gap-2">
+                <UBadge
+                  v-for="field in selectedStreamFields"
+                  :key="field"
+                  color="neutral"
+                  variant="soft"
+                  size="sm"
+                >
+                  {{ streamFieldOptionMap[field] }}
+                </UBadge>
+              </div>
               <USelect
                 v-model="streamAlignment"
                 :items="[
@@ -1276,6 +1404,12 @@
                 size="sm"
                 class="w-44"
               />
+              <div
+                v-if="selectedPreset.visualType === 'combo'"
+                class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted"
+              >
+                Dual-axis linked view
+              </div>
               <UButton
                 v-if="activeRange"
                 size="xs"
@@ -1342,7 +1476,11 @@
                 >
                   This workout is unavailable. Choose another one from the browser to continue.
                 </div>
-                <AnalyticsBaseWidget v-else-if="previewConfig" :config="previewConfig" />
+                <AnalyticsBaseWidget
+                  v-else-if="previewConfig"
+                  :key="`${selectedPreset.id}-${selectedWorkoutId}-${previewConfig.visualType}`"
+                  :config="previewConfig"
+                />
               </div>
             </UCard>
 
@@ -1425,7 +1563,10 @@
                   </template>
 
                   <div class="h-[320px]">
-                    <AnalyticsBaseWidget :config="entry.config" />
+                    <AnalyticsBaseWidget
+                      :key="`${entry.chart.id}-${entry.config.visualType}`"
+                      :config="entry.config"
+                    />
                   </div>
                 </UCard>
               </div>
