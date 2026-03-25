@@ -495,9 +495,11 @@ function normalizeHeartRateTarget(
   const maxHr = refs.maxHr > 0 ? refs.maxHr : 190
 
   const toBpm = (value: number, units?: string) => {
-    if (value > 3) return value
     const normalizedUnits = String(units || '').toLowerCase()
+    if (normalizedUnits === 'lthr') return value > 2 ? (value / 100) * lthr : value * lthr
     if (normalizedUnits === 'hr' || normalizedUnits === 'maxhr') return value * maxHr
+    if (normalizedUnits === 'bpm') return value
+    if (value > 3) return value
     return value * lthr
   }
 
