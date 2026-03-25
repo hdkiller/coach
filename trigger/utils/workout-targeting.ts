@@ -858,6 +858,7 @@ export function buildPlannedWorkoutSettingsSnapshot(
 
 export function buildPlannedWorkoutGenerationContext(input: {
   operation: 'generate' | 'adjust'
+  generatorMode?: string
   workout: any
   targetPolicy: TargetPolicy
   targetFormatPolicy: TargetFormatPolicy
@@ -875,6 +876,7 @@ export function buildPlannedWorkoutGenerationContext(input: {
     version: 1,
     generatedAt: new Date().toISOString(),
     operation: input.operation,
+    generatorMode: input.generatorMode || 'legacy_json',
     model: input.model,
     timezone: input.timezone,
     workout: {
