@@ -196,7 +196,7 @@
   }
 
   // Listen for global scrub events
-  onScrub((event) => {
+  const stopScrub = onScrub((event) => {
     // Only respond if workoutId matches or if it's a generic scrub
     if (event.workoutId && props.config.analysis?.workoutId !== event.workoutId) return
 
@@ -216,6 +216,10 @@
       }
     }
     scrubIndex.value = bestIndex
+  })
+
+  onUnmounted(() => {
+    stopScrub.off()
   })
 
   watch(() => baseRoutePoints.value, fitBounds, { deep: true })

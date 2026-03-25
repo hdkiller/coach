@@ -55,8 +55,16 @@
   const canvasRef = ref<HTMLCanvasElement | null>(null)
   const theme = useTheme()
 
-  const xTicks = computed(() => props.data?.xLabels || [])
-  const yTicks = computed(() => [...(props.data?.yLabels || [])].reverse())
+  const MAX_TICKS = 6
+
+  function thinLabels(labels: string[]): string[] {
+    if (labels.length <= MAX_TICKS) return labels
+    const step = Math.ceil(labels.length / MAX_TICKS)
+    return labels.filter((_, i) => i % step === 0 || i === labels.length - 1)
+  }
+
+  const xTicks = computed(() => thinLabels(props.data?.xLabels || []))
+  const yTicks = computed(() => thinLabels([...(props.data?.yLabels || [])].reverse()))
 
   function renderHeatmap() {
     const canvas = canvasRef.value
@@ -106,6 +114,50 @@
 
       ctx.fillRect(col * cellW + 0.5, drawRow * cellH + 0.5, cellW - 1, cellH - 1)
     })
+
+    // Quadrant dividers + labels
+    const midX = rect.width / 2
+    const midY = rect.height / 2
+
+    ctx.save()
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)'
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 4])
+    ctx.beginPath()
+    ctx.moveTo(midX, 0)
+    ctx.lineTo(midX, rect.height)
+    ctx.moveTo(0, midY)
+    ctx.lineTo(rect.width, midY)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    ctx.font = 'bold 9px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.55)'
+
+    const xField = props.data?.meta?.xField || 'cadence'
+    const isGrade = xField === 'grade'
+
+    const quadrants = isGrade
+      ? [
+          { x: midX / 2, y: midY / 2, label: 'Low Grade · High Power' },
+          { x: midX + midX / 2, y: midY / 2, label: 'High Grade · High Power' },
+          { x: midX / 2, y: midY + midY / 2, label: 'Low Grade · Low Power' },
+          { x: midX + midX / 2, y: midY + midY / 2, label: 'High Grade · Low Power' }
+        ]
+      : [
+          { x: midX / 2, y: midY / 2, label: 'High Torque · Low Cadence' },
+          { x: midX + midX / 2, y: midY / 2, label: 'High Torque · High Cadence' },
+          { x: midX / 2, y: midY + midY / 2, label: 'Low Torque · Low Cadence' },
+          { x: midX + midX / 2, y: midY + midY / 2, label: 'Low Torque · High Cadence' }
+        ]
+
+    quadrants.forEach(({ x, y, label }) => {
+      ctx.fillText(label, x, y)
+    })
+
+    ctx.restore()
   }
 
   onMounted(() => {

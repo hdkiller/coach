@@ -9,6 +9,7 @@
     Legend,
     LineElement,
     LinearScale,
+    LogarithmicScale,
     RadialLinearScale,
     PointElement,
     Title,
@@ -22,6 +23,7 @@
   ChartJS.register(
     CategoryScale,
     LinearScale,
+    LogarithmicScale,
     RadialLinearScale,
     PointElement,
     LineElement,
@@ -33,6 +35,47 @@
     annotationPlugin
   )
 
+  /**
+   * Crosshair plugin — draws a synchronized vertical cursor line across all charts.
+   * The line follows the hovered position and responds to scrub events from the bus.
+   */
+  const crosshairPlugin = {
+    id: 'crosshairLine',
+    afterDraw(chart: any) {
+      const xVal = chart._crosshairX
+      if (xVal === undefined || xVal === null) return
+      const xScale = chart.scales?.x
+      if (!xScale) return
+
+      const pixelX = xScale.getPixelForValue(xVal)
+      const { top, bottom } = chart.chartArea
+      if (pixelX < xScale.left || pixelX > xScale.right) return
+
+      const { ctx } = chart
+      ctx.save()
+      ctx.beginPath()
+      ctx.moveTo(pixelX, top)
+      ctx.lineTo(pixelX, bottom)
+      ctx.lineWidth = 1
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)'
+      ctx.setLineDash([4, 3])
+      ctx.stroke()
+      ctx.restore()
+    },
+    beforeEvent(chart: any, args: any) {
+      const { event } = args
+      if (event.type === 'mousemove') {
+        const xScale = chart.scales?.x
+        if (!xScale) return
+        chart._crosshairX = xScale.getValueForPixel(event.x)
+        args.changed = true
+      } else if (event.type === 'mouseout') {
+        chart._crosshairX = undefined
+        args.changed = true
+      }
+    }
+  }
+
   const props = defineProps<{
     data: any
     config: any
@@ -43,6 +86,22 @@
 
   const theme = useTheme()
   const isZoomLoaded = ref(false)
+  const chartRef = ref<any>(null)
+
+  const { onScrub } = useAnalyticsBus()
+
+  // Sync crosshair across pinned charts via the scrub bus
+  const stopScrub = onScrub((event) => {
+    if (event.workoutId !== props.config.analysis?.workoutId) return
+    const chart = chartRef.value?.chart
+    if (!chart) return
+    chart._crosshairX = event.x
+    chart.draw()
+  })
+
+  onUnmounted(() => {
+    stopScrub.off()
+  })
 
   onMounted(async () => {
     try {
@@ -55,12 +114,24 @@
   })
 
   /**
+   * Safely appends hex opacity to a color string.
+   * If the color is already rgba/hsla, it returns it as is (ignoring the requested opacity for simplicity,
+   * or we could implement a more complex parser if needed).
+   */
+  function withOpacity(color: string, opacityHex: string) {
+    if (!color) return 'transparent'
+    if (color.startsWith('#')) return `${color}${opacityHex}`
+    return color
+  }
+
+  /**
    * Helper to create linear gradients for area fills.
    */
   function createGradient(ctx: CanvasRenderingContext2D, area: ChartArea, color: string) {
     const gradient = ctx.createLinearGradient(0, area.bottom, 0, area.top)
-    gradient.addColorStop(0, `${color}00`) // Transparent at bottom
-    gradient.addColorStop(1, `${color}40`) // Faint at top
+    gradient.addColorStop(0, withOpacity(color, '08')) // Nearly transparent at bottom
+    gradient.addColorStop(0.4, withOpacity(color, '30')) // Mid transition
+    gradient.addColorStop(1, withOpacity(color, '65')) // Richer at top
     return gradient
   }
 
@@ -243,7 +314,7 @@
           : {
               x: {
                 type: isScatter
-                  ? ('linear' as const)
+                  ? props.config.scales?.x?.type || ('linear' as const)
                   : props.config.scales?.x?.type || ('category' as const),
                 stacked,
                 grid: {
@@ -255,13 +326,28 @@
                   font: { size: 10, weight: '600' as const },
                   maxTicksLimit: isScatter ? 6 : 8,
                   autoSkip: !isScatter,
-                  callback: (value: number | string) =>
-                    isScatter || isHorizontal || props.config.scales?.x?.type === 'logarithmic'
-                      ? formatAxisTick(value, props.axisUnits.x)
-                      : value
+                  callback: function (value: number | string) {
+                    const xType = props.config.scales?.x?.type
+                    if (
+                      isScatter ||
+                      isHorizontal ||
+                      xType === 'logarithmic' ||
+                      xType === 'linear'
+                    ) {
+                      return formatAxisTick(value, props.axisUnits.x)
+                    }
+
+                    if (typeof value === 'number' && Array.isArray(props.data?.labels)) {
+                      return props.data.labels[value] ?? value
+                    }
+
+                    return value
+                  }
                 },
                 title: {
-                  display: Boolean(props.axisUnits.x) && (isScatter || isHorizontal),
+                  display:
+                    Boolean(props.axisUnits.x) &&
+                    (isScatter || isHorizontal || props.config.scales?.x?.type === 'linear'),
                   text: props.axisUnits.x
                 },
                 border: { display: false }
@@ -317,6 +403,18 @@
     } as any
   })
 
+  // Reset visual zoom when data changes to ensure the chart shows the new (possibly filtered) range
+  watch(
+    () => props.data,
+    () => {
+      const chart = chartRef.value?.chart
+      if (chart && typeof chart.resetZoom === 'function') {
+        chart.resetZoom('none')
+      }
+    },
+    { deep: false }
+  )
+
   // Apply gradients to datasets if they are line/area charts
   const processedData = computed(() => {
     if (!props.data || !props.data.datasets) return props.data
@@ -348,9 +446,10 @@
   <div class="relative h-full w-full p-2">
     <Line
       v-if="visualType === 'line'"
+      ref="chartRef"
       :data="processedData"
       :options="chartOptions"
-      :plugins="[wellnessOverlayPlugin]"
+      :plugins="[wellnessOverlayPlugin, crosshairPlugin]"
     />
     <Bar
       v-else-if="
@@ -359,15 +458,17 @@
         visualType === 'stackedBar' ||
         visualType === 'horizontalBar'
       "
+      ref="chartRef"
       :data="processedData"
       :options="chartOptions"
-      :plugins="[wellnessOverlayPlugin]"
+      :plugins="[wellnessOverlayPlugin, crosshairPlugin]"
     />
     <Scatter
       v-else-if="visualType === 'scatter'"
+      ref="chartRef"
       :data="processedData"
       :options="chartOptions"
-      :plugins="[wellnessOverlayPlugin]"
+      :plugins="[wellnessOverlayPlugin, crosshairPlugin]"
     />
     <Radar v-else-if="visualType === 'radar'" :data="processedData" :options="chartOptions" />
     <div v-else class="flex h-full items-center justify-center text-xs italic text-neutral-400">

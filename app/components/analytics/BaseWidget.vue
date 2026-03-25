@@ -70,6 +70,7 @@
   const chartData = ref<any>(null)
   const lastFetchedConfig = ref<string | null>(null)
   const wellnessEvents = ref<WellnessOverlayEvent[]>([])
+  const activeRequestId = ref(0)
 
   const chartColors = [
     '#3b82f6',
@@ -256,12 +257,19 @@
     }
   }
 
-  function buildAnnotations(response: ChartResponsePayload) {
+  function buildAnnotations(
+    response: ChartResponsePayload & { lapAnnotations?: Record<string, any> }
+  ) {
     const overlays = activeOverlays.value.filter(
       (overlay) => overlay.type === 'targetLine' || overlay.type === 'thresholdLine'
     )
 
     const annotationEntries: Record<string, any> = {}
+
+    // Merge lap-band box annotations from stream API
+    if (response.lapAnnotations) {
+      Object.assign(annotationEntries, response.lapAnnotations)
+    }
 
     response.annotations?.forEach((annotation, index) => {
       annotationEntries[`response-${index}`] = {
@@ -303,11 +311,23 @@
     return annotationEntries
   }
 
+  function withOpacity(color: string | undefined | null, opacityHex: string) {
+    if (!color) return 'transparent'
+    if (color.startsWith('#')) return `${color}${opacityHex}`
+    return color
+  }
+
   function normalizeDataset(ds: WidgetDataset, index: number, labelsLength: number) {
     const datasetType =
-      ds.type ||
-      props.config.styling?.datasetTypes?.[index] ||
-      (visualType.value === 'combo' ? (index === 0 ? 'bar' : 'line') : props.config.type || 'line')
+      visualType.value === 'radar'
+        ? undefined
+        : ds.type ||
+          props.config.styling?.datasetTypes?.[index] ||
+          (visualType.value === 'combo'
+            ? index === 0
+              ? 'bar'
+              : 'line'
+            : props.config.type || 'line')
     const color = ds.color || ds.borderColor || chartColors[index % chartColors.length]
     const isBarDataset = datasetType === 'bar'
     const settings = props.config.settings || {}
@@ -315,18 +335,22 @@
       .toString(16)
       .padStart(2, '0')
 
+    // Preserve array colors (e.g. zone-colored bars) — don't override with a single value
+    const hasArrayColors = Array.isArray(ds.borderColor) || Array.isArray(ds.backgroundColor)
+
     return {
       ...ds,
       type: datasetType,
       unit: ds.overlayMeta?.unit || resolveDatasetUnit(index),
-      borderColor: color,
-      backgroundColor:
-        ds.backgroundColor ||
-        (isBarDataset
-          ? `${color}${baseOpacity}`
-          : visualType.value === 'scatter'
-            ? color
-            : 'transparent'),
+      borderColor: hasArrayColors ? ds.borderColor : color,
+      backgroundColor: hasArrayColors
+        ? ds.backgroundColor
+        : ds.backgroundColor ||
+          (isBarDataset
+            ? withOpacity(color, baseOpacity)
+            : visualType.value === 'scatter'
+              ? color
+              : 'transparent'),
       borderWidth: 2,
       borderDash: ds.borderDash,
       tension: ds.tension ?? (settings.smooth === false ? 0 : datasetType === 'line' ? 0.35 : 0),
@@ -588,14 +612,51 @@
     const currentConfigStr = JSON.stringify({ ...props.config, instanceId: undefined })
     if (lastFetchedConfig.value === currentConfigStr) return
 
+    const requestId = activeRequestId.value + 1
+    activeRequestId.value = requestId
     loading.value = true
     error.value = null
+
+    // Determine if this is a "refinement" of existing data (same workout & preset)
+    const isRefinement =
+      chartData.value &&
+      lastFetchedConfig.value &&
+      (() => {
+        try {
+          const prev = JSON.parse(lastFetchedConfig.value)
+          return (
+            prev.analysis?.workoutId === props.config.analysis?.workoutId &&
+            prev.explorerPresetId === props.config.explorerPresetId &&
+            prev.visualType === props.config.visualType
+          )
+        } catch {
+          return false
+        }
+      })()
+
+    // If not a refinement, clear existing data to prevent visual mismatch
+    if (!isRefinement) {
+      chartData.value = null
+    }
+
+    if (import.meta.dev) {
+      console.debug('[Analytics/BaseWidget] fetch:start', {
+        requestId,
+        name: props.config?.name,
+        endpoint: props.config?.endpoint || '/api/analytics/query',
+        visualType: visualType.value,
+        workoutId: props.config.analysis?.workoutId,
+        presetId: props.config.explorerPresetId,
+        isRefinement
+      })
+    }
 
     try {
       const endpoint = props.config.endpoint || '/api/analytics/query'
       const timeRange = resolveTimeRange()
       const { _meta, instanceId, ...requestConfig } = props.config
       const response = await fetchChartResponse(endpoint, requestConfig, timeRange)
+      if (requestId !== activeRequestId.value) return
 
       const previousRange = resolveOverlayTypeIds('previousPeriod').length
         ? resolvePreviousTimeRange(timeRange)
@@ -604,10 +665,22 @@
         previousRange && !isHeatmap.value
           ? await fetchChartResponse(endpoint, requestConfig, previousRange)
           : null
+      if (requestId !== activeRequestId.value) return
 
       await fetchWellnessEventOverlays(timeRange)
+      if (requestId !== activeRequestId.value) return
 
       if ((!response?.datasets || response.datasets.length === 0) && response?.unsupportedReason) {
+        if (import.meta.dev) {
+          console.warn('[Analytics/BaseWidget] fetch:unsupported', {
+            requestId,
+            name: props.config?.name,
+            endpoint,
+            reason: response.unsupportedReason,
+            workoutId: props.config?.analysis?.workoutId,
+            presetId: props.config?.explorerPresetId
+          })
+        }
         error.value = response.unsupportedReason
         chartData.value = null
         lastFetchedConfig.value = currentConfigStr
@@ -617,6 +690,14 @@
       if (response?.chartType === 'heatmap') {
         chartData.value = response as HeatmapPayload
         lastFetchedConfig.value = currentConfigStr
+        if (import.meta.dev) {
+          console.debug('[Analytics/BaseWidget] fetch:success', {
+            requestId,
+            name: props.config?.name,
+            chartType: response.chartType,
+            points: response.matrix?.length || 0
+          })
+        }
         return
       }
 
@@ -633,11 +714,31 @@
         annotations: enhanced.annotations
       }
       lastFetchedConfig.value = currentConfigStr
+      if (import.meta.dev) {
+        console.debug('[Analytics/BaseWidget] fetch:success', {
+          requestId,
+          name: props.config?.name,
+          labels: labels.length,
+          datasets: enhanced.datasets.length,
+          visualType: visualType.value
+        })
+      }
     } catch (e: any) {
+      if (requestId !== activeRequestId.value) return
+      if (import.meta.dev) {
+        console.error('[Analytics/BaseWidget] fetch:error', {
+          requestId,
+          name: props.config?.name,
+          endpoint: props.config?.endpoint || '/api/analytics/query',
+          message: e?.data?.statusMessage || e?.message || e
+        })
+      }
       error.value = e.data?.statusMessage || e.message || 'Failed to load chart data'
       wellnessEvents.value = []
     } finally {
-      loading.value = false
+      if (requestId === activeRequestId.value) {
+        loading.value = false
+      }
     }
   }
 
@@ -646,34 +747,37 @@
 </script>
 
 <template>
-  <div class="base-widget h-full w-full min-h-[250px]">
-    <div v-if="loading" class="flex h-full items-center justify-center">
+  <div class="base-widget relative h-full w-full min-h-[250px]">
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-[10] flex items-center justify-center rounded-2xl bg-default/10 backdrop-blur-[1px] transition-opacity duration-300"
+      :class="chartData ? 'opacity-100' : 'opacity-100 bg-default/40'"
+    >
       <UIcon name="i-heroicons-arrow-path" class="h-8 w-8 animate-spin text-primary" />
     </div>
 
-    <div v-else-if="error" class="flex h-full flex-col items-center justify-center p-4 text-center">
+    <div v-if="error" class="flex h-full flex-col items-center justify-center p-4 text-center">
       <UIcon name="i-heroicons-exclamation-triangle" class="mb-2 h-8 w-8 text-error-500" />
       <p class="text-sm font-bold text-error-600 dark:text-error-400">{{ error }}</p>
       <UButton color="neutral" variant="link" size="xs" @click="fetchData">Retry</UButton>
     </div>
 
-    <HeatmapGrid
-      v-else-if="isHeatmap && chartData"
-      :data="chartData"
-      :mode="config.presetOptions?.mode"
-    />
+    <template v-else-if="chartData">
+      <HeatmapGrid v-if="isHeatmap" :data="chartData" :mode="config.presetOptions?.mode" />
 
-    <DensityHeatmap v-else-if="isDensityHeatmap && chartData" :data="chartData" :config="config" />
+      <DensityHeatmap v-else-if="isDensityHeatmap" :data="chartData" :config="config" />
 
-    <MapRenderer v-else-if="isMap && chartData" :data="chartData" :config="config" />
+      <MapRenderer v-else-if="isMap" :data="chartData" :config="config" />
 
-    <ChartRenderer
-      v-else-if="chartData"
-      :data="chartData"
-      :config="config"
-      :visual-type="visualType"
-      :axis-units="axisUnits"
-      :wellness-events="wellnessEvents"
-    />
+      <ChartRenderer
+        v-else
+        :key="`${visualType}-${config.instanceId || config.explorerPresetId || config.name}`"
+        :data="chartData"
+        :config="config"
+        :visual-type="visualType"
+        :axis-units="axisUnits"
+        :wellness-events="wellnessEvents"
+      />
+    </template>
   </div>
 </template>
