@@ -1013,6 +1013,62 @@
       </div>
     </template>
   </UModal>
+
+  <UModal
+    v-model:open="showGenerationWarningModal"
+    title="Check Target Settings"
+    description="Your current sport settings may produce less reliable workout targets for this generation."
+  >
+    <template #body>
+      <div class="p-6 space-y-4">
+        <UAlert
+          color="warning"
+          variant="soft"
+          icon="i-heroicons-exclamation-triangle"
+          title="You can still continue"
+          description="This is only a warning. Coach Watts can still generate or regenerate the structure, but some targets may be less accurate than expected."
+        />
+
+        <div class="rounded-xl border border-warning/30 bg-warning/5 p-4">
+          <div class="text-sm font-semibold text-gray-900 dark:text-white">
+            {{ generationWarningTitle }}
+          </div>
+          <div class="mt-3 space-y-2">
+            <p
+              v-for="issue in generationWarningIssues"
+              :key="issue"
+              class="text-sm leading-relaxed text-gray-700 dark:text-gray-300"
+            >
+              {{ issue }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="showGenerationWarningModal = false">
+          Go Back
+        </UButton>
+        <UButton
+          to="/profile/settings?tab=sports"
+          color="neutral"
+          variant="soft"
+          icon="i-heroicons-arrow-top-right-on-square"
+        >
+          Open Sport Settings
+        </UButton>
+        <UButton
+          color="warning"
+          :loading="pendingStructureAction === 'adjust' ? adjusting : generating"
+          @click="confirmStructureAction"
+        >
+          {{ pendingStructureAction === 'adjust' ? 'Adjust Anyway' : 'Generate Anyway' }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -1164,6 +1220,7 @@
   const ejecting = ref(false)
 
   const showStructureModal = ref(false)
+  const showGenerationWarningModal = ref(false)
   const structureText = ref('')
   const isSavingStructure = ref(false)
   const loadingViewPreview = ref(false)
@@ -1175,6 +1232,18 @@
     { label: 'Raw JSON', value: 'raw' }
   ]
   const plannedWorkoutRawJson = computed(() => JSON.stringify(workout.value || {}, null, 2))
+  const generationWarningIssues = ref<string[]>([])
+  const pendingStructureAction = ref<'generate' | 'adjust' | null>(null)
+
+  const generationWarningTitle = computed(() => {
+    const profileName =
+      sportSettings.value?.name ||
+      (Array.isArray(sportSettings.value?.types) && sportSettings.value.types.length > 0
+        ? sportSettings.value.types.join(', ')
+        : workout.value?.type || 'Sport Profile')
+
+    return `${profileName} settings`
+  })
 
   const secondaryMenuItems = computed(() => {
     const items = []
@@ -2086,32 +2155,100 @@
   }
 
   async function submitAdjustment() {
-    adjusting.value = true
-    try {
-      await $fetch(`/api/workouts/planned/${route.params.id}/adjust`, {
-        method: 'POST',
-        body: adjustForm
-      })
-      refreshRuns()
+    const warnings = buildGenerationWarnings()
+    generationWarningIssues.value = warnings
 
-      toast.add({
-        title: 'Adjustment Started',
-        description: 'AI is redesigning your workout. This may take a moment.',
-        color: 'success'
-      })
-
-      showAdjustModal.value = false
-    } catch (error: any) {
-      adjusting.value = false
-      toast.add({
-        title: 'Adjustment Failed',
-        description: error.data?.message || 'Failed to submit adjustment',
-        color: 'error'
-      })
+    if (warnings.length > 0) {
+      pendingStructureAction.value = 'adjust'
+      showGenerationWarningModal.value = true
+      return
     }
+
+    await runSubmitAdjustment()
   }
 
-  async function generateStructure() {
+  function buildGenerationWarnings() {
+    const setting = sportSettings.value
+    if (!setting) return []
+
+    const issues: string[] = []
+    const primaryMetric = setting?.targetPolicy?.primaryMetric || null
+    const paceMode = setting?.targetFormatPolicy?.pace?.mode || null
+    const hrMode = setting?.targetFormatPolicy?.heartRate?.mode || null
+    const powerMode = setting?.targetFormatPolicy?.power?.mode || null
+    const hasThresholdPace = Number(setting?.thresholdPace || 0) > 0
+    const hasPaceZones = Array.isArray(setting?.paceZones) && setting.paceZones.length > 0
+    const hasFtp = Number(setting?.ftp || 0) > 0
+    const hasPowerZones = Array.isArray(setting?.powerZones) && setting.powerZones.length > 0
+    const hasLthr = Number(setting?.lthr || 0) > 0
+    const hasMaxHr = Number(setting?.maxHr || 0) > 0
+    const hasHrZones = Array.isArray(setting?.hrZones) && setting.hrZones.length > 0
+
+    if (primaryMetric === 'pace' && !hasThresholdPace) {
+      issues.push(
+        'Primary target metric is pace, but threshold pace is missing. Pace-based targets may be inaccurate.'
+      )
+    }
+
+    if (
+      (primaryMetric === 'pace' || paceMode === 'zone' || paceMode === 'absolutePace') &&
+      !hasThresholdPace
+    ) {
+      issues.push(
+        'Pace targets are enabled, but threshold pace is not set. Add threshold pace if you want reliable pace prescriptions.'
+      )
+    }
+
+    if ((primaryMetric === 'pace' || paceMode === 'zone') && !hasPaceZones) {
+      issues.push(
+        'Pace zones are missing. Zone-based pace targets may not behave as expected until pace zones are configured.'
+      )
+    }
+
+    if (primaryMetric === 'power' && !hasFtp) {
+      issues.push(
+        'Primary target metric is power, but FTP is missing. Power-based workout targets will not be calibrated correctly.'
+      )
+    }
+
+    if ((primaryMetric === 'power' || powerMode === 'zone') && !hasPowerZones) {
+      issues.push(
+        'Power zones are missing. If you use zone-based power targets, add FTP or power zones first.'
+      )
+    }
+
+    if (primaryMetric === 'heartRate' && !hasLthr && !hasMaxHr) {
+      issues.push(
+        'Primary target metric is heart rate, but both LTHR and max HR are missing. Heart-rate targets will be fallback-based.'
+      )
+    }
+
+    if (
+      (primaryMetric === 'heartRate' || hrMode === 'zone') &&
+      !hasHrZones &&
+      !hasLthr &&
+      !hasMaxHr
+    ) {
+      issues.push(
+        'Heart-rate zones are missing. Add LTHR or max HR if you want more reliable HR-based targets.'
+      )
+    }
+
+    return issues
+  }
+
+  async function confirmStructureAction() {
+    showGenerationWarningModal.value = false
+    if (pendingStructureAction.value === 'adjust') {
+      await runSubmitAdjustment()
+      return
+    }
+
+    await runGenerateStructure()
+  }
+
+  async function runGenerateStructure() {
+    pendingStructureAction.value = 'generate'
     generating.value = true
     try {
       await $fetch(`/api/workouts/planned/${route.params.id}/generate-structure`, {
@@ -2144,7 +2281,51 @@
         color: 'error',
         duration: 6000
       })
+    } finally {
+      pendingStructureAction.value = null
     }
+  }
+
+  async function runSubmitAdjustment() {
+    pendingStructureAction.value = 'adjust'
+    adjusting.value = true
+    try {
+      await $fetch(`/api/workouts/planned/${route.params.id}/adjust`, {
+        method: 'POST',
+        body: adjustForm
+      })
+      refreshRuns()
+
+      toast.add({
+        title: 'Adjustment Started',
+        description: 'AI is redesigning your workout. This may take a moment.',
+        color: 'success'
+      })
+
+      showAdjustModal.value = false
+    } catch (error: any) {
+      adjusting.value = false
+      toast.add({
+        title: 'Adjustment Failed',
+        description: error.data?.message || 'Failed to submit adjustment',
+        color: 'error'
+      })
+    } finally {
+      pendingStructureAction.value = null
+    }
+  }
+
+  async function generateStructure() {
+    const warnings = buildGenerationWarnings()
+    generationWarningIssues.value = warnings
+
+    if (warnings.length > 0) {
+      pendingStructureAction.value = 'generate'
+      showGenerationWarningModal.value = true
+      return
+    }
+
+    await runGenerateStructure()
   }
 
   async function saveToLibrary() {

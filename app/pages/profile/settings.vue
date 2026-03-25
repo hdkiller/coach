@@ -119,6 +119,56 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal
+    v-model:open="showSportSettingsWarningModal"
+    title="Check Sport Settings"
+    description="Some sport profiles are missing values that can affect workout target generation."
+  >
+    <template #body>
+      <div class="p-6 space-y-4">
+        <UAlert
+          color="warning"
+          variant="soft"
+          icon="i-heroicons-exclamation-triangle"
+          title="You can still save these settings"
+          description="These are warnings, not blocking errors. Continue editing to fix them now, or save anyway and update them later."
+        />
+
+        <div class="space-y-3">
+          <div
+            v-for="warning in sportSettingsSaveWarnings"
+            :key="warning.id"
+            class="rounded-xl border border-warning/30 bg-warning/5 p-4"
+          >
+            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ warning.name }}
+            </div>
+            <div class="mt-2 space-y-2">
+              <p
+                v-for="issue in warning.issues"
+                :key="issue"
+                class="text-sm leading-relaxed text-gray-700 dark:text-gray-300"
+              >
+                {{ issue }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="showSportSettingsWarningModal = false">
+          Continue Editing
+        </UButton>
+        <UButton color="warning" :loading="savingSportSettings" @click="confirmSaveSportSettings">
+          Save Anyway
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -224,6 +274,10 @@
   const nutritionSettings = ref<any>(null)
   const savingProfile = ref(false)
   const savingPublicAuthor = ref(false)
+  const savingSportSettings = ref(false)
+  const showSportSettingsWarningModal = ref(false)
+  const pendingSportSettingsSave = ref<any[] | null>(null)
+  const sportSettingsSaveWarnings = ref<Array<{ id: string; name: string; issues: string[] }>>([])
 
   // Availability Logic
   const { data: availability, refresh: refreshAvailability } = await useFetch('/api/availability')
@@ -454,9 +508,148 @@
     }
   }
 
-  // Save updated sport settings manually
-  async function updateSportSettings(updatedSettings: any[]) {
-    sportSettings.value = updatedSettings
+  function normalizeMetricLabel(metric?: string | null) {
+    if (metric === 'pace') return 'pace'
+    if (metric === 'power') return 'power'
+    if (metric === 'heartRate') return 'heart rate'
+    if (metric === 'rpe') return 'RPE'
+    return 'target'
+  }
+
+  function buildSportSettingsWarnings(updatedSettings: any[]) {
+    const warnings = (updatedSettings || [])
+      .map((setting: any, index: number) => {
+        const issues: string[] = []
+        const profileName =
+          setting?.name ||
+          (Array.isArray(setting?.types) && setting.types.length > 0
+            ? setting.types.join(', ')
+            : setting?.isDefault
+              ? 'Default Profile'
+              : `Sport Profile ${index + 1}`)
+
+        const primaryMetric = setting?.targetPolicy?.primaryMetric || null
+        const paceMode = setting?.targetFormatPolicy?.pace?.mode || null
+        const hrMode = setting?.targetFormatPolicy?.heartRate?.mode || null
+        const powerMode = setting?.targetFormatPolicy?.power?.mode || null
+        const hasThresholdPace = Number(setting?.thresholdPace || 0) > 0
+        const hasPaceZones = Array.isArray(setting?.paceZones) && setting.paceZones.length > 0
+        const hasFtp = Number(setting?.ftp || 0) > 0
+        const hasPowerZones = Array.isArray(setting?.powerZones) && setting.powerZones.length > 0
+        const hasLthr = Number(setting?.lthr || 0) > 0
+        const hasMaxHr = Number(setting?.maxHr || 0) > 0
+        const hasHrZones = Array.isArray(setting?.hrZones) && setting.hrZones.length > 0
+
+        if (primaryMetric === 'pace' && !hasThresholdPace) {
+          issues.push(
+            'Primary target metric is pace, but threshold pace is missing. Pace-based generation and zones may be inaccurate.'
+          )
+        }
+
+        if (
+          (primaryMetric === 'pace' || paceMode === 'zone' || paceMode === 'absolutePace') &&
+          !hasThresholdPace
+        ) {
+          issues.push(
+            'Pace targets are enabled, but threshold pace is not set. Add a threshold pace if you want reliable pace prescriptions.'
+          )
+        }
+
+        if ((primaryMetric === 'pace' || paceMode === 'zone') && !hasPaceZones) {
+          issues.push(
+            'Pace zones are missing. Zone-based pace targets may not behave the way you expect until pace zones are configured.'
+          )
+        }
+
+        if (primaryMetric === 'power' && !hasFtp) {
+          issues.push(
+            'Primary target metric is power, but FTP is missing. Power-based workout targets will not be calibrated correctly.'
+          )
+        }
+
+        if ((primaryMetric === 'power' || powerMode === 'zone') && !hasPowerZones) {
+          issues.push(
+            'Power zones are missing. If you use zone-based power targets, add FTP or power zones first.'
+          )
+        }
+
+        if (primaryMetric === 'heartRate' && !hasLthr && !hasMaxHr) {
+          issues.push(
+            'Primary target metric is heart rate, but both LTHR and max HR are missing. Heart-rate targets will be weak or fallback-based.'
+          )
+        }
+
+        if (
+          (primaryMetric === 'heartRate' || hrMode === 'zone') &&
+          !hasHrZones &&
+          !hasLthr &&
+          !hasMaxHr
+        ) {
+          issues.push(
+            'Heart-rate zones are missing. Add LTHR or max HR if you want reliable HR-based targets.'
+          )
+        }
+
+        if (primaryMetric && !['pace', 'power', 'heartRate', 'rpe'].includes(primaryMetric)) {
+          issues.push(`Primary metric "${normalizeMetricLabel(primaryMetric)}" is not recognized.`)
+        }
+
+        if (!issues.length) return null
+
+        return {
+          id: String(setting?.id || setting?.externalId || index),
+          name: profileName,
+          issues
+        }
+      })
+      .filter(Boolean) as Array<{ id: string; name: string; issues: string[] }>
+
+    const overlapGroups = new Map<string, any[]>()
+    for (const setting of updatedSettings || []) {
+      if (setting?.isDefault) continue
+      const types = Array.isArray(setting?.types) ? setting.types : []
+      for (const type of types) {
+        if (!type) continue
+        const current = overlapGroups.get(type) || []
+        current.push(setting)
+        overlapGroups.set(type, current)
+      }
+    }
+
+    for (const [type, settings] of overlapGroups.entries()) {
+      if (settings.length <= 1) continue
+      const names = settings.map((setting: any) => setting?.name || 'Unnamed profile').join(', ')
+      const overlapMessage = `${type} is covered by multiple sport profiles (${names}). This can lead to unexpected zone or target-policy selection during generation and sync.`
+
+      for (const setting of settings) {
+        const warningId = String(
+          setting?.id ||
+            setting?.externalId ||
+            (Array.isArray(setting?.types) ? setting.types.join(',') : setting?.name || type)
+        )
+        const existing = warnings.find((warning) => warning.id === warningId)
+        if (existing) {
+          existing.issues.push(overlapMessage)
+          continue
+        }
+
+        warnings.push({
+          id: warningId,
+          name:
+            setting?.name ||
+            (Array.isArray(setting?.types) && setting.types.length > 0
+              ? setting.types.join(', ')
+              : 'Sport Profile'),
+          issues: [overlapMessage]
+        })
+      }
+    }
+
+    return warnings
+  }
+
+  async function persistSportSettings(updatedSettings: any[]) {
+    savingSportSettings.value = true
     try {
       await $fetch('/api/profile', {
         method: 'PATCH',
@@ -467,6 +660,9 @@
         description: 'Sport settings updated successfully.',
         color: 'success'
       })
+      pendingSportSettingsSave.value = null
+      sportSettingsSaveWarnings.value = []
+      showSportSettingsWarningModal.value = false
     } catch (error: any) {
       console.error('Sport settings update failed:', {
         status: error.statusCode,
@@ -479,7 +675,29 @@
         description: 'Failed to save sport settings.',
         color: 'error'
       })
+    } finally {
+      savingSportSettings.value = false
     }
+  }
+
+  async function confirmSaveSportSettings() {
+    if (!pendingSportSettingsSave.value) return
+    await persistSportSettings(pendingSportSettingsSave.value)
+  }
+
+  // Save updated sport settings manually
+  async function updateSportSettings(updatedSettings: any[]) {
+    sportSettings.value = updatedSettings
+    const warnings = buildSportSettingsWarnings(updatedSettings)
+    pendingSportSettingsSave.value = updatedSettings
+
+    if (warnings.length > 0) {
+      sportSettingsSaveWarnings.value = warnings
+      showSportSettingsWarningModal.value = true
+      return
+    }
+
+    await persistSportSettings(updatedSettings)
   }
 
   useHead({

@@ -44,6 +44,7 @@
   const showRaw = ref(false)
 
   const liveWorkout = ref<any | null>(null)
+  const liveSportSettings = ref<any | null>(null)
   const runStatus = ref<string | null>(null)
   const runError = ref<string | null>(null)
   const pollError = ref<string | null>(null)
@@ -283,6 +284,62 @@
     return props.response
   })
 
+  const generationWarningIssues = computed(() => {
+    const settings = liveSportSettings.value
+    if (!settings) return []
+
+    const issues: string[] = []
+    const primaryMetric = settings?.targetPolicy?.primaryMetric || null
+    const paceMode = settings?.targetFormatPolicy?.pace?.mode || null
+    const hrMode = settings?.targetFormatPolicy?.heartRate?.mode || null
+    const powerMode = settings?.targetFormatPolicy?.power?.mode || null
+    const hasThresholdPace = Number(settings?.thresholdPace || 0) > 0
+    const hasPaceZones = Array.isArray(settings?.paceZones) && settings.paceZones.length > 0
+    const hasFtp = Number(settings?.ftp || 0) > 0
+    const hasPowerZones = Array.isArray(settings?.powerZones) && settings.powerZones.length > 0
+    const hasLthr = Number(settings?.lthr || 0) > 0
+    const hasMaxHr = Number(settings?.maxHr || 0) > 0
+    const hasHrZones = Array.isArray(settings?.hrZones) && settings.hrZones.length > 0
+
+    if (primaryMetric === 'pace' && !hasThresholdPace) {
+      issues.push('Pace is the primary target, but threshold pace is missing.')
+    }
+
+    if (
+      (primaryMetric === 'pace' || paceMode === 'zone' || paceMode === 'absolutePace') &&
+      !hasThresholdPace
+    ) {
+      issues.push('Pace targets are enabled, but threshold pace is not set.')
+    }
+
+    if ((primaryMetric === 'pace' || paceMode === 'zone') && !hasPaceZones) {
+      issues.push('Pace zones are missing.')
+    }
+
+    if (primaryMetric === 'power' && !hasFtp) {
+      issues.push('Power is the primary target, but FTP is missing.')
+    }
+
+    if ((primaryMetric === 'power' || powerMode === 'zone') && !hasPowerZones) {
+      issues.push('Power zones are missing.')
+    }
+
+    if (primaryMetric === 'heartRate' && !hasLthr && !hasMaxHr) {
+      issues.push('Heart rate is the primary target, but LTHR and max HR are missing.')
+    }
+
+    if (
+      (primaryMetric === 'heartRate' || hrMode === 'zone') &&
+      !hasHrZones &&
+      !hasLthr &&
+      !hasMaxHr
+    ) {
+      issues.push('Heart-rate zones are missing.')
+    }
+
+    return issues
+  })
+
   let runPollTimer: ReturnType<typeof setInterval> | null = null
   let workoutPollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -310,10 +367,15 @@
     if (!workoutId.value) return
 
     try {
-      const data = await $fetch<{ workout?: any }>(`/api/workouts/planned/${workoutId.value}`)
+      const data = await $fetch<{ workout?: any; sportSettings?: any }>(
+        `/api/workouts/planned/${workoutId.value}`
+      )
       const workout = data?.workout || data
       if (workout && typeof workout === 'object') {
         liveWorkout.value = workout
+      }
+      if (data?.sportSettings && typeof data.sportSettings === 'object') {
+        liveSportSettings.value = data.sportSettings
       }
       pollError.value = null
     } catch (error: any) {
@@ -633,6 +695,19 @@
         class="rounded border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-2 text-xs text-red-700 dark:text-red-300"
       >
         {{ pollError }}
+      </div>
+
+      <div
+        v-if="generationWarningIssues.length"
+        class="rounded border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-200 space-y-2"
+      >
+        <div class="font-semibold uppercase tracking-wide">
+          Target settings warning
+        </div>
+        <p>
+          This workout was generated with sport settings that may lead to weaker targets:
+          {{ generationWarningIssues.join(' ') }}
+        </p>
       </div>
 
       <div v-if="showSteps && flattenedSteps.length" class="space-y-2">
