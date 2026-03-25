@@ -382,13 +382,13 @@
               v-for="template in filteredTemplates"
               :key="template.id"
               draggable="true"
-              class="group/card relative cursor-grab rounded-[24px] border border-default/80 bg-muted/10 p-3.5 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing sm:rounded-2xl sm:p-4"
+              class="group/card relative flex h-[12.5rem] cursor-grab flex-col rounded-[24px] border border-default/80 bg-muted/10 p-3.5 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing sm:h-[11.5rem] sm:rounded-2xl sm:p-4"
               @dragstart="onTemplateDragStart($event, template)"
               @dragend="onTemplateDragEnd"
               @click="previewTemplateId = template.id"
             >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
+              <div class="flex min-h-0 items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
                   <div class="line-clamp-2 text-[15px] font-semibold text-highlighted sm:text-sm">
                     {{ template.title }}
                   </div>
@@ -403,13 +403,13 @@
                   </div>
                   <div
                     v-if="template.description"
-                    class="mt-1.5 hidden line-clamp-3 text-[11px] leading-5 text-muted sm:block"
+                    class="mt-1.5 hidden line-clamp-3 overflow-hidden text-[11px] leading-5 text-muted sm:block"
                   >
                     {{ template.description }}
                   </div>
                 </div>
 
-                <div class="flex flex-col items-end gap-2">
+                <div class="flex shrink-0 flex-col items-end gap-2 text-right">
                   <UDropdownMenu :items="scheduleMenuItems(template)" :content="{ align: 'end' }">
                     <UButton
                       size="xs"
@@ -438,7 +438,7 @@
 
               <div
                 v-if="template.structuredWorkout?.steps"
-                class="mt-3.5 overflow-hidden rounded-xl border border-default/60 bg-default sm:mt-3"
+                class="mt-auto overflow-hidden rounded-xl border border-default/60 bg-default pt-3.5 sm:pt-3"
               >
                 <MiniWorkoutChart
                   :steps="template.structuredWorkout.steps"
@@ -592,7 +592,7 @@
     isBottomSurface.value ? { height: `${drawerHeight.value}px` } : undefined
   )
   const templatesGridClass = computed(() =>
-    isRailSurface.value ? 'grid grid-cols-1 gap-3' : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+    isRailSurface.value ? 'grid grid-cols-1 gap-3' : 'grid gap-3 md:grid-cols-2 xl:grid-cols-4'
   )
   const railCompactSelectUi = {
     base: 'h-9 rounded-xl border-default/80 bg-muted/10 px-3 text-sm font-semibold text-highlighted',

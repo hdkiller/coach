@@ -2,7 +2,7 @@
   <div class="mini-chart-container h-8 w-24 relative">
     <div class="absolute inset-0 flex items-end gap-px">
       <div
-        v-for="(step, index) in steps"
+        v-for="(step, index) in chartSteps"
         :key="index"
         :style="getStepContainerStyle(step)"
         class="h-full flex items-end"
@@ -41,12 +41,15 @@
 
   const props = withDefaults(
     defineProps<{
-      workout: any // structuredWorkout JSON or full planned workout row
+      workout?: any // structuredWorkout JSON or full planned workout row
+      steps?: any[] | null
       preference?: 'hr' | 'power' | 'pace'
       showCadence?: boolean
       sportSettings?: any
     }>(),
     {
+      workout: undefined,
+      steps: undefined,
       preference: 'power',
       showCadence: false,
       sportSettings: undefined
@@ -54,6 +57,12 @@
   )
 
   const normalizedWorkout = computed(() => {
+    if (Array.isArray(props.steps) && props.steps.length > 0) {
+      return {
+        steps: props.steps
+      }
+    }
+
     const workout = props.workout
     if (!workout) return null
     if (typeof workout === 'string') {
@@ -72,7 +81,7 @@
     return workout
   })
 
-  const steps = computed(() => {
+  const chartSteps = computed(() => {
     const rawSteps = normalizedWorkout.value?.steps
     if (!Array.isArray(rawSteps) || rawSteps.length === 0) return []
     return flattenWorkoutSteps(rawSteps)
@@ -106,7 +115,7 @@
   }
 
   const totalDuration = computed(() => {
-    return steps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
+    return chartSteps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
   })
 
   const effectiveSportSettings = computed(() => {
@@ -199,11 +208,11 @@
 
   const showCadenceLine = computed(() => {
     if (!props.showCadence) return false
-    return steps.value.some((step: any) => Number(step?.cadence) > 0)
+    return chartSteps.value.some((step: any) => Number(step?.cadence) > 0)
   })
 
   const cadencePaths = computed(() => {
-    if (!showCadenceLine.value || totalDuration.value <= 0 || steps.value.length === 0) {
+    if (!showCadenceLine.value || totalDuration.value <= 0 || chartSteps.value.length === 0) {
       return { merged: '', explicit: '' }
     }
 
@@ -211,7 +220,7 @@
     let explicitPath = ''
     let currentTime = 0
 
-    steps.value.forEach((step: any) => {
+    chartSteps.value.forEach((step: any) => {
       const stepDuration = Number(step.durationSeconds || step.duration || 0)
       if (stepDuration <= 0) return
 
@@ -245,7 +254,7 @@
   function getStepWidth(step: any) {
     const duration = getStepDuration(step)
     if (totalDuration.value > 0) return (duration / totalDuration.value) * 100
-    if (steps.value.length > 0) return 100 / steps.value.length
+    if (chartSteps.value.length > 0) return 100 / chartSteps.value.length
     return 0
   }
 
