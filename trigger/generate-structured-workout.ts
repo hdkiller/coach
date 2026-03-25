@@ -28,6 +28,15 @@ import {
 } from '../server/utils/planned-workout-structure-sync'
 import { publishActivityEvent } from '../server/utils/activity-realtime'
 import { normalizeSwimStructure } from '../server/utils/swim-structure'
+import {
+  resolveStructuredWorkoutGeneratorMode,
+  type StructuredWorkoutGeneratorMode
+} from '../server/utils/structured-workout-generator'
+import {
+  compileWorkoutPlanDraftToStructure,
+  isDraftStructuredWorkoutSupported,
+  workoutPlanDraftSchema
+} from '../server/utils/structured-workout-draft'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -702,6 +711,7 @@ export const generateStructuredWorkoutTask = task({
     plannedWorkoutId?: string
     workoutTemplateId?: string
     targetingOverride?: WorkoutTargetingOverride | null
+    generatorOverride?: StructuredWorkoutGeneratorMode | null
   }) => {
     const { plannedWorkoutId, workoutTemplateId } = payload
     const entityId = plannedWorkoutId || workoutTemplateId
@@ -786,6 +796,51 @@ export const generateStructuredWorkoutTask = task({
       durationSec: workout.durationSec,
       isTemplate: entityType === 'WorkoutTemplate'
     })
+
+    const requestedGeneratorMode = await resolveStructuredWorkoutGeneratorMode(
+      workout.userId,
+      payload?.generatorOverride || null
+    )
+    const generatorMode =
+      requestedGeneratorMode === 'draft_json_v1' &&
+      isDraftStructuredWorkoutSupported(workout.type || '')
+        ? requestedGeneratorMode
+        : 'legacy_json'
+    console.log('[GenerateStructuredWorkout] Generator mode resolved', {
+      entityId,
+      entityType,
+      workoutType: workout.type,
+      requestedGeneratorMode,
+      generatorMode,
+      explicitOverride: payload?.generatorOverride || null
+    })
+    logStage('resolved-generator-mode', {
+      generatorMode,
+      requestedGeneratorMode,
+      explicitOverride: payload?.generatorOverride || null
+    })
+    if (requestedGeneratorMode === 'draft_json_v1' && generatorMode !== requestedGeneratorMode) {
+      console.log('[GenerateStructuredWorkout] Falling back to legacy generator', {
+        entityId,
+        workoutType: workout.type,
+        requestedGeneratorMode,
+        fallbackMode: generatorMode
+      })
+      logStage('generator-mode-fallback', {
+        requestedGeneratorMode,
+        fallbackMode: generatorMode,
+        workoutType: workout.type
+      })
+    } else if (generatorMode === 'draft_json_v1') {
+      console.log('[GenerateStructuredWorkout] Using compact draft generator', {
+        entityId,
+        workoutType: workout.type
+      })
+      logStage('generator-mode-branch', {
+        generatorMode,
+        implementation: 'compact_draft_v1'
+      })
+    }
 
     // Check Quota
     try {
@@ -1010,8 +1065,56 @@ export const generateStructuredWorkoutTask = task({
     Final check: stay within target duration, avoid redundant adjacent steps, give every step a clear purpose and valid primary target.
 
     OUTPUT JSON matching the schema.`
+    const draftPrompt = `Design a structured ${workout.type} workout plan for ${workout.user.name || 'Athlete'} using a compact planning format.
+
+    TITLE: ${workout.title}
+    DURATION: ${Math.round((workout.durationSec || 3600) / 60)} minutes
+    INTENSITY: ${workout.workIntensity || 'Moderate'}
+    DESCRIPTION: ${workout.description || 'No specific description'}
+    USER FTP: ${ftp}W
+    USER LTHR: ${lthr} bpm
+    TYPE: ${workout.type}
+    PREFERRED INTENSITY METRIC: ${loadPreference}
+    METRIC PRIORITY ORDER: ${priorityText}
+    PREFERRED LANGUAGE: ${workout.user.language || 'English'} (CRITICAL: All text fields must use this language)
+
+    CONTEXT:
+    - Goal: ${goal}
+    - Phase: ${phase}
+    - Focus: ${focus}
+    - Coach Persona: ${persona}
+    ${aiContext ? `- User Preferences/Context: ${aiContext}` : ''}
+
+    RECENT WORKOUTS (brief):
+    ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
+
+    ${preserveExistingStructure ? `EXISTING STRUCTURE TO PRESERVE:\n${existingStructureSummary}` : ''}
+
+    ${zoneDefinitions}
+
+    ${targetPolicyPrompt}
+
+    ${targetFormatPolicyPrompt}
+
+    OUTPUT RULES:
+    - Return compact JSON only.
+    - Use ONE \`target\` object per step, never multiple metric objects.
+    - \`target.metric\` must be one of: power, heartRate, pace, rpe.
+    - Use \`target.units\` from this set only: %, w, bpm, LTHR, Pace, /km.
+    - Use \`durationSeconds\` for timed steps.
+    - Use \`distanceMeters\` only when distance is central to the prescription.
+    - Use nested \`steps\` plus \`reps\` for repeats.
+    - Every step must have a clear purpose and an \`intent\`.
+    - Keep total duration within the planned target.
+    - Keep the plan compact and avoid redundant adjacent steps.
+    - ${preserveExistingStructure ? 'Preserve the session identity and structure unless the workout clearly requires change.' : 'Build the full session from scratch.'}
+
+    SPORT RULES:
+    ${sportSpecificInstructions}
+
+    OUTPUT JSON matching the compact draft schema.`
     logStage('prompt-built', {
-      promptChars: prompt.length,
+      promptChars: generatorMode === 'draft_json_v1' ? draftPrompt.length : prompt.length,
       targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
     })
 
@@ -1024,15 +1127,52 @@ export const generateStructuredWorkoutTask = task({
         const aiStartedAt = Date.now()
         const isRetry = attempt > 1
         if (isRetry) actualModelUsed = 'pro'
-        structure = await generateStructuredAnalysis(promptToUse, workoutStructureSchema, 'flash', {
-          userId: workout.userId,
-          operation: 'generate_structured_workout',
-          entityType,
-          entityId: entityId!,
-          maxRetries: 0, // We handle retries manually here to change models
-          modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
-          thinkingLevelOverride: isRetry ? 'high' : undefined
-        })
+        if (generatorMode === 'draft_json_v1') {
+          const draft = await generateStructuredAnalysis(
+            isRetry
+              ? `${draftPrompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous draft was rejected or incomplete.\n- Keep the same compact schema.\n- Stay inside duration tolerance and include a complete main set.`
+              : draftPrompt,
+            workoutPlanDraftSchema,
+            'flash',
+            {
+              userId: workout.userId,
+              operation: 'generate_structured_workout',
+              entityType,
+              entityId: entityId!,
+              maxRetries: 0,
+              modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
+              thinkingLevelOverride: isRetry ? 'high' : undefined
+            }
+          )
+          console.log('[GenerateStructuredWorkout] Compact draft generated', {
+            entityId,
+            attempt,
+            topLevelSteps: Array.isArray((draft as any)?.steps) ? (draft as any).steps.length : 0,
+            hasDescription: Boolean((draft as any)?.description),
+            hasCoachInstructions: Boolean((draft as any)?.coachInstructions)
+          })
+          structure = compileWorkoutPlanDraftToStructure(draft as any)
+          console.log('[GenerateStructuredWorkout] Compact draft compiled to structure', {
+            entityId,
+            attempt,
+            compiledSteps: Array.isArray(structure?.steps) ? structure.steps.length : 0
+          })
+        } else {
+          structure = await generateStructuredAnalysis(
+            promptToUse,
+            workoutStructureSchema,
+            'flash',
+            {
+              userId: workout.userId,
+              operation: 'generate_structured_workout',
+              entityType,
+              entityId: entityId!,
+              maxRetries: 0, // We handle retries manually here to change models
+              modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
+              thinkingLevelOverride: isRetry ? 'high' : undefined
+            }
+          )
+        }
         const aiDurationMs = Date.now() - aiStartedAt
         logStage('ai-structure-generated', {
           aiDurationMs,
@@ -1065,6 +1205,15 @@ export const generateStructuredWorkoutTask = task({
         steps: structure.steps || [],
         workout,
         preserveStructure: preserveExistingStructure
+      })
+      console.log('[GenerateStructuredWorkout] Coverage validation result', {
+        entityId,
+        attempt,
+        generatorMode,
+        plannedDurationSec: Number(workout.durationSec || 0),
+        actualDurationSec: totals.duration,
+        valid: coverageValidation.valid,
+        reason: coverageValidation.reason
       })
       if (coverageValidation.valid) break
       if (attempt >= 2) {
@@ -1315,6 +1464,7 @@ export const generateStructuredWorkoutTask = task({
     )
     const generationContext = buildPlannedWorkoutGenerationContext({
       operation: 'generate',
+      generatorMode,
       workout,
       targetPolicy,
       targetFormatPolicy,
