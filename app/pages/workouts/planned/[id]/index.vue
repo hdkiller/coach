@@ -516,6 +516,48 @@
                 >
                   {{ generationExplanation.note }}
                 </p>
+
+                <div
+                  class="rounded-2xl border border-primary-200/70 dark:border-primary-900/70 bg-primary-50/80 dark:bg-primary-950/30 p-4"
+                >
+                  <div
+                    class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+                  >
+                    <div class="space-y-2">
+                      <div
+                        class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 dark:text-primary-400"
+                      >
+                        <UIcon name="i-heroicons-adjustments-horizontal" class="h-4 w-4" />
+                        Target Policy
+                      </div>
+                      <p class="text-sm font-medium leading-relaxed text-gray-700 dark:text-gray-300">
+                        {{ generationExplanation.settingsPrompt }}
+                      </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2 self-start">
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        icon="i-heroicons-eye"
+                        class="font-bold whitespace-nowrap"
+                        @click="openViewModal"
+                      >
+                        View Generation Details
+                      </UButton>
+
+                      <UButton
+                        to="/profile/settings?tab=sports"
+                        color="primary"
+                        variant="solid"
+                        icon="i-heroicons-arrow-top-right-on-square"
+                        class="font-bold whitespace-nowrap"
+                      >
+                        Open Sport Settings
+                      </UButton>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1428,6 +1470,11 @@
     return 'Structured Workout'
   }
 
+  function formatSportLabel(value?: string | null) {
+    if (!value) return 'this sport'
+    return String(value).replace(/[_-]+/g, ' ').trim().toLowerCase()
+  }
+
   function formatContextValue(value?: string | null) {
     if (!value) return null
     return String(value).replace(/[_-]+/g, ' ').trim()
@@ -1447,11 +1494,12 @@
   }
 
   const generationExplanation = computed(() => {
+    const plannedWorkout = workout.value
     const context = workout.value?.lastGenerationContext
     const snapshot =
       workout.value?.lastGenerationSettingsSnapshot || workout.value?.createdFromSettingsSnapshot
 
-    if (!context && !snapshot) return null
+    if (!plannedWorkout?.structuredWorkout && !context && !snapshot) return null
 
     const operation = context?.operation || null
     const primaryMetric =
@@ -1461,16 +1509,23 @@
     const loadPreference = context?.targeting?.loadPreference || snapshot?.loadPreference || null
     const generatedAt = formatGeneratedAt(context?.generatedAt)
     const model = context?.model || null
+    const generatorMode = context?.generatorMode || null
     const goal = formatContextValue(context?.context?.goal)
     const phase = formatContextValue(context?.context?.phase)
     const focus = formatContextValue(context?.context?.focus)
     const feedback = formatContextValue(context?.adjustments?.feedback)
+    const sportLabel = formatSportLabel(plannedWorkout?.type)
     const details = []
 
     if (generatedAt) details.push({ label: 'Last Build', value: generatedAt })
     if (goal) details.push({ label: 'Goal', value: goal })
     if (phase) details.push({ label: 'Phase', value: phase })
     if (focus) details.push({ label: 'Focus', value: focus })
+    if (generatorMode === 'draft_json_v1') {
+      details.push({ label: 'Build Path', value: 'Compact Draft + Compiler' })
+    } else if (generatorMode === 'legacy_json') {
+      details.push({ label: 'Build Path', value: 'Legacy JSON Generator' })
+    }
 
     const operationLabel = formatOperationLabel(operation)
     const primaryMetricLabel = formatMetricLabel(primaryMetric)
@@ -1487,13 +1542,22 @@
 
     if (primaryMetricLabel && loadPreferenceLabel) {
       summary += ` Targets were prioritized as ${loadPreferenceLabel}, with ${primaryMetricLabel.toLowerCase()} guiding the structure first.`
+    } else if (!context && !snapshot) {
+      summary =
+        'This structure is currently coming from the workout file that was imported or synced for this session, so there is no local AI generation snapshot attached to explain the original build.'
     }
+
+    const settingsPrompt = primaryMetricLabel
+      ? `Your ${sportLabel} target policy is currently steering this workout toward ${primaryMetricLabel.toLowerCase()}. If you want different cues or target behavior, update the sport-specific target policy in Settings.`
+      : `This workout follows your current ${sportLabel} sport settings. If you want different cues or target behavior, update the sport-specific target policy in Settings.`
 
     let note = null
     if (feedback) {
       note = `Adjustment note: ${feedback}.`
     } else if (model) {
       note = `Generated with ${model}.`
+    } else if (!context && !snapshot && plannedWorkout?.lastStructureEditSource === 'REMOTE_IMPORT') {
+      note = 'Imported workout: regenerate or adjust this workout locally if you want Coach Watts to rebuild it from your current target policy and sport settings.'
     }
 
     return {
@@ -1502,7 +1566,8 @@
       loadPreferenceLabel,
       summary,
       details,
-      note
+      note,
+      settingsPrompt
     }
   })
 
