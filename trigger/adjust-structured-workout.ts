@@ -790,6 +790,8 @@ export const adjustStructuredWorkoutTask = task({
     - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but primaryTarget still must follow policy.' : 'Use one intensity metric per step unless user feedback explicitly asks for mixed cues.'}
     - ${steadyTargetStyleRule}
     - If user specifies "Zone 2", refer to the provided zones before using generic percentages.
+    - Steps must represent runnable in-session segments only (jog, run, walk recoveries, drills performed during the run).
+    - Do NOT add static stretching or off-feet recovery blocks to the structured plan.
     - Do not stack maximal efforts without sufficient recovery.`
         : isSwim
           ? `FOR SWIMMING (Swim):
@@ -849,6 +851,9 @@ export const adjustStructuredWorkoutTask = task({
     - Ensure each block has a clear physiological purpose and logical stress/recovery flow.
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change, at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
+    - Include only in-session workout steps the athlete performs as part of the session itself.
+    - Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as structured steps.
+    - Put post-workout recovery guidance in coachInstructions, not in steps.
     - **METRIC PRIORITY**:
       - Priority Order: ${priorityText}.
       - Primary metric: ${targetPolicy.primaryMetric}.
@@ -902,6 +907,8 @@ export const adjustStructuredWorkoutTask = task({
     - Use \`distanceMeters\` only when distance is central to the prescription.
     - Use nested \`steps\` plus \`reps\` for repeats.
     - Respect the user's feedback while preserving the workout objective unless explicitly changed.
+    - Include only in-session workout steps. Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as steps.
+    - Put post-workout recovery guidance in \`coachInstructions\`, not in \`steps\`.
     - Keep total duration within the planned target.
     - Keep the plan compact and avoid redundant adjacent steps.
     - Every step must have a clear purpose and an \`intent\`.

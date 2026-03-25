@@ -980,6 +980,8 @@ export const generateStructuredWorkoutTask = task({
     - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but the policy primary metric must still be explicit as primaryTarget.' : 'Use one intensity metric per step unless the workout request explicitly asks for mixed cues.'}
     - ${steadyTargetStyleRule}
     - DO NOT rely solely on description for intensity. Provide an estimated target object for every step.
+    - Steps must represent runnable in-session segments only (jog, run, walk recoveries, drills performed during the run).
+    - Do NOT add static stretching or off-feet recovery blocks to the structured plan.
     - Respect quality spacing: avoid stacking maximal efforts without enough recovery.`
         : isSwim
           ? `FOR SWIMMING (Swim):
@@ -1051,6 +1053,9 @@ export const generateStructuredWorkoutTask = task({
     - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
+    - Include only in-session workout steps the athlete performs as part of the session itself.
+    - Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as structured steps.
+    - Put post-workout recovery guidance in coachInstructions, not in steps.
     - **METRIC PRIORITY**: Respect the user's TARGET POLICY and preferred order (${loadPreference}).
       - Priority Order: ${priorityText}.
       - Primary metric for each step should be: ${targetPolicy.primaryMetric}.
@@ -1111,6 +1116,8 @@ export const generateStructuredWorkoutTask = task({
     - Use \`distanceMeters\` only when distance is central to the prescription.
     - Use nested \`steps\` plus \`reps\` for repeats.
     - Every step must have a clear purpose and an \`intent\`.
+    - Include only in-session workout steps. Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as steps.
+    - Put post-workout recovery guidance in \`coachInstructions\`, not in \`steps\`.
     - Keep total duration within the planned target.
     - Keep the plan compact and avoid redundant adjacent steps.
     - ${preserveExistingStructure ? 'Preserve the session identity and structure unless the workout clearly requires change.' : 'Build the full session from scratch.'}
