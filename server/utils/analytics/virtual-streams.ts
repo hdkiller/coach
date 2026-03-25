@@ -1,3 +1,51 @@
+/**
+ * Standard durations (seconds) used for the Mean Maximal Power (MMP) curve.
+ */
+export const MMP_DURATIONS = [
+  5, 10, 15, 30, 60, 120, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 5400, 7200
+]
+
+/**
+ * Compute the Mean Maximal Power (MMP / Power Duration Curve).
+ * Returns the best average power achievable for each standard duration.
+ */
+export function computeMMP(
+  watts: number[],
+  timeSeconds: number[]
+): Array<{ x: number; y: number }> {
+  if (watts.length < 5 || timeSeconds.length < 5) return []
+
+  // Estimate average sample interval (seconds per sample)
+  const totalTime = timeSeconds[timeSeconds.length - 1]! - timeSeconds[0]!
+  const avgInterval = totalTime / (timeSeconds.length - 1)
+  if (avgInterval <= 0) return []
+
+  const results: Array<{ x: number; y: number }> = []
+
+  for (const duration of MMP_DURATIONS) {
+    const windowSize = Math.max(2, Math.round(duration / avgInterval))
+    if (windowSize > watts.length) break
+
+    // O(n) sliding window sum
+    let sum = 0
+    for (let i = 0; i < windowSize; i++) sum += watts[i] ?? 0
+
+    let maxAvg = sum / windowSize
+
+    for (let i = windowSize; i < watts.length; i++) {
+      sum += (watts[i] ?? 0) - (watts[i - windowSize] ?? 0)
+      const avg = sum / windowSize
+      if (avg > maxAvg) maxAvg = avg
+    }
+
+    if (maxAvg > 0) {
+      results.push({ x: duration, y: Math.round(maxAvg) })
+    }
+  }
+
+  return results
+}
+
 export interface RawStreams {
   time?: number[]
   distance?: number[]

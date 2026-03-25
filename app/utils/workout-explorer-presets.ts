@@ -9,24 +9,42 @@ export type WorkoutExplorerCategory =
 
 export type WorkoutExplorerMode = 'summary' | 'stream' | 'interval' | 'density'
 
+export type WorkoutExplorerVisualType =
+  | 'line'
+  | 'bar'
+  | 'scatter'
+  | 'map'
+  | 'map-heatmap'
+  | 'density-heatmap'
+  | 'radar'
+  | 'combo'
+  | 'mmp'
+
 export interface WorkoutExplorerPreset {
   id: string
   name: string
   description: string
   category: WorkoutExplorerCategory
   mode: WorkoutExplorerMode
-  visualType: 'line' | 'bar' | 'scatter' | 'map' | 'map-heatmap' | 'density-heatmap' | 'radar'
+  visualType: WorkoutExplorerVisualType
   insightCopy: string
   flagship?: boolean
   sourceLabel: 'Workout Summary' | 'Workout Streams' | 'Workout Intervals' | 'Workout Zones'
   summary?: {
-    type?: 'metrics' | 'zones'
-    chartType: 'bar' | 'line'
+    type?: 'metrics' | 'zones' | 'advanced'
+    chartType: 'bar' | 'line' | 'combo' | 'radar' | 'scatter'
     metrics: string[]
     zoneType?: 'power' | 'hr'
+    advancedMode?:
+      | 'half_split_power_hr'
+      | 'surge_cost_profile'
+      | 'coasting_breakdown'
+      | 'session_signature_radar'
+      | 'mmp_curve'
+    allowChartToggle?: boolean
   }
   stream?: {
-    field:
+    field?:
       | 'watts'
       | 'heartrate'
       | 'cadence'
@@ -37,13 +55,26 @@ export interface WorkoutExplorerPreset {
       | 'vam'
       | 'w_balance'
       | 'power_hr_ratio'
+    fields?: Array<
+      | 'watts'
+      | 'heartrate'
+      | 'cadence'
+      | 'velocity'
+      | 'altitude'
+      | 'grade'
+      | 'torque'
+      | 'vam'
+      | 'w_balance'
+      | 'power_hr_ratio'
+    >
     alignment: 'elapsed_time' | 'distance' | 'percent_complete'
+    datasetTypes?: Array<'line' | 'bar'>
   }
   interval?: {
     field: 'avgPower' | 'avgHr' | 'duration' | 'distance'
   }
   density?: {
-    xField: 'cadence' | 'heartrate' | 'velocity'
+    xField: 'cadence' | 'heartrate' | 'velocity' | 'grade'
     yField: 'watts' | 'torque'
   }
   scales?: {
@@ -78,7 +109,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'bar',
-      metrics: ['trainingLoad', 'tss', 'kilojoules', 'calories']
+      metrics: ['trainingLoad', 'tss', 'kilojoules', 'calories'],
+      allowChartToggle: true
     },
     insightCopy:
       'This is the quickest way to understand how expensive the session was across load, work, and fueling demand.'
@@ -94,7 +126,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'bar',
-      metrics: ['averageWatts', 'normalizedPower', 'averageHr', 'intensity']
+      metrics: ['averageWatts', 'normalizedPower', 'averageHr', 'intensity'],
+      allowChartToggle: true
     },
     insightCopy:
       'Use this when you want one compact read on output, internal load, and intensity from a single session.'
@@ -110,7 +143,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'line',
-      metrics: ['efficiencyFactor', 'decoupling', 'powerHrRatio', 'variabilityIndex']
+      metrics: ['efficiencyFactor', 'decoupling', 'powerHrRatio', 'variabilityIndex'],
+      allowChartToggle: true
     },
     insightCopy:
       'This is useful when the coaching question is whether the athlete was efficient, steady, and aerobically durable in this session.'
@@ -127,7 +161,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'bar',
-      metrics: ['durationSec', 'distanceMeters', 'elevationGain', 'averageSpeed']
+      metrics: ['durationSec', 'distanceMeters', 'elevationGain', 'averageSpeed'],
+      allowChartToggle: true
     },
     insightCopy:
       'This is the fast overview for how long, how far, how hilly, and how quickly the session unfolded.'
@@ -143,7 +178,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'bar',
-      metrics: ['maxWatts', 'averageWatts', 'normalizedPower', 'variabilityIndex']
+      metrics: ['maxWatts', 'averageWatts', 'normalizedPower', 'variabilityIndex'],
+      allowChartToggle: true
     },
     insightCopy:
       'Use this when you want to separate peak punch, sustained output, and how stochastic the session became.'
@@ -159,7 +195,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     summary: {
       type: 'metrics',
       chartType: 'bar',
-      metrics: ['averageHr', 'maxHr', 'trimp', 'hrLoad']
+      metrics: ['averageHr', 'maxHr', 'trimp', 'hrLoad'],
+      allowChartToggle: true
     },
     insightCopy:
       'This is useful when the coaching question is how hard the session felt internally, not just what the external output looked like.'
@@ -177,7 +214,8 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
       type: 'zones',
       chartType: 'bar',
       metrics: [],
-      zoneType: 'power'
+      zoneType: 'power',
+      allowChartToggle: false
     },
     insightCopy:
       'This is the go-to view for understanding where the session really lived across the athlete’s power system.'
@@ -194,10 +232,85 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
       type: 'zones',
       chartType: 'bar',
       metrics: [],
-      zoneType: 'hr'
+      zoneType: 'hr',
+      allowChartToggle: false
     },
     insightCopy:
       'Use this when you care about how the athlete absorbed the session physiologically across the workout.'
+  },
+  {
+    id: 'session-signature-radar',
+    name: 'Session Signature Radar',
+    description:
+      'Score control, durability, punch, efficiency, recovery, and pedaling in one view.',
+    category: 'overview',
+    mode: 'summary',
+    visualType: 'radar',
+    flagship: true,
+    sourceLabel: 'Workout Summary',
+    summary: {
+      type: 'advanced',
+      chartType: 'radar',
+      metrics: [],
+      advancedMode: 'session_signature_radar',
+      allowChartToggle: false
+    },
+    insightCopy:
+      'This gives coaches one high-level fingerprint of how the workout was executed instead of a pile of disconnected headline numbers.'
+  },
+  {
+    id: 'durability-half-split',
+    name: 'Durability Half Split',
+    description: 'Compare first-half and second-half power and heart-rate cost.',
+    category: 'efficiency',
+    mode: 'summary',
+    visualType: 'combo',
+    sourceLabel: 'Workout Summary',
+    summary: {
+      type: 'advanced',
+      chartType: 'combo',
+      metrics: [],
+      advancedMode: 'half_split_power_hr',
+      allowChartToggle: false
+    },
+    insightCopy:
+      'A good durability chart makes fade visible immediately by showing whether similar work required more cardiovascular cost later in the session.'
+  },
+  {
+    id: 'surge-cost-profile',
+    name: 'Surge Cost Profile',
+    description: 'Inspect each major anaerobic surge and the cost that followed it.',
+    category: 'power',
+    mode: 'summary',
+    visualType: 'combo',
+    sourceLabel: 'Workout Summary',
+    summary: {
+      type: 'advanced',
+      chartType: 'combo',
+      metrics: [],
+      advancedMode: 'surge_cost_profile',
+      allowChartToggle: false
+    },
+    insightCopy:
+      'This is a much better race-style chart than simple max power because it shows not only the match you burned, but the price you paid after burning it.'
+  },
+  {
+    id: 'coasting-breakdown',
+    name: 'Coasting Breakdown',
+    description: 'Split the workout between pedaling time and coasting time.',
+    category: 'efficiency',
+    mode: 'summary',
+    visualType: 'bar',
+    sourceLabel: 'Workout Summary',
+    summary: {
+      type: 'advanced',
+      chartType: 'bar',
+      metrics: [],
+      advancedMode: 'coasting_breakdown',
+      allowChartToggle: false
+    },
+    insightCopy:
+      'This exposes whether the session was continuously driven, tactically coasted, or full of repeated micro-rests.'
   },
   {
     id: 'power-stream',
@@ -205,7 +318,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Inspect the power trace across the workout timeline.',
     category: 'power',
     mode: 'stream',
-    visualType: 'scatter',
+    visualType: 'line',
     flagship: true,
     sourceLabel: 'Workout Streams',
     stream: {
@@ -216,12 +329,45 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
       'Use this to see how the workout was actually paced, not just what the summary metrics imply.'
   },
   {
+    id: 'power-heart-rate-signature',
+    name: 'Power vs Heart Rate Signature',
+    description: 'Overlay external output and internal cost on the same timeline.',
+    category: 'overview',
+    mode: 'stream',
+    visualType: 'combo',
+    flagship: true,
+    sourceLabel: 'Workout Streams',
+    stream: {
+      fields: ['watts', 'heartrate'],
+      alignment: 'elapsed_time',
+      datasetTypes: ['bar', 'line']
+    },
+    insightCopy:
+      'This is the core coaching chart for seeing where heart rate lagged, drifted, recovered, or stopped matching the athlete’s power output.'
+  },
+  {
+    id: 'terrain-response-signature',
+    name: 'Terrain Response Signature',
+    description: 'Overlay grade and power to show how the athlete responded to terrain.',
+    category: 'terrain',
+    mode: 'stream',
+    visualType: 'combo',
+    sourceLabel: 'Workout Streams',
+    stream: {
+      fields: ['watts', 'grade'],
+      alignment: 'distance',
+      datasetTypes: ['line', 'line']
+    },
+    insightCopy:
+      'A terrain-coupled chart helps explain whether pacing decisions came from fitness, tactics, or simply the road tilting up beneath the athlete.'
+  },
+  {
     id: 'heart-rate-stream',
     name: 'Heart Rate Stream',
     description: 'Inspect heart rate progression across the session.',
     category: 'efficiency',
     mode: 'stream',
-    visualType: 'scatter',
+    visualType: 'line',
     sourceLabel: 'Workout Streams',
     stream: {
       field: 'heartrate',
@@ -236,7 +382,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Inspect cadence rhythm throughout the workout.',
     category: 'streams',
     mode: 'stream',
-    visualType: 'scatter',
+    visualType: 'line',
     sourceLabel: 'Workout Streams',
     stream: {
       field: 'cadence',
@@ -251,7 +397,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Inspect how altitude changed across the course of the workout.',
     category: 'terrain',
     mode: 'stream',
-    visualType: 'scatter',
+    visualType: 'line',
     flagship: true,
     sourceLabel: 'Workout Streams',
     stream: {
@@ -267,7 +413,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Inspect how steepness changed through the session.',
     category: 'terrain',
     mode: 'stream',
-    visualType: 'scatter',
+    visualType: 'line',
     sourceLabel: 'Workout Streams',
     stream: {
       field: 'grade',
@@ -282,7 +428,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Compare average power across laps or detected intervals.',
     category: 'intervals',
     mode: 'interval',
-    visualType: 'line',
+    visualType: 'bar',
     flagship: true,
     sourceLabel: 'Workout Intervals',
     interval: {
@@ -297,7 +443,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Compare average heart rate across laps or detected intervals.',
     category: 'intervals',
     mode: 'interval',
-    visualType: 'line',
+    visualType: 'bar',
     sourceLabel: 'Workout Intervals',
     interval: {
       field: 'avgHr'
@@ -311,7 +457,7 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     description: 'Inspect how interval durations vary through the workout.',
     category: 'intervals',
     mode: 'interval',
-    visualType: 'line',
+    visualType: 'bar',
     sourceLabel: 'Workout Intervals',
     interval: {
       field: 'duration'
@@ -365,6 +511,28 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
     insightCopy: 'Visualize how many "matches" you had left during high-intensity efforts.'
   },
   {
+    id: 'mmp-curve',
+    name: 'Mean Maximal Power Curve',
+    description: 'Peak average power achievable for every duration from 5 seconds to full workout.',
+    category: 'power',
+    mode: 'summary',
+    visualType: 'mmp',
+    flagship: true,
+    sourceLabel: 'Workout Summary',
+    summary: {
+      type: 'advanced',
+      chartType: 'scatter',
+      metrics: [],
+      advancedMode: 'mmp_curve',
+      allowChartToggle: false
+    },
+    scales: {
+      x: { type: 'logarithmic' }
+    },
+    insightCopy:
+      "The power-duration curve is the gold standard for understanding an athlete's complete energy system — how much power they can sustain for any duration from a 5-second sprint to multi-hour efforts."
+  },
+  {
     id: 'quadrant-analysis-density',
     name: 'Quadrant Analysis (Power-Cadence)',
     description: '2D density map of force vs. velocity.',
@@ -377,6 +545,21 @@ export const WORKOUT_EXPLORER_PRESETS: WorkoutExplorerPreset[] = [
       yField: 'watts'
     },
     insightCopy: 'See if you were "grinding" or "spinning" throughout the session.'
+  },
+  {
+    id: 'power-grade-density',
+    name: 'Power vs Grade Heatmap',
+    description: 'See where your power output concentrates across different gradients.',
+    category: 'terrain',
+    mode: 'density',
+    visualType: 'density-heatmap',
+    sourceLabel: 'Workout Streams',
+    density: {
+      xField: 'grade',
+      yField: 'watts'
+    },
+    insightCopy:
+      'This chart reveals whether you maintain power on climbs or fade — and whether you push through descents or coast.'
   },
   {
     id: 'climb-vam-profile',
