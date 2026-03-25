@@ -8,16 +8,19 @@ export interface ParsedWorkoutStep {
   power?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   heartRate?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   pace?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   cadence?: number
@@ -157,13 +160,14 @@ export const WorkoutParser = {
     if (rampMatch) {
       const start = parseInt(rampMatch[1] || '0', 10) / 100
       const end = parseInt(rampMatch[2] || '0', 10) / 100
+      const isRamp = /^ramp\b/i.test(rampMatch[0] || '')
       // Assume power by default, but could be HR if LTHR is mentioned
       if (text.toLowerCase().includes('lthr') || text.toLowerCase().includes('hr')) {
-        step.heartRate = { range: { start, end }, units: 'LTHR' }
+        step.heartRate = { range: { start, end }, ramp: isRamp, units: 'LTHR' }
       } else if (text.toLowerCase().includes('pace')) {
-        step.pace = { range: { start, end }, units: 'Pace' }
+        step.pace = { range: { start, end }, ramp: isRamp, units: 'Pace' }
       } else {
-        step.power = { range: { start, end }, units: '%' }
+        step.power = { range: { start, end }, ramp: isRamp, units: '%' }
       }
       text = text.replace(rampMatch[0] || '', '').trim()
     } else {
@@ -217,7 +221,7 @@ export const WorkoutParser = {
       text = text.replace(/^cooldown/i, '').trim()
     }
 
-    if (step.type === defaultType) {
+    if (step.type === defaultType && defaultType === 'Active') {
       const normalizedOriginal = originalText.trim().toLowerCase()
       const normalizedName = text.toLowerCase()
       const targetValue =
