@@ -300,12 +300,23 @@
                     kpi.label
                   }}</span>
                 </div>
-                <span
-                  class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
-                  :class="kpi.statusColor"
-                >
-                  {{ kpi.status }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <UButton
+                    v-if="kpi.editable"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-heroicons-pencil-square"
+                    class="rounded-full"
+                    @click="kpi.onEdit?.()"
+                  />
+                  <span
+                    class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
+                    :class="kpi.statusColor"
+                  >
+                    {{ kpi.status }}
+                  </span>
+                </div>
               </div>
 
               <div class="flex items-baseline gap-1 mb-2">
@@ -441,6 +452,72 @@
               class="rounded-none sm:rounded-xl shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800"
               @change-fueling-strategy="updateFuelingStrategy"
             />
+          </div>
+
+          <div v-if="generationExplanation" class="space-y-4">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Why This Structure
+            </h2>
+            <div
+              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-y sm:border border-gray-100 dark:border-gray-800"
+            >
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-center gap-2">
+                  <UBadge
+                    color="primary"
+                    variant="soft"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                  >
+                    {{ generationExplanation.operationLabel }}
+                  </UBadge>
+                  <UBadge
+                    v-if="generationExplanation.primaryMetricLabel"
+                    color="neutral"
+                    variant="soft"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                  >
+                    {{ generationExplanation.primaryMetricLabel }}
+                  </UBadge>
+                  <UBadge
+                    v-if="generationExplanation.loadPreferenceLabel"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                  >
+                    {{ generationExplanation.loadPreferenceLabel }}
+                  </UBadge>
+                </div>
+
+                <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                  {{ generationExplanation.summary }}
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    v-for="item in generationExplanation.details"
+                    :key="item.label"
+                    class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
+                  >
+                    <div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                      {{ item.label }}
+                    </div>
+                    <div class="text-xs font-black text-gray-900 dark:text-white uppercase">
+                      {{ item.value }}
+                    </div>
+                  </div>
+                </div>
+
+                <p
+                  v-if="generationExplanation.note"
+                  class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed"
+                >
+                  {{ generationExplanation.note }}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div
@@ -830,6 +907,33 @@
   </UModal>
 
   <UModal
+    v-if="showTssModal"
+    v-model:open="showTssModal"
+    title="Edit Planned TSS"
+    description="Set a manual training stress score override for this planned workout."
+  >
+    <template #body>
+      <div class="p-6 flex flex-col gap-5">
+        <div class="w-full">
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
+            >Planned TSS</label
+          >
+          <UInput v-model.number="tssForm.tss" type="number" min="0" step="1" class="w-full" />
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Use this when you want the planned load to reflect your intent more accurately than the
+            current automatic estimate.
+          </p>
+        </div>
+
+        <div class="flex justify-end pt-2 gap-2">
+          <UButton variant="ghost" @click="showTssModal = false">Cancel</UButton>
+          <UButton color="primary" :loading="updatingTss" @click="submitTss">Update TSS</UButton>
+        </div>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
     v-if="showStructureModal"
     v-model:open="showStructureModal"
     title="Edit Workout Structure"
@@ -899,7 +1003,9 @@
   const showViewModal = ref(false)
   const showAdjustModal = ref(false)
   const showTimeModal = ref(false)
+  const showTssModal = ref(false)
   const updatingTime = ref(false)
+  const updatingTss = ref(false)
   const showMessageModal = ref(false)
   const showDownloadModal = ref(false)
   const showPublishModal = ref(false)
@@ -914,6 +1020,9 @@
   const timeForm = reactive({
     date: '',
     startTime: ''
+  })
+  const tssForm = reactive({
+    tss: 0
   })
   const messageForm = reactive({
     tone: 'Motivational',
@@ -1267,7 +1376,9 @@
         iconColor: 'text-amber-500',
         status: getTssBand(tss),
         statusColor: getTssBandColor(tss),
-        detail: 'Training stress score'
+        detail: 'Training stress score',
+        editable: true,
+        onEdit: openTssModal
       },
       {
         label: 'Intensity',
@@ -1280,6 +1391,119 @@
         detail: `Intensity factor ${intensity.toFixed(2)}`
       }
     ]
+  })
+
+  function formatMetricLabel(metric?: string | null) {
+    switch (metric) {
+      case 'heartRate':
+        return 'Heart Rate First'
+      case 'pace':
+        return 'Pace First'
+      case 'power':
+        return 'Power First'
+      case 'rpe':
+        return 'RPE First'
+      default:
+        return null
+    }
+  }
+
+  function formatLoadPreferenceLabel(loadPreference?: string | null) {
+    if (!loadPreference) return null
+    return String(loadPreference)
+      .split('_')
+      .map((token) => {
+        if (token === 'HR') return 'HR'
+        if (token === 'PACE') return 'Pace'
+        if (token === 'POWER') return 'Power'
+        if (token === 'RPE') return 'RPE'
+        return token
+      })
+      .join(' -> ')
+  }
+
+  function formatOperationLabel(operation?: string | null) {
+    if (operation === 'adjust') return 'AI Adjusted'
+    if (operation === 'generate') return 'AI Generated'
+    return 'Structured Workout'
+  }
+
+  function formatContextValue(value?: string | null) {
+    if (!value) return null
+    return String(value).replace(/[_-]+/g, ' ').trim()
+  }
+
+  function formatGeneratedAt(value?: string | null) {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const generationExplanation = computed(() => {
+    const context = workout.value?.lastGenerationContext
+    const snapshot =
+      workout.value?.lastGenerationSettingsSnapshot || workout.value?.createdFromSettingsSnapshot
+
+    if (!context && !snapshot) return null
+
+    const operation = context?.operation || null
+    const primaryMetric =
+      context?.targeting?.targetPolicy?.primaryMetric ||
+      snapshot?.targetPolicy?.primaryMetric ||
+      null
+    const loadPreference = context?.targeting?.loadPreference || snapshot?.loadPreference || null
+    const generatedAt = formatGeneratedAt(context?.generatedAt)
+    const model = context?.model || null
+    const goal = formatContextValue(context?.context?.goal)
+    const phase = formatContextValue(context?.context?.phase)
+    const focus = formatContextValue(context?.context?.focus)
+    const feedback = formatContextValue(context?.adjustments?.feedback)
+    const details = []
+
+    if (generatedAt) details.push({ label: 'Last Build', value: generatedAt })
+    if (goal) details.push({ label: 'Goal', value: goal })
+    if (phase) details.push({ label: 'Phase', value: phase })
+    if (focus) details.push({ label: 'Focus', value: focus })
+
+    const operationLabel = formatOperationLabel(operation)
+    const primaryMetricLabel = formatMetricLabel(primaryMetric)
+    const loadPreferenceLabel = formatLoadPreferenceLabel(loadPreference)
+
+    let summary = 'This structure was created from your workout context and current sport settings.'
+    if (operation === 'adjust') {
+      summary =
+        'This version was rebuilt after an AI adjustment, so it reflects both the original workout intent and the follow-up change request.'
+    } else if (operation === 'generate') {
+      summary =
+        'This version was generated from the workout brief, your sport-specific settings, and the surrounding training context available at the time.'
+    }
+
+    if (primaryMetricLabel && loadPreferenceLabel) {
+      summary += ` Targets were prioritized as ${loadPreferenceLabel}, with ${primaryMetricLabel.toLowerCase()} guiding the structure first.`
+    }
+
+    let note = null
+    if (feedback) {
+      note = `Adjustment note: ${feedback}.`
+    } else if (model) {
+      note = `Generated with ${model}.`
+    }
+
+    return {
+      operationLabel,
+      primaryMetricLabel,
+      loadPreferenceLabel,
+      summary,
+      details,
+      note
+    }
   })
 
   function getDurationBand(minutes: number) {
@@ -1689,6 +1913,11 @@
     showTimeModal.value = true
   }
 
+  function openTssModal() {
+    tssForm.tss = Number(workout.value?.tss || 0)
+    showTssModal.value = true
+  }
+
   async function submitTime() {
     if (!workout.value?.id) return
     updatingTime.value = true
@@ -1716,6 +1945,47 @@
       })
     } finally {
       updatingTime.value = false
+    }
+  }
+
+  async function submitTss() {
+    if (!workout.value?.id) return
+
+    const nextTss = Number(tssForm.tss)
+    if (!Number.isFinite(nextTss) || nextTss < 0) {
+      toast.add({
+        title: 'Invalid TSS',
+        description: 'Please enter a training stress score of 0 or more.',
+        color: 'error'
+      })
+      return
+    }
+
+    updatingTss.value = true
+    try {
+      const response = await $fetch<{ workout?: any }>(
+        `/api/planned-workouts/${workout.value.id}`,
+        {
+          method: 'PATCH',
+          body: { tss: nextTss }
+        }
+      )
+
+      workout.value.tss = response?.workout?.tss ?? nextTss
+      toast.add({
+        title: 'TSS Updated',
+        description: 'The planned workout stress score has been updated.',
+        color: 'success'
+      })
+      showTssModal.value = false
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error.data?.message || 'Failed to update planned TSS',
+        color: 'error'
+      })
+    } finally {
+      updatingTss.value = false
     }
   }
 

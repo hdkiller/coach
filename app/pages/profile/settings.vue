@@ -66,13 +66,35 @@
             </div>
           </template>
 
-          <ProfileSportSettings
-            v-if="activeTab === 'sports'"
-            :settings="sportSettings"
-            :profile="profile"
-            @update:settings="updateSportSettings"
-            @autodetect="handleAutodetect"
-          />
+          <template v-if="activeTab === 'sports'">
+            <div class="space-y-4">
+              <UAlert
+                v-if="showSportOverlapAlert"
+                color="warning"
+                variant="soft"
+                icon="i-heroicons-exclamation-triangle"
+                title="Overlapping sport profiles detected"
+                :close="{ color: 'warning', variant: 'link', label: 'Dismiss' }"
+                @update:open="dismissSportOverlapAlert"
+              >
+                <template #description>
+                  <p>
+                    More than one sport-specific profile matches the same activity types:
+                    <span class="font-semibold">{{ sportOverlapSummary }}</span
+                    >. This can lead to unexpected zone or targeting choices during workout
+                    generation and sync.
+                  </p>
+                </template>
+              </UAlert>
+
+              <ProfileSportSettings
+                :settings="sportSettings"
+                :profile="profile"
+                @update:settings="updateSportSettings"
+                @autodetect="handleAutodetect"
+              />
+            </div>
+          </template>
 
           <ProfileMeasurementsSettings v-if="activeTab === 'measurements'" />
 
@@ -101,6 +123,7 @@
 
 <script setup lang="ts">
   import { useTranslate } from '@tolgee/vue'
+  import { useStorage } from '@vueuse/core'
   import ProfileBasicSettings from '~/components/profile/BasicSettings.vue'
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
@@ -197,6 +220,7 @@
   })
 
   const sportSettings = ref<any[]>([])
+  const dismissedSportOverlapAlerts = useStorage<string[]>('profile:sport-overlap-alerts', [])
   const nutritionSettings = ref<any>(null)
   const savingProfile = ref(false)
   const savingPublicAuthor = ref(false)
@@ -366,6 +390,69 @@
       nutritionSettings.value = (nutritionData.value as any).settings
     }
   })
+
+  const sportOverlapGroups = computed(() => {
+    const exactTypeMatches = new Map<string, any[]>()
+
+    for (const setting of sportSettings.value || []) {
+      if (setting?.isDefault) continue
+      const types = Array.isArray(setting?.types) ? setting.types : []
+      for (const type of types) {
+        if (!type) continue
+        const current = exactTypeMatches.get(type) || []
+        current.push(setting)
+        exactTypeMatches.set(type, current)
+      }
+    }
+
+    return Array.from(exactTypeMatches.entries())
+      .filter(([, settings]) => settings.length > 1)
+      .map(([type, settings]) => ({
+        type,
+        settings
+      }))
+  })
+
+  const sportOverlapSignature = computed(() =>
+    sportOverlapGroups.value
+      .map(
+        (group) =>
+          `${group.type}:${group.settings
+            .map((setting: any) => setting.id || setting.externalId || setting.name)
+            .sort()
+            .join(',')}`
+      )
+      .sort()
+      .join('|')
+  )
+
+  const showSportOverlapAlert = computed(
+    () =>
+      activeTab.value === 'sports' &&
+      sportOverlapGroups.value.length > 0 &&
+      !dismissedSportOverlapAlerts.value.includes(sportOverlapSignature.value)
+  )
+
+  const sportOverlapSummary = computed(() =>
+    sportOverlapGroups.value
+      .map((group) => {
+        const profileNames = group.settings
+          .map((setting: any) => setting.name || 'Unnamed profile')
+          .join(', ')
+        return `${group.type} (${profileNames})`
+      })
+      .join('; ')
+  )
+
+  function dismissSportOverlapAlert() {
+    if (!sportOverlapSignature.value) return
+    if (!dismissedSportOverlapAlerts.value.includes(sportOverlapSignature.value)) {
+      dismissedSportOverlapAlerts.value = [
+        ...dismissedSportOverlapAlerts.value,
+        sportOverlapSignature.value
+      ]
+    }
+  }
 
   // Save updated sport settings manually
   async function updateSportSettings(updatedSettings: any[]) {
