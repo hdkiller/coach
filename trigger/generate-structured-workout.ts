@@ -37,6 +37,11 @@ import {
   isDraftStructuredWorkoutSupported,
   workoutPlanDraftSchema
 } from '../server/utils/structured-workout-draft'
+import {
+  estimateStepDistanceMeters,
+  estimateStepDurationSeconds,
+  selectStepIntensity
+} from '../server/utils/structured-workout-persistence'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -1101,6 +1106,7 @@ export const generateStructuredWorkoutTask = task({
     - Use ONE \`target\` object per step, never multiple metric objects.
     - \`target.metric\` must be one of: power, heartRate, pace, rpe.
     - Use \`target.units\` from this set only: %, w, bpm, LTHR, Pace, /km.
+    - CRITICAL: For percentage targets, use decimal fractions, not whole percents. Example: 80% LTHR must be \`0.80\` with \`units: "LTHR"\`; 95% FTP must be \`0.95\` with \`units: "%"\`.
     - Use \`durationSeconds\` for timed steps.
     - Use \`distanceMeters\` only when distance is central to the prescription.
     - Use nested \`steps\` plus \`reps\` for repeats.
@@ -1368,13 +1374,43 @@ export const generateStructuredWorkoutTask = task({
             }
           }
 
-          const intensity = getStepIntensity(
+          stepDuration = estimateStepDurationSeconds(step, {
+            refs: {
+              ftp,
+              lthr,
+              maxHr,
+              thresholdPace: Number(sportSettings?.thresholdPace || 0)
+            },
+            fallbackOrder: targetPolicy.fallbackOrder as Array<
+              'power' | 'heartRate' | 'pace' | 'rpe'
+            >,
+            workoutType: workout.type || ''
+          })
+          stepDistance =
+            stepDistance ||
+            estimateStepDistanceMeters(step, {
+              refs: {
+                ftp,
+                lthr,
+                maxHr,
+                thresholdPace: Number(sportSettings?.thresholdPace || 0)
+              },
+              fallbackOrder: targetPolicy.fallbackOrder as Array<
+                'power' | 'heartRate' | 'pace' | 'rpe'
+              >,
+              workoutType: workout.type || ''
+            })
+
+          const intensity = selectStepIntensity(
             step,
             {
               ftp,
               lthr,
               maxHr,
-              thresholdPace: Number(sportSettings?.thresholdPace || 0)
+              thresholdPace: Number(sportSettings?.thresholdPace || 0),
+              hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+              powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+              paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
             },
             targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>
           )
