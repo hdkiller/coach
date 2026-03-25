@@ -153,6 +153,8 @@
 
   // Fetch data
   async function fetchData() {
+    if (import.meta.server) return
+
     // If props provided, use them
     if (props.streamData) {
       dataStream.value = props.streamData

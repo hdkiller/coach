@@ -297,6 +297,8 @@
   const selectedWorkoutRequestId = ref(0)
 
   async function fetchSelectedWorkout() {
+    if (import.meta.server) return
+
     if (!selectedWorkoutId.value) {
       selectedWorkoutData.value = null
       selectedWorkoutError.value = null

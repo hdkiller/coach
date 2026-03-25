@@ -609,6 +609,8 @@
   }
 
   async function fetchData() {
+    if (import.meta.server) return
+
     const currentConfigStr = JSON.stringify({ ...props.config, instanceId: undefined })
     if (lastFetchedConfig.value === currentConfigStr) return
 
