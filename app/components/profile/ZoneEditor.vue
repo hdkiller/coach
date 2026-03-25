@@ -21,8 +21,8 @@
         class="grid grid-cols-12 gap-2 bg-gray-50 dark:bg-gray-800/50 p-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider"
       >
         <div class="col-span-5 pl-1">Zone Name</div>
-        <div class="col-span-3">Min ({{ units }})</div>
-        <div class="col-span-3">Max ({{ units }})</div>
+        <div class="col-span-3">Min ({{ displayUnits || units }})</div>
+        <div class="col-span-3">Max ({{ displayUnits || units }})</div>
         <div class="col-span-1 text-center"></div>
       </div>
 
@@ -47,10 +47,26 @@
               <UInput v-model="zone.name" size="xs" class="w-full" placeholder="Zone Name" />
             </div>
             <div class="col-span-3">
-              <UInput v-model.number="zone.min" type="number" size="xs" class="w-full" />
+              <UInput
+                :model-value="getDraftValue(index, 'min', zone.min)"
+                :type="usesFormattedInputs ? 'text' : 'number'"
+                size="xs"
+                class="w-full"
+                @update:model-value="setDraftValue(index, 'min', $event)"
+                @blur="commitDraftValue(index, 'min')"
+                @keydown.enter.prevent="commitDraftValue(index, 'min')"
+              />
             </div>
             <div class="col-span-3">
-              <UInput v-model.number="zone.max" type="number" size="xs" class="w-full" />
+              <UInput
+                :model-value="getDraftValue(index, 'max', zone.max)"
+                :type="usesFormattedInputs ? 'text' : 'number'"
+                size="xs"
+                class="w-full"
+                @update:model-value="setDraftValue(index, 'max', $event)"
+                @blur="commitDraftValue(index, 'max')"
+                @keydown.enter.prevent="commitDraftValue(index, 'max')"
+              />
             </div>
             <div class="col-span-1 flex justify-center">
               <UButton
@@ -80,8 +96,11 @@
     modelValue: any[]
     title: string
     units: string
+    displayUnits?: string
     icon: string
     iconColor?: string
+    formatValue?: ((value: number | null | undefined) => string) | null
+    parseValue?: ((value: string) => number | null) | null
   }>()
 
   const emit = defineEmits(['update:modelValue'])
@@ -90,6 +109,80 @@
     get: () => props.modelValue || [],
     set: (val) => emit('update:modelValue', val)
   })
+
+  const usesFormattedInputs = computed(() => Boolean(props.formatValue && props.parseValue))
+  const drafts = ref<Array<{ min: string; max: string }>>([])
+
+  function formatDraftValue(value: number | null | undefined) {
+    if (props.formatValue) return props.formatValue(value)
+    if (value === null || value === undefined) return ''
+    return String(value)
+  }
+
+  function syncDrafts() {
+    drafts.value = (props.modelValue || []).map((zone) => ({
+      min: formatDraftValue(zone?.min),
+      max: formatDraftValue(zone?.max)
+    }))
+  }
+
+  watch(
+    () => props.modelValue,
+    () => syncDrafts(),
+    { deep: true, immediate: true }
+  )
+
+  function getDraftValue(index: number, key: 'min' | 'max', rawValue: number | null | undefined) {
+    if (!usesFormattedInputs.value) {
+      return rawValue === null || rawValue === undefined ? '' : String(rawValue)
+    }
+
+    if (!drafts.value[index]) {
+      drafts.value[index] = {
+        min: formatDraftValue(props.modelValue?.[index]?.min),
+        max: formatDraftValue(props.modelValue?.[index]?.max)
+      }
+    }
+
+    return drafts.value[index]?.[key] ?? ''
+  }
+
+  function setDraftValue(index: number, key: 'min' | 'max', value: string | number) {
+    if (!drafts.value[index]) {
+      drafts.value[index] = {
+        min: formatDraftValue(props.modelValue?.[index]?.min),
+        max: formatDraftValue(props.modelValue?.[index]?.max)
+      }
+    }
+
+    drafts.value[index][key] = String(value ?? '')
+
+    if (!usesFormattedInputs.value) {
+      commitDraftValue(index, key)
+    }
+  }
+
+  function commitDraftValue(index: number, key: 'min' | 'max') {
+    const zone = props.modelValue?.[index]
+    if (!zone) return
+
+    const raw = drafts.value[index]?.[key] ?? ''
+    const parsed = props.parseValue ? props.parseValue(raw) : Number(raw)
+
+    if (parsed === null || Number.isNaN(parsed)) {
+      if (drafts.value[index]) drafts.value[index][key] = formatDraftValue(zone[key])
+      return
+    }
+
+    const nextZones = [...zones.value]
+    nextZones[index] = {
+      ...nextZones[index],
+      [key]: parsed
+    }
+    emit('update:modelValue', nextZones)
+
+    if (drafts.value[index]) drafts.value[index][key] = formatDraftValue(parsed)
+  }
 
   function addZone() {
     const newZone = {

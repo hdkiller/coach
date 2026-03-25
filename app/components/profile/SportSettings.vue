@@ -904,10 +904,24 @@
                     v-model="editForm.paceZones"
                     title="Pace Zones"
                     units="m/s"
+                    :display-units="formatPaceUnitSuffix(getPaceUnitForForm(editForm))"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
+                    :format-value="(value) => formatThresholdPaceForInput(value, getPaceUnitForForm(editForm))"
+                    :parse-value="(value) => parsePaceTextToMps(value, getPaceUnitForForm(editForm))"
                   >
                     <template #actions>
+                      <USelectMenu
+                        :model-value="getPaceUnitForForm(editForm)"
+                        :items="PACE_DISPLAY_UNITS"
+                        value-key="value"
+                        label-key="label"
+                        size="xs"
+                        class="w-28"
+                        @update:model-value="
+                          (val) => onThresholdPaceUnitChange('edit', val as PaceDisplayUnit)
+                        "
+                      />
                       <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'edit')">
                         {{ t('sports_button_recalculate') }}
                       </UButton>
@@ -918,7 +932,12 @@
                   v-else-if="item.content.paceZones?.length"
                   class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
                 >
-                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">Pace Zones</div>
+                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">
+                    Pace Zones
+                    <span class="normal-case tracking-normal">
+                      ({{ formatPaceUnitSuffix(getPaceUnitForForm(item.content)) }})
+                    </span>
+                  </div>
                   <div class="space-y-2">
                     <div
                       v-for="(zone, zIdx) in item.content.paceZones"
@@ -926,10 +945,9 @@
                       class="p-2 border dark:border-gray-800 rounded text-xs flex justify-between bg-white dark:bg-gray-900"
                     >
                       <span class="text-muted truncate mr-1">{{ zone.name }}</span>
-                      <span class="font-mono font-bold"
-                        >{{ zone.min }}-{{ zone.max
-                        }}<span class="text-[10px] ml-0.5 text-gray-400">m/s</span></span
-                      >
+                      <span class="font-mono font-bold">{{
+                        formatPaceZoneRangeDisplay(item.content, zone)
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -1467,10 +1485,24 @@
                     v-model="addForm.paceZones"
                     title="Pace Zones"
                     units="m/s"
+                    :display-units="formatPaceUnitSuffix(getPaceUnitForForm(addForm))"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
+                    :format-value="(value) => formatThresholdPaceForInput(value, getPaceUnitForForm(addForm))"
+                    :parse-value="(value) => parsePaceTextToMps(value, getPaceUnitForForm(addForm))"
                   >
                     <template #actions>
+                      <USelectMenu
+                        :model-value="getPaceUnitForForm(addForm)"
+                        :items="PACE_DISPLAY_UNITS"
+                        value-key="value"
+                        label-key="label"
+                        size="xs"
+                        class="w-28"
+                        @update:model-value="
+                          (val) => onThresholdPaceUnitChange('add', val as PaceDisplayUnit)
+                        "
+                      />
                       <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'add')">
                         {{ t('sports_button_recalculate') }}
                       </UButton>
@@ -1949,6 +1981,10 @@
     if (!mps) return '-'
 
     const unit = (sport?.zoneConfiguration?.paceDisplayUnit || 'PER_KM') as PaceDisplayUnit
+    return `${formatThresholdPaceForInput(mps, unit)}${formatPaceUnitSuffix(unit)}`
+  }
+
+  function formatPaceUnitSuffix(unit: PaceDisplayUnit) {
     const suffixMap: Record<PaceDisplayUnit, string> = {
       PER_KM: '/km',
       PER_MILE: '/mi',
@@ -1956,7 +1992,18 @@
       PER_250M: '/250m'
     }
 
-    return `${formatThresholdPaceForInput(mps, unit)}${suffixMap[unit] || '/km'}`
+    return suffixMap[unit] || '/km'
+  }
+
+  function formatPaceZoneRangeDisplay(sport: any, zone: any) {
+    const minMps = Number(zone?.min || 0)
+    const maxMps = Number(zone?.max || 0)
+    if (!minMps || !maxMps) return '-'
+
+    const unit = getPaceUnitForForm(sport)
+    const start = formatThresholdPaceForInput(minMps, unit)
+    const end = formatThresholdPaceForInput(maxMps, unit)
+    return `${start}-${end}${formatPaceUnitSuffix(unit)}`
   }
 
   function onThresholdPaceInputChange(mode: 'add' | 'edit', value: string) {
