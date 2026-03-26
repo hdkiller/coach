@@ -399,6 +399,7 @@ export interface LlmTrackingContext {
   modelOverride?: string
   thinkingLevelOverride?: 'minimal' | 'low' | 'medium' | 'high'
   thinkingBudgetOverride?: number
+  timeoutMs?: number
 }
 
 /**
@@ -539,6 +540,9 @@ export async function generateStructuredAnalysis<T>(
       prompt: prompt,
       schema: jsonSchema(schema),
       maxRetries: trackingContext?.maxRetries ?? 3,
+      ...(trackingContext?.timeoutMs
+        ? { timeout: { totalMs: trackingContext.timeoutMs } }
+        : {}),
       providerOptions
     })
     if (trackingContext) {

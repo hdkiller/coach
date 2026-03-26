@@ -103,7 +103,59 @@ describe('structured workout draft compiler', () => {
     expect(isDraftStructuredWorkoutSupported('Ride')).toBe(true)
     expect(isDraftStructuredWorkoutSupported('VirtualRide')).toBe(true)
     expect(isDraftStructuredWorkoutSupported('Run')).toBe(true)
-    expect(isDraftStructuredWorkoutSupported('Swim')).toBe(false)
+    expect(isDraftStructuredWorkoutSupported('Swim')).toBe(true)
     expect(isDraftStructuredWorkoutSupported('WeightTraining')).toBe(false)
+  })
+
+  it('compiles swim-specific draft fields', () => {
+    const compiled = compileWorkoutPlanDraftToStructure({
+      coachInstructions: 'Hold form through the set.',
+      steps: [
+        {
+          type: 'Active',
+          name: 'Main swim set',
+          reps: 6,
+          steps: [
+            {
+              type: 'Active',
+              name: 'CSS rep',
+              distanceMeters: 100,
+              stroke: 'Free',
+              equipment: ['Pull Buoy'],
+              sendoffSeconds: 110,
+              targetSplit: '1:40/100m',
+              cssPercent: 1.02,
+              target: { metric: 'rpe', value: 7 }
+            },
+            {
+              type: 'Rest',
+              name: 'Easy float',
+              restSeconds: 20
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(compiled.steps[0]).toMatchObject({
+      reps: 6,
+      steps: [
+        {
+          name: 'CSS rep',
+          distance: 100,
+          stroke: 'Free',
+          equipment: ['Pull Buoy'],
+          sendoffSeconds: 110,
+          targetSplit: '1:40/100m',
+          cssPercent: 1.02,
+          primaryTarget: 'rpe',
+          rpe: 7
+        },
+        {
+          name: 'Easy float',
+          restSeconds: 20
+        }
+      ]
+    })
   })
 })

@@ -545,6 +545,22 @@ function looksLikeIntervalWorkout(workout: any) {
   return /\b(vo2|threshold|tempo|interval|repeats?|x\d+|\d+x)\b/.test(text)
 }
 
+function getCoverageBounds(workout: any, plannedDurationSec: number, preserveStructure?: boolean) {
+  if (preserveStructure) {
+    return { minCoverage: 0.95, maxCoverage: 1.05 }
+  }
+
+  const workoutType = String(workout?.type || '').toLowerCase()
+  if (workoutType.includes('swim')) {
+    return { minCoverage: 0.7, maxCoverage: 1.2 }
+  }
+
+  return {
+    minCoverage: getCoverageThreshold(plannedDurationSec),
+    maxCoverage: 1.1
+  }
+}
+
 function validateStructuredCoverage(params: {
   plannedDurationSec: number
   actualDurationSec: number
@@ -558,8 +574,11 @@ function validateStructuredCoverage(params: {
   }
 
   const coverage = actualDurationSec / plannedDurationSec
-  const minCoverage = preserveStructure ? 0.95 : getCoverageThreshold(plannedDurationSec)
-  const maxCoverage = preserveStructure ? 1.05 : 1.1
+  const { minCoverage, maxCoverage } = getCoverageBounds(
+    workout,
+    plannedDurationSec,
+    preserveStructure
+  )
   if (coverage < minCoverage) {
     return {
       valid: false,
@@ -723,6 +742,7 @@ export const generateStructuredWorkoutTask = task({
     const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
     const startedAtMs = Date.now()
     const MAX_DURATION_MS = 180_000
+    const STRUCTURED_WORKOUT_TIMEOUT_MS = 45_000
     const logStage = (stage: string, meta: Record<string, any> = {}) => {
       const elapsedMs = Date.now() - startedAtMs
       logger.log(`[GenerateStructuredWorkout] ${stage}`, {
@@ -985,13 +1005,17 @@ export const generateStructuredWorkoutTask = task({
     - Respect quality spacing: avoid stacking maximal efforts without enough recovery.`
         : isSwim
           ? `FOR SWIMMING (Swim):
-    - Steps should ideally have 'distance' (meters) instead of or in addition to duration. If using duration, estimate distance.
+    - Prefer 'distanceMeters' for pool reps and lengths. Use 'durationSeconds' only when time-based structure is genuinely better.
     - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
     - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
-    - Include 'stroke' type in description if applicable.
-    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step. Even if it's a technical drill, provide an estimated HR intensity.
-    - Set 'heartRate.units' to "LTHR" unless using explicit bpm.
-    - RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for main set intervals.`
+    - Use 'sendoffSeconds' when the set is written on a send-off and 'restSeconds' when explicit rest matters.
+    - Use 'targetSplit' (e.g. "1:40/100m") or 'cssPercent' when swim pacing is central to the set.
+    - Use one intensity cue per step when possible. Do NOT force heart-rate targets for every swim step.
+    - Technical/drill steps can omit target intensity if stroke, distance, send-off, or rest already defines the task clearly.
+    - CRITICAL: The full pool session must realistically land near the planned duration once swim pace, send-offs, and rests are considered.
+    - For sessions 45 minutes or longer, include enough total volume and explicit recoveries/send-offs to fill the assigned time.
+    - Prefer explicit 'sendoffSeconds' or 'restSeconds' on repeated sets instead of leaving recovery implied.
+    - Before returning, sanity-check the total session time yourself and expand or trim the set so it stays close to the planned duration.`
           : isStrength
             ? `FOR STRENGTH (Gym/WeightTraining):
     - Instead of 'steps', provide a list of 'exercises'.
@@ -1153,6 +1177,7 @@ export const generateStructuredWorkoutTask = task({
               entityType,
               entityId: entityId!,
               maxRetries: 0,
+              timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS,
               modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
               thinkingLevelOverride: isRetry ? 'high' : undefined
             }
@@ -1181,6 +1206,7 @@ export const generateStructuredWorkoutTask = task({
               entityType,
               entityId: entityId!,
               maxRetries: 0, // We handle retries manually here to change models
+              timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS,
               modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
               thinkingLevelOverride: isRetry ? 'high' : undefined
             }
@@ -1235,7 +1261,11 @@ export const generateStructuredWorkoutTask = task({
         )
       }
 
-      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.\n- I am retrying with a more capable model and more thinking budget.\n- Retry with a complete structure now.`
+      const swimCoverageFeedback =
+        workout.type === 'Swim'
+          ? '\n- For swim workouts, explicitly account for pool time using total volume plus sendoffSeconds/restSeconds and targetSplit when appropriate.\n- If the previous swim plan was too short, add enough distance, repeats, or explicit recovery to reach the planned session time.\n- Do not leave repeated swim set recovery implied if it affects total duration.'
+          : ''
+      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.${swimCoverageFeedback}\n- I am retrying with a more capable model and more thinking budget.\n- Retry with a complete structure now.`
       logStage('ai-structure-retry-requested', {
         attempt,
         reason: coverageValidation.reason
@@ -1369,18 +1399,6 @@ export const generateStructuredWorkoutTask = task({
           stepTSS = nested.tss
         } else {
           stepDistance = step.distance || 0
-          stepDuration = step.durationSeconds || 0
-
-          if (stepDuration === 0 && !structure.exercises) {
-            if (step.distance && step.distance > 0) {
-              stepDuration = Math.round(step.distance * 3)
-              step.durationSeconds = stepDuration
-            } else if (step.type !== 'Rest') {
-              stepDuration = 60
-              step.durationSeconds = stepDuration
-            }
-          }
-
           stepDuration = estimateStepDurationSeconds(step, {
             refs: {
               ftp,
@@ -1391,8 +1409,11 @@ export const generateStructuredWorkoutTask = task({
             fallbackOrder: targetPolicy.fallbackOrder as Array<
               'power' | 'heartRate' | 'pace' | 'rpe'
             >,
-            workoutType: workout.type || ''
-          })
+              workoutType: workout.type || ''
+            })
+          if (!step.durationSeconds && stepDuration > 0 && !structure.exercises) {
+            step.durationSeconds = stepDuration
+          }
           stepDistance =
             stepDistance ||
             estimateStepDistanceMeters(step, {

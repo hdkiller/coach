@@ -205,6 +205,79 @@ function inferStepSpeedMps(
   return defaultRunSpeedFromIntent(step?.intent, refs.thresholdPace)
 }
 
+function parseSwimTargetSplitMps(targetSplit: unknown): number | null {
+  if (typeof targetSplit !== 'string') return null
+  const text = targetSplit.trim()
+  if (!text) return null
+
+  const candidate = text.includes('-') ? text.split('-')[0] : text
+  const match = candidate.match(/(\d+):(\d+)\s*\/\s*(25|50|100)m/i)
+  if (!match) return null
+
+  const minutes = Number(match[1])
+  const seconds = Number(match[2])
+  const meters = Number(match[3])
+  if (
+    !Number.isFinite(minutes) ||
+    !Number.isFinite(seconds) ||
+    !Number.isFinite(meters) ||
+    meters <= 0
+  ) {
+    return null
+  }
+
+  const totalSeconds = minutes * 60 + seconds
+  if (totalSeconds <= 0) return null
+  return meters / totalSeconds
+}
+
+function inferSwimSpeedMps(
+  step: any,
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number },
+  fallbackOrder: StepMetric[]
+): number | null {
+  const splitSpeed = parseSwimTargetSplitMps(step?.targetSplit)
+  if (splitSpeed && splitSpeed > 0) return splitSpeed
+
+  const orderedMetrics: StepMetric[] = []
+  const primaryTarget = normalizePrimaryTarget(step, fallbackOrder)
+  if (primaryTarget) orderedMetrics.push(primaryTarget)
+  for (const metric of fallbackOrder) {
+    if (!orderedMetrics.includes(metric)) orderedMetrics.push(metric)
+  }
+
+  for (const metric of orderedMetrics) {
+    if (metric !== 'pace') continue
+    const target = step?.pace
+    const value = getTargetMidpoint(target)
+    if (value === null || !Number.isFinite(value) || value <= 0) continue
+    const units = String(target?.units || '')
+      .trim()
+      .toLowerCase()
+
+    if (units === 'm/s') return value
+    if (units.includes('/')) {
+      const splitText =
+        units === '/km'
+          ? `${value}:00/1000m`
+          : units === '/100m' || units === '/50m' || units === '/25m'
+            ? `${value}`
+            : ''
+      const parsed = parseSwimTargetSplitMps(splitText)
+      if (parsed && parsed > 0) return parsed
+    }
+    if (units === 'pace' || units === '') {
+      if (value >= 0.2 && value <= 3) return value
+      if (refs.thresholdPace > 0 && value > 0 && value <= 1.5) {
+        return value * refs.thresholdPace
+      }
+    }
+  }
+
+  if (refs.thresholdPace > 0) return refs.thresholdPace * 0.75
+  return 0.65
+}
+
 export function toIntensityFactorFromTarget(
   target: any,
   kind: 'heartRate' | 'power' | 'pace',
@@ -328,6 +401,11 @@ export function estimateStepDurationSeconds(
     if (workoutType.includes('run')) {
       const speedMps = inferStepSpeedMps(step, context.refs, context.fallbackOrder)
       if (speedMps && speedMps > 0) return Math.round(explicitDistance / speedMps)
+    }
+    if (workoutType.includes('swim')) {
+      const speedMps = inferSwimSpeedMps(step, context.refs, context.fallbackOrder)
+      if (speedMps && speedMps > 0) return Math.round(explicitDistance / speedMps)
+      return Math.round(explicitDistance * 2)
     }
 
     return Math.round(explicitDistance * 3)

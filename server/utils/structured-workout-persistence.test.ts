@@ -193,6 +193,31 @@ describe('structured workout persistence', () => {
     expect(metrics.distanceMeters).toBe(1800)
   })
 
+  it('infers swim duration from distance and target split', () => {
+    const metrics = computeStructuredWorkoutMetrics(
+      {
+        steps: [
+          {
+            type: 'Active',
+            distance: 100,
+            stroke: 'Free',
+            targetSplit: '2:00/100m',
+            primaryTarget: 'pace',
+            pace: { range: { start: 0.8, end: 0.85 }, units: 'Pace' }
+          }
+        ]
+      },
+      {
+        refs,
+        fallbackOrder: ['pace', 'heartRate', 'power', 'rpe'],
+        workoutType: 'Swim'
+      }
+    )
+
+    expect(metrics.durationSec).toBe(120)
+    expect(metrics.distanceMeters).toBe(100)
+  })
+
   it('uses configured power zone bounds instead of generic zone mapping', () => {
     const metrics = computeStructuredWorkoutMetrics(
       {

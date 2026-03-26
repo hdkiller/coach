@@ -37,6 +37,18 @@ export const workoutPlanDraftSchema = {
           distanceMeters: { type: 'integer', minimum: 1 },
           reps: { type: 'integer', minimum: 1, maximum: 50 },
           cadence: { type: 'integer', minimum: 1 },
+          stroke: {
+            type: 'string',
+            enum: ['Free', 'Back', 'Breast', 'Fly', 'IM', 'Choice', 'Kick', 'Pull']
+          },
+          equipment: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          sendoffSeconds: { type: 'integer', minimum: 1 },
+          restSeconds: { type: 'integer', minimum: 0 },
+          targetSplit: { type: 'string' },
+          cssPercent: { type: 'number', minimum: 0 },
           notes: { type: 'string' },
           target: {
             type: 'object',
@@ -85,6 +97,18 @@ export const workoutPlanDraftSchema = {
                 durationSeconds: { type: 'integer', minimum: 1 },
                 distanceMeters: { type: 'integer', minimum: 1 },
                 cadence: { type: 'integer', minimum: 1 },
+                stroke: {
+                  type: 'string',
+                  enum: ['Free', 'Back', 'Breast', 'Fly', 'IM', 'Choice', 'Kick', 'Pull']
+                },
+                equipment: {
+                  type: 'array',
+                  items: { type: 'string' }
+                },
+                sendoffSeconds: { type: 'integer', minimum: 1 },
+                restSeconds: { type: 'integer', minimum: 0 },
+                targetSplit: { type: 'string' },
+                cssPercent: { type: 'number', minimum: 0 },
                 notes: { type: 'string' },
                 target: {
                   type: 'object',
@@ -133,6 +157,12 @@ export type WorkoutPlanDraftStep = {
   distanceMeters?: number
   reps?: number
   cadence?: number
+  stroke?: 'Free' | 'Back' | 'Breast' | 'Fly' | 'IM' | 'Choice' | 'Kick' | 'Pull'
+  equipment?: string[]
+  sendoffSeconds?: number
+  restSeconds?: number
+  targetSplit?: string
+  cssPercent?: number
   notes?: string
   target?: WorkoutPlanDraftTarget
   steps?: WorkoutPlanDraftStep[]
@@ -194,6 +224,22 @@ function compileDraftStep(step: WorkoutPlanDraftStep): any {
   if (typeof step.reps === 'number' && step.reps > 1) compiled.reps = Math.round(step.reps)
   if (typeof step.cadence === 'number' && step.cadence > 0)
     compiled.cadence = Math.round(step.cadence)
+  if (typeof step.stroke === 'string' && step.stroke.trim()) compiled.stroke = step.stroke.trim()
+  if (Array.isArray(step.equipment) && step.equipment.length > 0) {
+    compiled.equipment = step.equipment.filter((item) => typeof item === 'string' && item.trim())
+  }
+  if (typeof step.sendoffSeconds === 'number' && step.sendoffSeconds > 0) {
+    compiled.sendoffSeconds = Math.round(step.sendoffSeconds)
+  }
+  if (typeof step.restSeconds === 'number' && step.restSeconds >= 0) {
+    compiled.restSeconds = Math.round(step.restSeconds)
+  }
+  if (typeof step.targetSplit === 'string' && step.targetSplit.trim()) {
+    compiled.targetSplit = step.targetSplit.trim()
+  }
+  if (typeof step.cssPercent === 'number' && step.cssPercent > 0) {
+    compiled.cssPercent = Number(step.cssPercent)
+  }
 
   Object.assign(compiled, compileDraftTarget(step.target))
 
@@ -219,5 +265,5 @@ export function isDraftStructuredWorkoutSupported(workoutType: unknown) {
   const normalized = String(workoutType || '')
     .trim()
     .toLowerCase()
-  return normalized.includes('ride') || normalized.includes('run')
+  return normalized.includes('ride') || normalized.includes('run') || normalized.includes('swim')
 }
