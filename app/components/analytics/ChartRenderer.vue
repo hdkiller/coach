@@ -19,6 +19,7 @@
   } from 'chart.js'
   import { wellnessOverlayPlugin } from '~/utils/wellness-events'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
+  import { useBreakpoints } from '@vueuse/core'
 
   ChartJS.register(
     CategoryScale,
@@ -87,6 +88,12 @@
   const theme = useTheme()
   const isZoomLoaded = ref(false)
   const chartRef = ref<any>(null)
+
+  const breakpoints = useBreakpoints({
+    mobile: 0,
+    sm: 640
+  })
+  const isMobile = breakpoints.smaller('sm')
 
   const { onScrub } = useAnalyticsBus()
 
@@ -204,6 +211,11 @@
     return {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: isMobile.value
+          ? { left: 0, right: 0, top: 0, bottom: 0 }
+          : { left: 8, right: 8, top: 8, bottom: 8 }
+      },
       indexAxis: isHorizontal ? ('y' as const) : ('x' as const),
       onHover: (event: any, elements: any[]) => {
         if (elements.length > 0) {
@@ -326,7 +338,12 @@
                   font: { size: 10, weight: '600' as const },
                   maxTicksLimit: isScatter ? 6 : 8,
                   autoSkip: !isScatter,
-                  callback: function (value: number | string) {
+                  callback: function (value: number | string, index: number, ticks: any[]) {
+                    // On mobile, hide the first and last labels to save space and maintain edge-to-edge feel
+                    if (isMobile.value && (index === 0 || index === ticks.length - 1)) {
+                      return ''
+                    }
+
                     const xType = props.config.scales?.x?.type
                     if (
                       isScatter ||
@@ -443,7 +460,7 @@
 </script>
 
 <template>
-  <div class="relative h-full w-full p-2">
+  <div class="relative h-full w-full p-0 sm:p-2">
     <Line
       v-if="visualType === 'line'"
       ref="chartRef"

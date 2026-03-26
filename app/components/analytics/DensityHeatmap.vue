@@ -1,5 +1,5 @@
 <template>
-  <div class="relative h-full w-full p-4 flex flex-col gap-2 overflow-hidden">
+  <div class="relative h-full w-full p-2 sm:p-4 flex flex-col gap-2 overflow-hidden">
     <div class="flex items-center justify-between px-2">
       <div class="text-[10px] font-black uppercase tracking-widest text-muted">
         {{ config.name || 'Density Analysis' }}

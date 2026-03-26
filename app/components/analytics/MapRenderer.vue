@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative h-full w-full overflow-hidden rounded-xl border border-default bg-muted/5 group"
+    class="relative h-full w-full overflow-hidden rounded-none border-0 sm:rounded-xl sm:border sm:border-default bg-muted/5 group"
   >
     <client-only>
       <div v-if="hasData" class="relative h-full w-full">

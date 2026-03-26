@@ -47,7 +47,9 @@
 </script>
 
 <template>
-  <div class="h-full overflow-auto rounded-2xl border border-default/60 bg-default/70 p-4">
+  <div
+    class="h-full overflow-auto rounded-none border-0 bg-transparent p-2 sm:rounded-2xl sm:border sm:border-default/60 sm:bg-default/70 sm:p-4"
+  >
     <div class="min-w-max space-y-2">
       <div
         class="grid gap-2"
