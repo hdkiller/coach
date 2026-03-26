@@ -406,12 +406,16 @@
     overlayPickerOpen.value = false
   }
 
+  const isLibraryOpen = ref(false)
+
   onBeforeRouteLeave(() => {
     closeBrowseOverlays()
+    isLibraryOpen.value = false
   })
 
   onBeforeUnmount(() => {
     closeBrowseOverlays()
+    isLibraryOpen.value = false
   })
 </script>
 
@@ -421,6 +425,13 @@
       <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+          <UButton
+            icon="i-lucide-library"
+            color="neutral"
+            variant="ghost"
+            class="lg:hidden"
+            @click="isLibraryOpen = true"
+          />
         </template>
         <template #title>
           <CoachingNavbarLinks />
@@ -435,7 +446,7 @@
                 icon="i-lucide-edit"
                 label="Edit Source"
                 size="sm"
-                class="font-bold hidden md:flex"
+                class="hidden font-bold md:flex"
                 @click="editWidget"
               />
 
@@ -458,312 +469,96 @@
 
     <template #body>
       <div class="flex h-full min-h-0 overflow-hidden">
-        <aside class="w-80 border-r border-default bg-default/80">
-          <div class="space-y-3 p-3">
-            <div
-              class="inline-flex w-full items-center rounded-2xl border border-default bg-muted/20 p-1"
-            >
-              <UButton
-                size="sm"
-                :color="leftRailTab === 'roster' ? 'primary' : 'neutral'"
-                :variant="leftRailTab === 'roster' ? 'soft' : 'ghost'"
-                class="flex-1"
-                @click="leftRailTab = 'roster'"
-              >
-                Roster
-              </UButton>
-              <UButton
-                size="sm"
-                :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
-                :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
-                class="flex-1"
-                @click="leftRailTab = 'library'"
-              >
-                Library
-              </UButton>
-            </div>
-
-            <div v-if="leftRailTab === 'roster'" class="space-y-2">
-              <div class="text-[10px] font-black uppercase tracking-[0.24em] text-muted">
-                Athlete roster
-              </div>
-              <div class="flex items-center gap-2">
-                <UInput
-                  v-model="athleteSearch"
-                  icon="i-heroicons-magnifying-glass"
-                  placeholder="Search athletes"
-                  size="sm"
-                  class="flex-1"
-                />
-                <div
-                  class="inline-flex items-center gap-1 rounded-full border border-default bg-muted/15 p-1"
-                >
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    :variant="rosterMode === 'single' ? 'soft' : 'ghost'"
-                    class="rounded-full px-3"
-                    icon="i-lucide-user"
-                    @click="rosterMode = 'single'"
-                  >
-                    Single
-                  </UButton>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    :variant="rosterMode === 'compare' ? 'soft' : 'ghost'"
-                    class="rounded-full px-3"
-                    icon="i-lucide-users"
-                    @click="rosterMode = 'compare'"
-                  >
-                    Compare
-                  </UButton>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-if="leftRailTab === 'roster'"
-              class="max-h-[calc(100vh-220px)] space-y-2 overflow-y-auto pr-1"
-            >
-              <button
-                class="w-full rounded-2xl border p-3 text-left transition hover:border-primary/50"
-                :class="
-                  selectedAthleteIds.length === 0
-                    ? 'border-primary/60 bg-primary/5'
-                    : 'border-default/70 bg-default'
-                "
-                @click="selectSingleAthlete(null)"
-              >
-                <div class="flex items-center gap-3">
-                  <UAvatar icon="i-lucide-user" size="md" />
-                  <div class="min-w-0 flex-1">
-                    <div class="truncate font-bold text-highlighted">My personal data</div>
-                    <div class="text-xs text-muted">Preview your own analytics context</div>
-                  </div>
-                </div>
-              </button>
-
-              <div v-if="loadingAthletes" class="space-y-2">
-                <USkeleton v-for="i in 3" :key="i" class="h-20 rounded-2xl" />
-              </div>
-
-              <div
-                v-else-if="filteredAthletes.length === 0"
-                class="rounded-2xl border border-dashed border-default/70 bg-default p-4 text-sm text-muted"
-              >
-                No athletes match this search.
-              </div>
-
-              <button
-                v-for="rel in filteredAthletes"
-                :key="rel.athleteId"
-                class="w-full rounded-2xl border p-3 text-left transition hover:border-primary/50"
-                :class="
-                  selectedAthleteIds.includes(rel.athleteId)
-                    ? 'border-primary/60 bg-primary/5'
-                    : 'border-default/70 bg-default'
-                "
-                @click="
-                  rosterMode === 'compare'
-                    ? toggleCompareAthlete(rel.athleteId)
-                    : selectSingleAthlete(rel.athleteId)
-                "
-              >
-                <div class="flex items-center gap-3">
-                  <UAvatar :src="rel.athlete.image" :alt="rel.athlete.name" size="md" />
-                  <div class="min-w-0 flex-1">
-                    <div class="truncate font-bold text-highlighted">{{ rel.athlete.name }}</div>
-                    <div class="text-xs text-muted">{{ rel.athlete.email }}</div>
-                  </div>
-                  <UIcon
-                    v-if="rosterMode === 'compare' && selectedAthleteIds.includes(rel.athleteId)"
-                    name="i-lucide-check"
-                    class="h-4 w-4 text-primary"
-                  />
-                </div>
-              </button>
-            </div>
-
-            <div v-if="leftRailTab === 'library'" class="space-y-3">
-              <div class="space-y-1">
-                <div class="text-[10px] font-black uppercase tracking-[0.24em] text-muted">
-                  Chart library
-                </div>
-                <UInput
-                  v-model="widgetSearch"
-                  icon="i-heroicons-magnifying-glass"
-                  placeholder="Search charts"
-                  size="sm"
-                />
-              </div>
-
-              <div class="flex flex-wrap gap-2">
-                <UButton
-                  size="xs"
-                  :color="activeCategory === 'all' ? 'primary' : 'neutral'"
-                  :variant="activeCategory === 'all' ? 'soft' : 'outline'"
-                  class="rounded-full"
-                  @click="activeCategory = 'all'"
-                >
-                  All
-                </UButton>
-                <UButton
-                  v-for="category in ANALYTICS_PRESET_CATEGORIES"
-                  :key="category.value"
-                  size="xs"
-                  :color="activeCategory === category.value ? 'primary' : 'neutral'"
-                  :variant="activeCategory === category.value ? 'soft' : 'outline'"
-                  class="rounded-full"
-                  @click="activeCategory = category.value"
-                >
-                  {{ category.label }}
-                </UButton>
-              </div>
-            </div>
-
-            <div
-              v-if="leftRailTab === 'library'"
-              class="max-h-[calc(100vh-260px)] space-y-4 overflow-y-auto pr-1"
-            >
-              <div v-for="group in groupedSystemWidgets" :key="group.value" class="space-y-2">
-                <div class="flex items-center justify-between px-1">
-                  <div class="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
-                    {{ group.label }}
-                  </div>
-                  <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-                    {{ group.widgets.length }}
-                  </div>
-                </div>
-
-                <button
-                  v-for="widget in group.widgets"
-                  :key="widget.id"
-                  class="w-full rounded-2xl border p-3 text-left transition hover:border-primary/50"
-                  :class="
-                    selectedWidget?.id === widget.id
-                      ? 'border-primary/60 bg-primary/5'
-                      : 'border-default/70 bg-default'
-                  "
-                  @click="selectedWidget = widget"
-                >
-                  <div class="flex items-start gap-3">
-                    <div
-                      class="flex h-10 w-10 items-center justify-center rounded-xl border border-default/60 bg-muted/30"
-                    >
-                      <UIcon :name="widgetIcon(widget)" class="h-4 w-4 text-primary-500" />
-                    </div>
-                    <div class="min-w-0 flex-1 space-y-1">
-                      <div class="truncate font-bold text-highlighted">{{ widget.name }}</div>
-                      <p class="line-clamp-2 text-xs text-muted">
-                        {{ widget.description }}
-                      </p>
-                      <div class="flex flex-wrap gap-1 pt-1">
-                        <UBadge v-if="widget.flagship" color="warning" variant="soft" size="xs">
-                          Flagship
-                        </UBadge>
-                        <UBadge color="primary" variant="soft" size="xs">{{ group.label }}</UBadge>
-                        <UBadge color="neutral" variant="outline" size="xs">{{
-                          widget.visualType
-                        }}</UBadge>
-                        <UBadge color="neutral" variant="outline" size="xs">{{
-                          audienceLabel(widget)
-                        }}</UBadge>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <div v-if="filteredCustomWidgets.length > 0" class="space-y-2">
-                <div class="flex items-center justify-between px-1">
-                  <div class="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
-                    Custom
-                  </div>
-                  <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-                    {{ filteredCustomWidgets.length }}
-                  </div>
-                </div>
-
-                <button
-                  v-for="widget in filteredCustomWidgets"
-                  :key="widget.id"
-                  class="w-full rounded-2xl border p-3 text-left transition hover:border-primary/50"
-                  :class="
-                    selectedWidget?.id === widget.id
-                      ? 'border-primary/60 bg-primary/5'
-                      : 'border-default/70 bg-default'
-                  "
-                  @click="selectedWidget = widget"
-                >
-                  <div class="flex items-start gap-3">
-                    <div
-                      class="flex h-10 w-10 items-center justify-center rounded-xl border border-default/60 bg-muted/30"
-                    >
-                      <UIcon :name="widgetIcon(widget)" class="h-4 w-4 text-primary-500" />
-                    </div>
-                    <div class="min-w-0 flex-1 space-y-1">
-                      <div class="truncate font-bold text-highlighted">{{ widget.name }}</div>
-                      <p class="line-clamp-2 text-xs text-muted">
-                        {{ widget.description }}
-                      </p>
-                      <div class="flex flex-wrap gap-1 pt-1">
-                        <UBadge color="neutral" variant="soft" size="xs">Custom</UBadge>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <div
-                v-if="groupedSystemWidgets.length === 0 && filteredCustomWidgets.length === 0"
-                class="rounded-2xl border border-dashed border-default/70 bg-default p-4 text-sm text-muted"
-              >
-                No charts match this search.
-              </div>
-            </div>
-          </div>
+        <!-- Desktop Sidebar -->
+        <aside class="hidden w-80 border-r border-default bg-default/80 lg:block">
+          <AnalyticsBrowseSelector
+            v-model:left-rail-tab="leftRailTab"
+            v-model:athlete-search="athleteSearch"
+            v-model:widget-search="widgetSearch"
+            v-model:active-category="activeCategory"
+            v-model:roster-mode="rosterMode"
+            :loading-athletes="loadingAthletes"
+            :filtered-athletes="filteredAthletes"
+            :selected-athlete-ids="selectedAthleteIds"
+            :grouped-system-widgets="groupedSystemWidgets"
+            :filtered-custom-widgets="filteredCustomWidgets"
+            :selected-widget-id="selectedWidget?.id"
+            @select-single-athlete="selectSingleAthlete"
+            @toggle-compare-athlete="toggleCompareAthlete"
+            @select-widget="selectedWidget = $event"
+          />
         </aside>
 
-        <main class="flex-1 overflow-y-auto bg-default/30 px-6 pb-8 pt-3 lg:px-8">
+        <!-- Mobile Sidebar (Drawer) -->
+        <USlideover v-model:open="isLibraryOpen" side="left" title="Analytics Explorer">
+          <template #content>
+            <AnalyticsBrowseSelector
+              v-model:left-rail-tab="leftRailTab"
+              v-model:athlete-search="athleteSearch"
+              v-model:widget-search="widgetSearch"
+              v-model:active-category="activeCategory"
+              v-model:roster-mode="rosterMode"
+              :loading-athletes="loadingAthletes"
+              :filtered-athletes="filteredAthletes"
+              :selected-athlete-ids="selectedAthleteIds"
+              :grouped-system-widgets="groupedSystemWidgets"
+              :filtered-custom-widgets="filteredCustomWidgets"
+              :selected-widget-id="selectedWidget?.id"
+              @select-single-athlete="
+                (id) => {
+                  selectSingleAthlete(id)
+                  isLibraryOpen = false
+                }
+              "
+              @toggle-compare-athlete="toggleCompareAthlete"
+              @select-widget="
+                (w) => {
+                  selectedWidget = w
+                  isLibraryOpen = false
+                }
+              "
+            />
+          </template>
+        </USlideover>
+
+        <main
+          class="min-w-0 flex-1 overflow-y-auto bg-default/30 px-0 pb-8 pt-0 sm:px-6 sm:pt-3 lg:px-8"
+        >
           <div v-if="selectedWidget" class="mx-auto flex h-full max-w-5xl flex-col">
-            <div class="mb-6 rounded-3xl border border-default bg-default p-6 shadow-sm">
+            <div
+              class="mb-4 border-y border-default bg-default p-4 shadow-sm sm:mb-6 sm:rounded-3xl sm:border sm:p-6"
+            >
               <div class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2">
                   <h2
-                    class="text-4xl font-black uppercase tracking-tight text-gray-900 dark:text-white"
+                    class="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white sm:text-4xl"
                   >
                     {{ selectedWidget.name }}
                   </h2>
-                  <UBadge v-if="selectedWidget.flagship" color="warning" variant="soft" size="xs">
-                    Flagship
-                  </UBadge>
-                  <UBadge color="primary" variant="soft" size="xs">{{
-                    selectedCategoryLabel
-                  }}</UBadge>
-                  <UBadge color="neutral" variant="outline" size="xs">{{
-                    selectedWidget.visualType
-                  }}</UBadge>
-                  <UBadge
-                    :color="selectedWidget.isCustom ? 'neutral' : 'primary'"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    {{ selectedWidget.isCustom ? 'Custom' : 'System' }}
-                  </UBadge>
+                  <div class="flex flex-wrap gap-1">
+                    <UBadge v-if="selectedWidget.flagship" color="warning" variant="soft" size="xs">
+                      Flagship
+                    </UBadge>
+                    <UBadge color="primary" variant="soft" size="xs">{{
+                      selectedCategoryLabel
+                    }}</UBadge>
+                    <UBadge color="neutral" variant="outline" size="xs">{{
+                      selectedWidget.visualType
+                    }}</UBadge>
+                  </div>
                 </div>
-                <p class="max-w-2xl text-neutral-500">
+                <p class="max-w-2xl text-sm text-neutral-500 sm:text-base">
                   {{ selectedWidget.description }}
                 </p>
                 <div
                   v-if="compareContextCopy"
-                  class="max-w-3xl rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted"
+                  class="max-w-3xl rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted sm:p-4 sm:text-sm"
                 >
                   {{ compareContextCopy }}
                 </div>
 
                 <div
-                  class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-widest text-neutral-400"
+                  class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-[10px] font-black uppercase tracking-widest text-neutral-400"
                 >
                   <div class="flex items-center gap-1.5">
                     <UIcon name="i-lucide-user" class="h-3.5 w-3.5" />
@@ -779,7 +574,7 @@
                   </div>
 
                   <ClientOnly>
-                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
                       <UPopover v-if="selectedWidget" v-model:open="datePickerOpen">
                         <UButton
                           color="neutral"
@@ -795,7 +590,7 @@
                         </UButton>
 
                         <template #content>
-                          <div class="w-[320px] space-y-4 p-3">
+                          <div class="w-[320px] space-y-4 p-3 sm:w-[350px]">
                             <div class="space-y-1">
                               <div
                                 class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
@@ -873,7 +668,7 @@
                                 variant="ghost"
                                 @click="resetToPresetRange"
                               >
-                                Reset to preset
+                                Reset
                               </UButton>
                               <UButton
                                 size="xs"
@@ -903,7 +698,7 @@
                         </UButton>
 
                         <template #content>
-                          <div class="w-[320px] space-y-4 p-3">
+                          <div class="w-[300px] space-y-4 p-3 sm:w-[320px]">
                             <div class="space-y-1">
                               <div
                                 class="text-[10px] font-black uppercase tracking-[0.2em] text-muted"
@@ -911,12 +706,11 @@
                                 Overlays
                               </div>
                               <p class="text-xs text-muted">
-                                Add interpretation layers like baselines, targets, trendlines, or
-                                cohort context.
+                                Add interpretation layers like baselines or trends.
                               </p>
                             </div>
 
-                            <div class="space-y-2">
+                            <div class="max-h-60 space-y-2 overflow-y-auto">
                               <button
                                 v-for="overlay in overlayOptions"
                                 :key="overlay.id"
@@ -950,24 +744,14 @@
                             <div
                               class="flex items-center justify-between border-t border-default pt-3"
                             >
-                              <div class="flex items-center gap-2">
-                                <UButton
-                                  size="xs"
-                                  color="neutral"
-                                  variant="ghost"
-                                  @click="clearOverlays"
-                                >
-                                  Turn Off
-                                </UButton>
-                                <UButton
-                                  size="xs"
-                                  color="neutral"
-                                  variant="ghost"
-                                  @click="resetOverlays"
-                                >
-                                  Reset Defaults
-                                </UButton>
-                              </div>
+                              <UButton
+                                size="xs"
+                                color="neutral"
+                                variant="ghost"
+                                @click="clearOverlays"
+                              >
+                                Off
+                              </UButton>
                               <UButton
                                 size="xs"
                                 color="primary"
@@ -991,7 +775,7 @@
                         @click="isSettingsModalOpen = true"
                       >
                         Settings:
-                        <span class="text-neutral-600 dark:text-neutral-200">Customize</span>
+                        <span class="text-neutral-600 dark:text-neutral-200">Config</span>
                       </UButton>
                     </div>
                   </ClientOnly>
@@ -1000,28 +784,44 @@
             </div>
 
             <UCard
-              class="flex-1 overflow-hidden border-2 border-primary-500/10 bg-neutral-50/30 shadow-2xl dark:bg-neutral-900/20"
-              :ui="{ body: 'p-4 h-full' }"
+              class="min-h-[350px] flex-1 border-x-0 border-y-2 border-primary-500/10 bg-neutral-50/30 shadow-2xl dark:bg-neutral-900/20 sm:min-h-[450px] sm:rounded-3xl sm:border-2"
+              :ui="{
+                root: 'rounded-none sm:rounded-3xl',
+                body: 'p-0 sm:p-4 h-full min-h-[350px] sm:min-h-[450px]'
+              }"
             >
               <AnalyticsBaseWidget :config="previewConfig" />
             </UCard>
 
-            <div class="mt-6 max-w-3xl rounded-2xl border border-default/60 bg-default/90 p-4">
+            <div
+              class="mt-4 border-y border-default/60 bg-default/90 p-4 sm:mt-6 sm:max-w-3xl sm:rounded-2xl sm:border"
+            >
               <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                 Why use this chart
               </div>
-              <p class="mt-2 text-sm text-highlighted">
+              <p class="mt-2 text-xs text-highlighted sm:text-sm">
                 {{ selectedWidget.insightCopy || selectedWidget.description }}
               </p>
             </div>
           </div>
 
-          <div v-else class="flex h-full items-center justify-center text-center">
+          <div v-else class="flex h-full items-center justify-center p-8 text-center">
             <div class="max-w-xs space-y-4">
-              <UIcon name="i-lucide-bar-chart-3" class="mx-auto h-16 w-16 text-neutral-200" />
-              <p class="italic text-neutral-400">
+              <UIcon
+                name="i-lucide-bar-chart-3"
+                class="mx-auto h-12 w-12 text-neutral-200 sm:h-16 sm:w-16"
+              />
+              <p class="text-sm italic text-neutral-400 sm:text-base">
                 Select a visualization from the library to begin previewing data.
               </p>
+              <UButton
+                label="Open Explorer"
+                icon="i-lucide-library"
+                color="primary"
+                variant="soft"
+                class="lg:hidden"
+                @click="isLibraryOpen = true"
+              />
             </div>
           </div>
         </main>
