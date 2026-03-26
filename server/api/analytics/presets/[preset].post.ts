@@ -355,26 +355,36 @@ async function buildComplianceChart(
   if (mode === 'acwr') {
     const buckets = buildDailyBuckets(startDate, endDate)
     const historyStart = new Date(startDate.getTime() - 28 * 24 * 60 * 60 * 1000)
-    const wellness = await prisma.wellness.findMany({
+    const workoutHistoryBuckets = buildDailyBuckets(historyStart, endDate)
+    const workouts = await prisma.workout.findMany({
       where: {
         userId: { in: userIds },
-        date: { gte: historyStart, lte: endDate }
+        date: { gte: historyStart, lte: endDate },
+        isDuplicate: false
       },
-      select: { userId: true, date: true, trainingLoad: true },
+      select: { userId: true, date: true, tss: true, trainingLoad: true },
       orderBy: { date: 'asc' }
     })
 
-    const userWellness = new Map<string, Array<{ date: string; load: number }>>()
-    for (const item of wellness) {
-      if (!userWellness.has(item.userId)) userWellness.set(item.userId, [])
-      userWellness.get(item.userId)?.push({
-        date: toDayKey(item.date),
-        load: Number(item.trainingLoad || 0)
-      })
+    const userLoadByDay = new Map<string, Map<string, number>>()
+    for (const userId of userIds) {
+      userLoadByDay.set(userId, new Map(workoutHistoryBuckets.map((bucket) => [bucket, 0])))
+    }
+
+    for (const item of workouts) {
+      const dayKey = toDayKey(item.date)
+      const current = userLoadByDay.get(item.userId)
+      if (!current) continue
+      const load = Number(item.trainingLoad ?? item.tss ?? 0)
+      current.set(dayKey, Number(current.get(dayKey) || 0) + load)
     }
 
     const datasets = userIds.map((userId, idx) => {
-      const history = userWellness.get(userId) || []
+      const history = workoutHistoryBuckets.map((day) => ({
+        date: day,
+        load: Number(userLoadByDay.get(userId)?.get(day) || 0)
+      }))
+
       return {
         label: userIds.length > 1 ? `Athlete ${idx + 1}` : 'ACWR',
         data: buckets.map((day) => {
@@ -856,7 +866,7 @@ async function buildPowerDurationChart(
           time: true,
           watts: true,
           heartrate: true,
-          velocity_smooth: true
+          velocity: true
         }
       }
     },
@@ -907,7 +917,7 @@ async function buildPowerDurationChart(
           ? (workout.streams?.watts as number[] | undefined) || []
           : type === 'hr'
             ? (workout.streams?.heartrate as number[] | undefined) || []
-            : (workout.streams?.velocity_smooth as number[] | undefined) || []
+            : (workout.streams?.velocity as number[] | undefined) || []
 
       if (time.length > 1 && values.length > 1) {
         for (let index = 1; index < time.length; index++) {
@@ -1308,8 +1318,7 @@ async function loadUserProfiles(userIds: string[]) {
       id: true,
       ftp: true,
       lthr: true,
-      maxHr: true,
-      thresholdPace: true
+      maxHr: true
     }
   })
 
@@ -1327,7 +1336,7 @@ async function loadUserProfiles(userIds: string[]) {
         ftp: defaultMap.get(user.id)?.ftp || user.ftp || 200,
         lthr: defaultMap.get(user.id)?.lthr || user.lthr || null,
         maxHr: defaultMap.get(user.id)?.maxHr || user.maxHr || 190,
-        thresholdPace: defaultMap.get(user.id)?.thresholdPace || user.thresholdPace || 4.5
+        thresholdPace: defaultMap.get(user.id)?.thresholdPace || 4.5
       }
     ])
   )
