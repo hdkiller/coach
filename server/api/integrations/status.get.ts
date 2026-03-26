@@ -92,14 +92,31 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const oauthTokenUsage = await prisma.oAuthToken.groupBy({
+    by: ['appId'],
+    where: { userId: user.id },
+    _max: {
+      lastUsedAt: true,
+      createdAt: true
+    }
+  })
+
+  const oauthLastActivityByAppId = new Map(
+    oauthTokenUsage.map((entry) => [
+      entry.appId,
+      entry._max.lastUsedAt || entry._max.createdAt || null
+    ])
+  )
+
   // Map OAuth consents to a standard integration format
   const oauthIntegrations = user.oauthConsents.map((consent) => ({
     id: consent.id,
     provider: consent.app.name,
     isOAuthApp: true,
-    lastSyncAt: consent.updatedAt,
+    lastSyncAt: oauthLastActivityByAppId.get(consent.appId) || consent.updatedAt,
     syncStatus: 'AUTHORIZED',
-    logoUrl: consent.app.logoUrl
+    logoUrl: consent.app.logoUrl,
+    scopes: consent.scopes
   }))
 
   const allIntegrations = [...user.integrations, ...oauthIntegrations]

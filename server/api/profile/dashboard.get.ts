@@ -288,13 +288,26 @@ export default defineEventHandler(async (event) => {
     })
 
     // Get user's integrations
-    const integrations = await prisma.integration.findMany({
-      where: { userId: user.id },
-      select: {
-        provider: true,
-        lastSyncAt: true
-      }
-    })
+    const [integrations, oauthConsents] = await Promise.all([
+      prisma.integration.findMany({
+        where: { userId: user.id },
+        select: {
+          provider: true,
+          lastSyncAt: true
+        }
+      }),
+      prisma.oAuthConsent.findMany({
+        where: { userId: user.id },
+        select: {
+          scopes: true,
+          app: {
+            select: {
+              name: true
+            }
+          }
+        }
+      })
+    ])
 
     // Check data sync status for different categories
     const [workoutCount, nutritionCount, wellnessCount, latestWorkout] = await Promise.all([
@@ -335,6 +348,24 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    for (const consent of oauthConsents) {
+      const appName = consent.app.name
+
+      if (consent.scopes.includes('workout:write')) {
+        workoutProviders.push(appName)
+      }
+
+      if (consent.scopes.includes('nutrition:write')) {
+        nutritionProviders.push(appName)
+      }
+
+      if (consent.scopes.includes('health:write')) {
+        wellnessProviders.push(appName)
+      }
+    }
+
+    const uniqueProviders = (providers: string[]) => Array.from(new Set(providers))
+
     // Identify missing critical fields
     const missingFields: string[] = []
     const effectiveFtp = defaultProfile?.ftp || user.ftp
@@ -365,9 +396,9 @@ export default defineEventHandler(async (event) => {
         workoutCount,
         nutritionCount,
         wellnessCount,
-        workoutProviders,
-        nutritionProviders,
-        wellnessProviders
+        workoutProviders: uniqueProviders(workoutProviders),
+        nutritionProviders: uniqueProviders(nutritionProviders),
+        wellnessProviders: uniqueProviders(wellnessProviders)
       },
       profile: {
         name: user.name,

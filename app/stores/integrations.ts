@@ -5,6 +5,9 @@ interface IntegrationStatus {
   provider: string
   connected: boolean
   lastSyncAt?: string | null
+  isOAuthApp?: boolean
+  syncStatus?: string | null
+  scopes?: string[]
 }
 
 interface DataSyncStatus {
@@ -42,14 +45,13 @@ export const useIntegrationStore = defineStore('integration', () => {
   )
 
   const lastSyncTime = computed(() => {
-    if (!integrationStatus.value?.integrations) return null
+    const timestamps =
+      integrationStatus.value?.integrations
+        ?.map((integration) => integration.lastSyncAt)
+        .filter((value): value is string => Boolean(value))
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime()) || []
 
-    const intervalsIntegration = integrationStatus.value.integrations.find(
-      (i) => i.provider === 'intervals'
-    )
-    if (!intervalsIntegration?.lastSyncAt) return null
-
-    return intervalsIntegration.lastSyncAt
+    return timestamps[0] || null
   })
 
   async function fetchStatus() {
