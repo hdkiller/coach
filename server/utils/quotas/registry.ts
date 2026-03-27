@@ -4,6 +4,8 @@ export type QuotaOperation =
   | 'chat'
   | 'workout_analysis'
   | 'athlete_profile_generation'
+  | 'goal_suggestions'
+  | 'goal_review'
   | 'weekly_plan_generation'
   | 'nutrition_analysis'
   | 'daily_checkin'
@@ -32,6 +34,8 @@ export const QUOTA_REGISTRY: Record<
     chat: { limit: 5, window: '4 hours', enforcement: 'STRICT' },
     workout_analysis: { limit: 3, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 1, window: '24 hours', enforcement: 'STRICT' },
+    goal_suggestions: { limit: 1, window: '24 hours', enforcement: 'STRICT' },
+    goal_review: { limit: 1, window: '24 hours', enforcement: 'STRICT' },
     daily_checkin: { limit: 1, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 1, window: '30 days', enforcement: 'STRICT' },
     nutrition_analysis: { limit: 3, window: '7 days', enforcement: 'STRICT' },
@@ -51,6 +55,8 @@ export const QUOTA_REGISTRY: Record<
     chat: { limit: 50, window: '4 hours', enforcement: 'STRICT' },
     workout_analysis: { limit: 30, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
+    goal_suggestions: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
+    goal_review: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
     daily_checkin: { limit: 2, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 5, window: '30 days', enforcement: 'STRICT' },
     nutrition_analysis: { limit: 20, window: '7 days', enforcement: 'STRICT' },
@@ -70,6 +76,8 @@ export const QUOTA_REGISTRY: Record<
     chat: { limit: 500, window: '4 hours', enforcement: 'STRICT' },
     workout_analysis: { limit: 150, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
+    goal_suggestions: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
+    goal_review: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
     daily_checkin: { limit: 5, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 20, window: '30 days', enforcement: 'STRICT' },
     nutrition_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
@@ -107,6 +115,8 @@ export function mapOperationToQuota(operation: string): QuotaOperation | null {
     'chat',
     'workout_analysis',
     'athlete_profile_generation',
+    'goal_suggestions',
+    'goal_review',
     'weekly_plan_generation',
     'nutrition_analysis',
     'daily_checkin',

@@ -15,6 +15,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
+import { checkQuota } from '../server/utils/quotas/engine'
 
 // Goal review schema for structured JSON output
 const goalReviewSchema = {
@@ -233,6 +234,16 @@ export const reviewGoalsTask = task({
     logger.log('Starting goals review', { userId })
 
     try {
+      try {
+        await checkQuota(userId, 'goal_review')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Goal review quota exceeded', { userId })
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
+
       const timezone = await getUserTimezone(userId)
       const aiSettings = await getUserAiSettings(userId)
       const now = new Date()

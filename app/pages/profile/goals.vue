@@ -32,7 +32,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Listeners
   onTaskCompleted('suggest-goals', async (run) => {
@@ -43,6 +43,16 @@
         title: 'Suggestions Ready',
         description: 'AI has analyzed your profile and generated goal suggestions',
         color: 'success'
+      })
+      return
+    }
+
+    if (run.output?.reason === 'QUOTA_EXCEEDED') {
+      suggestionsLoading.value = false
+      toast.add({
+        title: 'Suggestion Limit Reached',
+        description: 'You have reached your goal suggestion limit for now. Please try again later.',
+        color: 'warning'
       })
     }
   })
@@ -56,7 +66,38 @@
         description: 'AI has reviewed your active goals',
         color: 'success'
       })
+      return
     }
+
+    if (run.output?.reason === 'QUOTA_EXCEEDED') {
+      reviewLoading.value = false
+      toast.add({
+        title: 'Review Limit Reached',
+        description: 'You have reached your goal review limit for now. Please try again later.',
+        color: 'warning'
+      })
+    }
+  })
+
+  onTaskFailed('suggest-goals', async (run) => {
+    suggestionsLoading.value = false
+    toast.add({
+      title: 'Suggestion Failed',
+      description:
+        run.error?.message ||
+        'Goal suggestions hit a rate or processing limit. Please try again later.',
+      color: 'error'
+    })
+  })
+
+  onTaskFailed('review-goals', async (run) => {
+    reviewLoading.value = false
+    toast.add({
+      title: 'Review Failed',
+      description:
+        run.error?.message || 'Goal review hit a rate or processing limit. Please try again later.',
+      color: 'error'
+    })
   })
 
   function handleEdit(goal: any) {
@@ -226,6 +267,7 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
+          <DashboardTriggerMonitorButton />
           <UButton
             v-if="!showWizard"
             color="primary"

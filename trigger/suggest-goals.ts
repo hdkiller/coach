@@ -21,6 +21,7 @@ import {
   formatPromptDistance
 } from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
+import { checkQuota } from '../server/utils/quotas/engine'
 
 // Goal suggestions schema for structured JSON output
 const goalSuggestionsSchema = {
@@ -163,6 +164,16 @@ export const suggestGoalsTask = task({
     logger.log('Starting goal suggestions generation', { userId })
 
     try {
+      try {
+        await checkQuota(userId, 'goal_suggestions')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Goal suggestions quota exceeded', { userId })
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
+
       const timezone = await getUserTimezone(userId)
       const aiSettings = await getUserAiSettings(userId)
       const now = new Date()

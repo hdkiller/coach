@@ -418,10 +418,47 @@ export function useUserRunsState() {
     )
   }
 
+  const onTaskFailed = (
+    taskIdentifier: string,
+    callback: (run: TriggerRun) => void | Promise<void>
+  ) => {
+    const setupTime = Date.now()
+
+    const alreadyFailed = new Set(
+      runs.value
+        .filter((r) => r.taskIdentifier === taskIdentifier && r.status === 'FAILED')
+        .map((r) => r.id)
+    )
+
+    watch(
+      runs,
+      (newRuns) => {
+        const matches = newRuns.filter(
+          (r) => r.taskIdentifier === taskIdentifier && r.status === 'FAILED'
+        )
+        matches.forEach((run) => {
+          if (alreadyFailed.has(run.id) || notifiedRunIds.has(run.id)) {
+            return
+          }
+
+          const finishedTime = run.finishedAt ? new Date(run.finishedAt).getTime() : 0
+          if (finishedTime > setupTime - 2000) {
+            notifiedRunIds.add(run.id)
+            callback(run)
+          } else {
+            alreadyFailed.add(run.id)
+          }
+        })
+      },
+      { deep: true, immediate: true }
+    )
+  }
+
   return {
     activeRunCount,
     runs,
     onTaskCompleted,
+    onTaskFailed,
     cancelRun
   }
 }

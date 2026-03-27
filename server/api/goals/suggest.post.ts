@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { checkQuota } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -41,6 +42,18 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   try {
+    await checkQuota(userId, 'goal_suggestions')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for goal suggestions.'
+      })
+    }
+    throw error
+  }
+
+  try {
     // Trigger the goal suggestions background job with per-user concurrency
     const handle = await tasks.trigger(
       'suggest-goals',
@@ -62,7 +75,7 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     throw createError({
-      statusCode: 500,
+      statusCode: (error as any)?.statusCode || 500,
       message: `Failed to start goal suggestion generation: ${error instanceof Error ? error.message : 'Unknown error'}`
     })
   }

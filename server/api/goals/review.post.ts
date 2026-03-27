@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { checkQuota } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -42,6 +43,18 @@ export default defineEventHandler(async (event) => {
 
   const userId = (session.user as any).id
 
+  try {
+    await checkQuota(userId, 'goal_review')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for goal review.'
+      })
+    }
+    throw error
+  }
+
   // Check if user has active goals
   const activeGoalsCount = await prisma.goal.count({
     where: {
@@ -79,7 +92,7 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     throw createError({
-      statusCode: 500,
+      statusCode: (error as any)?.statusCode || 500,
       message: `Failed to start goal review: ${error instanceof Error ? error.message : 'Unknown error'}`
     })
   }
