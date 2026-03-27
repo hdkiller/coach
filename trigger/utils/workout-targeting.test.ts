@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { applyStepIntentGuard, applyTargetFormatPolicyToStep } from './workout-targeting'
+import {
+  applyStepIntentGuard,
+  applyTargetFormatPolicyToStep,
+  resolveWorkoutTargeting
+} from './workout-targeting'
 
 function midpointOfRange(target: any) {
   if (!target) return null
@@ -208,5 +212,28 @@ describe('applyTargetFormatPolicyToStep', () => {
       range: { start: 1.08, end: 1.1 },
       units: '%'
     })
+  })
+})
+
+describe('resolveWorkoutTargeting', () => {
+  it('disables metric-level preferRange when default target style is value', () => {
+    const resolved = resolveWorkoutTargeting({
+      targetPolicy: {
+        primaryMetric: 'power',
+        defaultTargetStyle: 'value',
+        preferRangesForSteady: true
+      },
+      targetFormatPolicy: {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'percentPace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      }
+    })
+
+    expect(resolved.targetPolicy.defaultTargetStyle).toBe('value')
+    expect(resolved.targetFormatPolicy.heartRate.preferRange).toBe(false)
+    expect(resolved.targetFormatPolicy.power.preferRange).toBe(false)
+    expect(resolved.targetFormatPolicy.pace.preferRange).toBe(false)
   })
 })

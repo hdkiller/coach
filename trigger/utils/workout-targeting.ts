@@ -379,6 +379,14 @@ export function resolveWorkoutTargeting(
     fallback: targetPolicy.fallbackOrder
   })
   const targetFormatPolicy = normalizeTargetFormatPolicy(mergedTargetFormatPolicy)
+
+  // Keep explicit single-value targeting authoritative across save/regenerate flows.
+  if (targetPolicy.defaultTargetStyle === 'value') {
+    targetFormatPolicy.heartRate.preferRange = false
+    targetFormatPolicy.power.preferRange = false
+    targetFormatPolicy.pace.preferRange = false
+  }
+
   const loadPreference = toLegacyLoadPreference(targetPolicy.fallbackOrder)
   const loadOrderTokens = targetPolicy.fallbackOrder.map(toMetricToken)
   const priorityText = loadOrderTokens.join(' > ')
