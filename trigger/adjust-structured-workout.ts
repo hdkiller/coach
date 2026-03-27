@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis, buildConciseWorkoutSummary } from '../server/utils/gemini'
@@ -1066,7 +1067,7 @@ export const adjustStructuredWorkoutTask = task({
       steps.forEach((step: any, stepIndex: number) => {
         if (!step || typeof step !== 'object' || Array.isArray(step)) {
           logger.warn('Skipping malformed structured workout step during adjustment', {
-            workoutId: workout.id,
+            workoutId: plannedWorkoutId,
             depth,
             stepIndex,
             stepType: typeof step
@@ -1102,7 +1103,7 @@ export const adjustStructuredWorkoutTask = task({
           }
         }
 
-        if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
+        if (workout!.type === 'Ride' || workout!.type === 'VirtualRide') {
           recoverTarget('power')
           ensureTargetObject('power')
 
@@ -1122,7 +1123,7 @@ export const adjustStructuredWorkoutTask = task({
 
           step.stroke = undefined
           step.equipment = undefined
-        } else if (workout.type === 'Run') {
+        } else if (workout!.type === 'Run') {
           recoverTarget('heartRate')
           recoverTarget('pace')
           recoverTarget('power')
@@ -1190,8 +1191,8 @@ export const adjustStructuredWorkoutTask = task({
             fallbackOrder: targetPolicy.fallbackOrder as Array<
               'power' | 'heartRate' | 'pace' | 'rpe'
             >,
-              workoutType: workout.type || ''
-            })
+            workoutType: workout!.type || ''
+          })
           if (!step.durationSeconds && stepDuration > 0 && !structure.exercises) {
             step.durationSeconds = stepDuration
           }
@@ -1207,7 +1208,7 @@ export const adjustStructuredWorkoutTask = task({
               fallbackOrder: targetPolicy.fallbackOrder as Array<
                 'power' | 'heartRate' | 'pace' | 'rpe'
               >,
-              workoutType: workout.type || ''
+              workoutType: workout!.type || ''
             })
 
           const intensity = selectStepIntensity(

@@ -6,6 +6,7 @@ export interface IngestionCounts {
   events?: number
   nutrition?: number
   activity?: number
+  fitFiles?: number
 }
 
 export interface IngestionResult {

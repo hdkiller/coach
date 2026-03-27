@@ -42,7 +42,7 @@ export async function ingestStravaStreamsForWorkout(payload: {
       'grade_smooth',
       'moving'
     ])
-  } catch (error) {
+  } catch (error: any) {
     if (!isStravaStreamsNotFoundError(error)) {
       throw error
     }
@@ -73,11 +73,11 @@ export async function ingestStravaStreamsForWorkout(payload: {
     velocityPoints: velocityData.length
   })
 
-  let lapSplits = null
-  let paceVariability = null
-  let avgPacePerKm = null
-  let pacingStrategy = null
-  let surges = null
+  let lapSplits: any = undefined
+  let paceVariability: number | undefined = undefined
+  let avgPacePerKm: number | undefined = undefined
+  let pacingStrategy: any = undefined
+  let surges: any = undefined
 
   if (timeData.length > 0 && distanceData.length > 0) {
     lapSplits = calculateLapSplits(timeData, distanceData, 1000)
@@ -151,10 +151,10 @@ export async function ingestStravaStreamsForWorkout(payload: {
     if (tssResult.tss !== null) {
       await calculateWorkoutStress(payload.workoutId, payload.userId)
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to normalize TSS', {
       workoutId: payload.workoutId,
-      error
+      error: error.message
     })
   }
 

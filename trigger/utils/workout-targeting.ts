@@ -42,7 +42,12 @@ export const STEP_INTENTS: StepIntent[] = [
 
 export interface WorkoutTargetingOverride {
   targetPolicy?: Partial<TargetPolicy> | null
-  targetFormatPolicy?: Partial<TargetFormatPolicy> | null
+  targetFormatPolicy?: {
+    heartRate?: Partial<TargetFormatPolicy['heartRate']>
+    power?: Partial<TargetFormatPolicy['power']>
+    pace?: Partial<TargetFormatPolicy['pace']>
+    cadence?: Partial<TargetFormatPolicy['cadence']>
+  } | null
   loadPreference?: string | null
 }
 

@@ -107,20 +107,29 @@ export const ingestWahooTask = task({
             const filename = `wahoo_${workout.id}.fit`
 
             // Store in FitFile table
-            const fitFile = await prisma.fitFile.upsert({
-              where: { hash },
-              update: {
-                userId,
-                filename,
-                fileData: buffer
-              },
-              create: {
-                userId,
-                filename,
-                fileData: buffer,
-                hash
-              }
+            let fitFile = await prisma.fitFile.findFirst({
+              where: { hash }
             })
+
+            if (fitFile) {
+              fitFile = await prisma.fitFile.update({
+                where: { id: fitFile.id },
+                data: {
+                  userId,
+                  filename,
+                  fileData: buffer
+                }
+              })
+            } else {
+              fitFile = await prisma.fitFile.create({
+                data: {
+                  userId,
+                  filename,
+                  fileData: buffer,
+                  hash
+                }
+              })
+            }
 
             logger.log(`Saved FIT file to database, triggering ingestion task...`)
 
