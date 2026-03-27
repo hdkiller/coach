@@ -302,6 +302,7 @@ export function normalizeYazioData(
     lunch: mealGroups.lunch!.length > 0 ? mealGroups.lunch : null,
     dinner: mealGroups.dinner!.length > 0 ? mealGroups.dinner : null,
     snacks: mealGroups.snacks!.length > 0 ? mealGroups.snacks : null,
+    sourcePrecedence: 'yazio',
     rawJson: { summary, items }
   }
 

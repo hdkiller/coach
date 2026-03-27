@@ -3,21 +3,18 @@ type NutritionLike = {
   carbsGoal?: number | null
   proteinGoal?: number | null
   fatGoal?: number | null
-  fuelingPlan?: {
-    dailyTotals?: {
-      calories?: number | null
-      carbs?: number | null
-      protein?: number | null
-      fat?: number | null
-    } | null
-  } | null
+  fuelingPlan?: unknown
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
 export function applyCanonicalNutritionTargets<T extends NutritionLike>(nutrition: T): T {
-  const dailyTotals = nutrition?.fuelingPlan?.dailyTotals
+  const fuelingPlan =
+    nutrition?.fuelingPlan && typeof nutrition.fuelingPlan === 'object'
+      ? (nutrition.fuelingPlan as { dailyTotals?: Record<string, unknown> | null })
+      : null
+  const dailyTotals = fuelingPlan?.dailyTotals
   if (!dailyTotals) return nutrition
 
   return {

@@ -1,4 +1,5 @@
 import { prisma as globalPrisma } from '../db'
+import { toPrismaInputJsonValue } from '../prisma-json'
 import { normalizeTargetPolicy, toLegacyLoadPreference } from '../workout-target-policy'
 import { normalizeTargetFormatPolicy } from '../workout-target-format-policy'
 
@@ -90,8 +91,8 @@ export const sportSettingsRepository = {
           warmupTime: 10,
           cooldownTime: 10,
           loadPreference,
-          targetPolicy,
-          targetFormatPolicy
+          targetPolicy: toPrismaInputJsonValue(targetPolicy),
+          targetFormatPolicy: toPrismaInputJsonValue(targetFormatPolicy)
         }
       })
       .then(normalizePersistedSetting)
@@ -176,8 +177,8 @@ export const sportSettingsRepository = {
               cooldownTime: setting.cooldownTime,
               loadPreference,
               zoneConfiguration: setting.zoneConfiguration || undefined,
-              targetPolicy,
-              targetFormatPolicy
+              targetPolicy: toPrismaInputJsonValue(targetPolicy),
+              targetFormatPolicy: toPrismaInputJsonValue(targetFormatPolicy)
             }
           })
 
@@ -235,8 +236,8 @@ export const sportSettingsRepository = {
             cooldownTime: setting.cooldownTime,
             loadPreference,
             zoneConfiguration: setting.zoneConfiguration || undefined,
-            targetPolicy,
-            targetFormatPolicy
+            targetPolicy: toPrismaInputJsonValue(targetPolicy),
+            targetFormatPolicy: toPrismaInputJsonValue(targetFormatPolicy)
           },
           create: {
             userId,
@@ -244,8 +245,8 @@ export const sportSettingsRepository = {
             loadPreference,
             source: setting.source,
             externalId: setting.externalId,
-            targetPolicy,
-            targetFormatPolicy
+            targetPolicy: toPrismaInputJsonValue(targetPolicy),
+            targetFormatPolicy: toPrismaInputJsonValue(targetFormatPolicy)
           }
         })
 
@@ -274,8 +275,8 @@ export const sportSettingsRepository = {
           userId,
           ...setting,
           loadPreference,
-          targetPolicy,
-          targetFormatPolicy,
+          targetPolicy: toPrismaInputJsonValue(targetPolicy),
+          targetFormatPolicy: toPrismaInputJsonValue(targetFormatPolicy),
           source: setting.source || 'manual',
           externalId: setting.externalId || `manual_${Date.now()}`
         }

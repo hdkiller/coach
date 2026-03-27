@@ -301,7 +301,9 @@ class UserMemoryService {
               { content: { contains: params.content, mode: 'insensitive' } }
             ]
           },
-          ...(params.roomId ? [{ OR: [{ roomId: params.roomId }, { scope: 'GLOBAL' }] }] : [])
+          ...(params.roomId
+            ? [{ OR: [{ roomId: params.roomId }, { scope: 'GLOBAL' as UserMemoryScope }] }]
+            : [])
         ]
       },
       orderBy: [{ pinned: 'desc' }, { updatedAt: 'desc' }]

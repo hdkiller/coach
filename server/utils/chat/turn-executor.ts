@@ -411,6 +411,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   if (!turn || turn.room.deletedAt) {
     return { success: false, error: 'Turn not found or room deleted.' }
   }
+  const activeTurn = turn
 
   const requestSnapshot = chatTurnService.getRequestSnapshot(turn)
   const submittedMessages = Array.isArray(requestSnapshot.messages) ? requestSnapshot.messages : []
@@ -484,7 +485,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     console.warn(
       '[ChatTurn] Execution start skipped because another runner already owns the turn.',
       {
-        turnId: turn.id,
+        turnId: activeTurn.id,
         expectedRunId: expectedRunId || turn.runId || null
       }
     )
@@ -502,7 +503,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   const heartbeatTimer = setInterval(() => {
     void chatTurnService.heartbeat(turn.id).catch((error) => {
       console.error('[ChatTurn] Heartbeat keepalive failed:', {
-        turnId: turn.id,
+        turnId: activeTurn.id,
         error
       })
     })
@@ -798,14 +799,14 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       skillSelection?: Record<string, any> | null
     } = {}
   ) {
-    await sendToUser(turn.userId, {
+    await sendToUser(activeTurn.userId, {
       type: 'chat_message_upsert',
-      roomId: turn.roomId,
+      roomId: activeTurn.roomId,
       message: expandStoredChatMessage({
         ...message,
         senderId: 'ai_agent',
         turn: {
-          id: turn.id,
+          id: activeTurn.id,
           status,
           failureReason: extra.failureReason ?? null,
           startedAt,
@@ -817,10 +818,10 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   }
 
   async function broadcastAssistantTextDelta(textDelta: string, status: string) {
-    await sendToUser(turn.userId, {
+    await sendToUser(activeTurn.userId, {
       type: 'chat_assistant_text_delta',
-      roomId: turn.roomId,
-      turnId: turn.id,
+      roomId: activeTurn.roomId,
+      turnId: activeTurn.id,
       messageId: draft.id,
       textDelta,
       status
@@ -828,10 +829,10 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   }
 
   async function broadcastTurnStatus(reason: string, extra: Record<string, any> = {}) {
-    await sendToUser(turn.userId, {
+    await sendToUser(activeTurn.userId, {
       type: 'chat_turn_status',
-      roomId: turn.roomId,
-      turnId: turn.id,
+      roomId: activeTurn.roomId,
+      turnId: activeTurn.id,
       status: extra.status || CHAT_TURN_STATUS.RUNNING,
       reason,
       ...extra
@@ -843,9 +844,9 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     memories: any[]
     notice: string
   }) {
-    await sendToUser(turn.userId, {
+    await sendToUser(activeTurn.userId, {
       type: 'chat_memory_event',
-      roomId: turn.roomId,
+      roomId: activeTurn.roomId,
       action: payload.action,
       memories: payload.memories,
       notice: payload.notice
@@ -876,14 +877,14 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
 
       await prisma.llmUsage.create({
         data: {
-          userId: turn.userId,
-          turnId: turn.id,
+          userId: activeTurn.userId,
+          turnId: activeTurn.id,
           provider: 'gemini',
           model: modelName,
           modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
           operation: 'chat_attempt',
           entityType: 'ChatTurn',
-          entityId: turn.id,
+          entityId: activeTurn.id,
           promptTokens,
           completionTokens,
           cachedTokens,
@@ -964,7 +965,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       } as any
     })
 
-    await chatTurnService.heartbeat(turn.id, status as any)
+    await chatTurnService.heartbeat(activeTurn.id, status as any)
     await broadcastAssistantMessage(updatedDraft, status, {
       failureReason:
         typeof extraMetadata.failureReason === 'string' ? extraMetadata.failureReason : null
@@ -977,7 +978,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     }
 
     slowResponseRecorded = true
-    await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+    await chatTurnService.recordEvent(activeTurn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
       thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS,
       reason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
       phase: currentPhase
@@ -1020,7 +1021,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     firstOutputLatencyMs = Math.max(0, firstVisibleOutputAt.getTime() - startedAt.getTime())
     currentPhase = source === 'text_delta' ? 'streaming' : 'tool_step'
 
-    await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.FIRST_OUTPUT_RECEIVED, {
+    await chatTurnService.recordEvent(activeTurn.id, CHAT_TURN_EVENT_TYPE.FIRST_OUTPUT_RECEIVED, {
       source,
       firstOutputLatencyMs,
       ...extra
@@ -1081,21 +1082,26 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       stopWhen: stepCountIs(opSettings.maxSteps),
       providerOptions: attemptProviderOptions,
       experimental_context: {
-        turnId: turn.id,
-        lineageId: turn.lineageId,
-        roomId: turn.roomId,
-        userId: turn.userId
+        turnId: activeTurn.id,
+        lineageId: activeTurn.lineageId,
+        roomId: activeTurn.roomId,
+        userId: activeTurn.userId
       },
       onChunk: async ({ chunk }) => {
         if (chunk.type === 'text-delta') {
+          const deltaText = chunk.text
           await markFirstVisibleOutput('text_delta')
-          assistantText += chunk.textDelta
+          assistantText += deltaText
           currentPhase = 'streaming'
-          await broadcastAssistantTextDelta(chunk.textDelta, CHAT_TURN_STATUS.STREAMING)
+          await broadcastAssistantTextDelta(deltaText, CHAT_TURN_STATUS.STREAMING)
           await persistDraft(CHAT_TURN_STATUS.STREAMING)
-          await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.ASSISTANT_TEXT_DELTA, {
-            textDelta: chunk.textDelta
-          } as any)
+          await chatTurnService.recordEvent(
+            activeTurn.id,
+            CHAT_TURN_EVENT_TYPE.ASSISTANT_TEXT_DELTA,
+            {
+              textDelta: deltaText
+            } as any
+          )
         }
       },
       onStepFinish: async ({ toolCalls, toolResults, usage }) => {
@@ -1508,7 +1514,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         createdAt: draft.createdAt,
         metadata: {
           ...((draft.metadata as any) || {}),
-          isDraft: terminalStatus !== CHAT_TURN_STATUS.COMPLETED,
+          isDraft: false,
           interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
           failureReason: reason
         }
@@ -1548,7 +1554,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           model: modelName,
           success: false,
           errorType:
-            terminalTimeoutReason?.toUpperCase() ||
+            (terminalTimeoutReason ? String(terminalTimeoutReason).toUpperCase() : '') ||
             (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'INTERRUPTED' : 'FAILED'),
           errorMessage: reason,
           durationMs: executionDurationMs,

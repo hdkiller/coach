@@ -7,7 +7,7 @@ export function buildEfficiencyTrendData(
     normalizedPower?: number | null
     averageWatts?: number | null
     averageHr?: number | null
-    rawJson?: Record<string, any> | null
+    rawJson?: unknown
   }>
 ) {
   return workouts.map((w) => {
@@ -17,9 +17,10 @@ export function buildEfficiencyTrendData(
     const ef = power / hr
 
     let decoupling = null
-    if (w.rawJson && typeof w.rawJson === 'object') {
-      if (w.rawJson.decoupling) decoupling = w.rawJson.decoupling
-      if (w.rawJson.aerobic_decoupling) decoupling = w.rawJson.aerobic_decoupling
+    if (w.rawJson && typeof w.rawJson === 'object' && !Array.isArray(w.rawJson)) {
+      const rawJson = w.rawJson as Record<string, any>
+      if (rawJson.decoupling) decoupling = rawJson.decoupling
+      if (rawJson.aerobic_decoupling) decoupling = rawJson.aerobic_decoupling
     }
 
     return {

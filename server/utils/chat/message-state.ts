@@ -4,22 +4,21 @@ function hasMeaningfulContent(content: unknown) {
   return typeof content === 'string' && content.trim().length > 0
 }
 
-export function hasVisibleAssistantMetadataArtifacts(
-  metadata: Record<string, any> | null | undefined
-) {
-  if (!metadata) return false
+export function hasVisibleAssistantMetadataArtifacts(metadata: unknown) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false
+  const normalized = metadata as Record<string, any>
 
   return (
-    (Array.isArray(metadata.toolCalls) && metadata.toolCalls.length > 0) ||
-    (Array.isArray(metadata.toolApprovals) && metadata.toolApprovals.length > 0) ||
-    (Array.isArray(metadata.toolResults) && metadata.toolResults.length > 0)
+    (Array.isArray(normalized.toolCalls) && normalized.toolCalls.length > 0) ||
+    (Array.isArray(normalized.toolApprovals) && normalized.toolApprovals.length > 0) ||
+    (Array.isArray(normalized.toolResults) && normalized.toolResults.length > 0)
   )
 }
 
 export function shouldExcludeAssistantMessageFromHistory(message: {
   senderId?: string | null
   content?: string | null
-  metadata?: Record<string, any> | null
+  metadata?: unknown
   turn?: {
     status?: string | null
   } | null
@@ -28,7 +27,10 @@ export function shouldExcludeAssistantMessageFromHistory(message: {
     return false
   }
 
-  const metadata = (message.metadata || {}) as Record<string, any>
+  const metadata =
+    message.metadata && typeof message.metadata === 'object' && !Array.isArray(message.metadata)
+      ? (message.metadata as Record<string, any>)
+      : {}
   const turnStatus = String(message.turn?.status || metadata.turnStatus || '')
   const isTerminalFailure =
     turnStatus === CHAT_TURN_STATUS.INTERRUPTED || turnStatus === CHAT_TURN_STATUS.FAILED

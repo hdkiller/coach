@@ -2,7 +2,7 @@ import FitParser from 'fit-file-parser'
 import {
   calculateLapSplits,
   calculatePaceVariability,
-  calculatePaceZones,
+  calculateTimeInPaceZones,
   analyzePacingStrategy,
   detectSurges
 } from './pacing'

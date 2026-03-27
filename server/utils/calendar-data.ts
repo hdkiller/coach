@@ -9,6 +9,7 @@ import { getUserNutritionSettings } from './nutrition/settings'
 import { metabolicService } from './services/metabolicService'
 import { bodyMetricResolver } from './services/bodyMetricResolver'
 import { getCalendarNoteDisplayEndDate } from './calendar-notes'
+import { getJsonObject } from './prisma-json'
 
 export async function getCalendarDataForUser(
   userId: string,
@@ -88,9 +89,20 @@ export async function getCalendarDataForUser(
       if (!n) continue
       const dateKey = n.date.toISOString().split('T')[0] as string
       const state = metabolicStates.get(dateKey) || { startingGlycogen: 85, startingFluid: 0 }
+      const fuelingPlan = getJsonObject(n.fuelingPlan)
 
       nutritionByDate.set(dateKey, {
-        ...applyCanonicalNutritionTargets(n),
+        ...applyCanonicalNutritionTargets({
+          ...n,
+          fuelingPlan: fuelingPlan as {
+            dailyTotals?: {
+              calories?: number | null
+              carbs?: number | null
+              protein?: number | null
+              fat?: number | null
+            } | null
+          } | null
+        }),
         startingGlycogen: state.startingGlycogen,
         startingFluid: state.startingFluid
       })

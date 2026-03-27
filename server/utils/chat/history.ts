@@ -96,6 +96,12 @@ function normalizeStoredToolCalls(metadata: any, messageId?: string) {
 }
 
 export function expandStoredChatMessage(message: any) {
+  const turnMetadataSource =
+    message.turn?.metadata &&
+    typeof message.turn.metadata === 'object' &&
+    !Array.isArray(message.turn.metadata)
+      ? (message.turn.metadata as Record<string, any>)
+      : null
   const turnMetadata = message.turn
     ? {
         turnId: message.turn.id,
@@ -103,8 +109,8 @@ export function expandStoredChatMessage(message: any) {
         turnFailureReason: message.turn.failureReason,
         turnStartedAt: message.turn.startedAt,
         turnFinishedAt: message.turn.finishedAt,
-        ...(message.turn.metadata?.skillSelection
-          ? { skillSelection: message.turn.metadata.skillSelection }
+        ...(turnMetadataSource?.skillSelection
+          ? { skillSelection: turnMetadataSource.skillSelection }
           : {})
       }
     : {}

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { Prisma } from '@prisma/client'
 
 type StructureEditSource = 'USER' | 'AI' | 'REMOTE_IMPORT' | 'PUBLISH'
 
@@ -44,7 +45,7 @@ export function buildStructureEditFields(
     lastStructureEditSource: source,
     structureHash: computeStructuredWorkoutHash(structuredWorkout),
     syncConflict: false,
-    pendingRemoteStructuredWorkout: null
+    pendingRemoteStructuredWorkout: Prisma.DbNull
   }
 }
 
@@ -55,7 +56,7 @@ export function buildStructurePublishFields(structuredWorkout: unknown, now = ne
     lastStructurePublishedAt: now,
     lastStructureEditSource: 'PUBLISH',
     syncConflict: false,
-    pendingRemoteStructuredWorkout: null,
+    pendingRemoteStructuredWorkout: Prisma.DbNull,
     ...(structureHash ? { structureHash } : {})
   }
 }
@@ -69,7 +70,7 @@ export function buildRemoteStructureCreateFields(structuredWorkout: unknown, now
     structureHash: computeStructuredWorkoutHash(structuredWorkout),
     remoteStructureHash: computeStructuredWorkoutHash(structuredWorkout),
     syncConflict: false,
-    pendingRemoteStructuredWorkout: null
+    pendingRemoteStructuredWorkout: Prisma.DbNull
   }
 }
 
@@ -125,7 +126,7 @@ export function buildRemoteStructureMergeFields(
         structureHash: remoteHash,
         remoteStructureHash: remoteHash,
         syncConflict: false,
-        pendingRemoteStructuredWorkout: null
+        pendingRemoteStructuredWorkout: Prisma.DbNull
       }
     }
   }
@@ -138,7 +139,7 @@ export function buildRemoteStructureMergeFields(
       ...(decision.reason === 'same_hash'
         ? {
             syncConflict: false,
-            pendingRemoteStructuredWorkout: null
+            pendingRemoteStructuredWorkout: Prisma.DbNull
           }
         : {
             syncConflict: true,

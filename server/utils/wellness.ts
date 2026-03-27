@@ -115,12 +115,120 @@ function mapIntervalsStressValue(value: unknown): number | null {
   return null
 }
 
+export function normalizeReadinessScore(score: number | undefined | null): number | null {
+  if (score === undefined || score === null) return null
+  if (score <= 10) return score
+  return Math.round((score / 100) * 10)
+}
+
+export function getWellnessDisplayColor(value: number, type: 'hrv' | 'rhr' | 'readiness') {
+  if (type === 'readiness') {
+    if (value >= 8) return 'text-green-500'
+    if (value >= 6) return 'text-amber-500'
+    return 'text-red-500'
+  }
+
+  return 'text-gray-500'
+}
+
+export function getWellnessTrendIcon(current: number, previous: number) {
+  if (current > previous) return 'i-heroicons-arrow-trending-up'
+  if (current < previous) return 'i-heroicons-arrow-trending-down'
+  return 'i-heroicons-minus'
+}
+
+export function formatWellnessValue(value: number | null, type: string) {
+  if (value === null) return '--'
+  if (type === 'hrv') return `${Math.round(value)} ms`
+  if (type === 'rhr') return `${Math.round(value)} bpm`
+  if (type === 'weight') return `${value.toFixed(1)} kg`
+  return value.toString()
+}
+
+export function normalizeWellnessTags(tags: any): string | null {
+  if (!tags) return null
+  if (typeof tags === 'string') return tags
+  if (Array.isArray(tags)) return tags.join(', ')
+  return null
+}
+
+export function mapWellnessCategory(category: string): string | null {
+  const map: Record<string, string> = {
+    sleep: 'sleep',
+    readiness: 'readiness',
+    recovery: 'readiness',
+    activity: 'activity',
+    stress: 'stress',
+    workout: 'activity'
+  }
+
+  const normalized = category.toLowerCase()
+  for (const [key, value] of Object.entries(map)) {
+    if (normalized.includes(key)) return value
+  }
+
+  return null
+}
+
+export function normalizeInjuryStatus(status: any): string | null {
+  if (!status) return null
+  const normalized = String(status).toLowerCase()
+  if (normalized.includes('injured')) return 'INJURED'
+  if (normalized.includes('sick')) return 'SICK'
+  if (normalized.includes('normal')) return 'HEALTHY'
+  return null
+}
+
+export function mapWellnessMood(mood: any): number | null {
+  if (!mood) return null
+  if (typeof mood === 'number') return mood
+
+  const normalized = String(mood).toLowerCase()
+  const map: Record<string, number> = {
+    great: 5,
+    good: 4,
+    normal: 3,
+    poor: 2,
+    bad: 1
+  }
+
+  for (const [key, value] of Object.entries(map)) {
+    if (normalized.includes(key)) return value
+  }
+
+  return null
+}
+
+export function normalizeWellnessStress(stress: any): number | null {
+  if (stress === null || stress === undefined) return null
+  if (typeof stress === 'number') {
+    if (stress > 10) return Math.min(100, Math.max(1, Math.round(stress)))
+    return Math.min(100, Math.max(1, Math.round(stress * 10)))
+  }
+
+  const normalized = String(stress).toLowerCase()
+  const map: Record<string, number> = {
+    high: 90,
+    moderate: 60,
+    medium: 60,
+    low: 30,
+    none: 10,
+    rest: 10
+  }
+
+  for (const [key, value] of Object.entries(map)) {
+    if (normalized.includes(key)) return value
+  }
+
+  return null
+}
+
 export function getCanonicalWellnessStress(
   wellness:
     | {
         stress?: number | null
         lastSource?: string | null
-        rawJson?: Record<string, any> | null
+        rawJson?: any | null
       }
     | null
     | undefined
@@ -142,6 +250,11 @@ export function getCanonicalWellnessStress(
       const intervalsStress = mapIntervalsStressValue(raw.stress)
       if (intervalsStress !== null) return intervalsStress
       if (raw.stress == null) return null
+    }
+
+    if (source === 'oura') {
+      const ouraStress = toFiniteNumber(raw.stress_score)
+      if (ouraStress !== null) return ouraStress
     }
   }
 
@@ -206,8 +319,8 @@ export function evaluateFitbitRecoveryAlert(
   const summary = triggered
     ? `FITBIT RECOVERY ALERT: low HRV + poor sleep + high ATL detected (HRV ${currentHrv ?? 'n/a'}ms vs baseline ${baselineText}, ATL ${atl ?? 'n/a'}). Bias recommendation to rest/reduce intensity today.`
     : isFitbit
-      ? `Fitbit recovery flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}. No Fitbit recovery alert triggered.`
-      : `Not a Fitbit-sourced wellness day; Fitbit recovery alert not evaluated. Flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}.`
+      ? `Fitbit recovery flags - lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}. No Fitbit recovery alert triggered.`
+      : `Not a Fitbit-sourced wellness day; Fitbit recovery alert not evaluated. Flags - lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}.`
 
   return {
     isFitbit,
@@ -218,4 +331,35 @@ export function evaluateFitbitRecoveryAlert(
     baselineHrv,
     summary
   }
+}
+
+export function getCanonicalWellnessReadiness(
+  wellness:
+    | {
+        readiness?: number | null
+        recoveryScore?: number | null
+        lastSource?: string | null
+        rawJson?: any | null
+      }
+    | null
+    | undefined
+): number | null {
+  if (!wellness) return null
+
+  const source = `${wellness.lastSource || ''}`.toLowerCase()
+  const raw = wellness.rawJson
+
+  if (raw && typeof raw === 'object') {
+    if (source === 'oura') {
+      const ouraReadiness = normalizeReadinessScore(toFiniteNumber(raw.readiness_score))
+      if (ouraReadiness !== null) return ouraReadiness
+    }
+
+    if (source === 'whoop') {
+      const whoopRecovery = normalizeReadinessScore(toFiniteNumber(raw.recovery_score))
+      if (whoopRecovery !== null) return whoopRecovery
+    }
+  }
+
+  return wellness.readiness ?? wellness.recoveryScore ?? null
 }

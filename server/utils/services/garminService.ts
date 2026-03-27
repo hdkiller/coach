@@ -364,7 +364,7 @@ export const GarminService = {
         rawJson: record
       }
 
-      const { record } = await wellnessRepository.upsert(
+      const { record: savedRecord } = await wellnessRepository.upsert(
         userId,
         utcDate,
         weightData,
@@ -374,11 +374,11 @@ export const GarminService = {
       await bodyMeasurementService.recordWellnessMetrics(
         userId,
         {
-          id: record.id,
-          date: record.date,
-          weight: record.weight,
-          bodyFat: record.bodyFat,
-          rawJson: record.rawJson
+          id: savedRecord.id,
+          date: savedRecord.date,
+          weight: savedRecord.weight,
+          bodyFat: savedRecord.bodyFat,
+          rawJson: savedRecord.rawJson
         },
         'garmin'
       )

@@ -7,14 +7,10 @@ import {
   isMutatingChatTool,
   type ChatToolExecutionContext
 } from './turns'
+import { toPrismaNullableJsonValue } from '../prisma-json'
 
 type ToolLike = {
   execute?: (args: any, options: any) => Promise<any> | any
-}
-
-function toJsonValue(value: unknown): any {
-  if (value === undefined) return null
-  return JSON.parse(JSON.stringify(value))
 }
 
 export function wrapChatToolsForExecution(
@@ -82,7 +78,7 @@ export function wrapChatToolsForExecution(
               },
               update: {
                 status: CHAT_TOOL_EXECUTION_STATUS.COMPLETED,
-                result: completedExecution.result,
+                result: toPrismaNullableJsonValue(completedExecution.result),
                 error: null,
                 metadata: {
                   cachedResult: true,
@@ -97,7 +93,7 @@ export function wrapChatToolsForExecution(
                 argsHash,
                 idempotencyKey,
                 status: CHAT_TOOL_EXECUTION_STATUS.COMPLETED,
-                result: completedExecution.result,
+                result: toPrismaNullableJsonValue(completedExecution.result),
                 metadata: {
                   cachedResult: true,
                   cachedFromExecutionId: completedExecution.id
@@ -135,7 +131,7 @@ export function wrapChatToolsForExecution(
             status: CHAT_TOOL_EXECUTION_STATUS.STARTED,
             error: null,
             metadata: {
-              args: toJsonValue(args)
+              args: toPrismaNullableJsonValue(args)
             } as any
           },
           create: {
@@ -147,7 +143,7 @@ export function wrapChatToolsForExecution(
             idempotencyKey,
             status: CHAT_TOOL_EXECUTION_STATUS.STARTED,
             metadata: {
-              args: toJsonValue(args)
+              args: toPrismaNullableJsonValue(args)
             } as any
           }
         })
@@ -165,7 +161,7 @@ export function wrapChatToolsForExecution(
 
         try {
           const result = await toolDef.execute?.(args, options)
-          const jsonResult = toJsonValue(result)
+          const jsonResult = toPrismaNullableJsonValue(result)
 
           await prisma.chatTurnToolExecution.update({
             where: {

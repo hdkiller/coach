@@ -43,7 +43,7 @@ interface FuelingWindow {
 
 async function resolveWeightKg(
   userId: string,
-  user?: { weight?: number | null; weightSourceMode?: string | null }
+  user?: { weight?: number | null; weightSourceMode?: string | null } | null
 ) {
   const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
     weight: user?.weight,

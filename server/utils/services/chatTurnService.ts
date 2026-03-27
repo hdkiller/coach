@@ -5,6 +5,7 @@ import {
   hasVisibleAssistantMetadataArtifacts,
   shouldExcludeAssistantMessageFromHistory
 } from '../chat/message-state'
+import { getJsonObject } from '../prisma-json'
 import {
   CHAT_TURN_EVENT_TYPE,
   CHAT_TURN_HEARTBEAT_TIMEOUT_MS,
@@ -29,7 +30,7 @@ type PersistedRequestSnapshot = {
 
 class ChatTurnService {
   getTurnMetadata(turn: { metadata?: Prisma.JsonValue | null }) {
-    return ((turn.metadata as any) || {}) as Record<string, any>
+    return getJsonObject(turn.metadata) || {}
   }
 
   mergeTurnMetadata(

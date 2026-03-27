@@ -59,9 +59,9 @@ export function normalizeTargetPolicy(
     const withoutPrimary = fallbackOrder.filter((metric) => metric !== explicitPrimary)
     fallbackOrder.splice(0, fallbackOrder.length, explicitPrimary, ...withoutPrimary)
   }
-  const primaryMetric = explicitPrimary || fallbackOrder[0]
+  const primaryMetric = explicitPrimary || fallbackOrder[0] || 'power'
 
-  const result = {
+  const result: TargetPolicy = {
     primaryMetric,
     fallbackOrder,
     strictPrimary: targetPolicy?.strictPrimary !== false,

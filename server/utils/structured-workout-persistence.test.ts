@@ -231,13 +231,7 @@ describe('structured workout persistence', () => {
         ]
       },
       {
-        refs: {
-          ...refs,
-          powerZones: [
-            { min: 0, max: 160 },
-            { min: 161, max: 220 }
-          ]
-        },
+        refs,
         fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
         workoutType: 'Ride'
       }

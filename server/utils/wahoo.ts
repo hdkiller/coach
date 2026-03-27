@@ -211,7 +211,7 @@ export function normalizeWahooWorkout(workout: WahooWorkout, userId: string) {
       title: workout.name || 'Wahoo Workout',
       type: normalizedType,
       durationSec: Math.round(workout.minutes * 60),
-      rawJson: workout
+      rawJson: workout as any
     }
   }
 
@@ -260,6 +260,6 @@ export function normalizeWahooWorkout(workout: WahooWorkout, userId: string) {
       : null,
 
     // Store raw data
-    rawJson: workout
+    rawJson: workout as any
   }
 }

@@ -98,7 +98,7 @@ export function calculatePaceVariability(velocityData: number[]): number {
  * @param zones - Array of zone definitions with min/max velocity
  * @returns Time in each zone
  */
-export function calculatePaceZones(
+export function calculateTimeInPaceZones(
   velocityData: number[],
   timeData: number[],
   zones: { min: number; max: number; name: string }[]

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   calculateLapSplits,
   calculatePaceVariability,
-  calculatePaceZones,
+  calculateTimeInPaceZones,
   analyzePacingStrategy,
   detectSurges,
   calculateAveragePace,
@@ -164,7 +164,7 @@ describe('Pacing Utils', () => {
     })
   })
 
-  describe('calculatePaceZones', () => {
+  describe('calculateTimeInPaceZones', () => {
     it('calculates zone distribution correctly', () => {
       const zones = [
         { name: 'Easy', min: 0, max: 3.0 },
@@ -180,7 +180,7 @@ describe('Pacing Utils', () => {
       // T2-T3: Vel 4.0 (Fast) -> 1s
       // T3-T4: Vel 4.0 (Fast) -> 1s
 
-      const result = calculatePaceZones(velocityData, timeData, zones)
+      const result = calculateTimeInPaceZones(velocityData, timeData, zones)
 
       expect(result[0].zone).toBe('Easy')
       expect(result[0].timeInZone).toBe(2)

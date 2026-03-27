@@ -788,13 +788,16 @@ function looksLikeRetryableToolFailureAssistantMessage(message: any) {
   }
 
   const skillSelection = message?.metadata?.skillSelection
-  const skillIds = Array.isArray(skillSelection?.skillIds)
+  const skillIds: ChatSkillId[] = Array.isArray(skillSelection?.skillIds)
     ? skillSelection.skillIds.filter((skillId: any): skillId is ChatSkillId =>
         CHAT_SKILL_IDS.includes(skillId as ChatSkillId)
       )
     : []
 
-  if (!skillSelection?.useTools || !skillIds.some((skillId) => skillId !== 'general_chat')) {
+  if (
+    !skillSelection?.useTools ||
+    !skillIds.some((skillId: ChatSkillId) => skillId !== 'general_chat')
+  ) {
     return false
   }
 
@@ -857,14 +860,14 @@ export function getContinuationSkillSelection(messages: any[]): ChatSkillSelecti
     latestParts
       .filter((part: any) => part?.type === 'tool-approval-response')
       .map((part: any) => toolCallToName.get(part.toolCallId || part.approvalId))
-      .filter((toolName): toolName is string => !!toolName)
+      .filter((toolName: string | undefined): toolName is string => !!toolName)
   )
 
   if (!continuationToolNames.length) {
     return null
   }
 
-  const skillIds = getSkillIdsForToolNames(continuationToolNames)
+  const skillIds = getSkillIdsForToolNames(continuationToolNames as string[])
   if (!skillIds.length) {
     return null
   }

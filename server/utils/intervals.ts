@@ -307,7 +307,7 @@ export async function upsertIntervalsEvent(
     type: string
     durationSec?: number
     tss?: number
-    workout_doc?: string
+    workout_doc?: any
     managedBy?: string
     startTime?: string | null
     category?: string
@@ -1292,7 +1292,7 @@ export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout,
   const distance = event.distance ?? event.icu_distance ?? null
 
   // Structured workout data
-  let structuredWorkout = event.workout_doc ?? (event.steps ? { steps: event.steps } : null)
+  let structuredWorkout = event.workout_doc ?? (event.steps ? { steps: event.steps } : undefined)
 
   // Normalize steps recursively
   if (structuredWorkout && Array.isArray(structuredWorkout.steps)) {

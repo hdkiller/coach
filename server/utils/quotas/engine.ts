@@ -3,7 +3,7 @@ import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
 import type { SubscriptionTier, User } from '@prisma/client'
-import type { QuotaStatus } from '../../../types/quotas'
+import type { QuotaStatus } from '~~/app/types/quotas'
 import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../date'
 
 /**
