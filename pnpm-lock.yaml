@@ -314,6 +314,9 @@ importers:
       '@types/pg':
         specifier: ^8.16.0
         version: 8.16.0
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       '@types/turndown':
         specifier: ^5.0.6
         version: 5.0.6
@@ -6179,6 +6182,12 @@ packages:
     resolution:
       {
         integrity: sha512-RmhMd/wD+CF8Dfo+cVIy3RR5cl8CyfXQ0tGgW6XBL8L4LM/UTEbNXYRbLwU6w+CgrKBNbrQWt4FUtTfaU5jSYQ==
+      }
+
+  '@types/qrcode@1.5.6':
+    resolution:
+      {
+        integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==
       }
 
   '@types/react@19.2.7':
@@ -21453,6 +21462,10 @@ snapshots:
       '@types/node': 24.10.4
       pg-protocol: 1.10.3
       pg-types: 2.2.0
+
+  '@types/qrcode@1.5.6':
+    dependencies:
+      '@types/node': 24.10.4
 
   '@types/react@19.2.7':
     dependencies:
