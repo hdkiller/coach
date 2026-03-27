@@ -26,7 +26,9 @@ vi.mock('../../../../../server/utils/db', () => ({
 describe('workoutTools', () => {
   const userId = 'user-123'
   const timezone = 'UTC'
-  const tools = workoutTools(userId, timezone)
+  const tools = workoutTools(userId, timezone, {
+    aiRequireToolApproval: false
+  } as any)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -174,6 +176,55 @@ describe('workoutTools', () => {
         streams: null,
         degraded: true
       })
+    })
+  })
+
+  describe('search_workouts', () => {
+    it('should search across the full UTC day when a date is provided', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+        {
+          id: 'blur-ride',
+          date: new Date('2025-07-29T14:32:00Z'),
+          title: 'Blur',
+          type: 'Ride',
+          durationSec: 5400,
+          tss: 88,
+          calories: 1200,
+          tags: ['outdoor']
+        }
+      ] as any)
+
+      const result = await tools.search_workouts.execute(
+        { date: '2025-07-29', title_search: 'Blur' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(workoutRepository.getForUser).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          limit: 5,
+          orderBy: { date: 'desc' },
+          where: expect.objectContaining({
+            title: { contains: 'Blur', mode: 'insensitive' },
+            date: {
+              gte: new Date('2025-07-29T00:00:00.000Z'),
+              lte: new Date('2025-07-29T23:59:59.999Z')
+            }
+          })
+        })
+      )
+      expect(result).toEqual([
+        {
+          id: 'blur-ride',
+          date: expect.any(String),
+          title: 'Blur',
+          sport: 'Ride',
+          tags: ['outdoor'],
+          duration: 5400,
+          tss: 88,
+          calories: 1200
+        }
+      ])
     })
   })
 })

@@ -80,13 +80,13 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       if (title_search) where.title = { contains: title_search, mode: 'insensitive' }
       if (type) where.type = { contains: type, mode: 'insensitive' }
       if (date) {
-        const parts = date.split('-')
-        if (parts.length === 3) {
-          // Create UTC date from parts (Month is 0-indexed)
-          const start = new Date(`${date}T00:00:00Z`)
+        const start = new Date(`${date}T00:00:00.000Z`)
+        const end = new Date(`${date}T23:59:59.999Z`)
+
+        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
           where.date = {
             gte: start,
-            lte: start
+            lte: end
           }
         }
       }
