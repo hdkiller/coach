@@ -3,8 +3,7 @@
     v-model:open="open"
     :title="rewardEnabled ? t('share_modal_title_reward') : t('share_modal_title_default')"
     :ui="{
-      width: 'max-w-md',
-      content: 'overflow-hidden'
+      content: 'overflow-hidden sm:max-w-md'
     }"
     :transition="true"
   >

@@ -81,6 +81,14 @@
   let activeTtsAbortController: AbortController | null = null
   let saveTtsSettingsTimeout: ReturnType<typeof setTimeout> | null = null
 
+  type ChatMessageMetadata = {
+    turnStatus?: string
+    turnFailureReason?: string
+    turnId?: string
+    toolCalls?: any[]
+    toolResults?: any[]
+  }
+
   const ttsPresets = [
     {
       key: 'coach',
@@ -266,6 +274,15 @@
         return 'neutral'
     }
   }
+  const getMessageMetadata = (message: any): ChatMessageMetadata => {
+    const metadata = message?.metadata
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {}
+    return metadata as ChatMessageMetadata
+  }
+  const getMessageTurnStatus = (message: any) => getMessageMetadata(message).turnStatus
+  const getMessageTurnFailureReason = (message: any) =>
+    getMessageMetadata(message).turnFailureReason
+  const getMessageTurnId = (message: any) => getMessageMetadata(message).turnId
   const skillIndicators = {
     support: {
       label: 'Support',
@@ -941,30 +958,30 @@
               class="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"
             >
               <UBadge
-                :color="getTurnStatusColor(message.metadata?.turnStatus)"
+                :color="getTurnStatusColor(getMessageTurnStatus(message))"
                 variant="soft"
                 size="sm"
               >
-                {{ getTurnStatusLabel(message.metadata?.turnStatus) }}
+                {{ getTurnStatusLabel(getMessageTurnStatus(message)) }}
               </UBadge>
-              <span v-if="message.metadata?.turnFailureReason">
-                {{ message.metadata.turnFailureReason }}
+              <span v-if="getMessageTurnFailureReason(message)">
+                {{ getMessageTurnFailureReason(message) }}
               </span>
               <UButton
-                v-if="message.metadata?.turnStatus === 'INTERRUPTED'"
+                v-if="getMessageTurnStatus(message) === 'INTERRUPTED'"
                 size="xs"
                 color="neutral"
                 variant="ghost"
                 label="Resume"
-                @click="resumeTurn(message.metadata?.turnId)"
+                @click="resumeTurn(getMessageTurnId(message))"
               />
               <UButton
-                v-if="['INTERRUPTED', 'FAILED'].includes(message.metadata?.turnStatus)"
+                v-if="['INTERRUPTED', 'FAILED'].includes(getMessageTurnStatus(message) || '')"
                 size="xs"
                 color="neutral"
                 variant="ghost"
                 label="Retry"
-                @click="retryTurn(message.metadata?.turnId)"
+                @click="retryTurn(getMessageTurnId(message))"
               />
             </div>
           </template>

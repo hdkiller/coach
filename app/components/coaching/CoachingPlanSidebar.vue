@@ -264,7 +264,7 @@
       :folder-counts="folderCounts"
       :selected-scope="selectedScope"
       :expanded-set="expandedSet as Set<string>"
-      @update:source="$emit('update:libraryScope', $event)"
+      @update:source="$emit('update:libraryScope', $event as 'athlete' | 'coach' | 'all')"
       @select-scope="setSelectedScope"
       @toggle-folder="toggleExpanded"
     />

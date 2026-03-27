@@ -320,7 +320,7 @@
   async function confirmDeleteGroup(group: any) {
     if (!confirm(`Are you sure you want to delete the group "${group.name}"?`)) return
     try {
-      await $fetch(`/api/coaching/groups/${group.id}`, { method: 'DELETE' })
+      await ($fetch as any)(`/api/coaching/groups/${group.id}`, { method: 'DELETE' })
       toast.add({ title: 'Group deleted', color: 'success' })
       emit('refresh')
     } catch (e) {

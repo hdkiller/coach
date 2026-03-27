@@ -289,9 +289,7 @@
       ACTIVE: t.value('billing_status_active'),
       CANCELED: t.value('billing_status_canceled'),
       PAST_DUE: t.value('billing_status_past_due'),
-      UNPAID: t.value('billing_status_unpaid'),
-      TRIALING: t.value('billing_status_trialing'),
-      INCOMPLETE: t.value('billing_status_incomplete')
+      UNPAID: t.value('billing_status_unpaid')
     }
     return map[status] || status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')
   }

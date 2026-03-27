@@ -68,9 +68,9 @@
           <div
             class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
           >
-            {{ formatValue(bestEffort.value, bestEffort.metric).split(' ')[0]
+            {{ String(formatValue(bestEffort.value, bestEffort.metric)).split(' ')[0]
             }}<span class="text-xs ml-1 text-zinc-500">{{
-              formatValue(bestEffort.value, bestEffort.metric).split(' ')[1]
+              String(formatValue(bestEffort.value, bestEffort.metric)).split(' ')[1]
             }}</span>
           </div>
           <div

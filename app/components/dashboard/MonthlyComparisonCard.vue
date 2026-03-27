@@ -40,7 +40,7 @@
       <p class="text-sm text-gray-500">
         {{ t('monthly_comparison_error', 'Failed to load comparison data') }}
       </p>
-      <UButton color="neutral" variant="ghost" size="sm" class="mt-2" @click="refresh">
+      <UButton color="neutral" variant="ghost" size="sm" class="mt-2" @click="() => refresh()">
         {{ tc('retry', 'Retry') }}
       </UButton>
     </div>

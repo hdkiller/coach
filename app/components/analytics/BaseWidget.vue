@@ -249,7 +249,7 @@
     const days = getDateRangeDays(timeRange)
 
     try {
-      wellnessEvents.value = await $fetch('/api/wellness/events', {
+      wellnessEvents.value = await ($fetch as any)('/api/wellness/events', {
         query: { days }
       })
     } catch {
