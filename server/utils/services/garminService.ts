@@ -57,6 +57,44 @@ function normalizeUtcDateFromTimestamp(
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function clampPercentage(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+export function extractGarminBodyBatteryScore(record: Record<string, unknown> | null | undefined) {
+  if (!record || typeof record !== 'object') return null
+
+  const directCandidates = [
+    record.bodyBatteryMostRecentValue,
+    record.bodyBatteryCurrentValue,
+    record.bodyBatteryEndingValue,
+    record.bodyBatteryValue,
+    record.bodyBattery
+  ]
+
+  for (const candidate of directCandidates) {
+    const numeric = toFiniteNumber(candidate)
+    if (numeric !== null) {
+      return clampPercentage(numeric)
+    }
+  }
+
+  const fallbackCandidates = [record.bodyBatteryHighestValue, record.bodyBatteryMaxValue]
+
+  for (const candidate of fallbackCandidates) {
+    const numeric = toFiniteNumber(candidate)
+    if (numeric !== null) {
+      return clampPercentage(numeric)
+    }
+  }
+
+  return null
+}
+
 export const GarminService = {
   /**
    * Process a single webhook payload (Push API).
@@ -287,6 +325,7 @@ export const GarminService = {
         userId,
         date: utcDate,
         restingHr: record.restingHeartRateInBeatsPerMinute || null,
+        recoveryScore: extractGarminBodyBatteryScore(record),
         stress: normalizeStressScoreForStorage(record.averageStressLevel),
         spO2: record.averagePulseOx || null,
         respiration: record.averageRespiration || null,

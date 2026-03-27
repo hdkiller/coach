@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { GarminService } from '../../../../../server/utils/services/garminService'
+import {
+  extractGarminBodyBatteryScore,
+  GarminService
+} from '../../../../../server/utils/services/garminService'
 
 describe('GarminService.extractPullToken', () => {
   it('prefers the webhook query token', () => {
@@ -85,5 +88,40 @@ describe('GarminService.resolveWellnessDate', () => {
     )
 
     expect(date?.toISOString()).toBe('2026-03-10T00:00:00.000Z')
+  })
+})
+
+describe('extractGarminBodyBatteryScore', () => {
+  it('prefers the most recent body battery value when available', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryMostRecentValue: 68,
+        bodyBatteryHighestValue: 92
+      })
+    ).toBe(68)
+  })
+
+  it('falls back to the highest body battery value when that is all Garmin provides', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryHighestValue: 81
+      })
+    ).toBe(81)
+  })
+
+  it('clamps out-of-range values into the app recovery score range', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryCurrentValue: 123
+      })
+    ).toBe(100)
+  })
+
+  it('returns null when the Garmin daily record has no body battery fields', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        averageStressLevel: 37
+      })
+    ).toBeNull()
   })
 })
