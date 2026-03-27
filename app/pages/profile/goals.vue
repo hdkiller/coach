@@ -29,15 +29,91 @@
   const review = ref<any>(null)
   const showSuggestions = ref(false)
   const showReview = ref(false)
+  const acceptingSuggestionKeys = ref<string[]>([])
+  const acceptedSuggestionKeys = ref<string[]>([])
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
   const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
+  const visibleSuggestions = computed(() =>
+    (suggestions.value?.suggested_goals || []).filter(
+      (_: any, index: number) => !acceptedSuggestionKeys.value.includes(getSuggestionKey(_, index))
+    )
+  )
+
+  function getSuggestionKey(suggestion: any, index: number) {
+    return suggestion?.title || suggestion?.metric || `suggestion-${index}`
+  }
+
+  function isAcceptingSuggestion(suggestion: any, index: number) {
+    return acceptingSuggestionKeys.value.includes(getSuggestionKey(suggestion, index))
+  }
+
+  function getPriorityColor(priority?: string) {
+    if (priority === 'HIGH') return 'error'
+    if (priority === 'MEDIUM') return 'warning'
+    return 'primary'
+  }
+
+  function getDifficultyColor(difficulty?: string) {
+    if (difficulty === 'easy') return 'success'
+    if (difficulty === 'moderate') return 'primary'
+    if (difficulty === 'challenging') return 'warning'
+    return 'error'
+  }
+
+  function formatGoalType(type?: string) {
+    return type?.replaceAll('_', ' ') || 'Goal'
+  }
+
+  function getGoalBalanceColor(balance?: string) {
+    if (balance === 'well_balanced') return 'success'
+    if (balance === 'needs_rebalancing') return 'warning'
+    return 'error'
+  }
+
+  function getAlignmentColor(alignment?: string) {
+    if (alignment === 'excellent') return 'success'
+    if (alignment === 'good') return 'primary'
+    return 'warning'
+  }
+
+  function getAssessmentColor(assessment?: string) {
+    if (assessment === 'realistic') return 'success'
+    if (assessment === 'slightly_ambitious') return 'primary'
+    if (assessment === 'too_ambitious') return 'error'
+    if (assessment === 'too_conservative') return 'warning'
+    return 'neutral'
+  }
+
+  function formatSuggestionTarget(suggestion: any) {
+    if (
+      suggestion?.currentValue == null ||
+      suggestion?.targetValue == null ||
+      !suggestion?.metric
+    ) {
+      return null
+    }
+
+    return `${suggestion.currentValue} -> ${suggestion.targetValue} ${suggestion.metric}`
+  }
+
+  async function fetchRunOutput(runId: string) {
+    try {
+      const run = await $fetch<any>(`/api/runs/${runId}`)
+      return run?.output ?? null
+    } catch {
+      return null
+    }
+  }
+
   // Listeners
   onTaskCompleted('suggest-goals', async (run) => {
-    if (run.output && run.output.suggestions) {
-      suggestions.value = run.output.suggestions
+    const output = run.output ?? (await fetchRunOutput(run.id))
+
+    if (output?.suggestions) {
+      suggestions.value = output.suggestions
       suggestionsLoading.value = false
       toast.add({
         title: 'Suggestions Ready',
@@ -47,19 +123,24 @@
       return
     }
 
-    if (run.output?.reason === 'QUOTA_EXCEEDED') {
+    if (output?.reason === 'QUOTA_EXCEEDED') {
       suggestionsLoading.value = false
       toast.add({
         title: 'Suggestion Limit Reached',
         description: 'You have reached your goal suggestion limit for now. Please try again later.',
         color: 'warning'
       })
+      return
     }
+
+    suggestionsLoading.value = false
   })
 
   onTaskCompleted('review-goals', async (run) => {
-    if (run.output && run.output.review) {
-      review.value = run.output.review
+    const output = run.output ?? (await fetchRunOutput(run.id))
+
+    if (output?.review) {
+      review.value = output.review
       reviewLoading.value = false
       toast.add({
         title: 'Review Complete',
@@ -69,14 +150,17 @@
       return
     }
 
-    if (run.output?.reason === 'QUOTA_EXCEEDED') {
+    if (output?.reason === 'QUOTA_EXCEEDED') {
       reviewLoading.value = false
       toast.add({
         title: 'Review Limit Reached',
         description: 'You have reached your goal review limit for now. Please try again later.',
         color: 'warning'
       })
+      return
     }
+
+    reviewLoading.value = false
   })
 
   onTaskFailed('suggest-goals', async (run) => {
@@ -159,6 +243,8 @@
   async function generateSuggestions() {
     suggestionsLoading.value = true
     suggestions.value = null
+    acceptedSuggestionKeys.value = []
+    acceptingSuggestionKeys.value = []
     showSuggestions.value = true
 
     try {
@@ -214,7 +300,12 @@
     }
   }
 
-  async function acceptSuggestion(suggestion: any) {
+  async function acceptSuggestion(suggestion: any, index: number) {
+    const suggestionKey = getSuggestionKey(suggestion, index)
+    if (acceptingSuggestionKeys.value.includes(suggestionKey)) return
+
+    acceptingSuggestionKeys.value = [...acceptingSuggestionKeys.value, suggestionKey]
+
     try {
       await $fetch('/api/goals', {
         method: 'POST',
@@ -233,6 +324,7 @@
       })
 
       await refreshGoals()
+      acceptedSuggestionKeys.value = [...acceptedSuggestionKeys.value, suggestionKey]
 
       toast.add({
         title: 'Goal Created',
@@ -245,6 +337,10 @@
         description: 'Failed to create goal from suggestion',
         color: 'error'
       })
+    } finally {
+      acceptingSuggestionKeys.value = acceptingSuggestionKeys.value.filter(
+        (key) => key !== suggestionKey
+      )
     }
   }
 
@@ -327,7 +423,11 @@
           </div>
 
           <!-- AI Suggestions Section -->
-          <UCard v-if="showSuggestions && !showWizard">
+          <UCard
+            v-if="showSuggestions && !showWizard"
+            :ui="{ body: 'p-4 sm:p-6', header: 'px-4 py-4 sm:px-6' }"
+            class="overflow-hidden border-primary/15 bg-gradient-to-br from-white via-primary-50/30 to-cyan-50/40 dark:from-gray-900 dark:via-primary-950/10 dark:to-cyan-950/10"
+          >
             <template #header>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -357,108 +457,191 @@
             <div v-else-if="suggestions" class="space-y-6">
               <div
                 v-if="suggestions.executive_summary"
-                class="p-4 bg-primary/5 rounded-lg border border-primary/10"
+                class="rounded-2xl border border-primary/20 bg-white/80 p-4 shadow-sm backdrop-blur dark:bg-gray-900/60"
               >
-                <p class="text-sm">{{ suggestions.executive_summary }}</p>
-              </div>
-
-              <div v-if="suggestions.suggested_goals?.length > 0" class="space-y-4">
-                <h4 class="font-medium text-sm text-muted">
-                  Suggested Goals ({{ suggestions.suggested_goals.length }})
-                </h4>
-
-                <div
-                  v-for="(suggestion, index) in suggestions.suggested_goals"
-                  :key="index"
-                  class="p-4 border rounded-lg hover:border-primary/50 transition-colors space-y-3"
-                >
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1 space-y-2">
-                      <div class="flex items-center gap-2">
-                        <UBadge
-                          :color="
-                            suggestion.priority === 'HIGH'
-                              ? 'error'
-                              : suggestion.priority === 'MEDIUM'
-                                ? 'warning'
-                                : 'primary'
-                          "
-                          size="xs"
-                        >
-                          {{ suggestion.priority }}
-                        </UBadge>
-                        <UBadge color="neutral" size="xs">{{
-                          suggestion.type.replace('_', ' ')
-                        }}</UBadge>
-                        <UBadge
-                          :color="
-                            suggestion.difficulty === 'easy'
-                              ? 'success'
-                              : suggestion.difficulty === 'moderate'
-                                ? 'primary'
-                                : suggestion.difficulty === 'challenging'
-                                  ? 'warning'
-                                  : 'error'
-                          "
-                          size="xs"
-                        >
-                          {{ suggestion.difficulty }}
-                        </UBadge>
-                      </div>
-
-                      <h5 class="font-semibold">{{ suggestion.title }}</h5>
-                      <p class="text-sm text-muted">{{ suggestion.description }}</p>
-
-                      <div
-                        class="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800"
-                      >
-                        <p class="text-sm">
-                          <strong>Why this goal:</strong> {{ suggestion.rationale }}
-                        </p>
-                      </div>
-
-                      <div
-                        v-if="suggestion.metric && suggestion.targetValue"
-                        class="flex items-center gap-4 text-xs text-muted"
-                      >
-                        <span>
-                          <strong>Target:</strong> {{ suggestion.currentValue }} →
-                          {{ suggestion.targetValue }} {{ suggestion.metric }}
-                        </span>
-                        <span v-if="suggestion.timeframe_weeks">
-                          <strong>Timeframe:</strong> {{ suggestion.timeframe_weeks }} weeks
-                        </span>
-                      </div>
-
-                      <div v-if="suggestion.prerequisites?.length" class="text-xs">
-                        <strong class="text-muted">Prerequisites:</strong>
-                        <ul class="list-disc list-inside mt-1 space-y-1">
-                          <li
-                            v-for="(prereq, i) in suggestion.prerequisites"
-                            :key="i"
-                            class="text-muted"
-                          >
-                            {{ prereq }}
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <UButton color="primary" size="sm" @click="acceptSuggestion(suggestion)">
-                      Accept
-                    </UButton>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary"
+                  >
+                    <UIcon name="i-heroicons-bolt" class="h-4 w-4" />
+                  </div>
+                  <div class="space-y-1">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-primary/80">
+                      AI Readout
+                    </p>
+                    <p class="text-sm leading-6 text-gray-700 dark:text-gray-200">
+                      {{ suggestions.executive_summary }}
+                    </p>
                   </div>
                 </div>
               </div>
 
+              <div v-if="visibleSuggestions.length > 0" class="space-y-4">
+                <div class="flex items-center justify-between gap-3">
+                  <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
+                    Suggested Goals
+                  </h4>
+                  <UBadge color="neutral" variant="soft">
+                    {{ visibleSuggestions.length }} to review
+                  </UBadge>
+                </div>
+
+                <TransitionGroup name="suggestion-card" tag="div" class="grid gap-4 lg:grid-cols-2">
+                  <div
+                    v-for="(suggestion, index) in visibleSuggestions"
+                    :key="getSuggestionKey(suggestion, index)"
+                    class="group relative overflow-hidden rounded-2xl border border-primary/15 bg-white/90 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg dark:bg-gray-900/80"
+                  >
+                    <div
+                      class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-cyan-400 to-emerald-400 opacity-80"
+                    />
+
+                    <div class="space-y-4">
+                      <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-3">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <UBadge :color="getPriorityColor(suggestion.priority)" size="xs">
+                              {{ suggestion.priority }}
+                            </UBadge>
+                            <UBadge color="neutral" variant="soft" size="xs">
+                              {{ formatGoalType(suggestion.type) }}
+                            </UBadge>
+                            <UBadge :color="getDifficultyColor(suggestion.difficulty)" size="xs">
+                              {{ suggestion.difficulty }}
+                            </UBadge>
+                          </div>
+
+                          <div class="space-y-1">
+                            <h5
+                              class="text-lg font-semibold tracking-tight text-gray-900 dark:text-white"
+                            >
+                              {{ suggestion.title }}
+                            </h5>
+                            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                              {{ suggestion.description }}
+                            </p>
+                          </div>
+                        </div>
+
+                        <UButton
+                          color="primary"
+                          size="sm"
+                          variant="solid"
+                          icon="i-heroicons-plus"
+                          :loading="isAcceptingSuggestion(suggestion, index)"
+                          @click="acceptSuggestion(suggestion, index)"
+                        >
+                          Accept
+                        </UButton>
+                      </div>
+
+                      <div
+                        class="rounded-xl border border-primary/10 bg-primary/5 p-4 dark:border-primary/20 dark:bg-primary/10"
+                      >
+                        <p
+                          class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/80"
+                        >
+                          Why This Goal
+                        </p>
+                        <p class="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-200">
+                          {{ suggestion.rationale }}
+                        </p>
+                      </div>
+
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <div
+                          v-if="formatSuggestionTarget(suggestion)"
+                          class="rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/40"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Target
+                          </p>
+                          <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ formatSuggestionTarget(suggestion) }}
+                          </p>
+                        </div>
+
+                        <div
+                          v-if="suggestion.timeframe_weeks"
+                          class="rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/40"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Timeframe
+                          </p>
+                          <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ suggestion.timeframe_weeks }} weeks
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="
+                          suggestion.prerequisites?.length || suggestion.success_indicators?.length
+                        "
+                        class="grid gap-3 lg:grid-cols-2"
+                      >
+                        <div
+                          v-if="suggestion.prerequisites?.length"
+                          class="rounded-xl border border-dashed border-gray-300/80 p-3 dark:border-gray-700"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Prerequisites
+                          </p>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            <UBadge
+                              v-for="(prereq, i) in suggestion.prerequisites"
+                              :key="i"
+                              color="neutral"
+                              variant="subtle"
+                            >
+                              {{ prereq }}
+                            </UBadge>
+                          </div>
+                        </div>
+
+                        <div
+                          v-if="suggestion.success_indicators?.length"
+                          class="rounded-xl border border-dashed border-emerald-300/80 bg-emerald-50/60 p-3 dark:border-emerald-900 dark:bg-emerald-950/10"
+                        >
+                          <p
+                            class="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"
+                          >
+                            On-Track Signals
+                          </p>
+                          <div class="mt-2 space-y-1.5">
+                            <p
+                              v-for="(indicator, i) in suggestion.success_indicators"
+                              :key="i"
+                              class="text-sm text-gray-700 dark:text-gray-200"
+                            >
+                              {{ indicator }}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TransitionGroup>
+              </div>
+
               <div v-else class="text-center py-8 text-muted">
-                <p>No suggestions available at this time.</p>
+                <p>
+                  {{
+                    acceptedSuggestionKeys.length > 0
+                      ? 'All current suggestions have been handled.'
+                      : 'No suggestions available at this time.'
+                  }}
+                </p>
               </div>
             </div>
           </UCard>
 
           <!-- Goal Review Section -->
-          <UCard v-if="showReview && !showWizard">
+          <UCard
+            v-if="showReview && !showWizard"
+            :ui="{ body: 'p-4 sm:p-6', header: 'px-4 py-4 sm:px-6' }"
+            class="overflow-hidden border-primary/15 bg-gradient-to-br from-white via-emerald-50/25 to-primary-50/35 dark:from-gray-900 dark:via-emerald-950/10 dark:to-primary-950/10"
+          >
             <template #header>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -486,113 +669,248 @@
 
             <div v-else-if="review" class="space-y-6">
               <div v-if="review.overall_assessment" class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <UBadge
-                    :color="
-                      review.overall_assessment.goal_balance === 'well_balanced'
-                        ? 'success'
-                        : review.overall_assessment.goal_balance === 'needs_rebalancing'
-                          ? 'warning'
-                          : 'error'
-                    "
-                  >
+                <div class="flex flex-wrap items-center gap-2">
+                  <UBadge :color="getGoalBalanceColor(review.overall_assessment.goal_balance)">
                     {{ review.overall_assessment.goal_balance?.replace('_', ' ') }}
                   </UBadge>
                   <UBadge
-                    :color="
-                      review.overall_assessment.alignment_with_profile === 'excellent'
-                        ? 'success'
-                        : review.overall_assessment.alignment_with_profile === 'good'
-                          ? 'primary'
-                          : 'warning'
-                    "
+                    :color="getAlignmentColor(review.overall_assessment.alignment_with_profile)"
                   >
                     Alignment: {{ review.overall_assessment.alignment_with_profile }}
                   </UBadge>
                 </div>
 
-                <div class="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                  <p class="text-sm">{{ review.overall_assessment.summary }}</p>
+                <div
+                  class="rounded-2xl border border-primary/20 bg-white/85 p-4 shadow-sm backdrop-blur dark:bg-gray-900/60"
+                >
+                  <div class="flex items-start gap-3">
+                    <div
+                      class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                    >
+                      <UIcon name="i-heroicons-shield-check" class="h-4 w-4" />
+                    </div>
+                    <div class="space-y-1">
+                      <p
+                        class="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300"
+                      >
+                        Overall Assessment
+                      </p>
+                      <p class="text-sm leading-6 text-gray-700 dark:text-gray-200">
+                        {{ review.overall_assessment.summary }}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div
                   v-if="review.overall_assessment.key_concerns?.length"
-                  class="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800"
+                  class="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 dark:border-amber-800 dark:bg-amber-950/20"
                 >
-                  <h5 class="font-medium text-sm mb-2">Key Concerns:</h5>
-                  <ul class="list-disc list-inside space-y-1 text-sm">
-                    <li v-for="(concern, i) in review.overall_assessment.key_concerns" :key="i">
+                  <p
+                    class="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300"
+                  >
+                    Key Concerns
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <UBadge
+                      v-for="(concern, i) in review.overall_assessment.key_concerns"
+                      :key="i"
+                      color="warning"
+                      variant="subtle"
+                    >
                       {{ concern }}
-                    </li>
-                  </ul>
+                    </UBadge>
+                  </div>
                 </div>
               </div>
 
               <div v-if="review.goal_reviews?.length > 0" class="space-y-4">
-                <h4 class="font-medium text-sm text-muted">Individual Goal Reviews</h4>
+                <div class="flex items-center justify-between gap-3">
+                  <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
+                    Individual Goal Reviews
+                  </h4>
+                  <UBadge color="neutral" variant="soft">
+                    {{ review.goal_reviews.length }} reviewed
+                  </UBadge>
+                </div>
 
-                <div
-                  v-for="(goalReview, index) in review.goal_reviews"
-                  :key="index"
-                  class="p-4 border rounded-lg space-y-3"
-                >
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1 space-y-2">
-                      <div class="flex items-center gap-2">
-                        <UBadge
-                          :color="
-                            goalReview.assessment === 'realistic'
-                              ? 'success'
-                              : goalReview.assessment === 'slightly_ambitious'
-                                ? 'primary'
-                                : goalReview.assessment === 'too_ambitious'
-                                  ? 'error'
-                                  : goalReview.assessment === 'too_conservative'
-                                    ? 'warning'
-                                    : 'neutral'
-                          "
-                          size="xs"
-                        >
-                          {{ goalReview.assessment?.replace('_', ' ') }}
-                        </UBadge>
+                <div class="grid gap-4 lg:grid-cols-2">
+                  <div
+                    v-for="(goalReview, index) in review.goal_reviews"
+                    :key="index"
+                    class="relative overflow-hidden rounded-2xl border border-primary/10 bg-white/90 p-5 shadow-sm dark:bg-gray-900/80"
+                  >
+                    <div
+                      class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-primary to-amber-400 opacity-80"
+                    />
+
+                    <div class="space-y-4">
+                      <div class="space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <UBadge :color="getAssessmentColor(goalReview.assessment)" size="xs">
+                            {{ goalReview.assessment?.replace('_', ' ') }}
+                          </UBadge>
+                          <UBadge
+                            v-if="goalReview.support_needed?.length"
+                            color="neutral"
+                            variant="soft"
+                            size="xs"
+                          >
+                            {{ goalReview.support_needed.length }} support area{{
+                              goalReview.support_needed.length > 1 ? 's' : ''
+                            }}
+                          </UBadge>
+                        </div>
+
+                        <div class="space-y-1">
+                          <h5
+                            class="text-lg font-semibold tracking-tight text-gray-900 dark:text-white"
+                          >
+                            {{ goalReview.title }}
+                          </h5>
+                          <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                            {{ goalReview.rationale }}
+                          </p>
+                        </div>
                       </div>
-
-                      <h5 class="font-semibold">{{ goalReview.title }}</h5>
-                      <p class="text-sm text-muted">{{ goalReview.rationale }}</p>
 
                       <div
                         v-if="goalReview.progress_analysis"
-                        class="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800"
+                        class="rounded-xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-900 dark:bg-sky-950/20"
                       >
-                        <p class="text-sm">
-                          <strong>Progress:</strong> {{ goalReview.progress_analysis }}
+                        <p
+                          class="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300"
+                        >
+                          Progress Read
+                        </p>
+                        <p class="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-200">
+                          {{ goalReview.progress_analysis }}
                         </p>
                       </div>
 
-                      <div v-if="goalReview.recommendations?.length" class="text-sm">
-                        <strong class="text-muted">Recommendations:</strong>
-                        <ul class="list-disc list-inside mt-1 space-y-1">
-                          <li
-                            v-for="(rec, i) in goalReview.recommendations"
-                            :key="i"
-                            class="text-muted"
+                      <div
+                        v-if="
+                          goalReview.suggested_adjustments?.targetValue ||
+                          goalReview.suggested_adjustments?.targetDate ||
+                          goalReview.suggested_adjustments?.priority
+                        "
+                        class="grid gap-3 sm:grid-cols-2"
+                      >
+                        <div
+                          v-if="goalReview.suggested_adjustments?.targetValue"
+                          class="rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/40"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Suggested Target
+                          </p>
+                          <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ goalReview.suggested_adjustments.targetValue }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="goalReview.suggested_adjustments?.targetDate"
+                          class="rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/40"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Suggested Date
+                          </p>
+                          <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ goalReview.suggested_adjustments.targetDate }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="goalReview.suggested_adjustments?.priority"
+                          class="rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/40"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Priority Shift
+                          </p>
+                          <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ goalReview.suggested_adjustments.priority }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="goalReview.suggested_adjustments?.reasoning"
+                          class="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 sm:col-span-2 dark:border-primary/20 dark:bg-primary/10"
+                        >
+                          <p
+                            class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/80"
                           >
-                            {{ rec }}
-                          </li>
-                        </ul>
+                            Adjustment Reasoning
+                          </p>
+                          <p class="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-200">
+                            {{ goalReview.suggested_adjustments.reasoning }}
+                          </p>
+                        </div>
                       </div>
 
-                      <div v-if="goalReview.risks?.length" class="text-sm">
-                        <strong class="text-amber-600 dark:text-amber-400">Risks:</strong>
-                        <ul class="list-disc list-inside mt-1 space-y-1">
-                          <li
-                            v-for="(risk, i) in goalReview.risks"
-                            :key="i"
-                            class="text-amber-600 dark:text-amber-400"
+                      <div
+                        v-if="
+                          goalReview.recommendations?.length ||
+                          goalReview.risks?.length ||
+                          goalReview.support_needed?.length
+                        "
+                        class="grid gap-3"
+                      >
+                        <div
+                          v-if="goalReview.recommendations?.length"
+                          class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/10"
+                        >
+                          <p
+                            class="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"
                           >
-                            {{ risk }}
-                          </li>
-                        </ul>
+                            Recommendations
+                          </p>
+                          <div class="mt-2 space-y-1.5">
+                            <p
+                              v-for="(rec, i) in goalReview.recommendations"
+                              :key="i"
+                              class="text-sm text-gray-700 dark:text-gray-200"
+                            >
+                              {{ rec }}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div
+                          v-if="goalReview.risks?.length"
+                          class="rounded-xl border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900 dark:bg-amber-950/10"
+                        >
+                          <p
+                            class="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300"
+                          >
+                            Risks To Watch
+                          </p>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            <UBadge
+                              v-for="(risk, i) in goalReview.risks"
+                              :key="i"
+                              color="warning"
+                              variant="subtle"
+                            >
+                              {{ risk }}
+                            </UBadge>
+                          </div>
+                        </div>
+
+                        <div
+                          v-if="goalReview.support_needed?.length"
+                          class="rounded-xl border border-dashed border-gray-300/80 p-4 dark:border-gray-700"
+                        >
+                          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                            Support Needed
+                          </p>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            <UBadge
+                              v-for="(support, i) in goalReview.support_needed"
+                              :key="i"
+                              color="neutral"
+                              variant="subtle"
+                            >
+                              {{ support }}
+                            </UBadge>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -601,26 +919,100 @@
 
               <div
                 v-if="review.action_plan"
-                class="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 space-y-3"
+                class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-900 dark:bg-emerald-950/15"
               >
-                <h5 class="font-medium">Action Plan</h5>
-
-                <div v-if="review.action_plan.immediate_actions?.length">
-                  <strong class="text-sm">Immediate Actions:</strong>
-                  <ul class="list-disc list-inside mt-1 space-y-1 text-sm">
-                    <li v-for="(action, i) in review.action_plan.immediate_actions" :key="i">
-                      {{ action }}
-                    </li>
-                  </ul>
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                  >
+                    <UIcon name="i-heroicons-map" class="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p
+                      class="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300"
+                    >
+                      Action Plan
+                    </p>
+                    <p class="text-sm text-gray-700 dark:text-gray-200">
+                      Suggested next moves based on the full review.
+                    </p>
+                  </div>
                 </div>
 
-                <div v-if="review.action_plan.goals_to_adjust?.length">
-                  <strong class="text-sm">Goals to Adjust:</strong>
-                  <ul class="list-disc list-inside mt-1 space-y-1 text-sm">
-                    <li v-for="(goal, i) in review.action_plan.goals_to_adjust" :key="i">
-                      {{ goal }}
-                    </li>
-                  </ul>
+                <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div
+                    v-if="review.action_plan.immediate_actions?.length"
+                    class="rounded-xl border border-white/60 bg-white/70 p-4 dark:border-gray-800 dark:bg-gray-900/60"
+                  >
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                      Immediate Actions
+                    </p>
+                    <div class="mt-2 space-y-1.5">
+                      <p
+                        v-for="(action, i) in review.action_plan.immediate_actions"
+                        :key="i"
+                        class="text-sm text-gray-700 dark:text-gray-200"
+                      >
+                        {{ action }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="review.action_plan.goals_to_adjust?.length"
+                    class="rounded-xl border border-white/60 bg-white/70 p-4 dark:border-gray-800 dark:bg-gray-900/60"
+                  >
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                      Goals To Adjust
+                    </p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <UBadge
+                        v-for="(goal, i) in review.action_plan.goals_to_adjust"
+                        :key="i"
+                        color="primary"
+                        variant="subtle"
+                      >
+                        {{ goal }}
+                      </UBadge>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="review.action_plan.goals_to_pause?.length"
+                    class="rounded-xl border border-white/60 bg-white/70 p-4 dark:border-gray-800 dark:bg-gray-900/60"
+                  >
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                      Goals To Pause
+                    </p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <UBadge
+                        v-for="(goal, i) in review.action_plan.goals_to_pause"
+                        :key="i"
+                        color="warning"
+                        variant="subtle"
+                      >
+                        {{ goal }}
+                      </UBadge>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="review.action_plan.new_goals_to_consider?.length"
+                    class="rounded-xl border border-white/60 bg-white/70 p-4 dark:border-gray-800 dark:bg-gray-900/60"
+                  >
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+                      New Goals To Consider
+                    </p>
+                    <div class="mt-2 space-y-1.5">
+                      <p
+                        v-for="(goal, i) in review.action_plan.new_goals_to_consider"
+                        :key="i"
+                        class="text-sm text-gray-700 dark:text-gray-200"
+                      >
+                        {{ goal }}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -684,3 +1076,22 @@
     </template>
   </UDashboardPanel>
 </template>
+
+<style scoped>
+  .suggestion-card-enter-active,
+  .suggestion-card-leave-active {
+    transition:
+      opacity 0.28s ease,
+      transform 0.28s ease;
+  }
+
+  .suggestion-card-enter-from,
+  .suggestion-card-leave-to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  .suggestion-card-move {
+    transition: transform 0.28s ease;
+  }
+</style>
