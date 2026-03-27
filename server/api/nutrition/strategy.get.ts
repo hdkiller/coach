@@ -62,7 +62,8 @@ export default defineEventHandler(async (event) => {
       where: { id: userId },
       select: { weight: true, weightSourceMode: true, ftp: true }
     })
-    const weight = (await bodyMetricResolver.resolveEffectiveWeight(userId, user)).value || 75
+    const weight =
+      (await bodyMetricResolver.resolveEffectiveWeight(userId, user || undefined)).value || 75
 
     const fuelingMatrix = []
     for (let i = 0; i < 7; i++) {

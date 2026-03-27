@@ -1,4 +1,6 @@
 import { requireAuth } from '../../utils/auth-guard'
+import { prisma } from '../../utils/db'
+import { toPrismaNullableJsonValue } from '../../utils/prisma-json'
 import { normalizePublicAuthorSlug, publicAuthorProfileSchema } from '../../utils/public-plans'
 
 export default defineEventHandler(async (event) => {
@@ -7,12 +9,15 @@ export default defineEventHandler(async (event) => {
 
   const data = {
     ...body,
-    publicAuthorSlug: normalizePublicAuthorSlug(body.publicAuthorSlug)
+    publicAuthorSlug: normalizePublicAuthorSlug(body.publicAuthorSlug),
+    ...(body.publicSocialLinks !== undefined
+      ? { publicSocialLinks: toPrismaNullableJsonValue(body.publicSocialLinks) }
+      : {})
   }
 
   const profile = await prisma.user.update({
     where: { id: user.id },
-    data,
+    data: data as any,
     select: {
       publicAuthorSlug: true,
       publicDisplayName: true,

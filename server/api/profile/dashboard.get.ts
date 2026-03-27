@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     const timezone = await getUserTimezone(user.id)
     const latestAllowedDate = getEndOfDayUTC(timezone, new Date())
 
-    const [wellness, dailyMetric, latestBodyFatWellness] = await Promise.all([
+    const [wellness, dailyMetric, latestWeightWellness, latestBodyFatWellness] = await Promise.all([
       // Query most recent wellness record with any meaningful values (not only resting HR)
       prisma.wellness.findFirst({
         where: {

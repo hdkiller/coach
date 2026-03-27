@@ -6,6 +6,10 @@ function normalizeBodyValue(value: unknown) {
   return typeof value === 'string' ? value : undefined
 }
 
+function normalizePayloadString(value: unknown) {
+  return typeof value === 'string' ? value : undefined
+}
+
 function normalizeAuthorizeBody(body: unknown) {
   if (typeof body === 'string') {
     return Object.fromEntries(new URLSearchParams(body).entries())
@@ -79,8 +83,13 @@ export default defineEventHandler(async (event) => {
     ...query,
     ...body
   }
-  const { client_id, redirect_uri, scope, state, code_challenge, code_challenge_method, action } =
-    payload
+  const client_id = normalizePayloadString(payload.client_id)
+  const redirect_uri = normalizePayloadString(payload.redirect_uri)
+  const scope = normalizePayloadString(payload.scope)
+  const state = normalizePayloadString(payload.state)
+  const code_challenge = normalizePayloadString(payload.code_challenge)
+  const code_challenge_method = normalizePayloadString(payload.code_challenge_method)
+  const action = normalizePayloadString(payload.action)
 
   if (!client_id || !redirect_uri || !action) {
     throw createError({ statusCode: 400, message: 'Missing required fields.' })

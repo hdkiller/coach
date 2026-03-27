@@ -157,10 +157,10 @@ export default defineEventHandler(async (event) => {
         activityType: workout.type,
         source: workout.source,
         sourceName:
-          workout.source === 'fit_file' && workout.oauthApp?.sourceName
-            ? workout.oauthApp.sourceName
-            : workout.source === 'fit_file' && workout.oauthApp?.name
-              ? workout.oauthApp.name
+          workout.source === 'fit_file' && (workout as any).oauthApp?.sourceName
+            ? (workout as any).oauthApp.sourceName
+            : workout.source === 'fit_file' && (workout as any).oauthApp?.name
+              ? (workout as any).oauthApp.name
               : workout.source === 'intervals'
                 ? 'Intervals.icu'
                 : workout.source === 'strava'

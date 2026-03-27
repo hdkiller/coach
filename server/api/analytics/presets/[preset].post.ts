@@ -677,7 +677,7 @@ async function buildCorrelationChart(
 
   if (mode === 'macro-accuracy-delta') {
     const buckets = buildDailyBuckets(startDate, endDate)
-    const nutrition = await prisma.userNutrition.findMany({
+    const nutrition = await prisma.nutrition.findMany({
       where: {
         userId: { in: userIds },
         date: { gte: startDate, lte: endDate }

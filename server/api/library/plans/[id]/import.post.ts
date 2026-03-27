@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
+import { toPrismaNullableJsonValue } from '../../../../utils/prisma-json'
 
 const importPlanSchema = z.object({
   folderId: z.string().nullable().optional()
@@ -30,11 +31,7 @@ export default defineEventHandler(async (event) => {
     where: {
       id,
       isTemplate: true,
-      OR: [
-        { userId },
-        { visibility: 'PUBLIC' },
-        { visibility: 'TEAM', teamId: { in: teamIds } }
-      ]
+      OR: [{ userId }, { visibility: 'PUBLIC' }, { visibility: 'TEAM', teamId: { in: teamIds } }]
     },
     include: {
       sampleWeeks: {
@@ -102,7 +99,7 @@ export default defineEventHandler(async (event) => {
         name: sourcePlan.name,
         coachNotes: sourcePlan.coachNotes,
         athleteNotes: sourcePlan.athleteNotes,
-        activityTypes: sourcePlan.activityTypes,
+        activityTypes: toPrismaNullableJsonValue(sourcePlan.activityTypes),
         customInstructions: sourcePlan.customInstructions,
         recoveryRhythm: sourcePlan.recoveryRhythm,
         hasBeenSavedAsTemplate: true,
@@ -133,7 +130,7 @@ export default defineEventHandler(async (event) => {
                 focusLabel: week.focusLabel,
                 workouts: {
                   create: week.workouts.map((workout) => ({
-                    userId,
+                    user: { connect: { id: userId } },
                     externalId: `import_${sourcePlan.id}_${crypto.randomUUID()}`,
                     date: workout.date,
                     dayIndex: workout.dayIndex,
@@ -146,16 +143,20 @@ export default defineEventHandler(async (event) => {
                     distanceMeters: workout.distanceMeters,
                     tss: workout.tss,
                     workIntensity: workout.workIntensity,
-                    rawJson: workout.rawJson,
+                    rawJson: toPrismaNullableJsonValue(workout.rawJson),
                     modifiedLocally: true,
-                    structuredWorkout: workout.structuredWorkout,
+                    structuredWorkout: toPrismaNullableJsonValue(workout.structuredWorkout),
                     targetArea: workout.targetArea,
                     managedBy: 'COACH_WATTS',
-                    fuelingStrategy: workout.fuelingStrategy,
+                    fuelingStrategy: toPrismaNullableJsonValue(workout.fuelingStrategy),
                     startTime: workout.startTime,
-                    createdFromSettingsSnapshot: workout.createdFromSettingsSnapshot,
-                    lastGenerationSettingsSnapshot: workout.lastGenerationSettingsSnapshot,
-                    lastGenerationContext: workout.lastGenerationContext
+                    createdFromSettingsSnapshot: toPrismaNullableJsonValue(
+                      workout.createdFromSettingsSnapshot
+                    ),
+                    lastGenerationSettingsSnapshot: toPrismaNullableJsonValue(
+                      workout.lastGenerationSettingsSnapshot
+                    ),
+                    lastGenerationContext: toPrismaNullableJsonValue(workout.lastGenerationContext)
                   }))
                 }
               }))
@@ -179,7 +180,7 @@ export default defineEventHandler(async (event) => {
     const sourceWeekToImportedWeekId = new Map<string, string>()
 
     sourcePlan.blocks.forEach((sourceBlock, blockIndex) => {
-      const createdBlock = createdPlan.blocks[blockIndex]
+      const createdBlock = (createdPlan as any).blocks[blockIndex]
       sourceBlock.weeks.forEach((sourceWeek, weekIndex) => {
         const createdWeek = createdBlock?.weeks?.[weekIndex]
         if (createdWeek) {

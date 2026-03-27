@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
+import { prisma } from '../../utils/db'
+import { toPrismaInputJsonValue } from '../../utils/prisma-json'
 
 const updateWellnessSchema = z.object({
   mood: z.number().min(1).max(10).optional(),
@@ -9,7 +11,7 @@ const updateWellnessSchema = z.object({
   motivation: z.number().min(1).max(10).optional(),
   weight: z.number().optional(),
   comments: z.string().max(1000).optional(),
-  customMetrics: z.record(z.any()).optional()
+  customMetrics: z.record(z.string(), z.any()).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -42,6 +44,11 @@ export default defineEventHandler(async (event) => {
 
   return await prisma.wellness.update({
     where: { id },
-    data: result.data
+    data: {
+      ...result.data,
+      ...(result.data.customMetrics !== undefined
+        ? { customMetrics: toPrismaInputJsonValue(result.data.customMetrics) }
+        : {})
+    }
   })
 })

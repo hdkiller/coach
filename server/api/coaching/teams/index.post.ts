@@ -22,7 +22,7 @@ defineRouteMeta({
               name: { type: 'string', minLength: 2, maxLength: 100 },
               description: { type: 'string', maxLength: 500 }
             }
-          }
+          } as any
         }
       }
     },

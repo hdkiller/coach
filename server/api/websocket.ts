@@ -93,6 +93,16 @@ async function handleChatMessage(
       replyToId: replyMessage?._id || undefined
     })
 
+    if (!userMessage) {
+      peer.send(
+        JSON.stringify({
+          type: 'error',
+          message: 'Failed to save message'
+        })
+      )
+      return
+    }
+
     peer.send(
       JSON.stringify({
         type: 'chat_message_saved',

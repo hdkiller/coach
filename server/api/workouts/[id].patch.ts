@@ -3,6 +3,7 @@ import { requireAuth } from '../../utils/auth-guard'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import { toPrismaInputJsonValue } from '../../utils/prisma-json'
 import {
   hasProtectedIntervalsTags,
   mergeWorkoutTags,
@@ -23,7 +24,7 @@ const patchSchema = z.object({
   addTags: z.array(z.string()).optional(),
   removeTags: z.array(z.string()).optional(),
   setLocalTags: z.array(z.string()).optional(),
-  customMetrics: z.record(z.any()).optional()
+  customMetrics: z.record(z.string(), z.any()).optional()
 })
 
 defineRouteMeta({
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event) => {
   if (tss !== undefined) updateData.tss = tss
   if (calories !== undefined) updateData.calories = calories
   if (elevationGain !== undefined) updateData.elevationGain = elevationGain
-  if (customMetrics !== undefined) updateData.customMetrics = customMetrics
+  if (customMetrics !== undefined) updateData.customMetrics = toPrismaInputJsonValue(customMetrics)
 
   if (hasProtectedIntervalsTags(addTags) || hasProtectedIntervalsTags(removeTags)) {
     throw createError({
