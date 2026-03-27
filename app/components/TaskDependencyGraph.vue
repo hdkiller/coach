@@ -346,7 +346,7 @@
     type TaskExecutionState,
     type TaskDefinition,
     calculateOverallProgress
-  } from '../../types/task-dependencies'
+  } from '~/types/task-dependencies'
 
   const toast = useToast()
   const userStore = useUserStore()

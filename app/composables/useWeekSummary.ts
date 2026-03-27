@@ -1,4 +1,4 @@
-import type { CalendarActivity } from '../../types/calendar'
+import type { CalendarActivity } from '~/types/calendar'
 
 export function getWeekSummary(weekDays: { activities: CalendarActivity[] }[]) {
   let lastCTL: number | null = null

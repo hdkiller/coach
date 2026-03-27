@@ -35,7 +35,9 @@
             </span>
             <span class="text-xs text-muted">
               {{ quota.used }} / {{ quota.limit }} ({{
-                quota.window === 'calendar day' ? t('quotas_per_day') : t('quotas_per_window', { window: quota.window })
+                quota.window === 'calendar day'
+                  ? t('quotas_per_day')
+                  : t('quotas_per_window', { window: quota.window })
               }})
             </span>
           </div>
@@ -123,9 +125,9 @@
   </UCard>
 </template>
 
-  <script setup lang="ts">
+<script setup lang="ts">
   import { useTranslate } from '@tolgee/vue'
-  import type { QuotaStatus } from '~/../types/quotas'
+  import type { QuotaStatus } from '~/types/quotas'
 
   const { t } = useTranslate('settings')
 

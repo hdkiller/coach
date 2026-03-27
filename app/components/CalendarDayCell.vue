@@ -222,12 +222,18 @@
                   ].filter(Boolean)"
                   :key="i"
                 >
-                  <span v-if="i > 0" class="opacity-50 text-[8px] mx-0.5">•</span>
-                  <span class="flex items-center gap-0.5" :class="item.class">
-                    <UIcon v-if="item.icon" :name="item.icon" class="w-2.5 h-2.5" />
-                    <div v-if="item.dot" class="w-2.5 h-0.5 rounded-full" :class="item.dotClass" />
-                    <span>{{ item.label }}</span>
-                  </span>
+                  <template v-if="item">
+                    <span v-if="i > 0" class="opacity-50 text-[8px] mx-0.5">•</span>
+                    <span class="flex items-center gap-0.5" :class="item.class">
+                      <UIcon v-if="item.icon" :name="item.icon" class="w-2.5 h-2.5" />
+                      <div
+                        v-if="item.dot"
+                        class="w-2.5 h-0.5 rounded-full"
+                        :class="item.dotClass"
+                      />
+                      <span>{{ item.label }}</span>
+                    </span>
+                  </template>
                 </template>
               </div>
 
@@ -441,7 +447,7 @@
 
 <script setup lang="ts">
   import { isSameMonth } from 'date-fns'
-  import type { CalendarActivity } from '../../types/calendar'
+  import type { CalendarActivity } from '~/types/calendar'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
   import { getSportSettingsForActivity } from '~/utils/sportSettings'

@@ -1,5 +1,5 @@
 import { format, toZonedTime } from 'date-fns-tz'
-import type { CalendarActivity } from '../../types/calendar'
+import type { CalendarActivity } from '~/types/calendar'
 
 export interface CalendarResponse {
   activities?: CalendarActivity[]

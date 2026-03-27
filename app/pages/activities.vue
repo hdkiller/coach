@@ -1074,7 +1074,7 @@
   import { format, isSameMonth, getISOWeek, getISOWeekYear } from 'date-fns'
   import { useStorage } from '@vueuse/core'
   import { CalendarDate, getLocalTimeZone, type DateValue } from '@internationalized/date'
-  import type { CalendarActivity } from '../../types/calendar'
+  import type { CalendarActivity } from '~/types/calendar'
   import { getWeekSummary } from '~/composables/useWeekSummary'
   import WorkoutMatcher from '~/components/workouts/WorkoutMatcher.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'

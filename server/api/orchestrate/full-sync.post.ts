@@ -5,7 +5,7 @@ import {
   getTasksByLevel,
   canExecuteTask,
   type TaskExecutionState
-} from '../../../types/task-dependencies'
+} from '~~/app/types/task-dependencies'
 
 defineRouteMeta({
   openAPI: {

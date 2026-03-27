@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { CalendarActivity } from '../../../types/calendar'
+  import type { CalendarActivity } from '~/types/calendar'
   import CoachCalendarDayCard from '~/components/coaching/CoachCalendarDayCard.vue'
 
   const props = defineProps<{

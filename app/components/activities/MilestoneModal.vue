@@ -108,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { CalendarActivity } from '../../types/calendar'
+  import type { CalendarActivity } from '~/types/calendar'
 
   const props = defineProps<{
     milestone: CalendarActivity | null
