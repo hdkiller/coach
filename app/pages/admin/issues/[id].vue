@@ -299,22 +299,28 @@
 
   const copyLogs = () => {
     if (report.value?.logs) {
-      navigator.clipboard.writeText(report.value.logs)
-      toast.add({ title: 'Logs copied to clipboard', color: 'success' })
+      copyToClipboard(report.value.logs, 'Logs copied to clipboard', 'Failed to copy logs')
     }
   }
 
   const copyUserId = () => {
     if (report.value?.user.id) {
-      navigator.clipboard.writeText(report.value.user.id)
-      toast.add({ title: 'User ID copied to clipboard', color: 'success' })
+      copyToClipboard(report.value.user.id, 'User ID copied to clipboard', 'Failed to copy user ID')
     }
   }
 
   const copyIssueId = () => {
     if (report.value?.id) {
-      navigator.clipboard.writeText(report.value.id)
-      toast.add({ title: 'Ticket ID copied to clipboard', color: 'success' })
+      copyToClipboard(report.value.id, 'Ticket ID copied to clipboard', 'Failed to copy ticket ID')
+    }
+  }
+
+  async function copyToClipboard(text: string, successTitle: string, errorTitle: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.add({ title: successTitle, color: 'success' })
+    } catch {
+      toast.add({ title: errorTitle, color: 'error' })
     }
   }
 
@@ -376,12 +382,50 @@
   async function copyFullTicket() {
     if (!report.value) return
 
-    try {
-      await navigator.clipboard.writeText(buildTicketClipboardText())
-      toast.add({ title: 'Full ticket copied to clipboard', color: 'success' })
-    } catch {
-      toast.add({ title: 'Failed to copy full ticket', color: 'error' })
-    }
+    await copyToClipboard(
+      buildTicketClipboardText(),
+      'Full ticket copied to clipboard',
+      'Failed to copy full ticket'
+    )
+  }
+
+  function buildCopyPromptText() {
+    if (!report.value) return ''
+
+    return [
+      buildTicketClipboardText(),
+      '',
+      'Task',
+      'Investigate this ticket, write both an internal resolution note and a user-facing reply with the Coach Watts CLI, then resolve the ticket.',
+      '',
+      'Required support workflow',
+      `1. Inspect the ticket with: pnpm cw:cli support tickets get ${report.value.id} --prod`,
+      '2. Validate the issue and implement the fix in the app or data pipeline as needed.',
+      `3. Add an internal note with: pnpm cw:cli support tickets comment ${report.value.id} "<internal resolution note>" --type NOTE --prod`,
+      `4. Add a user-facing message with: pnpm cw:cli support tickets comment ${report.value.id} "<user-facing reply>" --type MESSAGE --prod`,
+      `5. Resolve the ticket with: pnpm cw:cli support tickets update-status ${report.value.id} RESOLVED --prod`,
+      '',
+      'Message guidance',
+      '- The NOTE should summarize root cause, what changed, and whether a resync/backfill is needed.',
+      '- The MESSAGE should be short, clear, non-technical, and tell the user what to expect next.',
+      '- Prefer the exact pnpm cw:cli commands above instead of ad-hoc DB edits for ticket updates.',
+      '',
+      'Definition of done',
+      '- Code or data fix applied',
+      '- Internal note posted',
+      '- User-facing message posted',
+      '- Ticket moved to RESOLVED'
+    ].join('\n')
+  }
+
+  async function copyTicketPrompt() {
+    if (!report.value) return
+
+    await copyToClipboard(
+      buildCopyPromptText(),
+      'Ticket prompt copied to clipboard',
+      'Failed to copy ticket prompt'
+    )
   }
 </script>
 
@@ -484,6 +528,15 @@
                     @click="copyFullTicket"
                   >
                     Copy ticket
+                  </UButton>
+                  <UButton
+                    icon="i-lucide-terminal-square"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="copyTicketPrompt"
+                  >
+                    Copy prompt
                   </UButton>
                 </div>
               </template>
