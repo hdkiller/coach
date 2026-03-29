@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   extractGarminBodyBatteryScore,
+  extractGarminReadinessScore,
   GarminService
 } from '../../../../../server/utils/services/garminService'
 
@@ -121,6 +122,40 @@ describe('extractGarminBodyBatteryScore', () => {
     expect(
       extractGarminBodyBatteryScore({
         averageStressLevel: 37
+      })
+    ).toBeNull()
+  })
+
+  it('falls back to Garmin readiness-style scores when body battery is not available', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        trainingReadinessScore: 74
+      })
+    ).toBe(74)
+  })
+})
+
+describe('extractGarminReadinessScore', () => {
+  it('normalizes Garmin training readiness scores into the app readiness scale', () => {
+    expect(
+      extractGarminReadinessScore({
+        trainingReadinessScore: 74
+      })
+    ).toBe(7)
+  })
+
+  it('supports nested Garmin score payloads', () => {
+    expect(
+      extractGarminReadinessScore({
+        trainingReadiness: { value: 83 }
+      })
+    ).toBe(8)
+  })
+
+  it('returns null when Garmin does not include a readiness metric', () => {
+    expect(
+      extractGarminReadinessScore({
+        bodyBatteryMostRecentValue: 68
       })
     ).toBeNull()
   })

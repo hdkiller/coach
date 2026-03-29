@@ -13,7 +13,7 @@ import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settin
 import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { normalizeGarminActivityType } from '../activity-mapping'
 import { bodyMeasurementService } from './bodyMeasurementService'
-import { normalizeStressScoreForStorage } from '../wellness'
+import { normalizeReadinessScore, normalizeStressScoreForStorage } from '../wellness'
 import { parseCalendarDate } from '../date'
 import crypto from 'crypto'
 
@@ -65,34 +65,68 @@ function clampPercentage(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-export function extractGarminBodyBatteryScore(record: Record<string, unknown> | null | undefined) {
-  if (!record || typeof record !== 'object') return null
+function extractGarminNumericMetric(
+  record: Record<string, unknown>,
+  keys: string[]
+): number | null {
+  for (const key of keys) {
+    const candidate = record[key]
+    const direct = toFiniteNumber(candidate)
+    if (direct !== null) return direct
 
-  const directCandidates = [
-    record.bodyBatteryMostRecentValue,
-    record.bodyBatteryCurrentValue,
-    record.bodyBatteryEndingValue,
-    record.bodyBatteryValue,
-    record.bodyBattery
-  ]
-
-  for (const candidate of directCandidates) {
-    const numeric = toFiniteNumber(candidate)
-    if (numeric !== null) {
-      return clampPercentage(numeric)
-    }
-  }
-
-  const fallbackCandidates = [record.bodyBatteryHighestValue, record.bodyBatteryMaxValue]
-
-  for (const candidate of fallbackCandidates) {
-    const numeric = toFiniteNumber(candidate)
-    if (numeric !== null) {
-      return clampPercentage(numeric)
+    if (candidate && typeof candidate === 'object') {
+      const nestedValue = toFiniteNumber((candidate as Record<string, unknown>).value)
+      if (nestedValue !== null) return nestedValue
     }
   }
 
   return null
+}
+
+export function extractGarminReadinessScore(record: Record<string, unknown> | null | undefined) {
+  if (!record || typeof record !== 'object') return null
+
+  const readiness = extractGarminNumericMetric(record, [
+    'trainingReadinessScore',
+    'trainingReadiness',
+    'readinessScore',
+    'readiness',
+    'training_ready_score'
+  ])
+
+  if (readiness === null) return null
+
+  return normalizeReadinessScore(clampPercentage(readiness))
+}
+
+export function extractGarminBodyBatteryScore(record: Record<string, unknown> | null | undefined) {
+  if (!record || typeof record !== 'object') return null
+
+  const bodyBattery = extractGarminNumericMetric(record, [
+    'bodyBatteryMostRecentValue',
+    'bodyBatteryCurrentValue',
+    'bodyBatteryEndingValue',
+    'bodyBatteryValue',
+    'bodyBattery',
+    'bodyBatteryHighestValue',
+    'bodyBatteryMaxValue'
+  ])
+
+  if (bodyBattery !== null) {
+    return clampPercentage(bodyBattery)
+  }
+
+  // Some Garmin devices surface readiness-style recovery metrics without a body battery field.
+  // Use that score as the best available recovery proxy so REC does not stay empty.
+  const readinessFallback = extractGarminNumericMetric(record, [
+    'trainingReadinessScore',
+    'trainingReadiness',
+    'recoveryScore',
+    'readinessScore',
+    'readiness'
+  ])
+
+  return readinessFallback !== null ? clampPercentage(readinessFallback) : null
 }
 
 export const GarminService = {
@@ -326,6 +360,7 @@ export const GarminService = {
         date: utcDate,
         restingHr: record.restingHeartRateInBeatsPerMinute || null,
         recoveryScore: extractGarminBodyBatteryScore(record),
+        readiness: extractGarminReadinessScore(record),
         stress: normalizeStressScoreForStorage(record.averageStressLevel),
         spO2: record.averagePulseOx || null,
         respiration: record.averageRespiration || null,
