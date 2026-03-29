@@ -1,7 +1,7 @@
 <template>
   <UCard
     :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-5' }"
-    class="overflow-hidden border border-rose-100/80 bg-white dark:border-gray-800"
+    class="overflow-hidden border border-rose-100/80 bg-gradient-to-br from-white via-rose-50/50 to-amber-50/40 dark:border-rose-950/40 dark:from-gray-950 dark:via-rose-950/10 dark:to-amber-950/10"
   >
     <div class="flex items-center justify-between gap-4">
       <div class="max-w-2xl">
