@@ -104,7 +104,7 @@
             :profile="profile"
             @update:settings="(val) => (nutritionSettings = val)"
             @navigate="(tab) => (activeTab = tab)"
-            @saved="refreshProfile"
+            @saved="handleNutritionSaved"
           />
 
           <ProfilePublicAuthorSettings
@@ -313,9 +313,16 @@
   })
 
   // Fetch nutrition settings separately for now (or could merge into /api/profile later)
-  const { data: nutritionData } = await useFetch('/api/profile/nutrition', {
-    key: 'user-nutrition-settings'
-  })
+  const { data: nutritionData, refresh: refreshNutrition } = await useFetch(
+    '/api/profile/nutrition',
+    {
+      key: 'user-nutrition-settings'
+    }
+  )
+
+  async function handleNutritionSaved() {
+    await Promise.all([refreshProfile(), refreshNutrition()])
+  }
 
   async function handleProfileUpdate(newProfile: any) {
     // Use Object.assign to update the existing reactive object

@@ -66,11 +66,7 @@
           </UInput>
         </UFormField>
 
-        <UFormField
-          :label="t('nutrition_form_bmr')"
-          name="bmr"
-          :help="t('nutrition_help_bmr')"
-        >
+        <UFormField :label="t('nutrition_form_bmr')" name="bmr" :help="t('nutrition_help_bmr')">
           <div class="flex gap-2">
             <UInput
               v-model.number="localSettings.bmr"
@@ -140,7 +136,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_kcal_day')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -162,7 +160,9 @@
             :ui="{ base: 'bg-gray-50 dark:bg-gray-800' }"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_kcal_day')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -255,7 +255,9 @@
             :ui="{ base: 'font-bold text-primary-600 dark:text-primary-400' }"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_kcal_day')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -411,7 +413,9 @@
               class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
             >
               {{ t('nutrition_header_fuel_calibration') }}
-              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
+              <UBadge size="xs" color="primary" variant="subtle">{{
+                t('nutrition_badge_pro')
+              }}</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {{ t('nutrition_desc_fuel_calibration') }}
@@ -426,7 +430,11 @@
         >
           <div class="flex justify-between items-center mb-2">
             <label class="text-sm font-semibold text-primary-900 dark:text-primary-100">
-              {{ t('nutrition_label_fueling_sensitivity', { pct: Math.round(localSettings.fuelingSensitivity * 100) }) }}
+              {{
+                t('nutrition_label_fueling_sensitivity', {
+                  pct: Math.round(localSettings.fuelingSensitivity * 100)
+                })
+              }}
             </label>
             <span class="text-xs text-primary-700 dark:text-primary-300 font-medium">
               {{
@@ -553,7 +561,10 @@
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <UFormField :label="t('nutrition_form_trigger_if_gt')" name="fuelState2Trigger_repeat">
+              <UFormField
+                :label="t('nutrition_form_trigger_if_gt')"
+                name="fuelState2Trigger_repeat"
+              >
                 <UInput
                   :model-value="localSettings.fuelState2Trigger"
                   disabled
@@ -591,7 +602,9 @@
               class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
             >
               {{ t('nutrition_header_adaptive_engine') }}
-              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
+              <UBadge size="xs" color="primary" variant="subtle">{{
+                t('nutrition_badge_pro')
+              }}</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {{ t('nutrition_desc_adaptive_engine') }}
@@ -645,7 +658,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_grams_per_hour')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -663,7 +678,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_grams_per_hour')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -682,7 +699,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_multiplier') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_multiplier')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -727,7 +746,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_grams_per_kg')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -746,7 +767,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_grams_per_kg')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -767,7 +790,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_minutes')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -786,7 +811,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_minutes')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -818,7 +845,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_liters_per_hour') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_liters_per_hour')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -837,217 +866,9 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_mg_per_liter') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-      </div>
-    </UCard>
-
-    <UCard class="border-primary-200 dark:border-primary-800 border-2">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <div>
-            <h3
-              class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
-            >
-              {{ t('nutrition_header_adaptive_engine') }}
-              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
-            </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('nutrition_desc_adaptive_engine_secondary') }}
-            </p>
-          </div>
-        </div>
-      </template>
-
-      <div
-        class="mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
-      >
-        <UFormField
-          :label="t('nutrition_form_training_phase')"
-          name="trainingPhase"
-          :help="t('nutrition_help_training_phase')"
-        >
-          <USelectMenu
-            v-model="selectedPhase"
-            :items="trainingPhases"
-            value-key="value"
-            class="w-full"
-            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          >
-            <template #leading>
-              <UIcon
-                :name="
-                  selectedPhase === 'RACE'
-                    ? 'i-heroicons-trophy'
-                    : selectedPhase === 'BUILD'
-                      ? 'i-heroicons-bolt'
-                      : 'i-heroicons-calendar'
-                "
-                class="w-4 h-4 text-primary-500"
-              />
-            </template>
-          </USelectMenu>
-        </UFormField>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField
-          :label="t('nutrition_form_carb_limit')"
-          name="currentCarbMax"
-          :help="t('nutrition_help_carb_limit')"
-        >
-          <UInput
-            v-model.number="localSettings.currentCarbMax"
-            type="number"
-            :min="0"
-            :max="150"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-
-        <UFormField
-          :label="t('nutrition_form_carb_goal')"
-          name="ultimateCarbGoal"
-          :help="t('nutrition_help_carb_goal')"
-        >
-          <UInput
-            v-model.number="localSettings.ultimateCarbGoal"
-            type="number"
-            :min="0"
-            :max="150"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-
-        <UFormField
-          :label="t('nutrition_form_carb_slope')"
-          name="carbScalingFactor"
-          :help="t('nutrition_help_carb_slope')"
-        >
-          <UInput
-            v-model.number="localSettings.carbScalingFactor"
-            type="number"
-            :step="0.05"
-            :min="0.5"
-            :max="2.0"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_multiplier') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-
-        <div class="md:col-span-2 space-y-4">
-          <UFormField
-            :label="t('nutrition_form_supplements')"
-            name="enabledSupplements"
-            :help="t('nutrition_help_supplements')"
-          >
-            <USelectMenu
-              v-model="localSettings.enabledSupplements"
-              :items="supplementOptions"
-              multiple
-              value-key="value"
-              :placeholder="t('nutrition_placeholder_select_supplements')"
-              class="w-full"
-              size="lg"
-            >
-              <template #leading>
-                <UIcon name="i-heroicons-beaker" class="w-4 h-4 text-primary-500" />
-              </template>
-            </USelectMenu>
-          </UFormField>
-        </div>
-      </div>
-
-      <div
-        class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800"
-      >
-        <UFormField
-          :label="t('nutrition_form_protein')"
-          name="baseProteinPerKg"
-          :help="t('nutrition_help_protein')"
-        >
-          <UInput
-            v-model.number="localSettings.baseProteinPerKg"
-            type="number"
-            :step="0.1"
-            :min="1.0"
-            :max="3.0"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-
-        <UFormField
-          :label="t('nutrition_form_fat')"
-          name="baseFatPerKg"
-          :help="t('nutrition_help_fat')"
-        >
-          <UInput
-            v-model.number="localSettings.baseFatPerKg"
-            type="number"
-            :step="0.1"
-            :min="0.5"
-            :max="2.0"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <UFormField
-          :label="t('nutrition_form_pre_window')"
-          name="preWorkoutWindow"
-          :help="t('nutrition_help_pre_window')"
-        >
-          <UInput
-            v-model.number="localSettings.preWorkoutWindow"
-            type="number"
-            :step="15"
-            :min="30"
-            :max="180"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
-            </template>
-          </UInput>
-        </UFormField>
-
-        <UFormField
-          :label="t('nutrition_form_post_window')"
-          name="postWorkoutWindow"
-          :help="t('nutrition_help_post_window')"
-        >
-          <UInput
-            v-model.number="localSettings.postWorkoutWindow"
-            type="number"
-            :step="15"
-            :min="30"
-            :max="240"
-            class="w-full"
-          >
-            <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                t('nutrition_unit_mg_per_liter')
+              }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -1412,7 +1233,10 @@
     if (!localSettings.value.mealPattern) {
       localSettings.value.mealPattern = []
     }
-    localSettings.value.mealPattern.push({ name: tr('nutrition_meal_new', 'New Meal'), time: '08:00' })
+    localSettings.value.mealPattern.push({
+      name: tr('nutrition_meal_new', 'New Meal'),
+      time: '08:00'
+    })
   }
 
   function removeMeal(index: number | string) {
@@ -1501,10 +1325,17 @@
   async function saveSettings() {
     loading.value = true
     try {
-      await $fetch('/api/profile/nutrition', {
+      const response = await $fetch<{ settings?: Record<string, any> }>('/api/profile/nutrition', {
         method: 'POST',
         body: localSettings.value
       })
+
+      if (response?.settings) {
+        localSettings.value = {
+          ...localSettings.value,
+          ...response.settings
+        }
+      }
 
       toast.add({
         title: t.value('nutrition_toast_saved_title'),
@@ -1512,7 +1343,7 @@
         color: 'success'
       })
 
-      emit('update:settings', localSettings.value)
+      emit('update:settings', response?.settings || localSettings.value)
       emit('saved')
     } catch (err: any) {
       toast.add({
