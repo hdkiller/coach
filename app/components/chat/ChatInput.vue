@@ -296,7 +296,7 @@
         const formData = new FormData()
         formData.append('file', normalizedFile)
 
-        const response = await $fetch<{ url: string }>('/api/storage/upload', {
+        const response = await ($fetch as any)('/api/storage/upload', {
           method: 'POST',
           body: formData
         })
@@ -606,7 +606,7 @@
           const formData = new FormData()
           formData.append('audio', blob, 'dictation.webm')
 
-          const response = await $fetch<{ transcript: string }>('/api/chat/transcribe', {
+          const response = await ($fetch as any)('/api/chat/transcribe', {
             method: 'POST',
             body: formData
           })

@@ -367,9 +367,10 @@
     if (!workoutId.value) return
 
     try {
-      const data = await $fetch<{ workout?: any; sportSettings?: any }>(
-        `/api/workouts/planned/${workoutId.value}`
-      )
+      const data = (await ($fetch as any)(`/api/workouts/planned/${workoutId.value}`)) as {
+        workout?: any
+        sportSettings?: any
+      }
       const workout = data?.workout || data
       if (workout && typeof workout === 'object') {
         liveWorkout.value = workout
@@ -390,9 +391,9 @@
     if (!date) return
 
     try {
-      const data = await $fetch<{ workouts?: any[] }>(
+      const data = (await ($fetch as any)(
         `/api/workouts/planned/range?start=${date}&end=${date}`
-      )
+      )) as { workouts?: any[] }
       const workouts = Array.isArray(data?.workouts) ? data.workouts : []
       if (!workouts.length) return
 
@@ -451,7 +452,10 @@
     if (!runId.value) return
 
     try {
-      const run = await $fetch<{ status?: string; error?: any }>(`/api/runs/${runId.value}`)
+      const run = (await ($fetch as any)(`/api/runs/${runId.value}`)) as {
+        status?: string
+        error?: any
+      }
       runStatus.value = run?.status || null
       runError.value =
         typeof run?.error === 'string' ? run.error : run?.error?.message || run?.error?.name || null
@@ -701,9 +705,7 @@
         v-if="generationWarningIssues.length"
         class="rounded border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-200 space-y-2"
       >
-        <div class="font-semibold uppercase tracking-wide">
-          Target settings warning
-        </div>
+        <div class="font-semibold uppercase tracking-wide">Target settings warning</div>
         <p>
           This workout was generated with sport settings that may lead to weaker targets:
           {{ generationWarningIssues.join(' ') }}

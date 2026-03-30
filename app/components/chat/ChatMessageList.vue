@@ -645,12 +645,12 @@
 
     void (async () => {
       try {
-        const settings = await $fetch<{
+        const settings = (await ($fetch as any)('/api/settings/ai')) as {
           aiTtsStyle?: TtsPresetKey
           aiTtsVoiceName?: GeminiVoiceName
           aiTtsSpeed?: TtsSpeedKey
           aiTtsAutoReadMessages?: boolean
-        }>('/api/settings/ai')
+        }
 
         if (
           settings.aiTtsStyle &&
