@@ -5610,7 +5610,9 @@
         actions: [
           {
             label: 'View Library',
-            onClick: () => navigateTo('/library/workouts')
+            onClick: () => {
+              navigateTo('/library/workouts')
+            }
           }
         ]
       })

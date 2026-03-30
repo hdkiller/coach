@@ -316,7 +316,7 @@
     })
 
     try {
-      const response = await $fetch<any>('/api/workouts/upload-fit', {
+      const response = await ($fetch as any)('/api/workouts/upload-fit', {
         method: 'POST',
         body: formData
       })

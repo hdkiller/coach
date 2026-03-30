@@ -653,7 +653,7 @@
 
     loadingGhost.value = true
     try {
-      const { points } = await $fetch<any>('/api/nutrition/simulate-impact', {
+      const { points } = await ($fetch as any)('/api/nutrition/simulate-impact', {
         method: 'POST',
         body: {
           date: viewingDateStr,
@@ -738,7 +738,7 @@
 
     try {
       // 1. Fetch Nutrition record
-      const nData = (await $fetch(`/api/nutrition/${id}`, {
+      const nData = (await ($fetch as any)(`/api/nutrition/${id}`, {
         query: { currentTime: new Date().toISOString() }
       })) as any
 
@@ -762,7 +762,7 @@
 
       // 3. Fetch Nutrition Settings
 
-      const sData = (await $fetch('/api/profile/nutrition')) as any
+      const sData = (await ($fetch as any)('/api/profile/nutrition')) as any
 
       nutritionSettings.value = sData.settings
     } catch (error: any) {
@@ -779,7 +779,7 @@
     if (!nutrition.value) return
     generatingPlan.value = true
     try {
-      const response = await $fetch<any>('/api/nutrition/generate-plan', {
+      const response = await ($fetch as any)('/api/nutrition/generate-plan', {
         method: 'POST',
         body: { date: nutrition.value.date }
       })

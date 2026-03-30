@@ -1940,9 +1940,9 @@
         try {
           const dateStr = formatDateUTC(new Date(workout.value.date), 'yyyy-MM-dd')
           const [nData, sData, wFueling] = (await Promise.all([
-            $fetch<any>(`/api/nutrition/${dateStr}`),
-            $fetch<any>('/api/profile/nutrition'),
-            $fetch<any>(`/api/workouts/planned/${workout.value.id}/fueling`)
+            ($fetch as any)(`/api/nutrition/${dateStr}`),
+            ($fetch as any)('/api/profile/nutrition'),
+            ($fetch as any)(`/api/workouts/planned/${workout.value.id}/fueling`)
           ])) as [any, any, any]
 
           if (nData) {
@@ -2355,7 +2355,9 @@
         actions: [
           {
             label: 'View Library',
-            onClick: () => navigateTo('/library/workouts')
+            onClick: () => {
+              navigateTo('/library/workouts')
+            }
           }
         ]
       })
