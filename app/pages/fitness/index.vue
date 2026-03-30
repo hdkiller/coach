@@ -508,9 +508,15 @@
     activeToday: activeRecoveryItems,
     refresh: refreshRecoveryContext
   } = useRecoveryContext(selectedPeriod)
+  const trainingLoadDisplayMode = computed(
+    () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
+  )
 
   const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
-    query: computed(() => ({ days: selectedPeriod.value }))
+    query: computed(() => ({
+      days: selectedPeriod.value,
+      displayMode: trainingLoadDisplayMode.value
+    }))
   })
 
   const { data: zonesData, pending: loadingZones } = await useFetch<any>(

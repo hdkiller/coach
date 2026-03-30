@@ -528,13 +528,13 @@
     loadingNutrition.value = true
     try {
       const dateStr = formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
-      const [nData, calendarData, sData] = (await Promise.all([
-        $fetch<any>(`/api/nutrition/${dateStr}`),
-        $fetch<any>('/api/calendar', {
+      const [nData, calendarData, sData] = await Promise.all([
+        ($fetch as any)(`/api/nutrition/${dateStr}`),
+        ($fetch as any)('/api/calendar', {
           query: { startDate: dateStr, endDate: dateStr }
         }),
-        $fetch<any>('/api/profile/nutrition')
-      ])) as [any, any, any]
+        ($fetch as any)('/api/profile/nutrition')
+      ])
       todayNutrition.value = nData
 
       // Filter out non-training items like wellness/nutrition placeholders and notes

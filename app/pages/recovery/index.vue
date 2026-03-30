@@ -126,7 +126,7 @@
   const { items, activeToday, refresh } = useRecoveryContext(selectedPeriod)
 
   const filteredItems = computed(() => {
-    return items.value.filter((item) => {
+    return (items.value as RecoveryContextItem[]).filter((item: RecoveryContextItem) => {
       if (sourceFilter.value !== 'all' && item.sourceType !== sourceFilter.value) return false
       if (kindFilter.value !== 'all' && item.kind !== kindFilter.value) return false
       return true
