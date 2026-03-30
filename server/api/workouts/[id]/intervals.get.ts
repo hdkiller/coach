@@ -346,7 +346,16 @@ export default defineEventHandler(async (event) => {
   const sampleRate = Math.max(1, Math.floor(time.length / 500))
   const sample = (data: number[]) => (data ? data.filter((_, i) => i % sampleRate === 0) : [])
 
-  const chartData = {
+  const chartData: {
+    time: number[]
+    power: number[]
+    smoothedPower: number[]
+    heartrate: number[]
+    pace: number[]
+    wPrime: number[]
+    ef: number[]
+    plannedPower?: number[]
+  } = {
     time: sample(time),
     power: hasWatts ? sample(wattsStream!) : [],
     smoothedPower: hasWatts ? sample(calculateRollingNormalizedPower(wattsStream!)) : [],
@@ -400,7 +409,7 @@ export default defineEventHandler(async (event) => {
       plannedIntervals.forEach((p: any) => {
         for (let i = 0; i < time.length; i++) {
           const t = time[i]
-          if (t >= p.start_time && t <= p.end_time) {
+          if (t !== undefined && t >= p.start_time && t <= p.end_time) {
             plannedPowerStream[i] = p.avg_power || 0
           }
         }

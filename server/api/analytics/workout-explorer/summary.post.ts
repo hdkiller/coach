@@ -56,7 +56,11 @@ function toNumberArray(stream: unknown): number[] {
 
 function getRangeIndices(
   alignmentStream: number[],
-  range?: { start: number; end: number; alignment: 'elapsed_time' | 'distance' } | null
+  range?: {
+    start: number
+    end: number
+    alignment: 'elapsed_time' | 'distance' | 'percent_complete'
+  } | null
 ) {
   if (!range || alignmentStream.length === 0) {
     return { startIdx: 0, endIdx: Math.max(0, alignmentStream.length - 1) }
@@ -282,7 +286,13 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const alignmentStream = range?.alignment === 'distance' ? distance : time
+    let alignmentStream: number[]
+    if (range?.alignment === 'percent_complete') {
+      const maxTime = time[time.length - 1] || 1
+      alignmentStream = time.map((t) => (t / maxTime) * 100)
+    } else {
+      alignmentStream = range?.alignment === 'distance' ? distance : time
+    }
     const { startIdx, endIdx } = getRangeIndices(alignmentStream, range)
 
     if (startIdx >= endIdx) {

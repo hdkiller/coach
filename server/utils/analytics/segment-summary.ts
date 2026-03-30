@@ -6,7 +6,7 @@ import { sportSettingsRepository } from '../repositories/sportSettingsRepository
 interface SegmentRange {
   start: number
   end: number
-  alignment: 'elapsed_time' | 'distance'
+  alignment: 'elapsed_time' | 'distance' | 'percent_complete'
 }
 
 interface SegmentSummaryResult {
@@ -50,7 +50,14 @@ export async function calculateSegmentSummary(
   const cadence = s.cadence as number[]
   const altitude = s.altitude as number[]
 
-  const alignmentStream = range.alignment === 'elapsed_time' ? time : distance
+  let alignmentStream: number[]
+  if (range.alignment === 'percent_complete') {
+    const maxTime = time[time.length - 1] || 1
+    alignmentStream = time.map((t) => (t / maxTime) * 100)
+  } else {
+    alignmentStream = range.alignment === 'elapsed_time' ? time : distance
+  }
+
   if (!alignmentStream) throw new Error('Alignment stream not found')
 
   // Find indices for the range

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   normalizeStructuredWorkoutForPersistence,
   computeStructuredWorkoutDurationSec,
-  computeStructuredWorkoutMetrics
+  computeStructuredWorkoutMetrics,
+  toIntensityFactorFromTarget
 } from './structured-workout-persistence'
 
 describe('structured workout persistence', () => {
@@ -239,5 +240,19 @@ describe('structured workout persistence', () => {
 
     expect(metrics.workIntensity).toBe(0.65)
     expect(metrics.tss).toBe(7)
+  })
+
+  it('maps running pace zones to configured pace-zone bounds', () => {
+    const intensity = toIntensityFactorFromTarget({ value: 1, units: 'pace_zone' }, 'pace', {
+      ...refs,
+      thresholdPace: 4,
+      paceZones: [
+        { min: 0, max: 3.2 },
+        { min: 3.21, max: 3.56 },
+        { min: 3.57, max: 3.8 }
+      ]
+    })
+
+    expect(intensity).toBeCloseTo(0.4)
   })
 })

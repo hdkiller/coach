@@ -430,6 +430,23 @@ function deriveDecoupling(
     }
   }
 
+  // Prefer the canonical stored metric when it exists so AI commentary stays
+  // consistent with the workout record and UI surfaces that already expose it.
+  if (fallback !== null) {
+    return {
+      valid: true,
+      effective: fallback,
+      direction:
+        fallback < -3
+          ? ('efficiency_gain' as const)
+          : fallback > 3
+            ? ('positive_drift' as const)
+            : ('stable' as const),
+      confidence: 'high' as FactConfidence,
+      steadyStateSegmentsAvailable: durationMinutes >= 50
+    }
+  }
+
   const time = asNumberArray(workout?.streams?.time)
   const power = asNumberArray(workout?.streams?.watts)
   const paceProxy = asNumberArray(workout?.streams?.velocity)
@@ -1084,6 +1101,7 @@ type FlattenedPlannedStep = {
   durationSeconds: number
   metric: 'power' | 'pace' | 'heartRate' | 'rpe' | null
   targetValue: number | null
+  targetUnits: string | null
   intensityFactor: number | null
   cadence: number | null
   ramp: boolean
@@ -1109,6 +1127,9 @@ type AnalysisRefs = {
   lthr: number
   maxHr: number
   thresholdPace: number
+  hrZones?: any[]
+  powerZones?: any[]
+  paceZones?: any[]
 }
 
 type PlannedStepMetric = MetricTarget
@@ -1223,7 +1244,7 @@ function resolvePlannedStepMetric(
 
 function flattenPlannedSteps(
   steps: any[],
-  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number },
+  refs: AnalysisRefs,
   metricOrder?: PlannedStepMetric[] | null
 ): FlattenedPlannedStep[] {
   const flattened: FlattenedPlannedStep[] = []
@@ -1254,9 +1275,6 @@ function flattenPlannedSteps(
         'recuperación',
         'enfriamiento'
       ]
-      const isRecovery = recoveryTokens.some(
-        (token) => normalizedType.includes(token) || stepName.includes(token)
-      )
       const metric = resolvePlannedStepMetric(step, metricOrder)
       const targetValue =
         metric === 'power'
@@ -1278,11 +1296,34 @@ function flattenPlannedSteps(
       else if (metric === 'rpe' && typeof step.rpe === 'number')
         intensityFactor = clamp(step.rpe / 10, 0.3, 1.5)
 
+      const hasRecoveryLabel = recoveryTokens.some(
+        (token) => normalizedType.includes(token) || stepName.includes(token)
+      )
+      const isWarmOrCool = normalizedType.includes('warm') || normalizedType.includes('cool')
+      const isRecovery =
+        isWarmOrCool ||
+        (hasRecoveryLabel &&
+          (intensityFactor === null || !Number.isFinite(intensityFactor) || intensityFactor < 0.8))
+
       flattened.push({
         type: stepType,
         durationSeconds,
         metric,
         targetValue,
+        targetUnits:
+          metric === 'power'
+            ? String(step.power?.units || '')
+                .trim()
+                .toLowerCase() || null
+            : metric === 'pace'
+              ? String(step.pace?.units || '')
+                  .trim()
+                  .toLowerCase() || null
+              : metric === 'heartRate'
+                ? String((step.heartRate || step.hr)?.units || '')
+                    .trim()
+                    .toLowerCase() || null
+                : null,
         intensityFactor,
         cadence:
           typeof step.cadence === 'number' && Number.isFinite(step.cadence) ? step.cadence : null,
@@ -1401,13 +1442,48 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
         continue
       }
 
+      const metric = resolvePlannedStepMetric(step)
+      const intensity =
+        metric === 'power'
+          ? toIntensityFactorFromTarget(step.power, 'power', {
+              ftp: 0,
+              lthr: 0,
+              maxHr: 0,
+              thresholdPace: 0
+            })
+          : metric === 'pace'
+            ? toIntensityFactorFromTarget(step.pace, 'pace', {
+                ftp: 0,
+                lthr: 0,
+                maxHr: 0,
+                thresholdPace: 0
+              })
+            : metric === 'heartRate'
+              ? toIntensityFactorFromTarget(step.heartRate || step.hr, 'heartRate', {
+                  ftp: 0,
+                  lthr: 0,
+                  maxHr: 0,
+                  thresholdPace: 0
+                })
+              : metric === 'rpe' && typeof step.rpe === 'number'
+                ? clamp(step.rpe / 10, 0.3, 1.5)
+                : null
+      const normalizedType = normalizePlannedStepType(step.type)
+      const type =
+        normalizedType === 'RECOVERY' &&
+        intensity !== null &&
+        Number.isFinite(intensity) &&
+        intensity >= 0.8
+          ? 'WORK'
+          : normalizedType
+
       planned.push({
         name: step.name,
         durationSeconds:
           Number(step.durationSeconds || step.duration || step.duration_s || 0) || undefined,
         duration:
           Number(step.duration || step.durationSeconds || step.duration_s || 0) || undefined,
-        type: normalizePlannedStepType(step.type),
+        type,
         power: step.power,
         heartRate: step.heartRate || step.hr,
         pace: step.pace,
@@ -1422,6 +1498,86 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
 
   visit(steps)
   return planned
+}
+
+function resolveComparableTargetBounds(
+  planned: FlattenedPlannedStep,
+  refs: AnalysisRefs
+): { start: number; end: number } | null {
+  const zoneValue =
+    planned.targetValue !== null && Number.isFinite(planned.targetValue)
+      ? Math.max(1, Math.round(planned.targetValue))
+      : null
+  if (zoneValue === null) return null
+
+  if (planned.metric === 'power' && planned.targetUnits?.includes('zone')) {
+    const zone = refs.powerZones?.[zoneValue - 1]
+    const min = Number(zone?.min)
+    const max = Number(zone?.max)
+    if (Number.isFinite(min) && Number.isFinite(max)) return { start: min, end: max }
+  }
+
+  if (planned.metric === 'heartRate' && planned.targetUnits?.includes('zone')) {
+    const zone = refs.hrZones?.[zoneValue - 1]
+    const min = Number(zone?.min)
+    const max = Number(zone?.max)
+    if (Number.isFinite(min) && Number.isFinite(max)) return { start: min, end: max }
+  }
+
+  if (planned.metric === 'pace' && planned.targetUnits?.includes('zone')) {
+    const zone = refs.paceZones?.[zoneValue - 1]
+    const min = Number(zone?.min)
+    const max = Number(zone?.max)
+    if (Number.isFinite(min) && Number.isFinite(max)) return { start: min, end: max }
+  }
+
+  return null
+}
+
+function resolveComparableTargetValue(
+  planned: FlattenedPlannedStep,
+  refs: AnalysisRefs
+): number | null {
+  if (planned.metric === 'power') {
+    if (
+      planned.intensityFactor !== null &&
+      Number.isFinite(planned.intensityFactor) &&
+      refs.ftp > 0
+    ) {
+      return planned.intensityFactor * refs.ftp
+    }
+    if (planned.targetValue !== null && Number.isFinite(planned.targetValue)) {
+      if (planned.targetValue <= 2 && refs.ftp > 0) return planned.targetValue * refs.ftp
+      return planned.targetValue
+    }
+    return null
+  }
+
+  if (planned.metric === 'heartRate') {
+    if (
+      planned.intensityFactor !== null &&
+      Number.isFinite(planned.intensityFactor) &&
+      (refs.lthr > 0 || refs.maxHr > 0)
+    ) {
+      const denom = refs.lthr > 0 ? refs.lthr : refs.maxHr
+      return planned.intensityFactor * denom
+    }
+    return planned.targetValue
+  }
+
+  if (planned.metric === 'pace') {
+    if (
+      planned.intensityFactor !== null &&
+      Number.isFinite(planned.intensityFactor) &&
+      refs.thresholdPace > 0
+    ) {
+      return planned.intensityFactor * refs.thresholdPace
+    }
+    return planned.targetValue
+  }
+
+  if (planned.metric === 'rpe') return planned.intensityFactor
+  return planned.targetValue
 }
 
 function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInterval[] {
@@ -1445,7 +1601,14 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
     avg_pace?: number
   }> = []
 
-  if (time.length > 0 && power.length === time.length && power.length > 0) {
+  if (
+    time.length > 0 &&
+    velocity.length === time.length &&
+    velocity.length > 0 &&
+    family === 'run'
+  ) {
+    detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps, undefined, cadence)
+  } else if (time.length > 0 && power.length === time.length && power.length > 0) {
     detected = detectIntervals(
       time,
       power,
@@ -1455,13 +1618,6 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
       undefined,
       cadence
     )
-  } else if (
-    time.length > 0 &&
-    velocity.length === time.length &&
-    velocity.length > 0 &&
-    family === 'run'
-  ) {
-    detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps, undefined, cadence)
   } else if (time.length > 0 && hr.length === time.length && hr.length > 0) {
     const maxHr = Number(workout?.maxHr || 0) || undefined
     detected = detectIntervals(
@@ -1498,29 +1654,37 @@ function scoreIntervalStructure(
       Math.max(planned.durationSeconds, actual.durationSeconds)
     score += durationRatio
 
-    if (
-      planned.metric === 'power' &&
-      planned.targetValue !== null &&
-      actual.avgPower !== null &&
-      actual.avgPower > 0
-    ) {
-      const targetPower =
-        planned.targetValue <= 2 && refs.ftp > 0
-          ? planned.targetValue * refs.ftp
-          : planned.targetValue
-      const delta = Math.abs(actual.avgPower - targetPower) / Math.max(1, targetPower)
-      score += Math.max(0, 1 - delta) * 0.8
+    if (planned.metric === 'power' && actual.avgPower !== null && actual.avgPower > 0) {
+      const bounds = resolveComparableTargetBounds(planned, refs)
+      const target = resolveComparableTargetValue(planned, refs)
+      if (bounds && actual.avgPower >= bounds.start && actual.avgPower <= bounds.end) {
+        score += 0.8
+      } else if (target !== null && target > 0) {
+        const delta = Math.abs(actual.avgPower - target) / Math.max(1, target)
+        score += Math.max(0, 1 - delta) * 0.8
+      }
     }
 
-    if (planned.metric === 'heartRate' && planned.targetValue !== null && actual.avgHr !== null) {
-      const delta = Math.abs(actual.avgHr - planned.targetValue) / Math.max(1, planned.targetValue)
-      score += Math.max(0, 1 - delta * 3) * 0.6
+    if (planned.metric === 'heartRate' && actual.avgHr !== null) {
+      const bounds = resolveComparableTargetBounds(planned, refs)
+      const target = resolveComparableTargetValue(planned, refs)
+      if (bounds && actual.avgHr >= bounds.start && actual.avgHr <= bounds.end) {
+        score += 0.6
+      } else if (target !== null && target > 0) {
+        const delta = Math.abs(actual.avgHr - target) / Math.max(1, target)
+        score += Math.max(0, 1 - delta * 3) * 0.6
+      }
     }
 
-    if (planned.metric === 'pace' && planned.targetValue !== null && actual.avgSpeed !== null) {
-      const delta =
-        Math.abs(actual.avgSpeed - planned.targetValue) / Math.max(0.1, planned.targetValue)
-      score += Math.max(0, 1 - delta * 4) * 0.6
+    if (planned.metric === 'pace' && actual.avgSpeed !== null) {
+      const bounds = resolveComparableTargetBounds(planned, refs)
+      const target = resolveComparableTargetValue(planned, refs)
+      if (bounds && actual.avgSpeed >= bounds.start && actual.avgSpeed <= bounds.end) {
+        score += 0.6
+      } else if (target !== null && target > 0) {
+        const delta = Math.abs(actual.avgSpeed - target) / Math.max(0.1, target)
+        score += Math.max(0, 1 - delta * 4) * 0.6
+      }
     }
 
     if (planned.cadence !== null && actual.avgCadence !== null) {
@@ -1632,11 +1796,7 @@ function chooseActualIntervalsSource(
   return detectedScore >= rawScore ? 'detected' : 'raw'
 }
 
-function hasTerminalRecoveryPhase(
-  workout: any,
-  plannedWorkout: any,
-  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
-): boolean {
+function hasTerminalRecoveryPhase(workout: any, plannedWorkout: any, refs: AnalysisRefs): boolean {
   const plannedSteps = flattenPlannedSteps(
     getStructuredSteps(plannedWorkout?.structuredWorkout),
     refs
@@ -1687,7 +1847,7 @@ function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInter
 
 export function getPlannedWorkIntervalsForAnalysis(
   plannedWorkout: any,
-  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+  refs: AnalysisRefs
 ): FlattenedPlannedStep[] {
   const steps = getStructuredSteps(plannedWorkout?.structuredWorkout)
   return flattenPlannedSteps(steps, refs).filter((s) => s.classification === 'work')
@@ -2389,18 +2549,12 @@ function deriveAdherence(params: {
     planned: FlattenedPlannedStep,
     actual: ActualInterval
   ): { deltaPct: number | null; hit: boolean } => {
-    let target = planned.targetValue
+    const target = resolveComparableTargetValue(planned, refs)
+    const bounds = resolveComparableTargetBounds(planned, refs)
     let actualValue: number | null = null
     let threshold = 10
 
     if (planned.metric === 'power') {
-      if (
-        planned.intensityFactor !== null &&
-        Number.isFinite(planned.intensityFactor) &&
-        refs.ftp > 0
-      ) {
-        target = planned.intensityFactor * refs.ftp
-      }
       actualValue = actual.avgPower
     } else if (planned.metric === 'pace') {
       actualValue = actual.avgSpeed
@@ -2409,12 +2563,24 @@ function deriveAdherence(params: {
       actualValue = actual.avgHr
       threshold = 6
     } else if (planned.metric === 'rpe') {
-      target = planned.intensityFactor
       actualValue = actual.intensity
       threshold = 10
-    } else {
-      target = planned.intensityFactor
-      actualValue = actual.intensity
+    }
+
+    if (
+      bounds &&
+      actualValue !== null &&
+      Number.isFinite(actualValue) &&
+      actualValue > 0 &&
+      bounds.end > 0
+    ) {
+      if (actualValue >= bounds.start && actualValue <= bounds.end) {
+        return { deltaPct: 0, hit: true }
+      }
+
+      const reference = actualValue < bounds.start ? bounds.start : bounds.end
+      const deltaPct = ((actualValue - reference) / reference) * 100
+      return { deltaPct, hit: false }
     }
 
     if (
@@ -2917,7 +3083,10 @@ export function buildWorkoutAnalysisFactsV2({
     ftp: Number(sportSettings?.ftp || workout?.ftp || 0),
     lthr: Number(sportSettings?.lthr || 0),
     maxHr: Number(sportSettings?.maxHr || 0),
-    thresholdPace: Number(sportSettings?.thresholdPace || 0)
+    thresholdPace: Number(sportSettings?.thresholdPace || 0),
+    hrZones: sportSettings?.hrZones || [],
+    powerZones: sportSettings?.powerZones || [],
+    paceZones: sportSettings?.paceZones || []
   }
 
   const adherence = deriveAdherence({

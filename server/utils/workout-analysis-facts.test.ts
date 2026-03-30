@@ -15,7 +15,7 @@ function makeWorkout(overrides: Record<string, unknown> = {}) {
     tss: 110,
     averageWatts: 210,
     averageHr: 145,
-    decoupling: 4.2,
+    decoupling: null,
     trainer: false,
     streams: null,
     ...overrides
@@ -188,6 +188,31 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.performanceSignals.decoupling.interpretable).toBe(true)
     expect(facts.performanceSignals.durability.lateSessionFadePct).not.toBeNull()
     expect(facts.performanceSignals.zones.dominantPowerZone).toBe('Z2')
+  })
+
+  it('prefers the stored workout decoupling over a divergent stream-derived value', () => {
+    const time = Array.from({ length: 720 }, (_, index) => index * 5)
+    const watts = Array.from({ length: 720 }, () => 205)
+    const heartrate = Array.from({ length: 720 }, (_, index) => (index < 120 ? 138 : 142))
+
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Stored Metric Wins',
+        durationSec: 3600,
+        averageWatts: 205,
+        averageHr: 141,
+        decoupling: 5.6,
+        streams: {
+          time,
+          watts,
+          heartrate
+        }
+      })
+    })
+
+    expect(facts.performanceSignals.decoupling.interpretable).toBe(true)
+    expect(facts.performanceSignals.decoupling.effective).toBe(5.6)
+    expect(facts.performanceSignals.decoupling.direction).toBe('positive_drift')
   })
 
   it('suppresses classic decoupling for intervalled sessions while keeping repeatability signals', () => {
@@ -421,6 +446,141 @@ describe('buildWorkoutAnalysisFacts', () => {
 
     expect(facts.adherence.workIntervalHitRate).toBe(100)
     expect(facts.adherence.recoveryHitRate).toBe(100)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+  })
+
+  it('treats Z1 pace-zone recoveries as low-intensity pace targets', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Marathon Pace Run',
+        type: 'Run',
+        durationSec: 1320,
+        rawJson: {
+          intervals: [
+            {
+              type: 'WORK',
+              moving_time: 600,
+              average_speed: 4.02
+            },
+            {
+              type: 'REST',
+              moving_time: 60,
+              average_speed: 2.95
+            },
+            {
+              type: 'WORK',
+              moving_time: 600,
+              average_speed: 4.01
+            },
+            {
+              type: 'REST',
+              moving_time: 60,
+              average_speed: 3.0
+            }
+          ]
+        }
+      }),
+      sportSettings: {
+        thresholdPace: 4,
+        paceZones: [
+          { min: 0, max: 3.2 },
+          { min: 3.21, max: 3.56 },
+          { min: 3.57, max: 3.8 },
+          { min: 3.81, max: 4.2 }
+        ]
+      },
+      plannedWorkout: {
+        durationSec: 1320,
+        structuredWorkout: {
+          steps: [
+            {
+              type: 'Active',
+              durationSeconds: 600,
+              primaryTarget: 'pace',
+              pace: { value: 4, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 60,
+              primaryTarget: 'pace',
+              pace: { value: 1, units: 'pace_zone' }
+            },
+            {
+              type: 'Active',
+              durationSeconds: 600,
+              primaryTarget: 'pace',
+              pace: { value: 4, units: 'm/s' }
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 60,
+              primaryTarget: 'pace',
+              pace: { value: 1, units: 'pace_zone' }
+            }
+          ]
+        }
+      }
+    })
+
+    expect(facts.adherence.workIntervalHitRate).toBe(100)
+    expect(facts.adherence.recoveryHitRate).toBe(100)
+    expect(facts.adherence.structureMatched).toBe(true)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+  })
+
+  it('does not classify high-intensity pace steps as recovery just because source type says rest', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Marathon Session',
+        type: 'Run',
+        durationSec: 6975,
+        rawJson: {
+          intervals: [
+            { type: 'REST', moving_time: 3600, average_speed: 3.0 },
+            { type: 'WORK', moving_time: 745, average_speed: 4.0 },
+            { type: 'REST', moving_time: 180, average_speed: 2.95 },
+            { type: 'WORK', moving_time: 745, average_speed: 4.01 },
+            { type: 'REST', moving_time: 180, average_speed: 2.93 },
+            { type: 'WORK', moving_time: 745, average_speed: 4.0 },
+            { type: 'REST', moving_time: 600, average_speed: 2.9 }
+          ]
+        }
+      }),
+      sportSettings: {
+        thresholdPace: 4.3290043,
+        paceZones: [
+          { min: 2.6, max: 3.38, name: 'Z1 Easy' },
+          { min: 3.38, max: 3.81, name: 'Z2 Endurance' },
+          { min: 3.81, max: 4.11, name: 'Z3 Tempo' },
+          { min: 4.11, max: 4.42, name: 'Z4 Threshold' }
+        ]
+      },
+      plannedWorkout: {
+        durationSec: 6975,
+        structuredWorkout: {
+          steps: [
+            { type: 'Rest', durationSeconds: 3600, pace: { value: 1, units: 'pace_zone' } },
+            {
+              type: 'Active',
+              reps: 3,
+              steps: [
+                { type: 'Rest', durationSeconds: 745, pace: { value: 93, units: '%pace' } },
+                { type: 'Rest', durationSeconds: 180, pace: { value: 1, units: 'pace_zone' } }
+              ]
+            },
+            {
+              type: 'Rest',
+              durationSeconds: 600,
+              pace: { value: 1, units: 'pace_zone' }
+            }
+          ]
+        }
+      }
+    })
+
+    expect(facts.adherence.workIntervalHitRate).toBe(100)
+    expect(facts.adherence.recoveryHitRate).toBe(100)
+    expect(facts.adherence.structureMatched).toBe(true)
     expect(facts.adherence.executionClassification).toBe('as_prescribed')
   })
 
