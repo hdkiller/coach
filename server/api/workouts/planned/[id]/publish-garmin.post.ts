@@ -9,20 +9,15 @@ import {
   updateGarminWorkout,
   updateGarminWorkoutSchedule
 } from '../../../../utils/garmin-push'
-import { fetchGarminUserPermissions } from '../../../../utils/garmin'
+import {
+  fetchGarminUserPermissions,
+  hasGarminPermission,
+  mergeGarminScopes,
+  parseGarminScope
+} from '../../../../utils/garmin'
 import { plannedWorkoutPublishRepository } from '../../../../utils/repositories/plannedWorkoutPublishRepository'
 
 type PublishDestination = 'training' | 'course'
-
-function parseScope(scope: string | null | undefined): Set<string> {
-  if (!scope) return new Set()
-  return new Set(
-    scope
-      .split(/[,\s]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean)
-  )
-}
 
 function toDateOnly(value: Date): string {
   return value.toISOString().split('T')[0]!
@@ -87,16 +82,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Garmin integration not found' })
   }
 
-  let scopes = parseScope(integration.scope)
-  if (scopes.size === 0) {
+  let scopes = parseGarminScope(integration.scope)
+  const requiredPermission = destination === 'training' ? 'WORKOUT_IMPORT' : 'COURSE_IMPORT'
+
+  if (!hasGarminPermission(scopes, requiredPermission)) {
     try {
       const permissions = await fetchGarminUserPermissions(integration as any)
-      if (permissions.length > 0) {
-        scopes = new Set(permissions.map((permission) => permission.toUpperCase()))
+      const mergedScopes = mergeGarminScopes(scopes, permissions)
+      if (mergedScopes.size > 0) {
+        scopes = mergedScopes
         await prisma.integration.update({
           where: { id: integration.id },
           data: {
-            scope: permissions.join(' '),
+            scope: Array.from(mergedScopes).join(' '),
             errorMessage: null
           }
         })
@@ -105,14 +103,14 @@ export default defineEventHandler(async (event) => {
       console.warn('[GarminPublish] Failed to fetch permissions from Garmin API', error)
     }
   }
-  if (destination === 'training' && !scopes.has('WORKOUT_IMPORT')) {
+  if (destination === 'training' && !hasGarminPermission(scopes, 'WORKOUT_IMPORT')) {
     throw createError({
       statusCode: 400,
       message:
         'Garmin WORKOUT_IMPORT permission is required. Reconnect Garmin and grant permission.'
     })
   }
-  if (destination === 'course' && !scopes.has('COURSE_IMPORT')) {
+  if (destination === 'course' && !hasGarminPermission(scopes, 'COURSE_IMPORT')) {
     throw createError({
       statusCode: 400,
       message: 'Garmin COURSE_IMPORT permission is required. Reconnect Garmin and grant permission.'

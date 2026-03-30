@@ -9,6 +9,58 @@ interface GarminTokenResponse {
   scope?: string
 }
 
+const GARMIN_WRITE_SCOPE = 'PARTNER_WRITE'
+const GARMIN_IMPORT_PERMISSIONS = new Set(['WORKOUT_IMPORT', 'COURSE_IMPORT'])
+
+export function parseGarminScope(scope: string | null | undefined): Set<string> {
+  if (!scope) return new Set()
+  return new Set(
+    scope
+      .split(/[,\s]+/)
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean)
+  )
+}
+
+export function mergeGarminScopes(
+  ...sources: Array<string | string[] | Set<string> | null | undefined>
+): Set<string> {
+  const merged = new Set<string>()
+
+  for (const source of sources) {
+    if (!source) continue
+
+    if (typeof source === 'string') {
+      for (const value of parseGarminScope(source)) merged.add(value)
+      continue
+    }
+
+    for (const value of source) {
+      if (typeof value !== 'string') continue
+      const normalized = value.trim().toUpperCase()
+      if (normalized) merged.add(normalized)
+    }
+  }
+
+  return merged
+}
+
+export function hasGarminPermission(
+  scope: string | Set<string> | null | undefined,
+  permission: string
+): boolean {
+  const scopes = typeof scope === 'string' || !scope ? parseGarminScope(scope) : scope
+  const normalizedPermission = permission.trim().toUpperCase()
+
+  if (scopes.has(normalizedPermission)) return true
+
+  if (GARMIN_IMPORT_PERMISSIONS.has(normalizedPermission) && scopes.has(GARMIN_WRITE_SCOPE)) {
+    return true
+  }
+
+  return false
+}
+
 /**
  * Refreshes an expired Garmin access token
  */
