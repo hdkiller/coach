@@ -21,9 +21,12 @@ This document tracks active, resolved, and investigated Sentry issues for Coach 
 
 ## Outstanding / Under Investigation
 
-| Issue ID | Description | Status | Investigation Notes |
-| -------- | ----------- | ------ | ------------------- |
-|          |             |        |                     |
+| Issue ID                                                               | Description                                             | Status           | Investigation Notes                                                                                            |
+| ---------------------------------------------------------------------- | ------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| [COACH-WATTS-117](https://newpush-y4.sentry.io/issues/COACH-WATTS-117) | `Object Not Found Matching Id:3, MethodName:update`     | 🔍 Investigating | Cryptic unhandled promise rejection. Potentially from a 3rd party library or browser extension.                |
+| [COACH-WATTS-5X](https://newpush-y4.sentry.io/issues/COACH-WATTS-5X)   | `Error: Garmin client ID not configured`                | 🛠️ Configuration | Occurring in development/preview environments. Need to ensure `GARMIN_CLIENT_ID` is set or gracefully handled. |
+| COACH-WATTS-D/C/9                                                      | Dynamic Import / Chunk Load Errors                      | ℹ️ Known         | Caused by deployments deleting old assets. `chunk-error.client.ts` plugin handles this with reloads.           |
+| [COACH-WATTS-MP](https://newpush-y4.sentry.io/issues/COACH-WATTS-MP)   | `Invalid call to runtime.sendMessage(). Tab not found.` | 🔍 Investigating | Likely browser extension noise leaking into Sentry.                                                            |
 
 ## Maintenance Guidelines
 
