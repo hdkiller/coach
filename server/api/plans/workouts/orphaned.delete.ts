@@ -126,9 +126,7 @@ export default defineEventHandler(async (event) => {
             if (!localWorkout) {
               // Not in our DB at all, but tagged with [CoachWatts] -> ORPHAN
               // Exception: Keep if it's today (might be a fresh recommendation not yet synced back)
-              const workoutDateUTC = new Date(
-                localWorkout?.date || rw.start_date_local.split('T')[0] + 'T00:00:00Z'
-              )
+              const workoutDateUTC = new Date(rw.start_date_local.split('T')[0] + 'T00:00:00Z')
               if (workoutDateUTC.getTime() !== todayUTC.getTime()) {
                 shouldDelete = true
               }

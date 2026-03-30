@@ -85,8 +85,8 @@ export async function ingestStravaStreamsForWorkout(payload: {
     if (velocityData.length > 0) {
       paceVariability = calculatePaceVariability(velocityData)
       avgPacePerKm = calculateAveragePace(
-        timeData[timeData.length - 1],
-        distanceData[distanceData.length - 1]
+        timeData[timeData.length - 1]!,
+        distanceData[distanceData.length - 1]!
       )
     }
 

@@ -1,4 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
+import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfYearUTC, getUserLocalDate } from '../../utils/date'
 import type { PMCMetrics } from '../../utils/training-stress'
 import {
@@ -70,10 +71,23 @@ export default defineEventHandler(async (event) => {
   const days = parseInt(query.days as string) || 90
   const userId = user.id
   const timezone = await getUserTimezone(userId)
+  const requestedDisplayMode =
+    query.displayMode === 'intervals' || query.displayMode === 'adjusted'
+      ? (query.displayMode as 'intervals' | 'adjusted')
+      : null
+  const settingsUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { dashboardSettings: true }
+  })
+  const savedDisplayMode =
+    (settingsUser?.dashboardSettings as any)?.trainingLoad?.displayMode === 'intervals'
+      ? 'intervals'
+      : 'adjusted'
+  const displayMode = requestedDisplayMode || savedDisplayMode
 
   // Get current fitness summary first to determine the true end date
   const summary = await getCurrentFitnessSummary(userId, undefined, {
-    adjustForTodayUncompletedPlannedTSS: true,
+    adjustForTodayUncompletedPlannedTSS: displayMode === 'adjusted',
     timezone
   })
 
@@ -140,6 +154,7 @@ export default defineEventHandler(async (event) => {
       currentATL: summary.atl,
       currentTSB: summary.tsb,
       avgTSS,
+      displayMode,
       formStatus: summary.formStatus.status,
       formColor: summary.formStatus.color,
       formDescription: summary.formStatus.description,
