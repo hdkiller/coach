@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   extractGarminBodyBatteryScore,
   extractGarminReadinessScore,
+  extractGarminSpO2Percentage,
   GarminService
 } from '../../../../../server/utils/services/garminService'
 
@@ -156,6 +157,36 @@ describe('extractGarminReadinessScore', () => {
     expect(
       extractGarminReadinessScore({
         bodyBatteryMostRecentValue: 68
+      })
+    ).toBeNull()
+  })
+})
+
+describe('extractGarminSpO2Percentage', () => {
+  it('reads direct Garmin daily SpO2 fields', () => {
+    expect(
+      extractGarminSpO2Percentage({
+        averagePulseOx: 96.4
+      })
+    ).toBe(96.4)
+  })
+
+  it('derives SpO2 from Garmin sleep sample maps when no daily average is present', () => {
+    expect(
+      extractGarminSpO2Percentage({
+        timeOffsetSleepSpo2: {
+          60: 95,
+          120: 97,
+          180: 96
+        }
+      })
+    ).toBe(96)
+  })
+
+  it('returns null when Garmin provides no usable SpO2 data', () => {
+    expect(
+      extractGarminSpO2Percentage({
+        averageStressLevel: 18
       })
     ).toBeNull()
   })

@@ -83,6 +83,37 @@ function extractGarminNumericMetric(
   return null
 }
 
+export function extractGarminSpO2Percentage(record: Record<string, unknown> | null | undefined) {
+  if (!record || typeof record !== 'object') return null
+
+  const directSpO2 = extractGarminNumericMetric(record, [
+    'averagePulseOx',
+    'averageSpo2',
+    'avgPulseOx',
+    'avgSpo2',
+    'pulseOx',
+    'spo2'
+  ])
+
+  if (directSpO2 !== null) {
+    return Math.round(directSpO2 * 10) / 10
+  }
+
+  const sleepSamples = record.timeOffsetSleepSpo2
+  if (!sleepSamples || typeof sleepSamples !== 'object' || Array.isArray(sleepSamples)) {
+    return null
+  }
+
+  const values = Object.values(sleepSamples)
+    .map((value) => toFiniteNumber(value))
+    .filter((value): value is number => value !== null)
+
+  if (values.length === 0) return null
+
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length
+  return Math.round(average * 10) / 10
+}
+
 export function extractGarminReadinessScore(record: Record<string, unknown> | null | undefined) {
   if (!record || typeof record !== 'object') return null
 
@@ -362,7 +393,7 @@ export const GarminService = {
         recoveryScore: extractGarminBodyBatteryScore(record),
         readiness: extractGarminReadinessScore(record),
         stress: normalizeStressScoreForStorage(record.averageStressLevel),
-        spO2: record.averagePulseOx || null,
+        spO2: extractGarminSpO2Percentage(record),
         respiration: record.averageRespiration || null,
         rawJson: record
       }
@@ -387,6 +418,7 @@ export const GarminService = {
         date: utcDate,
         sleepSecs: record.durationInSeconds || null,
         sleepScore: record.overallSleepScore?.value || null,
+        spO2: extractGarminSpO2Percentage(record),
         sleepDeepSecs: record.deepSleepDurationInSeconds || null,
         sleepRemSecs: record.remSleepInSeconds || null,
         sleepLightSecs: record.lightSleepDurationInSeconds || null,

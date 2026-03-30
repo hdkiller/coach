@@ -1,6 +1,7 @@
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { logger } from '@trigger.dev/sdk/v3'
+import { formatUserDate, getUserTimezone } from '../date'
 
 export interface DuplicateGroup {
   workouts: Array<any> // Full workout objects
@@ -289,12 +290,16 @@ export const deduplicationService = {
    * Find a potential planned workout link for a given workout
    */
   async findProposedLink(workout: any): Promise<any | null> {
-    // Try to find a matching planned workout if none exists
-    // Get all potential candidates on that day
+    // Match planned workouts by the athlete's local calendar day.
+    // Completed workouts are timestamped, while planned workouts are stored as UTC-midnight date rows.
+    const timezone = await getUserTimezone(workout.userId)
+    const workoutDateKey = formatUserDate(workout.date, timezone, 'yyyy-MM-dd')
+    const plannedDate = new Date(`${workoutDateKey}T00:00:00Z`)
+
     const candidates = await prisma.plannedWorkout.findMany({
       where: {
         userId: workout.userId,
-        date: workout.date, // Same day match (both are UTC midnight or specific dates)
+        date: plannedDate,
         completed: false // Only if not already completed
       }
     })

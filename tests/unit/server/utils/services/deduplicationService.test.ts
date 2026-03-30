@@ -1,12 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { deduplicationService } from '../../../../../server/utils/services/deduplicationService'
+import { prisma } from '../../../../../server/utils/db'
+import { getUserTimezone } from '../../../../../server/utils/date'
 
 vi.mock('../../../../../server/utils/db', () => ({
-  prisma: {}
+  prisma: {
+    plannedWorkout: {
+      findMany: vi.fn()
+    }
+  }
 }))
 
 vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
   workoutRepository: {}
+}))
+
+vi.mock('../../../../../server/utils/date', () => ({
+  formatUserDate: vi.fn((date: Date, _timezone: string, format: string) =>
+    format === 'yyyy-MM-dd' ? date.toISOString().split('T')[0] : date.toISOString()
+  ),
+  getUserTimezone: vi.fn()
 }))
 
 vi.mock('@trigger.dev/sdk/v3', () => ({
@@ -84,5 +97,35 @@ describe('deduplicationService.areDuplicates', () => {
     }
 
     expect(deduplicationService.areDuplicates(rideA, rideB)).toBe(false)
+  })
+})
+
+describe('deduplicationService.findProposedLink', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getUserTimezone).mockResolvedValue('America/Chicago')
+  })
+
+  it('matches planned workouts using the athlete local day, not the workout timestamp', async () => {
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([
+      { id: 'planned-1', title: 'VO2 Max Mixer' }
+    ] as any)
+
+    const result = await deduplicationService.findProposedLink({
+      userId: 'user-1',
+      date: new Date('2026-03-29T11:35:10Z'),
+      type: 'Ride',
+      durationSec: 3600
+    })
+
+    expect(getUserTimezone).toHaveBeenCalledWith('user-1')
+    expect(prisma.plannedWorkout.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        date: new Date('2026-03-29T00:00:00Z'),
+        completed: false
+      }
+    })
+    expect(result).toEqual({ id: 'planned-1', title: 'VO2 Max Mixer' })
   })
 })
