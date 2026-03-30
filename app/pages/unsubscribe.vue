@@ -22,7 +22,7 @@
 
     status.value = 'loading'
     try {
-      const response = await $fetch<any>('/api/auth/unsubscribe', {
+      const response = await ($fetch as any)('/api/auth/unsubscribe', {
         method: 'POST',
         body: { token }
       })

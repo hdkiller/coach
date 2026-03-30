@@ -1188,7 +1188,7 @@
   const isLinking = ref(false)
   const showTemplateCalendarPicker = ref(false)
   const calendarPickerTemplate = ref<any | null>(null)
-  const calendarPickerDate = ref<DateValue | null>(null)
+  const calendarPickerDate = ref<any>(null)
   const isWorkoutDrawerVisible = ref(false)
   const isWorkoutDrawerOpen = ref(true)
   const savingToLibraryId = ref<string | null>(null)
@@ -1325,7 +1325,7 @@
     'metabolic-wave',
     async () => {
       if (!nutritionEnabled.value || !calendarSettings.value.showMetabolicWave) return null
-      return $fetch<any>('/api/nutrition/metabolic-wave', {
+      return ($fetch as any)('/api/nutrition/metabolic-wave', {
         query: calendarRange.value
       })
     },
@@ -1515,10 +1515,7 @@
       dayActivities.sort((a, b) => {
         const getTimestamp = (activity: CalendarActivity) => {
           if (activity.source === 'planned' && typeof activity.startTime === 'string') {
-            const baseDate =
-              activity.date instanceof Date
-                ? activity.date.toISOString().split('T')[0]
-                : String(activity.date).split('T')[0]
+            const baseDate = String(activity.date).split('T')[0]
             const plannedDate = new Date(`${baseDate}T${activity.startTime}`)
             if (!isNaN(plannedDate.getTime())) return plannedDate.getTime()
           }
@@ -2011,7 +2008,7 @@
     savingToLibraryId.value = activity.id
 
     try {
-      const response = await $fetch<any>('/api/library/workouts/save', {
+      const response = await ($fetch as any)('/api/library/workouts/save', {
         method: 'POST',
         body:
           activity.source === 'planned'

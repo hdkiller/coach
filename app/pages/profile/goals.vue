@@ -101,7 +101,7 @@
 
   async function fetchRunOutput(runId: string) {
     try {
-      const run = await $fetch<any>(`/api/runs/${runId}`)
+      const run = await ($fetch as any)(`/api/runs/${runId}`)
       return run?.output ?? null
     } catch {
       return null

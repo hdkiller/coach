@@ -189,7 +189,7 @@
   async function acknowledgeComment(commentId: string) {
     acknowledgingCommentId.value = commentId
     try {
-      const updatedComment = await $fetch<any>(
+      const updatedComment = await ($fetch as any)(
         `/api/admin/issues/${id}/comments/${commentId}/acknowledge`,
         {
           method: 'POST'
@@ -218,7 +218,7 @@
       await $fetch<any>(`/api/admin/issues/${id}/reaction`, {
         method: 'POST',
         body: { emoji }
-      })
+      } as any)
       await refreshReport()
     } catch {
       toast.add({ title: 'Failed to update reaction', color: 'error' })
@@ -236,7 +236,7 @@
       await $fetch<any>(`/api/admin/issues/${id}/comments/${commentId}/reaction`, {
         method: 'POST',
         body: { emoji }
-      })
+      } as any)
       await refreshComments()
     } catch {
       toast.add({ title: 'Failed to update reaction', color: 'error' })

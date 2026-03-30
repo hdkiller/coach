@@ -405,7 +405,7 @@
         attempts++
         try {
           // Silent background refresh
-          const updatedRec = await $fetch<any>(`/api/recommendations/${recId}`)
+          const updatedRec = await ($fetch as any)(`/api/recommendations/${recId}`)
           if (rec.value) {
             rec.value = updatedRec
           }

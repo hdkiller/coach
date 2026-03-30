@@ -1320,7 +1320,7 @@
 
   async function createNewChat() {
     try {
-      const newRoom = await $fetch<any>('/api/chat/rooms', {
+      const newRoom = await ($fetch as any)('/api/chat/rooms', {
         method: 'POST'
       })
 
@@ -1575,9 +1575,9 @@
 
     try {
       const [memoryResponse, roomMemoryResponse, settingsResponse] = await Promise.all([
-        $fetch<any>('/api/chat/memory'),
-        $fetch<any>(`/api/chat/rooms/${currentRoomId.value}/memory`),
-        $fetch<any>('/api/settings/ai')
+        ($fetch as any)('/api/chat/memory'),
+        ($fetch as any)(`/api/chat/rooms/${currentRoomId.value}/memory`),
+        ($fetch as any)('/api/settings/ai')
       ])
 
       globalMemories.value = memoryResponse?.grouped?.global || []
@@ -1805,7 +1805,7 @@
     if (!content) return
 
     try {
-      const response = await $fetch<any>('/api/chat/memory/forget', {
+      const response = await ($fetch as any)('/api/chat/memory/forget', {
         method: 'POST',
         body: {
           content,

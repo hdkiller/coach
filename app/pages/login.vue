@@ -62,7 +62,7 @@
                         animationDelay: `${pulse.delay}s`,
                         offsetPath:
                           meshNodes[pulse.from] && meshNodes[pulse.to]
-                            ? `path('M ${meshNodes[pulse.from].x} ${meshNodes[pulse.from].y} L ${meshNodes[pulse.to].x} ${meshNodes[pulse.to].y}')`
+                            ? `path('M ${meshNodes[pulse.from]?.x} ${meshNodes[pulse.from]?.y} L ${meshNodes[pulse.to]?.x} ${meshNodes[pulse.to]?.y}')`
                             : 'none'
                       }"
                     />

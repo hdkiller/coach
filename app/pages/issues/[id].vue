@@ -147,7 +147,7 @@
   async function acknowledgeComment(commentId: string) {
     acknowledgingCommentId.value = commentId
     try {
-      const updatedComment = await $fetch<any>(
+      const updatedComment = await ($fetch as any)(
         `/api/issues/${id}/comments/${commentId}/acknowledge`,
         {
           method: 'POST'
@@ -173,7 +173,7 @@
     reactingIssueId.value = true
     isIssueReactionPopoverOpen.value = false
     try {
-      await $fetch<any>(`/api/issues/${id}/reaction`, {
+      await ($fetch as any)(`/api/issues/${id}/reaction`, {
         method: 'POST',
         body: { emoji }
       })
@@ -191,7 +191,7 @@
     reactingCommentId.value = commentId
     openReactionCommentId.value = null
     try {
-      await $fetch<any>(`/api/issues/${id}/comments/${commentId}/reaction`, {
+      await ($fetch as any)(`/api/issues/${id}/comments/${commentId}/reaction`, {
         method: 'POST',
         body: { emoji }
       })
