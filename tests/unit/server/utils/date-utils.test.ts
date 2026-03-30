@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { buildZonedDateTimeFromUtcDate, getTimestampDateKey } from '../../../../server/utils/date'
+import {
+  buildZonedDateTimeFromUtcDate,
+  getTimestampDateKey,
+  parseDateTimeInTimezone
+} from '../../../../server/utils/date'
 
 describe('Date Utilities', () => {
   describe('buildZonedDateTimeFromUtcDate', () => {
@@ -71,6 +75,24 @@ describe('Date Utilities', () => {
       const result = getTimestampDateKey(new Date('2026-02-16T18:55:11.000Z'), 'Australia/Sydney')
 
       expect(result).toBe('2026-02-17')
+    })
+  })
+
+  describe('parseDateTimeInTimezone', () => {
+    it('treats naive local datetime strings as wall-clock time in the user timezone', () => {
+      const result = parseDateTimeInTimezone('2026-03-24 12:15:56', 'Europe/Brussels')
+
+      expect(result?.toISOString()).toBe('2026-03-24T11:15:56.000Z')
+    })
+
+    it('anchors time-only strings to the supplied local calendar date', () => {
+      const result = parseDateTimeInTimezone(
+        '16:00',
+        'Europe/Brussels',
+        new Date('2026-03-24T00:00:00.000Z')
+      )
+
+      expect(result?.toISOString()).toBe('2026-03-24T15:00:00.000Z')
     })
   })
 })

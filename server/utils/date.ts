@@ -113,6 +113,45 @@ export function formatUserTime(date: Date, timezone: string, formatStr: string =
   }
 }
 
+const NAIVE_LOCAL_DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/
+const TIME_ONLY_RE = /^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/
+
+/**
+ * Parse a datetime value that may be:
+ * - an absolute ISO timestamp
+ * - a naive local datetime string (e.g. "2026-03-24 12:15:56")
+ * - a local HH:mm string anchored to a UTC-midnight calendar date
+ */
+export function parseDateTimeInTimezone(
+  value: string | Date | null | undefined,
+  timezone: string,
+  fallbackDate?: Date
+): Date | null {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  if (TIME_ONLY_RE.test(trimmed) && fallbackDate) {
+    return buildZonedDateTimeFromUtcDate(fallbackDate, trimmed, timezone)
+  }
+
+  if (NAIVE_LOCAL_DATETIME_RE.test(trimmed) && !/[zZ]|[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    try {
+      return fromZonedTime(trimmed.replace(' ', 'T'), timezone)
+    } catch (e) {
+      return null
+    }
+  }
+
+  const parsed = new Date(trimmed)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 /**
  * Format a full date in the user's timezone
  */
