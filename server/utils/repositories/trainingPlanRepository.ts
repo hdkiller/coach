@@ -30,7 +30,7 @@ export const trainingPlanRepository = {
     } = {}
   ) {
     return prisma.trainingPlan.findFirst({
-      where: { userId, status: 'ACTIVE' },
+      where: { userId, status: 'ACTIVE', isTemplate: false },
       include: options.include,
       orderBy: { createdAt: 'desc' }
     }) as unknown as Promise<Prisma.TrainingPlanGetPayload<{ include: T }> | null>
@@ -83,6 +83,7 @@ export const trainingPlanRepository = {
       where: {
         userId,
         status: 'ACTIVE',
+        isTemplate: false,
         id: { not: exceptId }
       },
       data: {
