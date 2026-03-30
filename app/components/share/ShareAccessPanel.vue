@@ -340,25 +340,30 @@
 
   const variantConfigById = computed(
     () =>
-      new Map(
+      new Map<
+        string,
+        {
+          variant: 'default' | 'flat' | 'transparent'
+          style: 'map' | 'poster' | 'crest' | 'pulse'
+        }
+      >(
         imageVariants.value.map((item) => [
           item.id,
           {
-            variant:
-              item.id === 'flat'
-                ? 'flat'
-                : item.id.includes('transparent')
+            variant: (item.id === 'flat'
+              ? 'flat'
+              : item.id.includes('transparent')
+                ? 'transparent'
+                : item.id === 'transparent'
                   ? 'transparent'
-                  : item.id === 'transparent'
-                    ? 'transparent'
-                    : 'default',
-            style: item.id.startsWith('poster')
+                  : 'default') as 'default' | 'flat' | 'transparent',
+            style: (item.id.startsWith('poster')
               ? 'poster'
               : item.id.startsWith('crest')
                 ? 'crest'
                 : item.id.startsWith('pulse')
                   ? 'pulse'
-                  : 'map'
+                  : 'map') as 'map' | 'poster' | 'crest' | 'pulse'
           }
         ])
       )

@@ -24,6 +24,12 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">
             Select which charts you want to display on your fitness dashboard.
           </p>
+          <UFormField
+            label="Training load display"
+            description="Readiness adjusted hides today's in-progress load, while Intervals exact matches Intervals.icu daily values."
+          >
+            <USelect v-model="trainingLoadDisplayMode" :items="trainingLoadDisplayOptions" />
+          </UFormField>
           <div class="space-y-4">
             <div
               v-for="chart in chartOptions"
@@ -78,6 +84,11 @@
       return acc
     }, {} as any)
   )
+  const defaultTrainingLoadDisplayMode = 'adjusted'
+  const trainingLoadDisplayMode = ref<'adjusted' | 'intervals'>(
+    (userStore.user?.dashboardSettings?.trainingLoad?.displayMode as 'adjusted' | 'intervals') ||
+      defaultTrainingLoadDisplayMode
+  )
 
   // Update local state when modal opens or user store changes
   watch(
@@ -91,6 +102,10 @@
           }
           return acc
         }, {} as any)
+        trainingLoadDisplayMode.value =
+          (userStore.user?.dashboardSettings?.trainingLoad?.displayMode as
+            | 'adjusted'
+            | 'intervals') || defaultTrainingLoadDisplayMode
       }
     }
   )
@@ -101,7 +116,11 @@
 
     await userStore.updateDashboardSettings({
       ...currentDashboardSettings,
-      fitnessCharts: settings.value
+      fitnessCharts: settings.value,
+      trainingLoad: {
+        ...(currentDashboardSettings.trainingLoad || {}),
+        displayMode: trainingLoadDisplayMode.value
+      }
     })
   }, 500)
 
@@ -112,6 +131,9 @@
     },
     { deep: true }
   )
+  watch(trainingLoadDisplayMode, () => {
+    saveSettings()
+  })
 
   const chartOptions = [
     { key: 'hrvRhrDual', label: 'HRV & RHR Correlation' },
@@ -123,8 +145,13 @@
     { key: 'weight', label: 'Mass Progression' },
     { key: 'bp', label: 'Blood Pressure' }
   ] as const
+  const trainingLoadDisplayOptions = [
+    { label: 'Readiness adjusted', value: 'adjusted' },
+    { label: 'Intervals exact', value: 'intervals' }
+  ]
 
   function resetDefaults() {
     settings.value = JSON.parse(JSON.stringify(defaultSettings))
+    trainingLoadDisplayMode.value = defaultTrainingLoadDisplayMode
   }
 </script>

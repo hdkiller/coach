@@ -236,14 +236,14 @@
 
     claimingReward.value = true
     try {
-      const response = await $fetch<{
+      const response = (await $fetch('/api/system-messages/share-reward/claim', {
+        method: 'POST',
+        body: { messageId: messageId || undefined }
+      } as any)) as {
         trialEndsAt: string
         daysGranted: number
         alreadyClaimed: boolean
-      }>('/api/system-messages/share-reward/claim', {
-        method: 'POST',
-        body: { messageId }
-      })
+      }
 
       trackShareRewardClaim(response.daysGranted)
       await userStore.fetchUser(true)

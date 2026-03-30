@@ -178,7 +178,7 @@
   const emit = defineEmits(['open-score-modal', 'open-training-load'])
 
   // Fetch athlete profile scores
-  const { data: scoresData, pending: loadingScores } = useFetch<any>(
+  const { data: scoresData, pending: loadingScores } = (useFetch as any)(
     '/api/scores/athlete-profile',
     {
       lazy: true,
@@ -189,14 +189,20 @@
 
   const profileScores = computed(() => scoresData.value?.scores || null)
   const scoresHistory = computed(() => scoresData.value?.history || [])
+  const trainingLoadDisplayMode = computed(
+    () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
+  )
 
   // Fetch PMC data for TL/ATL/TSB if enabled
-  const { data: pmcData, pending: loadingPMC } = useFetch<any>('/api/performance/pmc', {
+  const { data: pmcData, pending: loadingPMC } = (useFetch as any)('/api/performance/pmc', {
     lazy: true,
     server: false,
-    query: { days: 7 },
+    query: computed(() => ({
+      days: 7,
+      displayMode: trainingLoadDisplayMode.value
+    })),
     immediate: true,
-    watch: [() => integrationStore.intervalsConnected]
+    watch: [() => integrationStore.intervalsConnected, trainingLoadDisplayMode]
   })
 
   const pmcSummary = computed(() => pmcData.value?.summary || null)

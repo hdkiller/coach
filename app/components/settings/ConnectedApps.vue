@@ -1129,6 +1129,8 @@
         description: string
         label: string
         target: 'root'
+        type?: 'switch' | 'select'
+        options?: { label: string; value: any }[]
       }
     | {
         key: string

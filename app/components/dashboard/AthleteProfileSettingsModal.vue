@@ -120,6 +120,9 @@
 
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
+  const trainingLoadDisplayMode = computed(
+    () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
+  )
 
   const sections = [
     { key: 'profileInfo', label: "Athlete's Profile" },
@@ -182,11 +185,15 @@
   }
 
   // Fetch PMC data for values
-  const { data: pmcData } = useFetch<any>('/api/performance/pmc', {
-    query: { days: 1 },
+  const { data: pmcData } = (useFetch as any)('/api/performance/pmc', {
+    query: {
+      days: 1,
+      displayMode: trainingLoadDisplayMode.value
+    },
     immediate: true,
     lazy: true,
-    server: false
+    server: false,
+    watch: [trainingLoadDisplayMode]
   })
 
   const metricConfigs: Record<string, any> = {

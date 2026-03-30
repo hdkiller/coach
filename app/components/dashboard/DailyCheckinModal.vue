@@ -435,7 +435,7 @@
   async function fetchHistory() {
     try {
       recentCheckins.value =
-        ((await $fetch<any[]>('/api/checkin/history', {
+        ((await ($fetch as any)('/api/checkin/history', {
           query: { limit: 14 }
         })) as any[]) || []
     } catch (error) {

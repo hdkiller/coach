@@ -1047,6 +1047,9 @@
   )
 
   const wellnessStatus = computed(() => checkWellnessStale(userStore.profile?.latestWellnessDate))
+  const trainingLoadDisplayMode = computed(
+    () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
+  )
   const sleepStageTotalSecs = computed(() => {
     const fromSleepHours = (userStore.profile?.recentSleep || 0) * 3600
     const fromStages =
@@ -1070,7 +1073,9 @@
       const endDate = today.toISOString().split('T')[0]
 
       const [pmc, ftp, wellness, weight, events] = await Promise.all([
-        $fetch('/api/performance/pmc', { query: { days: 7 } }).catch(() => null),
+        $fetch('/api/performance/pmc', {
+          query: { days: 7, displayMode: trainingLoadDisplayMode.value }
+        }).catch(() => null),
         integrationStore.intervalsConnected
           ? $fetch('/api/performance/ftp-evolution')
           : Promise.resolve([]),
@@ -1098,6 +1103,10 @@
       pmcLoading.value = false
     }
   }
+
+  watch(trainingLoadDisplayMode, () => {
+    fetchHistoryData()
+  })
 
   function getTSBTextColor(tsb: number | undefined) {
     const val = tsb ?? 0

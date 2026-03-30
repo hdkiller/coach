@@ -604,14 +604,14 @@
 
     loadingGhost.value = true
     try {
-      const { points } = await $fetch<any>('/api/nutrition/simulate-impact', {
+      const { points } = await ($fetch as any)('/api/nutrition/simulate-impact', {
         method: 'POST',
         body: {
           date: props.nutrition.date,
           carbs: mealRec.carbs,
           absorptionType: mealRec.absorptionType
         }
-      })
+      } as any)
       ghostPoints.value = points
     } catch (e) {
       console.error('Failed to fetch ghost points:', e)
@@ -788,7 +788,7 @@
   async function handleGenerate() {
     generating.value = true
     try {
-      const response = await $fetch<any>('/api/nutrition/generate-plan', {
+      const response = await ($fetch as any)('/api/nutrition/generate-plan', {
         method: 'POST'
       })
 

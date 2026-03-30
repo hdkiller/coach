@@ -248,7 +248,7 @@
   ]
 
   // Fetch available sports for the selector (non-blocking)
-  const { data: sportsData } = useFetch<string[]>('/api/workouts/sports', {
+  const { data: sportsData } = (useFetch as any)('/api/workouts/sports', {
     lazy: true,
     server: false
   })
@@ -263,7 +263,7 @@
   const sportOptions = computed(() => {
     const options = [{ label: 'All Sports', value: 'all' }]
     if (sportsData.value && Array.isArray(sportsData.value)) {
-      sportsData.value.forEach((sport) => {
+      sportsData.value.forEach((sport: string) => {
         options.push({ label: formatSportLabel(sport), value: sport })
       })
     }
@@ -291,7 +291,7 @@
   })
 
   // Data Fetching
-  const { data, pending, error, refresh } = useFetch<any>('/api/stats/monthly-comparison', {
+  const { data, pending, error, refresh } = (useFetch as any)('/api/stats/monthly-comparison', {
     query: {
       sport: computed(() => selectedSport.value)
     },
