@@ -296,6 +296,35 @@ describe('planningTools', () => {
   })
 
   describe('set_planned_workout_structure', () => {
+    it('accepts common step type aliases at the schema boundary', () => {
+      const schema = tools.set_planned_workout_structure.inputSchema as any
+
+      const parsed = schema.parse({
+        workout_id: 'pw-alias',
+        structured_workout: {
+          steps: [
+            { type: 'warmup', name: 'Easy start' },
+            { type: 'interval', name: 'Main set' },
+            { type: 'repeat', repeat: 4, steps: [{ type: 'active', name: 'On' }] },
+            { type: 'cooldown', name: 'Easy finish' },
+            { type: 'recovery', name: 'Between sets' }
+          ]
+        }
+      })
+
+      expect(parsed.structured_workout.steps).toEqual([
+        expect.objectContaining({ type: 'Warmup', name: 'Easy start' }),
+        expect.objectContaining({ type: 'Active', name: 'Main set' }),
+        expect.objectContaining({
+          type: undefined,
+          repeat: 4,
+          steps: [expect.objectContaining({ type: 'Active', name: 'On' })]
+        }),
+        expect.objectContaining({ type: 'Cooldown', name: 'Easy finish' }),
+        expect.objectContaining({ type: 'Rest', name: 'Between sets' })
+      ])
+    })
+
     it('updates structure and marks sync pending for synced workouts', async () => {
       vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
         id: 'pw-1',

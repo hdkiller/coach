@@ -137,6 +137,42 @@ describe('nutrition chat tools', () => {
     expect(nutritionPlanService.lockMeal).not.toHaveBeenCalled()
   })
 
+  it('formats naive local meal timestamps without adding a ghost hour', async () => {
+    const tools = nutritionTools(userId, 'Europe/Brussels', aiSettings)
+
+    vi.mocked(nutritionRepository.getForUser).mockResolvedValue([
+      {
+        id: 'nutrition-1',
+        date: new Date('2026-03-24T00:00:00.000Z'),
+        calories: 1257,
+        protein: 68,
+        carbs: 139,
+        fat: 47,
+        fiber: null,
+        sugar: null,
+        waterMl: 750,
+        breakfast: [],
+        lunch: [
+          {
+            id: 'item-1',
+            product_name: 'Roerei',
+            logged_at: '2026-03-24 12:15:56'
+          }
+        ],
+        dinner: [],
+        snacks: [],
+        aiAnalysis: null
+      }
+    ] as any)
+
+    const result = await (tools.get_nutrition_log.execute as any)({
+      start_date: '2026-03-24',
+      end_date: '2026-03-24'
+    })
+
+    expect(result.entries[0].meals.lunch[0].logged_at_local).toBe('12:15')
+  })
+
   it('rejects invalid dates for daily fueling status before calling metabolism services', async () => {
     const tools = nutritionTools(userId, timezone, aiSettings)
 
@@ -147,6 +183,52 @@ describe('nutrition chat tools', () => {
     expect(result.error_code).toBe('INVALID_CALENDAR_DATE')
     expect(metabolicService.getMetabolicStateForDate).not.toHaveBeenCalled()
     expect(metabolicService.getDailyTimeline).not.toHaveBeenCalled()
+  })
+
+  it('returns fueling windows in local clock time for AI consumption', async () => {
+    const tools = nutritionTools(userId, 'Europe/Brussels', aiSettings)
+
+    vi.mocked(nutritionRepository.getByDate).mockResolvedValue({
+      fuelingPlan: {
+        windows: [
+          {
+            type: 'PRE_WORKOUT',
+            startTime: '2026-03-24T13:00:00.000Z',
+            endTime: '2026-03-24T15:00:00.000Z'
+          },
+          {
+            type: 'INTRA_WORKOUT',
+            startTime: '2026-03-24T15:00:00.000Z',
+            endTime: '2026-03-24T16:30:00.000Z'
+          }
+        ]
+      },
+      caloriesGoal: 2721,
+      carbsGoal: 367,
+      proteinGoal: 126,
+      fatGoal: 79
+    } as any)
+
+    const result = await (tools.get_fueling_recommendations.execute as any)({
+      date: '2026-03-24'
+    })
+
+    expect(result.plan.windows).toEqual([
+      expect.objectContaining({
+        type: 'PRE_WORKOUT',
+        startTime: '14:00',
+        endTime: '16:00',
+        startTimeUtc: '2026-03-24T13:00:00.000Z',
+        endTimeUtc: '2026-03-24T15:00:00.000Z'
+      }),
+      expect.objectContaining({
+        type: 'INTRA_WORKOUT',
+        startTime: '16:00',
+        endTime: '17:30',
+        startTimeUtc: '2026-03-24T15:00:00.000Z',
+        endTimeUtc: '2026-03-24T16:30:00.000Z'
+      })
+    ])
   })
 
   it('patches quantity and weight-style fields on logged items', async () => {

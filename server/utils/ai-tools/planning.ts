@@ -61,7 +61,35 @@ const STEP_INTENT_VALUES = [
   'strides'
 ] as const
 
+const STRUCTURED_STEP_TYPE_VALUES = ['Warmup', 'Active', 'Rest', 'Cooldown'] as const
 const PRIMARY_TARGET_VALUES = ['power', 'heartRate', 'pace', 'rpe'] as const
+
+function normalizeStructuredStepTypeInput(value: unknown) {
+  if (typeof value !== 'string') return value
+
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return undefined
+
+  if (normalized === 'warmup' || normalized === 'warm-up') return 'Warmup'
+  if (
+    normalized === 'active' ||
+    normalized === 'interval' ||
+    normalized === 'intervals' ||
+    normalized === 'work' ||
+    normalized === 'on'
+  ) {
+    return 'Active'
+  }
+  if (normalized === 'rest' || normalized === 'recovery' || normalized === 'recover') {
+    return 'Rest'
+  }
+  if (normalized === 'cooldown' || normalized === 'cool-down') return 'Cooldown'
+  if (normalized === 'repeat' || normalized === 'repeats' || normalized === 'loop') {
+    return undefined
+  }
+
+  return value
+}
 
 const structuredMessageSchema = z.union([
   z.string(),
@@ -122,7 +150,10 @@ const targetingOverrideSchema = z
 const structuredStepSchema: z.ZodType<any> = z.lazy(() =>
   z
     .object({
-      type: z.enum(['Warmup', 'Active', 'Rest', 'Cooldown']).optional(),
+      type: z.preprocess(
+        normalizeStructuredStepTypeInput,
+        z.enum(STRUCTURED_STEP_TYPE_VALUES).optional()
+      ),
       intent: z.enum(STEP_INTENT_VALUES).optional(),
       name: z.string().optional(),
       description: z.string().optional(),

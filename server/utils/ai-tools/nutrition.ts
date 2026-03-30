@@ -12,6 +12,7 @@ import {
   getUserLocalDate,
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC,
+  parseDateTimeInTimezone,
   parseCalendarDate,
   buildInvalidCalendarDateResult
 } from '../../utils/date'
@@ -50,7 +51,10 @@ const formatMealItems = (items: any, timezone: string) => {
   if (!Array.isArray(items)) return []
   return items.map((item: any) => ({
     ...item,
-    logged_at_local: item.logged_at ? formatUserTime(new Date(item.logged_at), timezone) : null
+    logged_at_local: (() => {
+      const parsed = parseDateTimeInTimezone(item.logged_at || item.date, timezone)
+      return parsed ? formatUserTime(parsed, timezone) : null
+    })()
   }))
 }
 
@@ -869,7 +873,25 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
       return {
         status: 'FOUND',
-        plan: nutrition.fuelingPlan,
+        plan: {
+          ...(nutrition.fuelingPlan as Record<string, any>),
+          windows: Array.isArray((nutrition.fuelingPlan as any)?.windows)
+            ? (nutrition.fuelingPlan as any).windows.map((window: any) => {
+                const start = parseDateTimeInTimezone(window.startTime, timezone)
+                const end = parseDateTimeInTimezone(window.endTime, timezone)
+
+                return {
+                  ...window,
+                  startTime: start ? formatUserTime(start, timezone) : window.startTime,
+                  endTime: end ? formatUserTime(end, timezone) : window.endTime,
+                  startDate: start ? formatUserDate(start, timezone) : undefined,
+                  endDate: end ? formatUserDate(end, timezone) : undefined,
+                  startTimeUtc: window.startTime,
+                  endTimeUtc: window.endTime
+                }
+              })
+            : []
+        },
         daily_targets: {
           calories: nutrition.caloriesGoal,
           carbs: nutrition.carbsGoal,
