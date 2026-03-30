@@ -291,11 +291,15 @@ export function toIntensityFactorFromTarget(
     paceZones?: any[]
   }
 ): number | null {
-  const value = getTargetMidpoint(target)
-  if (value === null || !Number.isFinite(value)) return null
+  const valueRaw = getTargetMidpoint(target)
+  if (valueRaw === null || !Number.isFinite(valueRaw)) return null
   const units = String(target?.units || '')
     .trim()
     .toLowerCase()
+
+  const isRelative = units.includes('%') || units === 'relative' || units.includes('pct')
+  const value = isRelative && valueRaw > 2 ? valueRaw / 100 : valueRaw
+
   const clamp = (n: number) => Math.max(0.3, Math.min(1.8, n))
   const paceValueToMps = (paceValue: number) => {
     if (!Number.isFinite(paceValue) || paceValue <= 0) return null
@@ -316,14 +320,16 @@ export function toIntensityFactorFromTarget(
     if (units === 'bpm') {
       if (refs.lthr > 0) return clamp(value / refs.lthr)
       if (refs.maxHr > 0) return clamp(value / refs.maxHr)
-      return clamp(value > 2 ? value / 100 : value)
+      // If no reference, and it looks like BPM, we can't reliably return an IF.
+      // Returning null allows classification logic to fall back to type/labels.
+      return value > 30 ? null : clamp(value)
     }
     if (units.includes('zone')) {
       const bounds = getZoneBoundsFromRefs('heartRate', value, refs)
       if (bounds) return clamp((bounds.start + bounds.end) / 2)
       return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1)
     }
-    return clamp(value > 2 ? value / 100 : value)
+    return isRelative || value <= 2 ? clamp(value) : null
   }
 
   if (kind === 'power') {
@@ -347,7 +353,7 @@ export function toIntensityFactorFromTarget(
   const metersPerSecond = paceValueToMps(value)
   if (metersPerSecond !== null && refs.thresholdPace > 0)
     return clamp(metersPerSecond / refs.thresholdPace)
-  return clamp(value > 2 ? value / 100 : value)
+  return isRelative || value <= 2 ? clamp(value) : null
 }
 
 export function selectStepIntensity(

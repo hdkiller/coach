@@ -255,4 +255,13 @@ describe('structured workout persistence', () => {
 
     expect(intensity).toBeCloseTo(0.4)
   })
+
+  it('normalizes %pace units correctly', () => {
+    const intensity = toIntensityFactorFromTarget({ value: 93, units: '%pace' }, 'pace', {
+      ...refs,
+      thresholdPace: 4.329
+    })
+
+    expect(intensity).toBeCloseTo(0.93)
+  })
 })
