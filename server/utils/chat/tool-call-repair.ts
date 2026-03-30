@@ -19,15 +19,15 @@ function boundedLevenshtein(a: string, b: string, maxDistance: number) {
   let previous = Array.from({ length: b.length + 1 }, (_, index) => index)
 
   for (let i = 1; i <= a.length; i += 1) {
-    const current = [i]
-    let rowMin = current[0]
+    const current: number[] = [i]
+    let rowMin = current[0]!
 
     for (let j = 1; j <= b.length; j += 1) {
       const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1
       const value = Math.min(
-        previous[j] + 1,
-        current[j - 1] + 1,
-        previous[j - 1] + substitutionCost
+        previous[j]! + 1,
+        current[j - 1]! + 1,
+        previous[j - 1]! + substitutionCost
       )
       current.push(value)
       if (value < rowMin) rowMin = value
@@ -40,7 +40,7 @@ function boundedLevenshtein(a: string, b: string, maxDistance: number) {
     previous = current
   }
 
-  return previous[b.length] <= maxDistance ? previous[b.length] : Number.POSITIVE_INFINITY
+  return previous[b.length]! <= maxDistance ? previous[b.length]! : Number.POSITIVE_INFINITY
 }
 
 export function findToolNameRepair(
@@ -58,7 +58,7 @@ export function findToolNameRepair(
 
   if (normalizedMatches.length === 1) {
     return {
-      repairedName: normalizedMatches[0],
+      repairedName: normalizedMatches[0]!,
       strategy: 'normalized'
     }
   }
@@ -70,7 +70,7 @@ export function findToolNameRepair(
       distance: boundedLevenshtein(normalizedTarget, normalizeToolName(candidate), maxDistance)
     }))
     .filter((entry) => Number.isFinite(entry.distance))
-    .sort((left, right) => left.distance - right.distance)
+    .sort((left, right) => (left.distance as number) - (right.distance as number))
 
   if (ranked.length === 0) {
     return null

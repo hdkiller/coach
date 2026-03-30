@@ -658,7 +658,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       {
         toolCallId: approvedContinuation.toolCallId,
         experimental_context: {
-          turnId: turn.id,
+          turnId: activeTurn.id,
           lineageId: turn.lineageId,
           roomId: turn.roomId,
           userId: turn.userId,
@@ -773,7 +773,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         roomMetadata
       }).catch((error) => {
         console.error('[ChatTurn] Failed to schedule chat summary after local completion:', {
-          turnId: turn.id,
+          turnId: activeTurn.id,
           roomId: turn.roomId,
           error
         })
@@ -946,7 +946,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       content: persistedText,
       metadata: {
         isDraft: status !== CHAT_TURN_STATUS.COMPLETED,
-        turnId: turn.id,
+        turnId: activeTurn.id,
         turnStatus: status,
         toolCalls: toolCallsUsed,
         toolsUsed: toolCallsUsed.map((entry: any) => entry.name),
@@ -997,7 +997,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   const slowResponseTimer = setTimeout(() => {
     void markSlowResponse().catch((error) => {
       console.error('[ChatTurn] Slow response marker failed:', {
-        turnId: turn.id,
+        turnId: activeTurn.id,
         error
       })
     })
@@ -1329,7 +1329,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           await prisma.llmUsage.create({
             data: {
               userId: turn.userId,
-              turnId: turn.id,
+              turnId: activeTurn.id,
               provider: 'gemini',
               model: modelName,
               modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
@@ -1366,7 +1366,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           roomMetadata
         }).catch((error) => {
           console.error('[ChatTurn] Failed to schedule chat summary after completion:', {
-            turnId: turn.id,
+            turnId: activeTurn.id,
             roomId: turn.roomId,
             error
           })
@@ -1377,7 +1377,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           const extraction = await extractMemoryCandidatesFromConversation({
             userId: turn.userId,
             roomId: turn.roomId,
-            turnId: turn.id,
+            turnId: activeTurn.id,
             messages: [
               { role: 'user', content },
               ...(assistantText.trim()
@@ -1408,7 +1408,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
                   : `Saved ${savedMemories.length} memories from this conversation.`
             }).catch((error) => {
               console.error('[ChatTurn] Failed to broadcast auto-saved memory event:', {
-                turnId: turn.id,
+                turnId: activeTurn.id,
                 roomId: turn.roomId,
                 error
               })
@@ -1420,7 +1420,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         if (memoryToolEvent && memoryToolEvent.memories.length > 0) {
           await broadcastMemoryEvent(memoryToolEvent).catch((error) => {
             console.error('[ChatTurn] Failed to broadcast tool-driven memory event:', {
-              turnId: turn.id,
+              turnId: activeTurn.id,
               roomId: turn.roomId,
               error
             })
