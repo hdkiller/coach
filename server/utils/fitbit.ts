@@ -947,7 +947,7 @@ export function mergeFitbitNutritionWithExisting(
 }
 
 export function normalizeFitbitNutrition(
-  foodLog: FitbitFoodLogResponse,
+  foodLog: FitbitFoodLogResponse | null,
   waterLog: FitbitWaterLogResponse | null,
   foodGoals: FitbitFoodGoalsResponse | null,
   userId: string,
@@ -967,7 +967,7 @@ export function normalizeFitbitNutrition(
     snacks: []
   }
 
-  for (const entry of foodLog.foods || []) {
+  for (const entry of foodLog?.foods || []) {
     const loggedFood = entry.loggedFood || {}
     const nutrients = entry.nutritionalValues || {}
     const mealTypeId = loggedFood.mealTypeId ?? 7
@@ -1008,7 +1008,7 @@ export function normalizeFitbitNutrition(
     })
   }
 
-  const summary = foodLog.summary || {}
+  const summary = foodLog?.summary || {}
   const waterMl = waterLog?.summary?.water ?? null
 
   return {
@@ -1021,7 +1021,7 @@ export function normalizeFitbitNutrition(
     fiber: summary.fiber ?? null,
     sugar: summary.sugar ?? null,
     waterMl: waterMl ?? null,
-    caloriesGoal: foodGoals?.goals?.calories ?? foodLog.goals?.calories ?? null,
+    caloriesGoal: foodGoals?.goals?.calories ?? foodLog?.goals?.calories ?? null,
     proteinGoal: null,
     carbsGoal: null,
     fatGoal: null,

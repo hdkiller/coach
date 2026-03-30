@@ -151,6 +151,7 @@ export const wellnessRepository = {
     source: string = 'unknown',
     options: {
       clearFields?: string[]
+      replaceRawJson?: boolean
     } = {}
   ) {
     // Some provider normalizers include a `source` field for traceability,
@@ -177,12 +178,14 @@ export const wellnessRepository = {
     if (existing) {
       finalUpdateData = {}
       const clearFields = new Set(options.clearFields || [])
+      const replaceRawJson = options.replaceRawJson === true
       for (const [key, value] of Object.entries(sanitizedUpdateData)) {
         const shouldClearField = clearFields.has(key)
         if (value !== null && value !== undefined) {
           // Special handling for rawJson: merge instead of replace if possible
           if (
             key === 'rawJson' &&
+            !replaceRawJson &&
             typeof value === 'object' &&
             existing.rawJson &&
             typeof existing.rawJson === 'object'

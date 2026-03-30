@@ -38,7 +38,7 @@ describe('evaluateFitbitRecoveryAlert', () => {
     expect(result.summary).toContain('not evaluated')
   })
 
-  it('prefers Garmin average stress from raw payload over a stale stored stress score', () => {
+  it('ignores non-subjective Garmin stress for coach subjective-stress prompts', () => {
     expect(
       getCanonicalWellnessStress({
         stress: 10,
@@ -47,7 +47,7 @@ describe('evaluateFitbitRecoveryAlert', () => {
           averageStressLevel: 29
         }
       })
-    ).toBe(3)
+    ).toBeNull()
   })
 
   it('maps Intervals categorical stress from raw payload into the 1-10 prompt scale', () => {

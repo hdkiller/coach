@@ -10,6 +10,38 @@ import { normalizeTSS } from './normalize-tss'
 
 const verboseWorkoutStressLogs = process.env.CW_VERBOSE_WORKOUT_STRESS_LOGS === '1'
 
+function getIntervalsSourceLoad(workout: {
+  source?: string | null
+  rawJson?: any
+}): { ctl: number; atl: number } | null {
+  if (workout.source !== 'intervals') return null
+
+  const ctl = workout?.rawJson?.icu_ctl
+  const atl = workout?.rawJson?.icu_atl
+
+  if (typeof ctl !== 'number' || typeof atl !== 'number') return null
+
+  return { ctl, atl }
+}
+
+function getAuthoritativeLoad(workout: {
+  source?: string | null
+  rawJson?: any
+  ctl?: number | null
+  atl?: number | null
+}): { ctl: number; atl: number } | null {
+  const intervalsLoad = getIntervalsSourceLoad(workout)
+  if (intervalsLoad) return intervalsLoad
+
+  if (workout.ctl === null || workout.ctl === undefined) return null
+  if (workout.atl === null || workout.atl === undefined) return null
+
+  return {
+    ctl: workout.ctl,
+    atl: workout.atl
+  }
+}
+
 /**
  * Calculate and update CTL/ATL for a new or updated workout
  * Should be called after a workout is created/updated
@@ -27,7 +59,9 @@ export async function calculateWorkoutStress(
       tss: true,
       trimp: true,
       ctl: true,
-      atl: true
+      atl: true,
+      source: true,
+      rawJson: true
     }
   })
 
@@ -35,9 +69,18 @@ export async function calculateWorkoutStress(
     throw new Error(`Workout ${workoutId} not found`)
   }
 
-  // If workout already has CTL/ATL (e.g., from Intervals.icu), use those
-  if (workout.ctl !== null && workout.atl !== null) {
-    return { ctl: workout.ctl, atl: workout.atl }
+  const authoritativeLoad = getAuthoritativeLoad(workout)
+
+  // Intervals raw CTL/ATL are the source of truth. If they exist, keep columns aligned to them.
+  if (authoritativeLoad) {
+    if (workout.ctl !== authoritativeLoad.ctl || workout.atl !== authoritativeLoad.atl) {
+      await prisma.workout.update({
+        where: { id: workoutId },
+        data: authoritativeLoad
+      })
+    }
+
+    return authoritativeLoad
   }
 
   // Get the previous workout's CTL/ATL (chronologically before this one)
@@ -177,11 +220,12 @@ export async function recalculateStressAfterDate(userId: string, afterDate: Date
       isDuplicate: false
     },
     orderBy: { date: 'desc' },
-    select: { ctl: true, atl: true }
+    select: { ctl: true, atl: true, source: true, rawJson: true }
   })
 
-  let ctl = lastGoodWorkout?.ctl ?? 0
-  let atl = lastGoodWorkout?.atl ?? 0
+  const lastGoodLoad = lastGoodWorkout ? getAuthoritativeLoad(lastGoodWorkout) : null
+  let ctl = lastGoodLoad?.ctl ?? 0
+  let atl = lastGoodLoad?.atl ?? 0
 
   // Get all workouts from the affected date onwards
   const workoutsToUpdate = await prisma.workout.findMany({
@@ -195,14 +239,22 @@ export async function recalculateStressAfterDate(userId: string, afterDate: Date
 
   // Recalculate each workout
   for (const workout of workoutsToUpdate) {
-    const tss = getStressScore(workout)
-    ctl = calculateCTL(ctl, tss)
-    atl = calculateATL(atl, tss)
+    const authoritativeLoad = getAuthoritativeLoad(workout)
+    if (authoritativeLoad) {
+      ctl = authoritativeLoad.ctl
+      atl = authoritativeLoad.atl
+    } else {
+      const tss = getStressScore(workout)
+      ctl = calculateCTL(ctl, tss)
+      atl = calculateATL(atl, tss)
+    }
 
-    await prisma.workout.update({
-      where: { id: workout.id },
-      data: { ctl, atl }
-    })
+    if (workout.ctl !== ctl || workout.atl !== atl) {
+      await prisma.workout.update({
+        where: { id: workout.id },
+        data: { ctl, atl }
+      })
+    }
   }
 
   return workoutsToUpdate.length

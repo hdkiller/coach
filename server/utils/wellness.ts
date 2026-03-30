@@ -237,26 +237,25 @@ export function getCanonicalWellnessStress(
 
   const source = `${wellness.lastSource || ''}`.toLowerCase()
   const raw = wellness.rawJson
+  const nonSubjectiveSources = new Set([
+    'garmin',
+    'oura',
+    'whoop',
+    'fitbit',
+    'ultrahuman',
+    'polar',
+    'withings'
+  ])
 
   if (raw && typeof raw === 'object') {
-    if (source === 'garmin') {
-      const garminStress = normalizeStressScoreForStorage(
-        toFiniteNumber(raw.averageStressLevel ?? raw.AverageDailyStress)
-      )
-      if (garminStress !== null) return garminStress
-    }
-
     if (source === 'intervals') {
       const intervalsStress = mapIntervalsStressValue(raw.stress)
       if (intervalsStress !== null) return intervalsStress
       if (raw.stress == null) return null
     }
-
-    if (source === 'oura') {
-      const ouraStress = toFiniteNumber(raw.stress_score)
-      if (ouraStress !== null) return ouraStress
-    }
   }
+
+  if (nonSubjectiveSources.has(source)) return null
 
   return normalizeStressScoreForStorage(wellness.stress)
 }

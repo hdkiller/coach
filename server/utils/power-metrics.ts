@@ -79,7 +79,7 @@ export function calculateRollingNormalizedPower(wattsArray: number[]): number[] 
   // Now smooth the powers with another window (optional but common for 'xPower')
   // or just return the 4th root of the 30s power
   for (let i = 0; i < wattsArray.length; i++) {
-    result[i] = Math.pow(powers[i], 0.25)
+    result[i] = Math.pow(powers[i]!, 0.25)
   }
 
   return result

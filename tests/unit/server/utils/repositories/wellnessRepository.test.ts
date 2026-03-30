@@ -209,5 +209,38 @@ describe('wellnessRepository', () => {
         })
       )
     })
+
+    it('should replace rawJson when configured for full-snapshot providers', async () => {
+      vi.mocked(prisma.wellness.findUnique).mockResolvedValue({
+        id: '1',
+        userId,
+        date,
+        rawJson: {
+          stress: 4,
+          fatigue: 2,
+          readiness: 83
+        },
+        history: []
+      } as any)
+
+      await wellnessRepository.upsert(
+        userId,
+        date,
+        { userId, date, rawJson: { readiness: 81 } } as any,
+        { rawJson: { readiness: 81 } } as any,
+        'intervals',
+        { replaceRawJson: true }
+      )
+
+      expect(prisma.wellness.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            rawJson: {
+              readiness: 81
+            }
+          })
+        })
+      )
+    })
   })
 })
