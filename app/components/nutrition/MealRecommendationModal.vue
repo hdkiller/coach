@@ -387,7 +387,7 @@
   async function fetchRunOutput(runId: string) {
     console.log('[MealRecommendationModal] fetchRunOutput:start', { runId })
     try {
-      const run = await $fetch<any>(`/api/runs/${runId}`)
+      const run = await ($fetch as any)(`/api/runs/${runId}`)
       console.log('[MealRecommendationModal] fetchRunOutput:success', {
         runId,
         status: run?.status,
@@ -514,7 +514,7 @@
     else loading.value = true
 
     try {
-      const res = await $fetch<any>('/api/nutrition/recommendations/meal', {
+      const res = await ($fetch as any)('/api/nutrition/recommend-meals', {
         method: 'POST',
         body: {
           date: props.date,
@@ -559,7 +559,7 @@
             console.log('[MealRecommendationModal] polling run status', {
               runId: currentRunId.value
             })
-            const run = await $fetch<any>(`/api/runs/${currentRunId.value}`)
+            const run = await ($fetch as any)(`/api/runs/${currentRunId.value}`)
             console.log('[MealRecommendationModal] polling run status response', {
               runId: currentRunId.value,
               status: run.status,

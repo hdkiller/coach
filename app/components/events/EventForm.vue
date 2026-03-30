@@ -301,7 +301,7 @@
 
   async function fetchGoals() {
     try {
-      const response = await $fetch<any>('/api/goals')
+      const response = await ($fetch as any)('/api/goals')
       const goals = Array.isArray(response) ? response : response.goals || []
 
       goalOptions.value = goals.map((g: any) => ({

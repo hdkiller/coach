@@ -56,7 +56,9 @@
           :key="index"
           class="flex items-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm group"
         >
-          <div class="flex-none text-[10px] font-bold text-gray-400 w-4">{{ index + 1 }}</div>
+          <div class="flex-none text-[10px] font-bold text-gray-400 w-4">
+            {{ Number(index) + 1 }}
+          </div>
 
           <div class="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
             <UInput v-model="step.name" placeholder="Step name" size="xs" class="sm:col-span-1" />
@@ -86,7 +88,7 @@
             icon="i-heroicons-trash"
             size="xs"
             class="opacity-0 group-hover:opacity-100 transition-opacity"
-            @click="removeStep(index)"
+            @click="removeStep(Number(index))"
           />
         </div>
       </div>

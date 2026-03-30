@@ -123,15 +123,23 @@
     name: 'WorkoutFolderTreeBranch'
   })
 
-  const props = defineProps<{
-    nodes: any[]
-    level?: number
-    parentId?: string | null
-    selectedScope: string
-    expandedSet: Set<string>
-    draggedItem?: { type: 'folder' | 'templates'; ids: string[] } | null
-    allowManage?: boolean
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      nodes: any[]
+      level?: number
+      parentId?: string | null
+      selectedScope: string
+      expandedSet: Set<string>
+      draggedItem?: { type: 'folder' | 'templates'; ids: string[] } | null
+      allowManage?: boolean
+    }>(),
+    {
+      level: 0,
+      parentId: null,
+      draggedItem: null,
+      allowManage: false
+    }
+  )
 
   const emit = defineEmits<{
     'select-scope': [scope: string]

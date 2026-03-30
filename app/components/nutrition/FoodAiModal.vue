@@ -119,7 +119,7 @@
     error.value = null
 
     try {
-      const res = await $fetch<any>(`/api/nutrition/${props.nutritionId || props.date}/log`, {
+      const res = await ($fetch as any)(`/api/nutrition/${props.nutritionId || props.date}/log`, {
         method: 'POST',
         body: {
           query: query.value,

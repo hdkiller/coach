@@ -575,13 +575,13 @@
     loading.value = true
     try {
       const [planData, workoutsData] = await Promise.all([
-        $fetch<any>('/api/nutrition/plan', {
+        ($fetch as any)('/api/nutrition/plan', {
           query: {
             start: props.startDate,
             end: props.endDate
           }
         }),
-        $fetch<any>('/api/workouts/planned/range', {
+        ($fetch as any)('/api/workouts/planned/range', {
           query: {
             start: props.startDate,
             end: props.endDate
