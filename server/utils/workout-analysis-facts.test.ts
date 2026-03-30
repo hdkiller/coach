@@ -542,6 +542,7 @@ describe('buildWorkoutAnalysisFacts', () => {
             { type: 'WORK', moving_time: 745, average_speed: 4.01 },
             { type: 'REST', moving_time: 180, average_speed: 2.93 },
             { type: 'WORK', moving_time: 745, average_speed: 4.0 },
+            { type: 'REST', moving_time: 180, average_speed: 2.92 },
             { type: 'REST', moving_time: 600, average_speed: 2.9 }
           ]
         }

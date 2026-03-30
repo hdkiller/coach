@@ -20,7 +20,7 @@ vi.mock('../../../../../server/utils/auth-guard', () => ({
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
     wellness: {
-      findFirst: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn()
     }
   }
@@ -35,7 +35,7 @@ describe('PATCH /api/wellness/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(requireAuth).mockResolvedValue({ id: 'user-1' } as any)
-    vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
+    vi.mocked(prisma.wellness.findUnique).mockResolvedValue({
       id: 'wellness-1',
       userId: 'user-1'
     } as any)
