@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
         coachNotes: sourcePlan.coachNotes,
         athleteNotes: sourcePlan.athleteNotes,
         activityTypes: toPrismaNullableJsonValue(sourcePlan.activityTypes),
-        customInstructions: sourcePlan.customInstructions,
+        customInstructions: sourcePlan.customInstructions as string | null,
         recoveryRhythm: sourcePlan.recoveryRhythm,
         hasBeenSavedAsTemplate: true,
         folderId: body.folderId ?? null,
@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
           create: sourcePlan.blocks.map((block) => ({
             order: block.order,
             name: block.name,
-            description: block.description,
+            description: block.description as string | null,
             type: block.type,
             primaryFocus: block.primaryFocus,
             startDate: block.startDate,
@@ -148,7 +148,7 @@ export default defineEventHandler(async (event) => {
                     structuredWorkout: toPrismaNullableJsonValue(workout.structuredWorkout),
                     targetArea: workout.targetArea,
                     managedBy: 'COACH_WATTS',
-                    fuelingStrategy: toPrismaNullableJsonValue(workout.fuelingStrategy),
+                    fuelingStrategy: workout.fuelingStrategy,
                     startTime: workout.startTime,
                     createdFromSettingsSnapshot: toPrismaNullableJsonValue(
                       workout.createdFromSettingsSnapshot

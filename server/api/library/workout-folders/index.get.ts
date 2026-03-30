@@ -63,5 +63,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const ownerId = getReadableLibraryOwnerIds(context, scope)[0]
+  if (!ownerId) {
+    throw createError({ statusCode: 400, message: 'Invalid library scope' })
+  }
   return await buildPayloadForOwner(ownerId, scope === 'coach' ? 'coach' : 'athlete')
 })

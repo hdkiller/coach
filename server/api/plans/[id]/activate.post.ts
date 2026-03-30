@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   // 1. Archive existing active plans and cleanup their workouts
   const activePlans = await trainingPlanRepository.list(userId, { status: 'ACTIVE' })
-  const plansToArchive = activePlans.filter((p) => p.id !== planId)
+  const plansToArchive = activePlans.filter((p) => !p.isTemplate && p.id !== planId)
 
   for (const p of plansToArchive) {
     await trainingPlanRepository.cleanupWorkouts(userId, p.id, startDate)

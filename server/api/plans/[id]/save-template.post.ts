@@ -44,108 +44,106 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Not authorized' })
   }
 
-  const template = await (prisma as any).trainingPlan.create({
-    data: {
-      userId,
-      name,
-      description,
-      isTemplate: true,
-      visibility: plan.visibility || 'PRIVATE',
-      accessState: plan.accessState || 'PRIVATE',
-      slug: null,
-      primarySport: plan.primarySport,
-      sportSubtype: plan.sportSubtype,
-      skillLevel: plan.skillLevel,
-      planLanguage: plan.planLanguage,
-      daysPerWeek: plan.daysPerWeek,
-      weeklyVolumeBand: plan.weeklyVolumeBand,
-      goalLabel: plan.goalLabel,
-      equipmentTags: plan.equipmentTags || [],
-      publicHeadline: plan.publicHeadline,
-      publicDescription: plan.publicDescription,
-      methodology: plan.methodology,
-      whoItsFor: plan.whoItsFor,
-      faq: plan.faq,
-      extraContent: plan.extraContent,
-      strategy: plan.strategy,
-      status: 'ACTIVE'
-    }
-  })
-
-  // Mark original plan as saved as template
-  await (prisma as any).trainingPlan.update({
-    where: { id: planId },
-    data: { hasBeenSavedAsTemplate: true }
-  })
-
-  // Clone Blocks
-  let globalWeekCounter = 1
-
-  for (const block of plan.blocks) {
-    const newBlock = await (prisma as any).trainingBlock.create({
+  const template = await (prisma as any).$transaction(async (tx: any) => {
+    const createdTemplate = await tx.trainingPlan.create({
       data: {
-        trainingPlanId: template.id,
-        order: block.order,
-        name: block.name,
-        type: block.type,
-        primaryFocus: block.primaryFocus,
-        startDate: new Date(0), // Placeholder for templates
-        durationWeeks: block.durationWeeks,
-        recoveryWeekIndex: block.recoveryWeekIndex,
-        progressionLogic: block.progressionLogic
+        userId,
+        name,
+        description,
+        isTemplate: true,
+        visibility: plan.visibility || 'PRIVATE',
+        accessState: plan.accessState || 'PRIVATE',
+        slug: null,
+        primarySport: plan.primarySport,
+        sportSubtype: plan.sportSubtype,
+        skillLevel: plan.skillLevel,
+        planLanguage: plan.planLanguage,
+        daysPerWeek: plan.daysPerWeek,
+        weeklyVolumeBand: plan.weeklyVolumeBand,
+        goalLabel: plan.goalLabel,
+        equipmentTags: plan.equipmentTags || [],
+        publicHeadline: plan.publicHeadline,
+        publicDescription: plan.publicDescription,
+        methodology: plan.methodology,
+        whoItsFor: plan.whoItsFor,
+        faq: plan.faq,
+        extraContent: plan.extraContent,
+        strategy: plan.strategy,
+        status: 'ACTIVE'
       }
     })
 
-    // Sort weeks by number to ensure correct global index
-    const sortedWeeks = [...block.weeks].sort((a, b) => a.weekNumber - b.weekNumber)
+    await tx.trainingPlan.update({
+      where: { id: planId },
+      data: { hasBeenSavedAsTemplate: true }
+    })
 
-    // Clone Weeks
-    for (const week of sortedWeeks) {
-      const newWeek = await (prisma as any).trainingWeek.create({
+    let globalWeekCounter = 1
+
+    for (const block of plan.blocks) {
+      const newBlock = await tx.trainingBlock.create({
         data: {
-          blockId: newBlock.id,
-          weekNumber: week.weekNumber,
+          trainingPlanId: createdTemplate.id,
+          order: block.order,
+          name: block.name,
+          type: block.type,
+          primaryFocus: block.primaryFocus,
           startDate: new Date(0), // Placeholder for templates
-          endDate: new Date(0), // Placeholder for templates
-          volumeTargetMinutes: week.volumeTargetMinutes,
-          tssTarget: week.tssTarget,
-          isRecovery: week.isRecovery,
-          focus: week.focus
+          durationWeeks: block.durationWeeks,
+          recoveryWeekIndex: block.recoveryWeekIndex,
+          progressionLogic: block.progressionLogic
         }
       })
 
-      // Clone Workouts with relative indices
-      for (const workout of week.workouts) {
-        const workoutDate = new Date(workout.date)
-        const jsDay = workoutDate.getDay() // 0 = Sunday, 1 = Monday...
-        // Convert to our 0-6 (Monday-Sunday) format
-        const dayIndex = jsDay === 0 ? 6 : jsDay - 1
+      const sortedWeeks = [...block.weeks].sort((a, b) => a.weekNumber - b.weekNumber)
 
-        await (prisma as any).plannedWorkout.create({
+      for (const week of sortedWeeks) {
+        const newWeek = await tx.trainingWeek.create({
           data: {
-            userId,
-            trainingWeekId: newWeek.id,
-            externalId: `tmpl_${template.id}_${Math.random().toString(36).substr(2, 9)}`,
-            date: new Date(dayIndex * 24 * 60 * 60 * 1000), // Keep for legacy compatibility
-            dayIndex,
-            weekIndex: globalWeekCounter,
-            title: workout.title,
-            description: workout.description,
-            type: workout.type,
-            category: workout.category,
-            durationSec: workout.durationSec,
-            distanceMeters: workout.distanceMeters,
-            tss: workout.tss,
-            workIntensity: workout.workIntensity,
-            structuredWorkout: workout.structuredWorkout as any,
-            completionStatus: 'PENDING',
-            managedBy: 'COACH_WATTS'
+            blockId: newBlock.id,
+            weekNumber: week.weekNumber,
+            startDate: new Date(0), // Placeholder for templates
+            endDate: new Date(0), // Placeholder for templates
+            volumeTargetMinutes: week.volumeTargetMinutes,
+            tssTarget: week.tssTarget,
+            isRecovery: week.isRecovery,
+            focus: week.focus
           }
         })
+
+        for (const workout of week.workouts) {
+          const workoutDate = new Date(workout.date)
+          const jsDay = workoutDate.getDay()
+          const dayIndex = jsDay === 0 ? 6 : jsDay - 1
+
+          await tx.plannedWorkout.create({
+            data: {
+              userId,
+              trainingWeekId: newWeek.id,
+              externalId: `tmpl_${createdTemplate.id}_${Math.random().toString(36).substr(2, 9)}`,
+              date: new Date(dayIndex * 24 * 60 * 60 * 1000), // Keep for legacy compatibility
+              dayIndex,
+              weekIndex: globalWeekCounter,
+              title: workout.title,
+              description: workout.description,
+              type: workout.type,
+              category: workout.category,
+              durationSec: workout.durationSec,
+              distanceMeters: workout.distanceMeters,
+              tss: workout.tss,
+              workIntensity: workout.workIntensity,
+              structuredWorkout: workout.structuredWorkout as any,
+              completionStatus: 'PENDING',
+              managedBy: 'COACH_WATTS'
+            }
+          })
+        }
+        globalWeekCounter++
       }
-      globalWeekCounter++
     }
-  }
+
+    return createdTemplate
+  })
 
   return {
     success: true,
