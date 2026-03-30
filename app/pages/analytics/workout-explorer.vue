@@ -9,7 +9,7 @@
   } from '~/utils/workout-explorer-presets'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
 
-  type ExplorerSummaryChartType = 'bar' | 'line' | 'combo' | 'radar'
+  type ExplorerSummaryChartType = 'bar' | 'line' | 'combo' | 'radar' | 'scatter'
   type ExplorerStreamField =
     | 'watts'
     | 'heartrate'

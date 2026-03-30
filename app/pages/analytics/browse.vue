@@ -55,7 +55,7 @@
   const selectedOverlayIds = ref<string[]>(ANALYTICS_SYSTEM_PRESETS[0]?.defaultOverlays || [])
 
   try {
-    athletes.value = (await $fetch('/api/coaching/athletes')) as any[]
+    athletes.value = (await ($fetch as any)('/api/coaching/athletes')) as any[]
   } catch (error: any) {
     athletes.value = []
     toast.add({

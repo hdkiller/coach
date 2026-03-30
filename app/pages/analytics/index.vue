@@ -201,14 +201,14 @@
     dashboards,
     (nextDashboards) => {
       if (!activeDashboardId.value && nextDashboards?.length) {
-        activeDashboardId.value = nextDashboards[0].id
+        activeDashboardId.value = nextDashboards[0]?.id || null
       }
     },
     { immediate: true }
   )
 
   watch(
-    () => activeDashboard.value?.scope,
+    () => (activeDashboard.value as any)?.scope,
     (scope) => {
       beginHydration('scope')
       analyticsLog('activeDashboard.scope changed', scope)
@@ -219,7 +219,7 @@
   )
 
   watch(
-    () => activeDashboard.value?.dateRange,
+    () => (activeDashboard.value as any)?.dateRange,
     (dateRange) => {
       beginHydration('dateRange')
       analyticsLog('activeDashboard.dateRange changed', dateRange)
@@ -460,8 +460,8 @@
           id: dashboard.id,
           name: renameDashboardName.value.trim(),
           layout: dashboard.layout || [],
-          scope: dashboard.scope || { target: 'self' },
-          dateRange: dashboard.dateRange || null
+          scope: (dashboard as any).scope || { target: 'self' },
+          dateRange: (dashboard as any).dateRange || null
         }
       })
       await refreshDashboards()
@@ -642,7 +642,7 @@
       {
         label: 'Remove',
         icon: 'i-lucide-trash',
-        color: 'error',
+        color: 'error' as const,
         onSelect: () => removeWidget(widget.instanceId)
       }
     ]
