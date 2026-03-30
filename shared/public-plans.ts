@@ -20,6 +20,7 @@ export type PlanAccessState = (typeof PLAN_ACCESS_STATE_OPTIONS)[number]
 export type PlanSkillLevel = (typeof PLAN_SKILL_LEVEL_OPTIONS)[number]
 export type PlanVolumeBand = (typeof PLAN_VOLUME_BAND_OPTIONS)[number]
 export type PublicPlanAccessMode = (typeof PUBLIC_PLAN_ACCESS_MODE_OPTIONS)[number]
+export type PlanSport = (typeof PUBLIC_PLAN_SPORTS)[number]['value']
 
 export const PUBLIC_PLAN_SPORTS = [
   {
@@ -83,8 +84,8 @@ export function normalizePlanVolumeBand(value?: string | null): PlanVolumeBand |
     : null
 }
 
-export function getSportSubtypeOptions(primarySport?: string | null) {
-  return PUBLIC_PLAN_SPORTS.find((sport) => sport.value === primarySport)?.subtypes ?? []
+export function getSportSubtypeOptions(primarySport?: string | null): string[] {
+  return [...(PUBLIC_PLAN_SPORTS.find((sport) => sport.value === primarySport)?.subtypes ?? [])]
 }
 
 export function getPublicSportByValue(value?: string | null) {

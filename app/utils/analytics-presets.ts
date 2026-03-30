@@ -194,7 +194,7 @@ function queryPreset(
       preset.visualType === 'combo'
         ? 'bar'
         : 'line'
-  }
+  } as AnalyticsSystemPreset
 }
 
 function endpointPreset(
@@ -211,7 +211,7 @@ function endpointPreset(
       preset.visualType === 'combo'
         ? 'bar'
         : 'line'
-  }
+  } as AnalyticsSystemPreset
 }
 
 export const ANALYTICS_PRESET_CATEGORIES: Array<{ label: string; value: AnalyticsPresetCategory }> =
