@@ -314,9 +314,8 @@
     () => filters.sport,
     (newSport) => {
       if (!newSport) return
-      const nextSubtypeOptions =
-        PUBLIC_PLAN_SPORTS.find((sport) => sport.value === newSport)?.subtypes || []
-      if (filters.subtype && !nextSubtypeOptions.includes(filters.subtype as any)) {
+      const nextSubtypeOptions = getSportSubtypeOptions(newSport)
+      if (filters.subtype && !nextSubtypeOptions.includes(filters.subtype)) {
         filters.subtype = undefined
       }
     }

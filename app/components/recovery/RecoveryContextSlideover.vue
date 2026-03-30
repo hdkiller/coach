@@ -491,7 +491,7 @@
     () => props.item,
     (item) => {
       if (item?.kind === 'journey_event') {
-        journeyForm.category = item.category || 'FATIGUE'
+        journeyForm.category = (item.category || 'FATIGUE') as JourneyEventCategory
         journeyForm.eventType = (String(item.metadata?.eventType || 'SYMPTOM') ||
           'SYMPTOM') as JourneyEventType
         journeyForm.severity = item.severity || 5
