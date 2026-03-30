@@ -25,7 +25,7 @@
 
     <!-- Text (Device Name or Attribution) -->
     <span
-      v-if="shouldShowText"
+      v-if="rule && shouldShowText"
       class="ml-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
       :class="textClasses"
     >

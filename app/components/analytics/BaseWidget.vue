@@ -598,7 +598,7 @@
     requestConfig: Record<string, any>,
     timeRange: { startDate?: string; endDate?: string }
   ) {
-    return await $fetch<ChartResponsePayload>(endpoint, {
+    return await ($fetch as (url: string, opts: any) => Promise<ChartResponsePayload>)(endpoint, {
       method: 'POST',
       body: {
         ...requestConfig,

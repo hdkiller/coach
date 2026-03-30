@@ -26,7 +26,7 @@
   async function fetchAthletes() {
     loading.value = true
     try {
-      athletes.value = await $fetch<any[]>('/api/coaching/athletes')
+      athletes.value = await ($fetch as any)('/api/coaching/athletes')
     } catch (e) {
       console.error('Failed to load athletes for scope selector:', e)
       athletes.value = []

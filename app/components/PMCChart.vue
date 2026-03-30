@@ -267,11 +267,15 @@
     settings?: any
   }>()
 
+  const userStore = useUserStore()
   const theme = useTheme()
   const loading = ref(true)
   const error = ref<string | null>(null)
   const pmcData = ref<any>(null)
   const wellnessEvents = ref<WellnessOverlayEvent[]>([])
+  const trainingLoadDisplayMode = computed(
+    () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
+  )
 
   const chartSettings = computed(() => ({
     smooth: true,
@@ -368,7 +372,7 @@
       const days = props.days || 90
       const [data, eventData] = await Promise.all([
         $fetch('/api/performance/pmc', {
-          query: { days: String(days) }
+          query: { days: String(days), displayMode: trainingLoadDisplayMode.value }
         }),
         $fetch('/api/recovery-context', {
           query: { days: String(days) }
@@ -551,12 +555,9 @@
   }))
 
   // Watch for days prop changes
-  watch(
-    () => props.days,
-    () => {
-      fetchPMCData()
-    }
-  )
+  watch([() => props.days, trainingLoadDisplayMode], () => {
+    fetchPMCData()
+  })
 
   // Load data on mount
   onMounted(() => {

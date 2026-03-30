@@ -250,7 +250,7 @@
   if (props.workoutId) {
     onMounted(async () => {
       try {
-        const data = await $fetch<any>(`/api/workouts/${props.workoutId}/streams`)
+        const data = await ($fetch as any)(`/api/workouts/${props.workoutId}/streams`)
         if (data?.lapSplits) {
           lapSplits.value = data.lapSplits
         }
