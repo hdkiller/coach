@@ -42,11 +42,11 @@
     )
   )
 
-  function getSuggestionKey(suggestion: any, index: number) {
+  function getSuggestionKey(suggestion: any, index: string | number) {
     return suggestion?.title || suggestion?.metric || `suggestion-${index}`
   }
 
-  function isAcceptingSuggestion(suggestion: any, index: number) {
+  function isAcceptingSuggestion(suggestion: any, index: string | number) {
     return acceptingSuggestionKeys.value.includes(getSuggestionKey(suggestion, index))
   }
 

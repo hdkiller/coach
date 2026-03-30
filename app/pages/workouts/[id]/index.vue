@@ -3475,6 +3475,33 @@
   const { formatDate: baseFormatDate, formatDateTime, formatDateUTC, formatTime } = useFormat()
   const { trackWorkoutViewDetail } = useAnalytics()
 
+  type WorkoutSectionKey =
+    | 'overview'
+    | 'training-impact'
+    | 'exercises'
+    | 'nutrition'
+    | 'analysis'
+    | 'power-curve'
+    | 'intervals'
+    | 'advanced'
+    | 'map'
+    | 'pacing'
+    | 'timeline'
+    | 'zones'
+    | 'efficiency'
+    | 'notes'
+    | 'metrics'
+    | 'streams'
+    | 'duplicates'
+    | 'raw-data'
+
+  interface WorkoutSectionSettings {
+    [key: string]: {
+      visible: boolean
+      order: number
+    }
+  }
+
   definePageMeta({
     middleware: 'auth'
   })
@@ -4415,10 +4442,10 @@
   const isMetricModalOpen = ref(false)
   const activeMetric = ref<{
     key: string
-    value: any
+    value: string | number
     unit?: string
-    rating?: number
-    ratingColor?: string
+    rating?: string
+    ratingColor?: 'success' | 'warning' | 'error' | 'neutral'
   } | null>(null)
 
   function handleOpenMetric(metric: any) {
@@ -5582,7 +5609,7 @@
         actions: [
           {
             label: 'View Library',
-            click: () => navigateTo('/library/workouts')
+            onClick: () => navigateTo('/library/workouts')
           }
         ]
       })

@@ -476,9 +476,7 @@
                 @click="analyzeAllWorkouts"
               >
                 <span v-if="analyzingWorkouts">Analyzing...</span>
-                <span v-else>
-                  {{ userStore.entitlements?.tier === 'FREE' ? 'Analyze Last 10' : 'Analyze All' }}
-                </span>
+                <span v-else>Analyze Last 10</span>
               </button>
             </div>
           </div>
@@ -663,7 +661,7 @@
                 @click="analyzeAllNutrition"
               >
                 <span v-if="analyzingNutrition">Analyzing...</span>
-                <span v-else>Analyze All</span>
+                <span v-else>Analyze Last 10</span>
               </button>
             </div>
           </div>

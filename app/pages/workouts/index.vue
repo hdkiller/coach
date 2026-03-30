@@ -29,7 +29,7 @@
               class="font-bold"
               @click="analyzeAllWorkouts"
             >
-              <span class="hidden sm:inline">Analyze All</span>
+              <span class="hidden sm:inline">Analyze Last 10</span>
               <span class="sm:hidden">Sync</span>
             </UButton>
 

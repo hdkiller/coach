@@ -530,7 +530,9 @@
                         <UIcon name="i-heroicons-adjustments-horizontal" class="h-4 w-4" />
                         Target Policy
                       </div>
-                      <p class="text-sm font-medium leading-relaxed text-gray-700 dark:text-gray-300">
+                      <p
+                        class="text-sm font-medium leading-relaxed text-gray-700 dark:text-gray-300"
+                      >
                         {{ generationExplanation.settingsPrompt }}
                       </p>
                     </div>
@@ -1625,8 +1627,13 @@
       note = `Adjustment note: ${feedback}.`
     } else if (model) {
       note = `Generated with ${model}.`
-    } else if (!context && !snapshot && plannedWorkout?.lastStructureEditSource === 'REMOTE_IMPORT') {
-      note = 'Imported workout: regenerate or adjust this workout locally if you want Coach Watts to rebuild it from your current target policy and sport settings.'
+    } else if (
+      !context &&
+      !snapshot &&
+      plannedWorkout?.lastStructureEditSource === 'REMOTE_IMPORT'
+    ) {
+      note =
+        'Imported workout: regenerate or adjust this workout locally if you want Coach Watts to rebuild it from your current target policy and sport settings.'
     }
 
     return {
@@ -2348,7 +2355,7 @@
         actions: [
           {
             label: 'View Library',
-            click: () => navigateTo('/library/workouts')
+            onClick: () => navigateTo('/library/workouts')
           }
         ]
       })
