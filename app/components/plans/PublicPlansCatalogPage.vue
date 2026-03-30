@@ -229,7 +229,13 @@
     getPublicSubtypeLabel,
     getSportSubtypeOptions
   } from '#shared/public-plans'
-  import type { PlanSport } from '#shared/public-plans'
+  import type {
+    PlanAccessState,
+    PlanLanguage,
+    PlanSkillLevel,
+    PlanSport,
+    PlanVolumeBand
+  } from '#shared/public-plans'
 
   const props = defineProps<{
     overrideSport?: string
@@ -273,33 +279,33 @@
 
   const filters = reactive<{
     q: string
-    sport: PlanSport | ''
-    subtype: string
-    skillLevel: string
-    language: string
+    sport?: PlanSport
+    subtype?: string
+    skillLevel?: PlanSkillLevel
+    language?: PlanLanguage
     daysPerWeek?: number
     lengthWeeks?: number
-    weeklyVolumeBand: string
-    accessState: string
+    weeklyVolumeBand?: PlanVolumeBand
+    accessState?: Exclude<PlanAccessState, 'PRIVATE'>
     sort: string
   }>({
     q: (route.query.q as string) || '',
-    sport: (activeSportMeta.value?.value as PlanSport) || '',
-    subtype: activeSubtypeLabel.value || '',
-    skillLevel: (route.query.skillLevel as string) || '',
-    language: (route.query.language as string) || '',
+    sport: (activeSportMeta.value?.value as PlanSport) || undefined,
+    subtype: activeSubtypeLabel.value || undefined,
+    skillLevel: (route.query.skillLevel as PlanSkillLevel) || undefined,
+    language: (route.query.language as PlanLanguage) || undefined,
     daysPerWeek: route.query.daysPerWeek ? Number(route.query.daysPerWeek) : undefined,
     lengthWeeks: route.query.lengthWeeks ? Number(route.query.lengthWeeks) : undefined,
-    weeklyVolumeBand: (route.query.weeklyVolumeBand as string) || '',
-    accessState: (route.query.accessState as string) || '',
+    weeklyVolumeBand: (route.query.weeklyVolumeBand as PlanVolumeBand) || undefined,
+    accessState: (route.query.accessState as Exclude<PlanAccessState, 'PRIVATE'>) || undefined,
     sort: (route.query.sort as string) || 'featured'
   })
 
   watch(
     [activeSportMeta, activeSubtypeLabel],
     ([sport, subtype]) => {
-      filters.sport = (sport?.value as PlanSport) || ''
-      filters.subtype = subtype || ''
+      filters.sport = (sport?.value as PlanSport) || undefined
+      filters.subtype = subtype || undefined
     },
     { immediate: true }
   )
@@ -310,8 +316,8 @@
       if (!newSport) return
       const nextSubtypeOptions =
         PUBLIC_PLAN_SPORTS.find((sport) => sport.value === newSport)?.subtypes || []
-      if (filters.subtype && !nextSubtypeOptions.includes(filters.subtype)) {
-        filters.subtype = ''
+      if (filters.subtype && !nextSubtypeOptions.includes(filters.subtype as any)) {
+        filters.subtype = undefined
       }
     }
   )
@@ -410,22 +416,22 @@
 
   function clearFilters() {
     filters.q = ''
-    filters.sport = ''
-    filters.subtype = ''
-    filters.skillLevel = ''
-    filters.language = ''
+    filters.sport = undefined
+    filters.subtype = undefined
+    filters.skillLevel = undefined
+    filters.language = undefined
     filters.daysPerWeek = undefined
     filters.lengthWeeks = undefined
-    filters.weeklyVolumeBand = ''
-    filters.accessState = ''
+    filters.weeklyVolumeBand = undefined
+    filters.accessState = undefined
     filters.sort = 'featured'
     router.push({ path: '/training-plans', query: {} })
   }
 
   function handleSportChange(value?: string) {
-    filters.sport = value || ''
+    filters.sport = (value as PlanSport) || undefined
     if (!filters.sport) {
-      filters.subtype = ''
+      filters.subtype = undefined
     }
 
     router.push({
@@ -435,7 +441,7 @@
   }
 
   function handleSubtypeChange(value?: string) {
-    filters.subtype = value || ''
+    filters.subtype = value || undefined
     router.push({
       path: buildTrainingPlansBrowsePath({ sport: filters.sport, subtype: filters.subtype }),
       query: queryWithoutPathFilters.value
@@ -443,7 +449,7 @@
   }
 
   function selectSportChip(value: string) {
-    const nextSport = filters.sport === value ? '' : value
+    const nextSport = filters.sport === value ? undefined : (value as PlanSport)
     handleSportChange(nextSport)
   }
 </script>

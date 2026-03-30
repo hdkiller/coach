@@ -33,15 +33,6 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-pencil-square"
-          @click="$emit('edit')"
-        >
-          Edit
-        </UButton>
-        <UButton
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-pencil-square"
           :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
           @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
         >
@@ -69,7 +60,7 @@
             { label: 'Edit', value: 'edit', icon: 'i-heroicons-pencil-square' }
           ]"
           size="xs"
-          :ui="{ list: { width: 'w-auto' } }"
+          :ui="{ list: 'w-auto' }"
         />
       </div>
 

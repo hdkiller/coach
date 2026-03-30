@@ -137,7 +137,7 @@
               { label: 'Edit', value: 'edit', icon: 'i-heroicons-pencil-square' }
             ]"
             size="xs"
-            :ui="{ list: { width: 'w-auto' } }"
+            :ui="{ list: 'w-auto' }"
           />
         </div>
 

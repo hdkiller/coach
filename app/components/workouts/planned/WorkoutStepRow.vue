@@ -29,7 +29,7 @@
               size="xs"
               variant="none"
               class="p-0 font-bold placeholder:italic hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors focus:bg-white dark:focus:bg-gray-950 flex-1"
-              ui="{ padding: { xs: 'px-1 py-0.5' } }"
+              :ui="{ padding: { xs: 'px-1 py-0.5' } }"
               @update:model-value="emitUpdate"
             />
           </div>
@@ -41,7 +41,7 @@
               size="xs"
               variant="none"
               class="p-0 text-muted uppercase text-[9px] font-black tracking-widest w-20"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
+              :ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
             <div v-if="hasNestedSteps" class="flex items-center gap-1">
@@ -52,7 +52,7 @@
                 size="xs"
                 variant="none"
                 class="w-14 p-0 font-black text-primary text-[10px]"
-                ui="{ padding: { xs: 'px-0 py-0' } }"
+                :ui="{ padding: { xs: 'px-0 py-0' } }"
                 @update:model-value="emitUpdate"
               />
             </div>
@@ -76,7 +76,7 @@
               variant="none"
               placeholder="--"
               class="w-12 p-0 text-blue-500 font-black text-center text-sm"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
+              :ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
             <span class="text-[9px] text-blue-400 uppercase font-bold tracking-tight">{{
@@ -94,7 +94,7 @@
               size="xs"
               variant="none"
               class="w-14 p-0 text-right text-muted font-bold text-[10px]"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
+              :ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
             <span class="text-[8px] text-gray-400 uppercase font-bold">MIN</span>
@@ -112,7 +112,7 @@
                   size="xs"
                   variant="none"
                   class="w-14 p-0 text-right font-black text-sm"
-                  ui="{ padding: { xs: 'px-0 py-0' } }"
+                  :ui="{ padding: { xs: 'px-0 py-0' } }"
                   @update:model-value="handleIntensityStartChange"
                 />
                 <template v-if="localIsRamp">
@@ -123,7 +123,7 @@
                     size="xs"
                     variant="none"
                     class="w-14 p-0 text-right font-black text-sm"
-                    ui="{ padding: { xs: 'px-0 py-0' } }"
+                    :ui="{ padding: { xs: 'px-0 py-0' } }"
                     @update:model-value="emitUpdate"
                   />
                 </template>
@@ -133,7 +133,7 @@
               </div>
               <UButton
                 v-if="localType !== 'Rest'"
-                variant="none"
+                variant="ghost"
                 size="xs"
                 class="p-0 h-auto text-[8px] font-black uppercase tracking-tighter"
                 :color="localIsRamp ? 'primary' : 'neutral'"
@@ -205,7 +205,7 @@
               size="sm"
               variant="none"
               class="p-0 font-bold flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1 transition-colors"
-              ui="{ padding: { sm: 'px-0 py-0' } }"
+              :ui="{ padding: { sm: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
           </div>
@@ -217,7 +217,7 @@
               size="xs"
               variant="none"
               class="w-14 p-0 text-right font-black"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
+              :ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
             <span v-if="!hasNestedSteps" class="text-[9px] text-gray-400 font-bold">MIN</span>
@@ -261,7 +261,7 @@
             </div>
             <UButton
               v-if="localType !== 'Rest'"
-              variant="none"
+              variant="ghost"
               size="xs"
               class="p-0 h-auto text-[8px] font-black uppercase"
               :color="localIsRamp ? 'primary' : 'neutral'"
@@ -298,7 +298,7 @@
               size="xs"
               variant="none"
               class="w-10 p-0 font-black text-primary text-[10px]"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
+              :ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
           </div>

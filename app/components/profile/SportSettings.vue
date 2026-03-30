@@ -877,7 +877,7 @@
                           />
                           <USelectMenu
                             :model-value="getPaceUnitForForm(editForm)"
-                            :items="PACE_DISPLAY_UNITS"
+                            :items="[...PACE_DISPLAY_UNITS]"
                             value-key="value"
                             label-key="label"
                             size="xs"
@@ -907,13 +907,17 @@
                     :display-units="formatPaceUnitSuffix(getPaceUnitForForm(editForm))"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
-                    :format-value="(value) => formatThresholdPaceForInput(value, getPaceUnitForForm(editForm))"
-                    :parse-value="(value) => parsePaceTextToMps(value, getPaceUnitForForm(editForm))"
+                    :format-value="
+                      (value) => formatThresholdPaceForInput(value, getPaceUnitForForm(editForm))
+                    "
+                    :parse-value="
+                      (value) => parsePaceTextToMps(value, getPaceUnitForForm(editForm))
+                    "
                   >
                     <template #actions>
                       <USelectMenu
                         :model-value="getPaceUnitForForm(editForm)"
-                        :items="PACE_DISPLAY_UNITS"
+                        :items="[...PACE_DISPLAY_UNITS]"
                         value-key="value"
                         label-key="label"
                         size="xs"
@@ -1349,7 +1353,7 @@
                       />
                       <USelectMenu
                         :model-value="getPaceUnitForForm(addForm)"
-                        :items="PACE_DISPLAY_UNITS"
+                        :items="[...PACE_DISPLAY_UNITS]"
                         value-key="value"
                         label-key="label"
                         class="w-28"
@@ -1488,13 +1492,15 @@
                     :display-units="formatPaceUnitSuffix(getPaceUnitForForm(addForm))"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
-                    :format-value="(value) => formatThresholdPaceForInput(value, getPaceUnitForForm(addForm))"
+                    :format-value="
+                      (value) => formatThresholdPaceForInput(value, getPaceUnitForForm(addForm))
+                    "
                     :parse-value="(value) => parsePaceTextToMps(value, getPaceUnitForForm(addForm))"
                   >
                     <template #actions>
                       <USelectMenu
                         :model-value="getPaceUnitForForm(addForm)"
-                        :items="PACE_DISPLAY_UNITS"
+                        :items="[...PACE_DISPLAY_UNITS]"
                         value-key="value"
                         label-key="label"
                         size="xs"
