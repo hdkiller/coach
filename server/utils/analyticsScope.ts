@@ -89,8 +89,17 @@ export async function assertWorkoutComparisonAccess(userId: string, workoutIds: 
   return assertWorkoutSelectionAccess(userId, workoutIds, 2)
 }
 
-export async function assertSingleWorkoutAccess(userId: string, workoutId: string) {
+export async function assertSingleWorkoutAccess(
+  userId: string,
+  workoutId: string
+): Promise<string> {
   const [resolvedWorkoutId] = await assertWorkoutSelectionAccess(userId, [workoutId], 1)
+  if (!resolvedWorkoutId) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Workout not found or access denied'
+    })
+  }
   return resolvedWorkoutId
 }
 
