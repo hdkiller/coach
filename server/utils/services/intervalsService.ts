@@ -83,6 +83,43 @@ type IntervalsSyncOptions = {
   skipExisting?: boolean
 }
 
+function getIntervalsPlannedDescription(event: any): string {
+  return typeof event?.description === 'string' ? event.description : ''
+}
+
+function hasHumangoSignature(event: any): boolean {
+  const description = getIntervalsPlannedDescription(event)
+  return /redirect\.humango\.ai|view on humango/i.test(description)
+}
+
+function getIntervalsPlannedStartTime(event: any): string | null {
+  if (typeof event?.start_date_local !== 'string' || !event.start_date_local.includes('T'))
+    return null
+  const timePart = event.start_date_local.split('T')[1]
+  if (!timePart || timePart.length < 5) return null
+  return timePart.substring(0, 5)
+}
+
+function buildHumangoReconciliationLogPayload(params: {
+  userId: string
+  title: string
+  date: string
+  type: string | null
+  startTime: string | null
+  incomingExternalId: string
+  incomingUid?: string | null
+  matchedPlannedWorkoutId?: string
+  previousExternalId?: string
+  previousUid?: string | null
+  reason: string
+}) {
+  return {
+    scope: 'intervals.calendar_updated',
+    action: 'humango_planned_workout_reconciliation',
+    ...params
+  }
+}
+
 export const IntervalsService = {
   /**
    * Get athlete profile from Intervals.icu
@@ -1602,7 +1639,75 @@ export const IntervalsService = {
 
             const normalizedPlanned = normalizeIntervalsPlannedWorkout(planned, userId)
 
-            const existingRecord = existingMap.get(normalizedPlanned.externalId) as any
+            let existingRecord = existingMap.get(normalizedPlanned.externalId) as any
+            if (!existingRecord && hasHumangoSignature(planned)) {
+              const reconciliationCandidates = await prisma.plannedWorkout.findMany({
+                where: {
+                  userId,
+                  date: normalizedPlanned.date,
+                  title: normalizedPlanned.title,
+                  type: normalizedPlanned.type,
+                  startTime: normalizedPlanned.startTime
+                },
+                select: {
+                  id: true,
+                  externalId: true,
+                  structuredWorkout: true,
+                  modifiedLocally: true,
+                  lastStructureEditedAt: true,
+                  lastStructurePublishedAt: true,
+                  structureHash: true,
+                  rawJson: true
+                }
+              })
+
+              const humangoCandidates = reconciliationCandidates.filter((candidate: any) =>
+                hasHumangoSignature(candidate?.rawJson)
+              )
+
+              if (humangoCandidates.length === 1) {
+                existingRecord = humangoCandidates[0]
+                console.log(
+                  `[Intervals Sync] ${JSON.stringify(
+                    buildHumangoReconciliationLogPayload({
+                      userId,
+                      title: normalizedPlanned.title,
+                      date: normalizedPlanned.date.toISOString(),
+                      type: normalizedPlanned.type,
+                      startTime:
+                        normalizedPlanned.startTime || getIntervalsPlannedStartTime(planned),
+                      incomingExternalId: normalizedPlanned.externalId,
+                      incomingUid: planned?.uid ? String(planned.uid) : null,
+                      matchedPlannedWorkoutId: existingRecord.id,
+                      previousExternalId: existingRecord.externalId,
+                      previousUid:
+                        existingRecord?.rawJson &&
+                        typeof existingRecord.rawJson === 'object' &&
+                        'uid' in existingRecord.rawJson
+                          ? String((existingRecord.rawJson as any).uid)
+                          : null,
+                      reason: 'matched_single_humango_candidate'
+                    })
+                  )}`
+                )
+              } else if (humangoCandidates.length > 1) {
+                console.warn(
+                  `[Intervals Sync] ${JSON.stringify(
+                    buildHumangoReconciliationLogPayload({
+                      userId,
+                      title: normalizedPlanned.title,
+                      date: normalizedPlanned.date.toISOString(),
+                      type: normalizedPlanned.type,
+                      startTime:
+                        normalizedPlanned.startTime || getIntervalsPlannedStartTime(planned),
+                      incomingExternalId: normalizedPlanned.externalId,
+                      incomingUid: planned?.uid ? String(planned.uid) : null,
+                      reason: `skipped_ambiguous_humango_candidates:${humangoCandidates.length}`
+                    })
+                  )}`
+                )
+              }
+            }
             const existingStruct = existingRecord?.structuredWorkout as any
             const newStruct = normalizedPlanned.structuredWorkout as any
 
@@ -1634,15 +1739,22 @@ export const IntervalsService = {
               } else {
                 updateData.lastRemoteStructureSeenAt = seenAt
               }
-              await prisma.plannedWorkout.update({
-                where: {
-                  userId_externalId: {
-                    userId,
-                    externalId: normalizedPlanned.externalId
-                  }
-                },
-                data: updateData
-              })
+              if (existingRecord.externalId === normalizedPlanned.externalId) {
+                await prisma.plannedWorkout.update({
+                  where: {
+                    userId_externalId: {
+                      userId,
+                      externalId: normalizedPlanned.externalId
+                    }
+                  },
+                  data: updateData
+                })
+              } else {
+                await prisma.plannedWorkout.update({
+                  where: { id: existingRecord.id },
+                  data: updateData
+                })
+              }
             } else {
               await prisma.plannedWorkout.create({
                 data: {
