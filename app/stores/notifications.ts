@@ -20,7 +20,7 @@ export const useNotificationStore = defineStore('notifications', () => {
   const fetchNotifications = async (page = 1, limit = 20) => {
     loading.value = true
     try {
-      const data = await $fetch<any>('/api/notifications', {
+      const data = await ($fetch as any)('/api/notifications', {
         query: { page, limit }
       })
       notifications.value = data.notifications

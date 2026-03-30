@@ -30,7 +30,7 @@ export function useResourceShare(
         body.forceNew = true
       }
 
-      const response = await $fetch<any>('/api/share/generate', {
+      const response = await ($fetch as any)('/api/share/generate', {
         method: 'POST',
         body
       })

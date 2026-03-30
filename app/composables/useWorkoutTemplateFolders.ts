@@ -105,7 +105,7 @@ export function useWorkoutTemplateFolders(
   async function refreshFolders() {
     loading.value = true
     try {
-      const response = await $fetch<any>('/api/library/workout-folders', {
+      const response = await ($fetch as any)('/api/library/workout-folders', {
         query: {
           scope: activeLibrarySource.value
         }

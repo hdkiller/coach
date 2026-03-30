@@ -73,7 +73,7 @@ export function useAnalyticsOverlays() {
   function averageSeries(series: Array<Array<number | null>>) {
     if (series.length === 0) return []
 
-    return series[0].map((_, index) => {
+    return series[0]!.map((_, index) => {
       const values = series
         .map((dataset) => dataset[index])
         .filter((value): value is number => value !== null && !Number.isNaN(value))
@@ -88,7 +88,7 @@ export function useAnalyticsOverlays() {
   function calculateDelta(seriesA: Array<number | null>, seriesB: Array<number | null>) {
     return seriesA.map((valA, index) => {
       const valB = seriesB[index]
-      if (valA === null || valB === null) return null
+      if (valA == null || valB == null) return null
       return Number((valA - valB).toFixed(2))
     })
   }

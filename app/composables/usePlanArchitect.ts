@@ -20,7 +20,7 @@ export function usePlanArchitect(planId: string) {
     data: planResponse,
     status,
     refresh
-  } = useFetch<any>(`/api/library/plans/${planId}/architect`)
+  } = (useFetch as any)(`/api/library/plans/${planId}/architect`)
 
   // Initialize draftPlan synchronously if data exists (for SSR)
   const draftPlan = ref<any | null>(planResponse.value ? normalizePlan(planResponse.value) : null)

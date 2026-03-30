@@ -8,7 +8,7 @@ export function useRecoveryContext(period: Ref<string | number> | ComputedRef<st
     '/api/recovery-context',
     {
       query: computed(() => ({
-        days: normalizedPeriod.value
+        days: unref(period)
       })),
       default: () => []
     }
@@ -18,7 +18,7 @@ export function useRecoveryContext(period: Ref<string | number> | ComputedRef<st
 
   const activeToday = computed(() => {
     const today = getUserLocalDate().toISOString().slice(0, 10)
-    return items.value.filter(
+    return (items.value as RecoveryContextItem[]).filter(
       (item) => item.startAt.slice(0, 10) <= today && item.endAt.slice(0, 10) >= today
     )
   })

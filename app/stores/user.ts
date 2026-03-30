@@ -209,7 +209,7 @@ export const useUserStore = defineStore('user', () => {
       (setting: any) =>
         !setting.isDefault &&
         Array.isArray(setting.types) &&
-        setting.types.some((type: string) => sportTypeGroups[groupKey].includes(type)) &&
+        setting.types.some((type: string) => sportTypeGroups[groupKey]!.includes(type)) &&
         setting.ftp
     )
 
