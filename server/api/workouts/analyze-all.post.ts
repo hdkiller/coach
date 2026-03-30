@@ -1,15 +1,16 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getUserEntitlements } from '../../utils/entitlements'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { getQuotaStatus } from '../../utils/quotas/engine'
+
+const MAX_MANUAL_WORKOUT_ANALYSES = 10
 
 defineRouteMeta({
   openAPI: {
     tags: ['Workouts'],
     summary: 'Analyze all workouts',
-    description: 'Triggers AI analysis for all pending workouts.',
+    description: 'Triggers AI analysis for up to 10 pending workouts per request.',
     responses: {
       200: {
         description: 'Success',
@@ -37,7 +38,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['workout:write'])
 
   const userId = user.id
-  const entitlements = getUserEntitlements(user as any)
 
   try {
     const timezone = await getUserTimezone(userId)
@@ -48,10 +48,8 @@ export default defineEventHandler(async (event) => {
     let workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId, today)
     const totalPending = workoutsToAnalyze.length
 
-    // Limit to 10 for FREE users
-    if (entitlements.tier === 'FREE') {
-      workoutsToAnalyze = workoutsToAnalyze.slice(0, 10)
-    }
+    // Manual bulk analysis is intentionally batched for every tier to avoid excessive token usage.
+    workoutsToAnalyze = workoutsToAnalyze.slice(0, MAX_MANUAL_WORKOUT_ANALYSES)
 
     const remainingQuota = quotaStatus?.remaining ?? Number.POSITIVE_INFINITY
     if (remainingQuota <= 0) {
@@ -118,17 +116,21 @@ export default defineEventHandler(async (event) => {
     const results = await Promise.all(triggerPromises)
     const successful = results.filter((r) => r.success).length
     const failed = results.filter((r) => !r.success).length
+    const attempted = successful + failed
     const limitedByQuota =
       quotaStatus &&
       Number.isFinite(quotaStatus.remaining) &&
       quotaStatus.remaining < quotaStatus.limit &&
-      successful + failed < totalPending
+      attempted < totalPending
+    const limitedByBatch = totalPending > attempted
 
     return {
       success: true,
       message: limitedByQuota
         ? `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}. Limited by ${quotaStatus?.remaining} remaining quota.`
-        : `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}`,
+        : limitedByBatch
+          ? `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}. Manual bulk analysis runs in batches of ${MAX_MANUAL_WORKOUT_ANALYSES}; use the button again to continue.`
+          : `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}`,
       total: workoutsToAnalyze.length,
       triggered: successful,
       failed,

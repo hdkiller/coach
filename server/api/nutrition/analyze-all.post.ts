@@ -1,14 +1,15 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getUserEntitlements } from '../../utils/entitlements'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
+
+const MAX_MANUAL_NUTRITION_ANALYSES = 10
 
 defineRouteMeta({
   openAPI: {
     tags: ['Nutrition'],
     summary: 'Analyze all nutrition',
-    description: 'Triggers AI analysis for all pending nutrition records.',
+    description: 'Triggers AI analysis for up to 10 pending nutrition records per request.',
     responses: {
       200: {
         description: 'Success',
@@ -36,7 +37,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['nutrition:write'])
 
   const userId = user.id
-  const entitlements = getUserEntitlements(user as any)
 
   try {
     const timezone = await getUserTimezone(userId)
@@ -44,11 +44,10 @@ export default defineEventHandler(async (event) => {
 
     // Find all nutrition records that need analysis
     let nutritionToAnalyze = await nutritionRepository.getPendingAnalysis(userId, today)
+    const totalPending = nutritionToAnalyze.length
 
-    // Limit to 10 for FREE users
-    if (entitlements.tier === 'FREE') {
-      nutritionToAnalyze = nutritionToAnalyze.slice(0, 10)
-    }
+    // Manual bulk analysis is intentionally batched for every tier to avoid excessive token usage.
+    nutritionToAnalyze = nutritionToAnalyze.slice(0, MAX_MANUAL_NUTRITION_ANALYSES)
 
     if (nutritionToAnalyze.length === 0) {
       return {
@@ -97,10 +96,14 @@ export default defineEventHandler(async (event) => {
     const results = await Promise.all(triggerPromises)
     const successful = results.filter((r) => r.success).length
     const failed = results.filter((r) => !r.success).length
+    const attempted = successful + failed
+    const limitedByBatch = totalPending > attempted
 
     return {
       success: true,
-      message: `Analysis started for ${successful} nutrition records${failed > 0 ? ` (${failed} failed)` : ''}`,
+      message: limitedByBatch
+        ? `Analysis started for ${successful} nutrition records${failed > 0 ? ` (${failed} failed)` : ''}. Manual bulk analysis runs in batches of ${MAX_MANUAL_NUTRITION_ANALYSES}; use the button again to continue.`
+        : `Analysis started for ${successful} nutrition records${failed > 0 ? ` (${failed} failed)` : ''}`,
       total: nutritionToAnalyze.length,
       triggered: successful,
       failed,

@@ -2,6 +2,7 @@ import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { metabolicService } from '../../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../../utils/nutrition/feature'
+import { formatDateUTC, formatUserDate, getUserTimezone } from '../../../utils/date'
 
 defineRouteMeta({
   openAPI: {
@@ -89,6 +90,17 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       message: 'Workout or planned workout not found'
+    })
+  }
+
+  const timezone = await getUserTimezone(userId)
+  const workoutDateKey = formatUserDate(workout.date, timezone, 'yyyy-MM-dd')
+  const plannedDateKey = formatDateUTC(plannedWorkout.date, 'yyyy-MM-dd')
+
+  if (workoutDateKey !== plannedDateKey) {
+    throw createError({
+      statusCode: 400,
+      message: 'Workout and planned workout must be on the same day to link.'
     })
   }
 
