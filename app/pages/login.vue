@@ -41,10 +41,10 @@
                     <line
                       v-for="(line, i) in meshConnections"
                       :key="`l-${i}`"
-                      :x1="meshNodes[line.from].x"
-                      :y1="meshNodes[line.from].y"
-                      :x2="meshNodes[line.to].x"
-                      :y2="meshNodes[line.to].y"
+                      :x1="meshNodes[line.from]?.x ?? 0"
+                      :y1="meshNodes[line.from]?.y ?? 0"
+                      :x2="meshNodes[line.to]?.x ?? 0"
+                      :y2="meshNodes[line.to]?.y ?? 0"
                       class="stroke-primary-500/30 transition-all duration-700"
                       stroke-width="0.5"
                     />
@@ -60,7 +60,10 @@
                       :style="{
                         animation: `mesh-travel ${pulse.duration}s linear infinite`,
                         animationDelay: `${pulse.delay}s`,
-                        offsetPath: `path('M ${meshNodes[pulse.from].x} ${meshNodes[pulse.from].y} L ${meshNodes[pulse.to].x} ${meshNodes[pulse.to].y}')`
+                        offsetPath:
+                          meshNodes[pulse.from] && meshNodes[pulse.to]
+                            ? `path('M ${meshNodes[pulse.from].x} ${meshNodes[pulse.from].y} L ${meshNodes[pulse.to].x} ${meshNodes[pulse.to].y}')`
+                            : 'none'
                       }"
                     />
                   </g>

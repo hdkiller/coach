@@ -300,7 +300,7 @@
     }
   }
 
-  async function acceptSuggestion(suggestion: any, index: number) {
+  async function acceptSuggestion(suggestion: any, index: string | number) {
     const suggestionKey = getSuggestionKey(suggestion, index)
     if (acceptingSuggestionKeys.value.includes(suggestionKey)) return
 

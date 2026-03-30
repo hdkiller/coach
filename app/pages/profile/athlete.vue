@@ -615,7 +615,11 @@
         <div v-else class="flex flex-col items-center justify-center py-8 text-center">
           <UIcon name="i-heroicons-link" class="w-8 h-8 text-gray-400 mb-2" />
           <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
-          <UButton color="primary" :loading="generatingShareLink" @click="generateShareLink">
+          <UButton
+            color="primary"
+            :loading="generatingShareLink"
+            @click="() => generateShareLink()"
+          >
             Generate Link
           </UButton>
         </div>

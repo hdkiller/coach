@@ -56,7 +56,11 @@
           class="flex flex-col gap-4 px-4 sm:px-0 lg:flex-row lg:items-center lg:justify-between"
         >
           <div class="flex items-center gap-5">
-            <UAvatar :src="athlete.image" :alt="athlete.name" size="3xl" />
+            <UAvatar
+              :src="athlete.image || undefined"
+              :alt="athlete.name || undefined"
+              size="3xl"
+            />
             <div class="space-y-1">
               <h1 class="text-2xl font-bold">{{ athlete.name }}</h1>
               <p class="text-gray-500">{{ athlete.email }}</p>
@@ -558,11 +562,55 @@
   const router = useRouter()
   const athleteId = route.params.id as string
 
+  interface AthleteProfile {
+    id: string
+    name: string | null
+    email: string | null
+    image: string | null
+    currentFitnessScore: number | null
+    profileLastUpdated: Date | string | null
+    recommendations: any[]
+    wellness: any[]
+    plannedWorkouts: any[]
+    events: any[]
+    workouts: any[]
+    performanceSummary: {
+      currentCTL: number | null
+      currentATL: number | null
+      currentTSB: number | null
+      formStatus: string
+      formColor: string
+      formDescription: string
+      lastUpdated: Date | string | null
+    }
+    readinessSummary: {
+      score: number | null
+      status: string
+      date: Date | string | null
+      sleepScore: number | null
+      hrv: number | null
+      restingHr: number | null
+      weight: number | null
+    }
+    zones: any
+    zoneSummary: {
+      ftp: number | null
+      lthr: number | null
+      maxHr: number | null
+    }
+    stats: {
+      adherence7d: number
+      completedCount: number
+      plannedCount: number
+      overduePlannedCount: number
+    }
+  }
+
   const {
     data: athlete,
     pending,
     error
-  } = useFetch(`/api/coaching/athletes/${athleteId}`, {
+  } = useFetch<AthleteProfile>(`/api/coaching/athletes/${athleteId}`, {
     key: `athlete-${athleteId}`,
     lazy: true
   })
@@ -628,7 +676,7 @@
   }
 
   const getRecommendationColor = (rec: string) => {
-    const colors: Record<string, string> = {
+    const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
       proceed: 'success',
       modify: 'warning',
       reduce_intensity: 'warning',

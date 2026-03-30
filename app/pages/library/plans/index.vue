@@ -73,10 +73,7 @@
                 <span class="truncate">{{ selectedTabLabel }}</span>
               </UButton>
 
-              <div
-                v-if="selectedTab === 'my'"
-                class="space-y-1 border-t border-default/60 pt-6"
-              >
+              <div v-if="selectedTab === 'my'" class="space-y-1 border-t border-default/60 pt-6">
                 <TrainingPlanFolderSelector
                   title="My Folders"
                   :tree="folderTree"
@@ -188,7 +185,7 @@
                           {{ plan.strategy }}
                         </div>
                         <UBadge
-                          v-if="plan.ownerScope && selectedTab === 'all'"
+                          v-if="plan.ownerScope && librarySource === 'all'"
                           color="primary"
                           variant="outline"
                           size="xs"
@@ -248,10 +245,20 @@
                 <template #footer>
                   <div class="flex w-full items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <UBadge v-if="plan.visibility === 'PUBLIC'" color="success" variant="soft" size="xs">
+                      <UBadge
+                        v-if="plan.visibility === 'PUBLIC'"
+                        color="success"
+                        variant="soft"
+                        size="xs"
+                      >
                         Public
                       </UBadge>
-                      <UBadge v-else-if="plan.visibility === 'TEAM'" color="info" variant="soft" size="xs">
+                      <UBadge
+                        v-else-if="plan.visibility === 'TEAM'"
+                        color="info"
+                        variant="soft"
+                        size="xs"
+                      >
                         Team
                       </UBadge>
                     </div>
@@ -378,9 +385,7 @@
           </div>
 
           <div class="space-y-2 border-t border-default/60 pt-4">
-            <div class="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
-              Folders
-            </div>
+            <div class="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Folders</div>
             <TrainingPlanFolderSelector
               title="My Folders"
               :tree="folderTree"

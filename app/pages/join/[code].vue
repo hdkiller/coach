@@ -25,7 +25,8 @@
   async function acceptJoin() {
     if (!session.value) {
       // Redirect to login with callback
-      return navigateTo(`/login?callbackUrl=${encodeURIComponent(route.fullPath)}`)
+      await navigateTo(`/login?callbackUrl=${encodeURIComponent(route.fullPath)}`)
+      return
     }
 
     joining.value = true

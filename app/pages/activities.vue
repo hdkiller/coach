@@ -563,11 +563,11 @@
                                             )
                                           }
                                         : null
-                                    ].filter(Boolean)"
+                                    ].filter(Boolean) as { label: string; class?: string }[]"
                                     :key="i"
                                   >
                                     <span v-if="i > 0">•</span>
-                                    <span :class="item.class">{{ item.label }}</span>
+                                    <span v-if="item" :class="item.class">{{ item.label }}</span>
                                   </template>
                                 </div>
 

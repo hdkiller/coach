@@ -4935,7 +4935,7 @@
         | undefined) || {}
 
     return workoutSectionCatalog.value.reduce((acc, section) => {
-      const fallback = workoutSectionDefaults.value[section.key]
+      const fallback = workoutSectionDefaults.value[section.key] || { visible: true, order: 99 }
       const sectionSettings = saved[section.key]
       acc[section.key] = {
         visible: sectionSettings?.visible ?? fallback.visible,
@@ -4951,7 +4951,7 @@
       label: section.label,
       icon: section.icon,
       available: workoutSectionAvailability.value[section.key],
-      defaultVisible: workoutSectionDefaults.value[section.key].visible
+      defaultVisible: workoutSectionDefaults.value[section.key]?.visible ?? true
     }))
   )
 
@@ -4960,20 +4960,21 @@
       .filter((section) => isSectionEnabled(section.key))
       .sort(
         (a, b) =>
-          workoutSectionSettings.value[a.key].order - workoutSectionSettings.value[b.key].order
+          (workoutSectionSettings.value[a.key]?.order ?? 0) -
+          (workoutSectionSettings.value[b.key]?.order ?? 0)
       )
   )
 
   function isSectionEnabled(sectionKey: WorkoutSectionKey) {
     return (
-      workoutSectionSettings.value[sectionKey].visible &&
+      (workoutSectionSettings.value[sectionKey]?.visible ?? true) &&
       workoutSectionAvailability.value[sectionKey]
     )
   }
 
   function sectionStyle(sectionKey: WorkoutSectionKey) {
     return {
-      order: workoutSectionSettings.value[sectionKey].order
+      order: workoutSectionSettings.value[sectionKey]?.order ?? 0
     }
   }
 
