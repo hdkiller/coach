@@ -20,6 +20,7 @@ export type PlanAccessState = (typeof PLAN_ACCESS_STATE_OPTIONS)[number]
 export type PlanSkillLevel = (typeof PLAN_SKILL_LEVEL_OPTIONS)[number]
 export type PlanVolumeBand = (typeof PLAN_VOLUME_BAND_OPTIONS)[number]
 export type PublicPlanAccessMode = (typeof PUBLIC_PLAN_ACCESS_MODE_OPTIONS)[number]
+export type PlanLanguage = (typeof PLAN_LANGUAGE_OPTIONS)[number]
 export type PlanSport = (typeof PUBLIC_PLAN_SPORTS)[number]['value']
 
 export const PUBLIC_PLAN_SPORTS = [
