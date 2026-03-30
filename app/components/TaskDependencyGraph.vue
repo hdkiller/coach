@@ -466,8 +466,6 @@
       }
     }
 
-    const entitlements = userStore.entitlements
-
     // Check if task is up to date based on metadata
     if (metadata?.isUpToDate) {
       return 'Completed'
@@ -478,10 +476,7 @@
       return 'Outdated'
     }
 
-    if (
-      entitlements?.tier === 'FREE' &&
-      (taskId === 'analyze-workouts' || taskId === 'analyze-nutrition')
-    ) {
+    if (taskId === 'analyze-workouts' || taskId === 'analyze-nutrition') {
       return 'Analyze Last 10'
     }
 

@@ -512,19 +512,19 @@
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  function formatValue(val: number, metric: string) {
-    if (metric === 'power') return `${Math.round(val)}W`
+  function formatValue(val: number, metric: string): string {
+    if (metric === 'power') return `${Math.round(val)} W`
     if (metric === 'heartrate') return `${Math.round(val)} bpm`
     if (metric === 'pace') return formatPace(val)
-    return val
+    return String(val)
   }
 
-  function formatPace(mps: number) {
+  function formatPace(mps: number): string {
     if (!mps) return '-'
     const paceMinPerKm = 16.6667 / mps // convert m/s to min/km (1000m / 60s = 16.66)
     const mins = Math.floor(paceMinPerKm)
     const secs = Math.round((paceMinPerKm - mins) * 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`
+    return `${mins}:${secs.toString().padStart(2, '0')} /km`
   }
 
   onMounted(() => {

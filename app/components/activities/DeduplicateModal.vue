@@ -444,7 +444,7 @@
 
     state.value = 'processing'
     try {
-      const res = await $fetch<{ success: boolean; taskId: string }>('/api/workouts/deduplicate', {
+      const res = await ($fetch as any)('/api/workouts/deduplicate', {
         method: 'POST',
         body: {
           dryRun: false,
