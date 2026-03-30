@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildWorkoutAnalysisFacts, buildWorkoutAnalysisFactsV2 } from './workout-analysis-facts'
+import {
+  buildWorkoutAnalysisFacts,
+  buildWorkoutAnalysisFactsV2,
+  getActualIntervalsSourceForAnalysis
+} from './workout-analysis-facts'
 
 function makeWorkout(overrides: Record<string, unknown> = {}) {
   return {
@@ -524,6 +528,74 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.adherence.executionClassification).toBe('as_prescribed')
     expect(facts.adherence.workIntervalHitRate).toBe(100)
     expect(facts.adherence.recoveryHitRate).toBe(80)
+  })
+
+  it('prefers synced raw intervals when repeated hard reps are timed more accurately than detected fallback', () => {
+    const time = Array.from({ length: 8540 }, (_, index) => index)
+    const watts = [
+      ...Array.from({ length: 2527 }, () => 135),
+      ...Array.from({ length: 239 }, () => 264),
+      ...Array.from({ length: 362 }, () => 59),
+      ...Array.from({ length: 236 }, () => 270),
+      ...Array.from({ length: 430 }, () => 74),
+      ...Array.from({ length: 180 }, () => 275),
+      ...Array.from({ length: 430 }, () => 75),
+      ...Array.from({ length: 180 }, () => 269),
+      ...Array.from({ length: 405 }, () => 62),
+      ...Array.from({ length: 231 }, () => 269),
+      ...Array.from({ length: 266 }, () => 41),
+      ...Array.from({ length: 2475 }, () => 116),
+      ...Array.from({ length: 599 }, () => 83)
+    ]
+
+    const workout = makeWorkout({
+      title: 'VO2 Max Precision 5x4m',
+      type: 'Ride',
+      durationSec: 8540,
+      ftp: 220,
+      streams: {
+        time,
+        watts
+      },
+      rawJson: {
+        icu_intervals: [
+          { type: 'RECOVERY', elapsed_time: 2523, average_watts: 133 },
+          { type: 'WORK', elapsed_time: 237, average_watts: 268, intensity: 1.22 },
+          { type: 'RECOVERY', elapsed_time: 359, average_watts: 54, intensity: 0.25 },
+          { type: 'WORK', elapsed_time: 241, average_watts: 271, intensity: 1.23 },
+          { type: 'RECOVERY', elapsed_time: 359, average_watts: 52, intensity: 0.24 },
+          { type: 'WORK', elapsed_time: 242, average_watts: 275, intensity: 1.25 },
+          { type: 'RECOVERY', elapsed_time: 360, average_watts: 55, intensity: 0.25 },
+          { type: 'WORK', elapsed_time: 238, average_watts: 272, intensity: 1.24 },
+          { type: 'RECOVERY', elapsed_time: 359, average_watts: 52, intensity: 0.24 },
+          { type: 'WORK', elapsed_time: 242, average_watts: 273, intensity: 1.24 },
+          { type: 'RECOVERY', elapsed_time: 3380, average_watts: 103, intensity: 0.47 }
+        ]
+      }
+    })
+
+    const plannedWorkout = {
+      structuredWorkout: {
+        steps: [
+          { type: 'Warmup', durationSeconds: 720, power: { range: { start: 0.48, end: 0.52 } } },
+          { type: 'Active', durationSeconds: 1800, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 240, power: { range: { start: 1.15, end: 1.19 } } },
+          { type: 'Rest', durationSeconds: 360, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 240, power: { range: { start: 1.15, end: 1.19 } } },
+          { type: 'Rest', durationSeconds: 360, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 240, power: { range: { start: 1.15, end: 1.19 } } },
+          { type: 'Rest', durationSeconds: 360, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 240, power: { range: { start: 1.15, end: 1.19 } } },
+          { type: 'Rest', durationSeconds: 360, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 240, power: { range: { start: 1.15, end: 1.19 } } },
+          { type: 'Rest', durationSeconds: 360, power: { range: { start: 0.63, end: 0.67 } } },
+          { type: 'Active', durationSeconds: 2400, power: { range: { start: 0.58, end: 0.62 } } },
+          { type: 'Cooldown', durationSeconds: 600, power: { range: { start: 0.6, end: 0.45 } } }
+        ]
+      }
+    }
+
+    expect(getActualIntervalsSourceForAnalysis(workout, plannedWorkout)).toBe('raw')
   })
 
   it('suppresses late-session fade when the workout ends with a planned cooldown', () => {

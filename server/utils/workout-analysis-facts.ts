@@ -1546,6 +1546,92 @@ function scoreIntervalStructure(
   return round(score, 2) || 0
 }
 
+function getPlannedHardRepeats(plannedSteps: FlattenedPlannedStep[], refs: AnalysisRefs) {
+  return plannedSteps.filter((step) => {
+    if (step.classification !== 'work') return false
+    if (step.intensityFactor !== null) return step.intensityFactor >= 0.95
+    if (step.metric === 'power' && step.targetValue !== null && refs.ftp > 0) {
+      const watts = step.targetValue <= 2 ? step.targetValue * refs.ftp : step.targetValue
+      return watts >= refs.ftp * 0.95
+    }
+    return false
+  })
+}
+
+function getActualHardRepeats(actualIntervals: ActualInterval[], refs: AnalysisRefs) {
+  return actualIntervals.filter((interval) => {
+    if (interval.classification !== 'work') return false
+    if (interval.intensity !== null) return interval.intensity >= 0.95
+    if (interval.avgPower !== null && refs.ftp > 0) return interval.avgPower >= refs.ftp * 0.95
+    return false
+  })
+}
+
+function scoreHardRepeatDurationAccuracy(
+  actualIntervals: ActualInterval[],
+  plannedSteps: FlattenedPlannedStep[],
+  refs: AnalysisRefs
+): number | null {
+  const plannedHard = getPlannedHardRepeats(plannedSteps, refs)
+  const actualHard = getActualHardRepeats(actualIntervals, refs)
+
+  if (plannedHard.length < 2 || actualHard.length === 0) return null
+
+  const pairs = Math.min(plannedHard.length, actualHard.length)
+  if (pairs === 0) return null
+
+  let score = 0
+  for (let index = 0; index < pairs; index++) {
+    const planned = plannedHard[index]!
+    const actual = actualHard[index]!
+    const durationRatio =
+      Math.min(planned.durationSeconds, actual.durationSeconds) /
+      Math.max(planned.durationSeconds, actual.durationSeconds)
+    score += durationRatio * 3
+
+    if (
+      planned.metric === 'power' &&
+      planned.targetValue !== null &&
+      actual.avgPower !== null &&
+      refs.ftp > 0
+    ) {
+      const targetPower =
+        planned.targetValue <= 2 ? planned.targetValue * refs.ftp : planned.targetValue
+      const delta = Math.abs(actual.avgPower - targetPower) / Math.max(1, targetPower)
+      score += Math.max(0, 1 - delta * 2)
+    }
+  }
+
+  score -= Math.abs(plannedHard.length - actualHard.length) * 0.5
+  return round(score / pairs, 3)
+}
+
+function chooseActualIntervalsSource(
+  rawActual: ActualInterval[],
+  detectedActual: ActualInterval[],
+  plannedSteps: FlattenedPlannedStep[],
+  refs: AnalysisRefs
+): 'raw' | 'detected' {
+  const rawHardRepeatScore = scoreHardRepeatDurationAccuracy(rawActual, plannedSteps, refs)
+  const detectedHardRepeatScore = scoreHardRepeatDurationAccuracy(
+    detectedActual,
+    plannedSteps,
+    refs
+  )
+
+  if (rawHardRepeatScore !== null && detectedHardRepeatScore !== null) {
+    const hardRepeatDelta = rawHardRepeatScore - detectedHardRepeatScore
+    if (Math.abs(hardRepeatDelta) >= 0.08) {
+      return hardRepeatDelta > 0 ? 'raw' : 'detected'
+    }
+  }
+
+  const rawScore = scoreIntervalStructure(rawActual, plannedSteps, refs)
+  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
+
+  return detectedScore >= rawScore ? 'detected' : 'raw'
+}
+
 function hasTerminalRecoveryPhase(
   workout: any,
   plannedWorkout: any,
@@ -1595,10 +1681,8 @@ function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInter
     maxHr: Number(workout?.maxHr || 0),
     thresholdPace: 0
   }
-  const rawScore = scoreIntervalStructure(rawActual, plannedSteps, refs)
-  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
-
-  return detectedScore >= rawScore ? detectedActual : rawActual
+  const source = chooseActualIntervalsSource(rawActual, detectedActual, plannedSteps, refs)
+  return source === 'detected' ? detectedActual : rawActual
 }
 
 export function getPlannedWorkIntervalsForAnalysis(
@@ -1647,10 +1731,7 @@ export function getActualIntervalsSourceForAnalysis(
     maxHr: Number(workout?.maxHr || 0),
     thresholdPace: 0
   }
-  const rawScore = scoreIntervalStructure(rawActual, plannedSteps, refs)
-  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
-
-  return detectedScore >= rawScore ? 'detected' : 'raw'
+  return chooseActualIntervalsSource(rawActual, detectedActual, plannedSteps, refs)
 }
 
 export function formatActualIntervalsForPrompt(workout: any, plannedWorkout?: any): string {
