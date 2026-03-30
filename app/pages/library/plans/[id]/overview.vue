@@ -206,7 +206,7 @@
                 <ClientOnly>
                   <Bar
                     v-if="weeklyMetricsChartData"
-                    :data="weeklyMetricsChartData"
+                    :data="weeklyMetricsChartData as any"
                     :options="weeklyMetricsChartOptions"
                   />
                 </ClientOnly>
@@ -394,7 +394,9 @@
     <template #footer>
       <div class="flex w-full justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="isUseModalOpen = false">Cancel</UButton>
-        <UButton color="primary" :loading="isApplyingPlan" @click="confirmUsePlan">Apply Plan</UButton>
+        <UButton color="primary" :loading="isApplyingPlan" @click="confirmUsePlan"
+          >Apply Plan</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -511,9 +513,7 @@
 
     const labels = weeksList.value.map((_, i) => `Week ${i + 1}`)
     const tssData = weeksList.value.map((week) => {
-      return (
-        week.workouts?.reduce((sum: number, w: any) => sum + (Number(w.tss) || 0), 0) || 0
-      )
+      return week.workouts?.reduce((sum: number, w: any) => sum + (Number(w.tss) || 0), 0) || 0
     })
     const durationData = weeksList.value.map((week) => {
       const seconds =

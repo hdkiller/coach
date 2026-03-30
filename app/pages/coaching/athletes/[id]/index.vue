@@ -713,7 +713,7 @@
     return formatDateUTC(date, 'd')
   }
 
-  function formatLongDate(date: string) {
+  function formatLongDate(date: string | Date) {
     return formatDateUTC(date, 'MMMM d, yyyy')
   }
 

@@ -193,7 +193,7 @@
 
   async function fetchGroups() {
     try {
-      groups.value = (await $fetch('/api/coaching/groups')) as any[]
+      groups.value = (await ($fetch as any)('/api/coaching/groups')) as any[]
     } catch (e) {
       console.error(e)
     }

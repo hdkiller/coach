@@ -624,7 +624,7 @@
   async function fetchAthletes() {
     loadingAthletes.value = true
     try {
-      athletes.value = (await $fetch('/api/coaching/athletes')) as any[]
+      athletes.value = (await ($fetch as any)('/api/coaching/athletes')) as any[]
       const requestedAthleteId =
         typeof route.query.athlete === 'string' ? route.query.athlete : null
       if (
