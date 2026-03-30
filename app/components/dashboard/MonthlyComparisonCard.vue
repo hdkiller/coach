@@ -502,7 +502,7 @@
           title: (context: any) => `Day ${context[0].label}`,
           label: (context: any) => {
             const val = context.parsed.y
-            if (val === null) return null
+            if (val === null) return ''
             return ` ${context.dataset.label}: ${formatValue(val)}${unitLabel.value}`
           }
         }

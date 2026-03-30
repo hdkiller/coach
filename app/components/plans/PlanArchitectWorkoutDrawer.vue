@@ -984,8 +984,8 @@
     showFolderPicker.value = false
   }
 
-  function updateLibrarySourceFromPicker(value: 'athlete' | 'coach' | 'all') {
-    emit('update:librarySource', value)
+  function updateLibrarySourceFromPicker(value: string) {
+    emit('update:librarySource', value as 'athlete' | 'coach' | 'all')
   }
 
   function resetRailFilters() {

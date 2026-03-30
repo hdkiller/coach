@@ -217,7 +217,7 @@
         tooltip: {
           backgroundColor: tooltipBg,
           titleColor: tooltipText,
-          titleFont: { size: 13, weight: 'bold' },
+          titleFont: { size: 13, weight: 'bold' as const },
           bodyColor: tooltipMuted,
           bodyFont: { size: 11 },
           borderColor: isDark ? '#334155' : '#e2e8f0',
@@ -243,7 +243,7 @@
                 value === 0 &&
                 label !== (props.metric === 'tss' ? 'Target TSS' : 'Target minutes')
               )
-                return null
+                return undefined
               const unit = props.metric === 'tss' ? ' TSS' : 'm'
               return `${label}: ${value}${unit}`
             },
@@ -290,7 +290,7 @@
               color: axisColor,
               font: {
                 size: 9,
-                weight: 'bold'
+                weight: 'bold' as const
               },
               backgroundColor: 'rgba(15, 23, 42, 0)',
               textStrokeColor: 'rgba(15, 23, 42, 0)',
@@ -350,8 +350,10 @@
               size: 10,
               weight: 'bold' as const
             },
-            callback: (value: number) =>
-              props.metric === 'tss' ? `${Math.round(value)}` : `${Math.round(value)}m`
+            callback: (value: string | number) =>
+              props.metric === 'tss'
+                ? `${Math.round(Number(value))}`
+                : `${Math.round(Number(value))}m`
           },
           border: {
             display: false

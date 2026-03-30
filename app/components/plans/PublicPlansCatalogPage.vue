@@ -226,8 +226,10 @@
     PUBLIC_PLAN_SPORTS,
     buildTrainingPlansBrowsePath,
     getPublicSportBySegment,
-    getPublicSubtypeLabel
+    getPublicSubtypeLabel,
+    getSportSubtypeOptions
   } from '#shared/public-plans'
+  import type { PlanSport } from '#shared/public-plans'
 
   const props = defineProps<{
     overrideSport?: string
@@ -258,7 +260,7 @@
   }))
   const skillLevelOptions = [...PLAN_SKILL_LEVEL_OPTIONS]
   const volumeBandOptions = [...PLAN_VOLUME_BAND_OPTIONS]
-  const accessStateOptions = PLAN_ACCESS_STATE_OPTIONS.filter((item) => item !== 'PRIVATE')
+  const accessStateOptions = [...PLAN_ACCESS_STATE_OPTIONS].filter((item) => item !== 'PRIVATE')
   const languageOptions = [...PLAN_LANGUAGE_OPTIONS]
   const sortOptions = [
     { label: 'Featured', value: 'featured' },
@@ -269,9 +271,20 @@
     { label: 'Hardest', value: 'hardest' }
   ]
 
-  const filters = reactive({
+  const filters = reactive<{
+    q: string
+    sport: PlanSport | ''
+    subtype: string
+    skillLevel: string
+    language: string
+    daysPerWeek?: number
+    lengthWeeks?: number
+    weeklyVolumeBand: string
+    accessState: string
+    sort: string
+  }>({
     q: (route.query.q as string) || '',
-    sport: activeSportMeta.value?.value || '',
+    sport: (activeSportMeta.value?.value as PlanSport) || '',
     subtype: activeSubtypeLabel.value || '',
     skillLevel: (route.query.skillLevel as string) || '',
     language: (route.query.language as string) || '',
@@ -285,7 +298,7 @@
   watch(
     [activeSportMeta, activeSubtypeLabel],
     ([sport, subtype]) => {
-      filters.sport = sport?.value || ''
+      filters.sport = (sport?.value as PlanSport) || ''
       filters.subtype = subtype || ''
     },
     { immediate: true }
@@ -294,6 +307,7 @@
   watch(
     () => filters.sport,
     (newSport) => {
+      if (!newSport) return
       const nextSubtypeOptions =
         PUBLIC_PLAN_SPORTS.find((sport) => sport.value === newSport)?.subtypes || []
       if (filters.subtype && !nextSubtypeOptions.includes(filters.subtype)) {
@@ -303,8 +317,8 @@
   )
 
   const subtypeOptions = computed(() => {
-    const selected = PUBLIC_PLAN_SPORTS.find((sport) => sport.value === filters.sport)
-    return selected?.subtypes || []
+    if (!filters.sport) return []
+    return getSportSubtypeOptions(filters.sport)
   })
 
   const apiQuery = computed(() =>

@@ -154,11 +154,11 @@
   }>()
   const plan = defineModel<any>('plan', { required: true })
 
-  const visibilityOptions = PLAN_VISIBILITY_OPTIONS
-  const accessStateOptions = PLAN_ACCESS_STATE_OPTIONS
-  const languageOptions = PLAN_LANGUAGE_OPTIONS
-  const skillLevelOptions = PLAN_SKILL_LEVEL_OPTIONS
-  const volumeBandOptions = PLAN_VOLUME_BAND_OPTIONS
+  const visibilityOptions = [...PLAN_VISIBILITY_OPTIONS]
+  const accessStateOptions = [...PLAN_ACCESS_STATE_OPTIONS]
+  const languageOptions = [...PLAN_LANGUAGE_OPTIONS]
+  const skillLevelOptions = [...PLAN_SKILL_LEVEL_OPTIONS]
+  const volumeBandOptions = [...PLAN_VOLUME_BAND_OPTIONS]
   const sportOptions = PUBLIC_PLAN_SPORTS.map((sport) => ({
     label: sport.label,
     value: sport.value
