@@ -22,6 +22,8 @@ export function buildHeartRateChartSvg(
   const padding = options.padding ?? DEFAULT_PADDING
   const innerWidth = Math.max(width - padding * 2, 1)
   const innerHeight = Math.max(height - padding * 2, 1)
+  if (points.length === 0) return ''
+
   const minHr = Math.min(...points)
   const maxHr = Math.max(...points)
   const range = Math.max(maxHr - minHr, 1)
@@ -34,7 +36,7 @@ export function buildHeartRateChartSvg(
   })
 
   const areaPath = [
-    `M ${chartPoints[0].replace(',', ' ')}`,
+    `M ${chartPoints[0]!.replace(',', ' ')}`,
     ...chartPoints.slice(1).map((point) => `L ${point.replace(',', ' ')}`),
     `L ${round(padding + innerWidth)} ${round(height - padding)}`,
     `L ${round(padding)} ${round(height - padding)}`,

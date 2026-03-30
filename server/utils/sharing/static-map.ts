@@ -99,7 +99,7 @@ export function projectSegmentsToViewport(
   let pointIndex = 0
   const projectedSegments = decimatedSegments.map((segment) =>
     segment.map(() => {
-      const point = projectedRaw[pointIndex++]
+      const point = projectedRaw[pointIndex++]!
       return {
         x: offsetX + (point.x - minX) * scale,
         y: offsetY + (point.y - minY) * scale
@@ -111,11 +111,11 @@ export function projectSegmentsToViewport(
 
   return {
     segments: projectedSegments,
-    startPoint: projectedSegments[0][0],
+    startPoint: projectedSegments[0]![0]!,
     endPoint:
-      projectedSegments[projectedSegments.length - 1][
-        projectedSegments[projectedSegments.length - 1].length - 1
-      ],
+      projectedSegments[projectedSegments.length - 1]![
+        projectedSegments[projectedSegments.length - 1]!.length - 1
+      ]!,
     projectedBounds: {
       minX: Math.min(...projectedPoints.map((point) => point.x)),
       maxX: Math.max(...projectedPoints.map((point) => point.x)),

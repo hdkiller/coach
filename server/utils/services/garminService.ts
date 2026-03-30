@@ -258,6 +258,10 @@ export const GarminService = {
     }
 
     const integration = integrations[0]
+    if (!integration) {
+      console.warn('[GarminService] No integration found for externalUserId', { externalUserId })
+      return
+    }
 
     const userId = integration.userId
     const settings = (integration.settings as Record<string, any> | null) || {}

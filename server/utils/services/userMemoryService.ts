@@ -318,7 +318,7 @@ class UserMemoryService {
     }
 
     const memory = await prisma.userMemory.update({
-      where: { id: matches[0].id },
+      where: { id: matches[0]!.id },
       data: { status: 'ARCHIVED' }
     })
 

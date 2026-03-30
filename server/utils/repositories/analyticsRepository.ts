@@ -175,7 +175,7 @@ export const analyticsRepository = {
       return await this.queryAthleteComparison(userId, userIds, options)
     }
 
-    const results = await this.executeAggregatedQuery(userId, userIds, options)
+    const results = (await this.executeAggregatedQuery(userId, userIds, options)) as any[]
     return this.formatChartData(results, options)
   },
 
@@ -231,7 +231,9 @@ export const analyticsRepository = {
 
     const labels = Array.from(
       new Set(
-        seriesResults.flatMap((entry) => entry.results.map((row: any) => toDateKey(row.bucket)))
+        seriesResults.flatMap((entry) =>
+          (entry.results as any[]).map((row: any) => toDateKey(row.bucket))
+        )
       )
     ).sort()
 
@@ -240,7 +242,9 @@ export const analyticsRepository = {
     )
 
     const datasets = seriesResults.flatMap((entry) => {
-      const valuesByLabel = new Map(entry.results.map((row: any) => [toDateKey(row.bucket), row]))
+      const valuesByLabel = new Map(
+        (entry.results as any[]).map((row: any) => [toDateKey(row.bucket), row])
+      )
       const athleteLabel = namesById.get(entry.userId) || 'Unknown athlete'
 
       return options.metrics.map((metric, metricIndex) => ({
@@ -249,7 +253,7 @@ export const analyticsRepository = {
             ? athleteLabel
             : `${athleteLabel} · ${this.getMetricLabel(metric.field, metric.aggregation)}`,
         data: labels.map(
-          (label) => Number(valuesByLabel.get(label)?.[`metric_${metricIndex}`]) || 0
+          (label) => Number((valuesByLabel.get(label) as any)?.[`metric_${metricIndex}`]) || 0
         )
       }))
     })
@@ -288,6 +292,13 @@ export const analyticsRepository = {
       }
 
       const [xMetric, yMetric] = options.metrics
+      if (!xMetric || !yMetric) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Scatter comparison requires exactly two workout metrics'
+        })
+      }
+
       return {
         labels: [],
         datasets: [

@@ -210,7 +210,7 @@ function parseSwimTargetSplitMps(targetSplit: unknown): number | null {
   const text = targetSplit.trim()
   if (!text) return null
 
-  const candidate = text.includes('-') ? text.split('-')[0] : text
+  const candidate = text.includes('-') ? text.split('-')[0]! : text
   const match = candidate.match(/(\d+):(\d+)\s*\/\s*(25|50|100)m/i)
   if (!match) return null
 
