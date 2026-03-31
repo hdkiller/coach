@@ -40,6 +40,7 @@ import {
 import {
   estimateStepDistanceMeters,
   estimateStepDurationSeconds,
+  normalizeStructuredWorkoutForPersistence,
   selectStepIntensity
 } from '../server/utils/structured-workout-persistence'
 
@@ -1240,6 +1241,21 @@ export const generateStructuredWorkoutTask = task({
       if (workout.type === 'Swim') {
         normalizeSwimStructure(structure)
       }
+
+      structure = normalizeStructuredWorkoutForPersistence(structure, {
+        refs: {
+          ftp,
+          lthr,
+          maxHr,
+          thresholdPace: Number(sportSettings?.thresholdPace || 0),
+          hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+          powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+          paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+        },
+        targetPolicy,
+        targetFormatPolicy,
+        workoutType: workout.type || ''
+      })
 
       totals = normalizeAndCalculate(structure.steps || [])
       const coverageValidation = validateStructuredCoverage({
