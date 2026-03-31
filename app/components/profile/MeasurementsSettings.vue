@@ -275,6 +275,17 @@
             </div>
           </template>
         </UTable>
+
+        <div v-if="hasMoreEntries" class="flex justify-center pt-4">
+          <UButton
+            color="neutral"
+            variant="soft"
+            :loading="loadingMore"
+            @click="loadMoreMeasurements"
+          >
+            {{ tr('measurements_button_load_more', 'Load Older Entries') }}
+          </UButton>
+        </div>
       </div>
       <p v-if="entries.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
         {{ t('measurements_empty_history') }}
@@ -360,12 +371,16 @@
   import { cmToFtIn, ftInToCm, LBS_TO_KG } from '~/utils/metrics'
 
   const { t } = useTranslate('profile')
-  const tr = (key: string, fallback: string, params?: Record<string, any>) =>
-    typeof t.value === 'function' ? t.value(key, params) : fallback
+  const tr = (key: string, fallback: string, params?: Record<string, any>) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key, params)
+    return translated === key ? fallback : translated
+  }
 
   const toast = useToast()
   const { formatDateUTC } = useFormat()
   const userStore = useUserStore()
+  const PAGE_SIZE = 250
 
   const metricOptions = computed(() => [
     { label: tr('measurements_metric_weight', 'Weight'), value: 'weight', unit: 'kg' },
@@ -447,30 +462,21 @@
   const editHeightIn = ref<number | null>(null)
   const recordedAt = ref(toDateTimeLocalInput(new Date()))
   const defaultMetricOption = { label: 'Weight', value: 'weight', unit: 'kg' as const }
-
-  const { data, refresh } = await useFetch('/api/body-measurements', {
-    key: 'body-measurements'
-  })
-
-  const entries = computed(() => ((data.value as any)?.items || []) as any[])
+  const entries = ref<any[]>([])
+  const latestMetricEntries = ref<Record<string, any>>({})
+  const latestMetricSourceEntries = ref<Record<string, Record<string, any>>>({})
+  const hasMoreEntries = ref(false)
+  const loadingMore = ref(false)
+  const nextCursor = ref<{ recordedAt: string; id: string } | null>(null)
   const preferredSources = computed(
     () => userStore.user?.dashboardSettings?.bodyMetrics?.preferredSources || {}
   )
   const latestEntries = computed(() => {
-    const grouped = new Map<string, any[]>()
-    for (const entry of entries.value) {
-      const bucket = grouped.get(entry.metricKey) || []
-      bucket.push(entry)
-      grouped.set(entry.metricKey, bucket)
-    }
-
     const resolved: any[] = []
-    for (const [metricKey, metricEntries] of grouped.entries()) {
+    for (const [metricKey, latestEntry] of Object.entries(latestMetricEntries.value)) {
       const preferred = preferredSources.value?.[metricKey]
       const picked =
-        (preferred
-          ? metricEntries.find((entry) => normalizeSourceKey(entry.source) === preferred)
-          : null) || metricEntries[0]
+        (preferred ? latestMetricSourceEntries.value[metricKey]?.[preferred] : null) || latestEntry
 
       if (picked) resolved.push(picked)
     }
@@ -516,7 +522,7 @@
   const selectedMetricKey = computed(() => buildMetricKey())
   const selectedLatestEntry = computed(() => {
     if (selectedMetric.value === 'custom' && !customName.value.trim()) return null
-    return entries.value.find((entry) => entry.metricKey === selectedMetricKey.value) || null
+    return latestMetricEntries.value[selectedMetricKey.value] || null
   })
   const selectedValuePlaceholder = computed(() => {
     if (!selectedLatestEntry.value) return ''
@@ -543,14 +549,10 @@
   })
   const historyMetricFilterOptions = computed(() => {
     const options = [{ label: t.value('measurements_filter_all_measurements'), value: 'all' }]
-    const seen = new Set<string>()
-
-    for (const entry of entries.value) {
-      if (seen.has(entry.metricKey)) continue
-      seen.add(entry.metricKey)
+    for (const [metricKey, entry] of Object.entries(latestMetricEntries.value)) {
       options.push({
         label: formatMetricName(entry),
-        value: entry.metricKey
+        value: metricKey
       })
     }
 
@@ -560,18 +562,79 @@
     const options = [{ label: t.value('measurements_filter_all_sources'), value: 'all' }]
     const seen = new Set<string>()
 
-    for (const entry of entries.value) {
-      const sourceKey = normalizeSourceKey(entry.source)
-      if (seen.has(sourceKey)) continue
-      seen.add(sourceKey)
-      options.push({
-        label: formatSource(entry.source),
-        value: sourceKey
-      })
+    for (const sourceMap of Object.values(latestMetricSourceEntries.value)) {
+      for (const entry of Object.values(sourceMap || {})) {
+        const sourceKey = normalizeSourceKey(entry.source)
+        if (seen.has(sourceKey)) continue
+        seen.add(sourceKey)
+        options.push({
+          label: formatSource(entry.source),
+          value: sourceKey
+        })
+      }
     }
 
     return options
   })
+
+  async function loadMeasurements(options: { reset?: boolean } = {}) {
+    const reset = options.reset ?? false
+    const query: Record<string, string | number> = {
+      limit: PAGE_SIZE
+    }
+
+    if (!reset && nextCursor.value) {
+      query.cursorRecordedAt = nextCursor.value.recordedAt
+      query.cursorId = nextCursor.value.id
+    }
+
+    const response = await $fetch<{
+      items?: any[]
+      latestByMetric?: Record<string, any>
+      latestByMetricSource?: Record<string, Record<string, any>>
+      pageInfo?: {
+        hasMore?: boolean
+        nextCursor?: { recordedAt: string; id: string } | null
+      }
+    }>('/api/body-measurements', {
+      query
+    })
+
+    latestMetricEntries.value = response.latestByMetric || {}
+    latestMetricSourceEntries.value = response.latestByMetricSource || {}
+    entries.value = reset ? response.items || [] : [...entries.value, ...(response.items || [])]
+    hasMoreEntries.value = Boolean(response.pageInfo?.hasMore)
+    nextCursor.value = response.pageInfo?.nextCursor || null
+  }
+
+  async function refreshMeasurements() {
+    await loadMeasurements({ reset: true })
+  }
+
+  async function loadMoreMeasurements() {
+    if (!hasMoreEntries.value || loadingMore.value) return
+
+    loadingMore.value = true
+    try {
+      await loadMeasurements()
+    } finally {
+      loadingMore.value = false
+    }
+  }
+
+  try {
+    await refreshMeasurements()
+  } catch (error: any) {
+    console.error('Failed to load body measurements', error)
+    toast.add({
+      title: t.value('measurements_toast_save_failed_title'),
+      description:
+        error.data?.statusMessage ||
+        error.message ||
+        t.value('measurements_toast_save_failed_desc'),
+      color: 'error'
+    })
+  }
 
   function formatMetricName(entry: any) {
     const knownMetric = metricOptions.value.find((option) => option.value === entry.metricKey)
@@ -616,13 +679,6 @@
 
     const displayValue = toDisplayValue(entry.value, entry.metricKey, entry.unit)
     const label = getDisplayUnitLabel(entry.metricKey, entry.unit)
-    if (label === '%') return `${displayValue}%`
-    return `${displayValue} ${label}`
-  }
-
-  function formatValueWithUnit(value: number, unit: string) {
-    const displayValue = toDisplayValue(value, '', unit)
-    const label = getDisplayUnitLabel('', unit)
     if (label === '%') return `${displayValue}%`
     return `${displayValue} ${label}`
   }
@@ -707,28 +763,22 @@
 
   function getMetricSourceOptions(metricKey: string) {
     const sources = new Map<string, { label: string; value: string }>()
-    sources.set('auto', { label: t.value('measurements_source_auto_latest'), value: 'auto' })
+    const latestEntry = latestMetricEntries.value[metricKey]
+    sources.set('auto', {
+      label: latestEntry
+        ? `${tr('measurements_source_auto_latest', 'Auto (latest)')} (${formatValue(latestEntry)})`
+        : tr('measurements_source_auto_latest', 'Auto (latest)'),
+      value: 'auto'
+    })
 
-    if (metricKey === 'weight') {
-      const profileEntry = entries.value.find(
-        (entry) => entry.metricKey === metricKey && normalizeSourceKey(entry.source) === 'profile'
-      )
-      sources.set('profile', {
-        label: profileEntry
-          ? `Profile (${formatValueWithUnit(profileEntry.value, profileEntry.unit)})`
-          : t.value('measurements_source_profile'),
-        value: 'profile'
+    for (const [sourceKey, entry] of Object.entries(
+      latestMetricSourceEntries.value[metricKey] || {}
+    )) {
+      if (sourceKey === 'auto' || sources.has(sourceKey)) continue
+      sources.set(sourceKey, {
+        label: `${formatSource(entry.source)} (${formatValue(entry)})`,
+        value: sourceKey
       })
-    }
-
-    for (const entry of entries.value.filter((item) => item.metricKey === metricKey)) {
-      const normalized = normalizeSourceKey(entry.source)
-      if (!sources.has(normalized)) {
-        sources.set(normalized, {
-          label: `${formatSource(entry.source)} (${formatValue(entry)})`,
-          value: normalized
-        })
-      }
     }
 
     return [...sources.values()]
@@ -810,7 +860,7 @@
       heightFt.value = null
       heightIn.value = null
       recordedAt.value = toDateTimeLocalInput(new Date())
-      await refresh()
+      await refreshMeasurements()
 
       toast.add({
         title: t.value('measurements_toast_added_title'),
@@ -841,7 +891,7 @@
         }
       })
 
-      await refresh()
+      await refreshMeasurements()
       toast.add({
         title: t.value('measurements_toast_deleted_title'),
         description: t.value('measurements_toast_deleted_desc'),
@@ -913,7 +963,7 @@
         }
       })
 
-      await refresh()
+      await refreshMeasurements()
       showEditModal.value = false
       toast.add({
         title: t.value('measurements_toast_updated_title'),

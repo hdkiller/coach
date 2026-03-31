@@ -9,8 +9,13 @@ export const bodyMeasurementRepository = {
       startDate?: Date
       endDate?: Date
       limit?: number
+      skip?: number
+      cursorRecordedAt?: Date
+      cursorId?: string
       includeDeleted?: boolean
-      orderBy?: Prisma.BodyMeasurementEntryOrderByWithRelationInput
+      orderBy?:
+        | Prisma.BodyMeasurementEntryOrderByWithRelationInput
+        | Prisma.BodyMeasurementEntryOrderByWithRelationInput[]
     } = {}
   ) {
     return prisma.bodyMeasurementEntry.findMany({
@@ -18,13 +23,39 @@ export const bodyMeasurementRepository = {
         userId,
         metricKey: options.metricKey,
         isDeleted: options.includeDeleted ? undefined : false,
+        ...(options.cursorRecordedAt
+          ? {
+              OR: options.cursorId
+                ? [
+                    {
+                      recordedAt: {
+                        lt: options.cursorRecordedAt
+                      }
+                    },
+                    {
+                      recordedAt: options.cursorRecordedAt,
+                      id: {
+                        lt: options.cursorId
+                      }
+                    }
+                  ]
+                : [
+                    {
+                      recordedAt: {
+                        lt: options.cursorRecordedAt
+                      }
+                    }
+                  ]
+            }
+          : {}),
         recordedAt: {
           gte: options.startDate,
           lte: options.endDate
         }
       },
       take: options.limit,
-      orderBy: options.orderBy || { recordedAt: 'desc' }
+      skip: options.skip,
+      orderBy: options.orderBy || [{ recordedAt: 'desc' }, { id: 'desc' }]
     })
   },
 
