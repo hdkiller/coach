@@ -486,6 +486,16 @@ export function normalizeStructuredWorkoutForPersistence(
       thresholdPace: context.refs.thresholdPace
     })
 
+    for (const metric of ['power', 'heartRate', 'pace'] as const) {
+      const target = step?.[metric]
+      if (!target?.range) continue
+      if (step?.type === 'Warmup' || step?.type === 'Cooldown') {
+        target.ramp = true
+      } else if (step?.type === 'Rest' && target.ramp === undefined) {
+        target.ramp = false
+      }
+    }
+
     if (Array.isArray(step.steps)) {
       step.steps.forEach((child: any) => visitStep(child))
     }

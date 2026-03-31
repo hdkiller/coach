@@ -264,4 +264,81 @@ describe('structured workout persistence', () => {
 
     expect(intensity).toBeCloseTo(0.93)
   })
+
+  it('preserves warmup and cooldown ranges as ramps during persistence normalization', () => {
+    const normalized = normalizeStructuredWorkoutForPersistence(
+      {
+        steps: [
+          {
+            type: 'Warmup',
+            durationSeconds: 600,
+            primaryTarget: 'power',
+            power: { range: { start: 0.5, end: 0.7 }, units: '%' }
+          },
+          {
+            type: 'Cooldown',
+            durationSeconds: 300,
+            primaryTarget: 'power',
+            power: { range: { start: 0.6, end: 0.45 }, units: '%' }
+          }
+        ]
+      },
+      {
+        refs,
+        workoutType: 'Ride',
+        targetPolicy: {
+          primaryMetric: 'power',
+          fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+          strictPrimary: true,
+          allowMixedTargetsPerStep: false,
+          defaultTargetStyle: 'range',
+          preferRangesForSteady: true
+        },
+        targetFormatPolicy: {
+          heartRate: { mode: 'percentLthr', preferRange: true },
+          power: { mode: 'percentFtp', preferRange: true },
+          pace: { mode: 'percentPace', preferRange: true },
+          cadence: { mode: 'rpm' }
+        }
+      }
+    )
+
+    expect(normalized.steps[0].power.ramp).toBe(true)
+    expect(normalized.steps[1].power.ramp).toBe(true)
+  })
+
+  it('keeps recovery ranges flat instead of inferring ramps', () => {
+    const normalized = normalizeStructuredWorkoutForPersistence(
+      {
+        steps: [
+          {
+            type: 'Rest',
+            durationSeconds: 180,
+            primaryTarget: 'power',
+            power: { range: { start: 0.5, end: 0.6 }, units: '%' }
+          }
+        ]
+      },
+      {
+        refs,
+        workoutType: 'Ride',
+        targetPolicy: {
+          primaryMetric: 'power',
+          fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+          strictPrimary: true,
+          allowMixedTargetsPerStep: false,
+          defaultTargetStyle: 'range',
+          preferRangesForSteady: true
+        },
+        targetFormatPolicy: {
+          heartRate: { mode: 'percentLthr', preferRange: true },
+          power: { mode: 'percentFtp', preferRange: true },
+          pace: { mode: 'percentPace', preferRange: true },
+          cadence: { mode: 'rpm' }
+        }
+      }
+    )
+
+    expect(normalized.steps[0].power.ramp).toBe(false)
+  })
 })

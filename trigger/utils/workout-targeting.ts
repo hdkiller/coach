@@ -133,6 +133,15 @@ function normalizeIntent(value: unknown): StepIntent | null {
   return STEP_INTENTS.includes(raw as StepIntent) ? (raw as StepIntent) : null
 }
 
+function shouldTreatRangeAsRamp(step: any, target: any): boolean {
+  if (!target?.range) return false
+  if (target.ramp === true) return true
+  const stepType = String(step?.type || '')
+    .trim()
+    .toLowerCase()
+  return stepType === 'warmup' || stepType === 'cooldown'
+}
+
 function defaultIntentForStepType(stepType: string | undefined): StepIntent {
   if (stepType === 'Warmup') return 'warmup'
   if (stepType === 'Cooldown') return 'cooldown'
@@ -285,6 +294,7 @@ export function applyStepIntentGuard(
               start: Math.max(0, Math.floor(clampedMid - width)),
               end: Math.max(0, Math.floor(clampedMid + width))
             },
+            ramp: shouldTreatRangeAsRamp(step, step.heartRate),
             units: step.heartRate.units || 'bpm'
           }
         } else {
@@ -306,6 +316,7 @@ export function applyStepIntentGuard(
             start: Math.max(0, nextFactor - width),
             end: nextFactor + width
           },
+          ramp: shouldTreatRangeAsRamp(step, step.power),
           units: step.power.units || '%'
         }
       } else {
@@ -323,6 +334,7 @@ export function applyStepIntentGuard(
             start: Math.max(0, nextFactor - width),
             end: nextFactor + width
           },
+          ramp: shouldTreatRangeAsRamp(step, step.pace),
           units: step.pace.units || 'Pace'
         }
       } else {
@@ -430,12 +442,14 @@ function toTargetObject(target: any): any {
           start: Number(target.range.start ?? target.range[0]) || 0,
           end: Number(target.range.end ?? target.range[1]) || 0
         },
+        ramp: target.ramp === true,
         units: target.units
       }
     }
     if (target.start !== undefined && target.end !== undefined) {
       return {
         range: { start: Number(target.start) || 0, end: Number(target.end) || 0 },
+        ramp: target.ramp === true,
         units: target.units
       }
     }
