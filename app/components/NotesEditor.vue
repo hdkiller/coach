@@ -229,7 +229,7 @@
   const { formatDateTime } = useFormat()
 
   const props = defineProps<{
-    modelValue: string | null
+    modelValue?: string | null
     notesUpdatedAt?: string | Date | null
     apiEndpoint: string
   }>()
