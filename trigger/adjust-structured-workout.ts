@@ -788,6 +788,10 @@ export const adjustStructuredWorkoutTask = task({
     const isRun = workoutType.includes('run')
     const isSwim = workoutType.includes('swim')
     const isStrength = workoutType.includes('gym') || workoutType.includes('weight')
+    const runPaceUnitInstruction =
+      targetFormatPolicy.pace.mode === 'absolutePace'
+        ? '- CRITICAL: If the user requests absolute pace or provides pace examples like "5:20-5:40 min/km", encode those as explicit pace targets. Use `pace.units` = "/km" with decimal minute values (for example 5.33-5.67 for 5:20-5:40/km), set `primaryTarget` to "pace" for those steps, and do NOT fall back to bare percentages or power targets.'
+        : '- Use `heartRate.units` = "LTHR" for percentage HR targets and `pace.units` = "Pace" for percentage pace targets.'
     const sportSpecificInstructions = isCycling
       ? `FOR CYCLING (Ride/VirtualRide):
     - Use % of FTP for power targets (e.g. 0.95 = 95%).
@@ -800,7 +804,7 @@ export const adjustStructuredWorkoutTask = task({
         ? `FOR RUNNING (Run):
     - ALWAYS include 'distance' (meters) for each step (estimate if needed).
     - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
-    - Use \`heartRate.units\` = "LTHR" for percentage HR targets and \`pace.units\` = "Pace" for percentage pace targets.
+    - ${runPaceUnitInstruction}
     - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but primaryTarget still must follow policy.' : 'Use one intensity metric per step unless user feedback explicitly asks for mixed cues.'}
     - ${steadyTargetStyleRule}
     - If user specifies "Zone 2", refer to the provided zones before using generic percentages.

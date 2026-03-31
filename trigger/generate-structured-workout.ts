@@ -980,6 +980,10 @@ export const generateStructuredWorkoutTask = task({
     const isRun = workoutType.includes('run')
     const isSwim = workoutType.includes('swim')
     const isStrength = workoutType.includes('gym') || workoutType.includes('weight')
+    const runPaceUnitInstruction =
+      targetFormatPolicy.pace.mode === 'absolutePace'
+        ? `- CRITICAL: If the workout request calls for absolute pace or includes examples like "5:20-5:40 min/km", encode those as explicit pace targets. Use 'pace.units' = "/km" with decimal minute values (for example 5.33-5.67 for 5:20-5:40/km), set 'primaryTarget' to 'pace' for those steps, and do NOT fall back to unlabeled percentages or power targets.`
+        : `- Use 'heartRate.units' = "LTHR" for percentage HR targets and 'pace.units' = "Pace" for percentage pace targets.`
     const sportSpecificInstructions = isCycling
       ? `FOR CYCLING (Ride/VirtualRide):
     - MANDATORY: Use % of FTP for power targets (e.g. 0.95 = 95%) for EVERY step.
@@ -996,7 +1000,7 @@ export const generateStructuredWorkoutTask = task({
     - Steps should have 'type', 'durationSeconds', 'name'.
     - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
     - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
-    - Use 'heartRate.units' = "LTHR" for percentage HR targets and 'pace.units' = "Pace" for percentage pace targets.
+    - ${runPaceUnitInstruction}
     - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but the policy primary metric must still be explicit as primaryTarget.' : 'Use one intensity metric per step unless the workout request explicitly asks for mixed cues.'}
     - ${steadyTargetStyleRule}
     - DO NOT rely solely on description for intensity. Provide an estimated target object for every step.
@@ -1409,8 +1413,8 @@ export const generateStructuredWorkoutTask = task({
             fallbackOrder: targetPolicy.fallbackOrder as Array<
               'power' | 'heartRate' | 'pace' | 'rpe'
             >,
-              workoutType: workout.type || ''
-            })
+            workoutType: workout.type || ''
+          })
           if (!step.durationSeconds && stepDuration > 0 && !structure.exercises) {
             step.durationSeconds = stepDuration
           }
