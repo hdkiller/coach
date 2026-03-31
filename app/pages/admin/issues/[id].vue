@@ -406,6 +406,8 @@
       `5. Resolve the ticket with: pnpm cw:cli support tickets update-status ${report.value.id} RESOLVED --prod`,
       '',
       'Message guidance',
+      '- Do the investigation, code changes, and internal note in English even if the ticket was written in another language.',
+      '- Write the user-facing reply in the same language the user used when they posted the ticket.',
       '- The NOTE should summarize root cause, what changed, and whether a resync/backfill is needed.',
       '- The MESSAGE should be short, clear, non-technical, and tell the user what to expect next.',
       '- Prefer the exact pnpm cw:cli commands above instead of ad-hoc DB edits for ticket updates.',

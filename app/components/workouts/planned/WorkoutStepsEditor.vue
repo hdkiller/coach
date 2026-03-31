@@ -242,7 +242,7 @@
           { ...target, value: target.range.end },
           activeMetric.value
         )
-        s._isRamp = target.ramp !== false
+        s._isRamp = target.ramp === true
       } else {
         s._intensityStartPct = resolveIntensityPct(target, activeMetric.value)
         s._intensityEndPct = s._intensityStartPct

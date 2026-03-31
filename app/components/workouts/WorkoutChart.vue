@@ -1015,7 +1015,7 @@
     const endH = Math.min(range.end / maxScale, 1) * 100
 
     // Ramp logic: Trapezoid from Start to End
-    if (target?.ramp === true || (target?.range && target?.ramp === undefined)) {
+    if (target?.ramp === true) {
       const startY = 100 - startH
       const endY = 100 - endH
       // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
@@ -1045,7 +1045,7 @@
     const maxScale = chartMaxPower.value
     const target = step.power || step.heartRate || step.pace
 
-    if (target?.ramp === true || (target?.range && target?.ramp === undefined)) {
+    if (target?.ramp === true) {
       // Hide standard bar for ramps, as the "Range" element handles the full shape
       return { height: '0%' }
     }
