@@ -1148,6 +1148,7 @@
   // Step 6 State
   const generatedPlan = ref<any>(null)
   const activating = ref(false)
+  const shouldAbandonDraftOnUnmount = ref(true)
 
   const strategyOptions = [
     { value: 'LINEAR', label: 'Linear', description: 'Steady progression. Classic approach.' },
@@ -1380,6 +1381,7 @@
         }
       })
 
+      shouldAbandonDraftOnUnmount.value = false
       emit('plan-created', generatedPlan.value)
       emit('close')
     } catch (error: any) {
@@ -1407,5 +1409,15 @@
 
   onMounted(() => {
     fetchGoals()
+  })
+
+  onBeforeUnmount(() => {
+    if (!shouldAbandonDraftOnUnmount.value || !generatedPlan.value?.id) return
+
+    void $fetch(`/api/plans/${generatedPlan.value.id}/abandon`, {
+      method: 'POST'
+    }).catch((error) => {
+      console.error('[PlanWizard] Failed to abandon draft plan on close:', error)
+    })
   })
 </script>

@@ -167,20 +167,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 4. Trigger Generation for First Block
+  // 4. Trigger generation only after final activation/confirmation.
   if (plan.blocks.length > 0 && !plan.isTemplate) {
-    const firstBlock = plan.blocks[0]!
-    await tasks.trigger(
-      'generate-training-block',
-      {
-        userId,
-        blockId: firstBlock.id,
-        anchorWorkoutIds
-      },
-      {
-        tags: [`user:${userId}`]
-      }
-    )
+    for (let i = 0; i < plan.blocks.length; i++) {
+      const block = plan.blocks[i]!
+      await tasks.trigger(
+        'generate-training-block',
+        {
+          userId,
+          blockId: block.id,
+          anchorWorkoutIds: i === 0 ? anchorWorkoutIds : undefined,
+          // Only generate detailed intervals for the first week of the first block.
+          triggerStructureForWeekNumber: i === 0 ? 1 : undefined
+        },
+        {
+          tags: [`user:${userId}`],
+          concurrencyKey: userId
+        }
+      )
+    }
   }
 
   return { success: true }
