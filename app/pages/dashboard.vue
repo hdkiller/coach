@@ -192,7 +192,7 @@
               </div>
             </div>
 
-            <!-- Row 2: Daily Fueling (Full width if enabled) -->
+            <!-- Row 2: Fueling & Hydration -->
             <div v-if="nutritionEnabled">
               <DashboardNutritionFuelingCard
                 :nutrition="todayNutrition"
@@ -209,130 +209,134 @@
               <!-- Recent Activity Card -->
               <DashboardRecentActivityCard />
 
-              <!-- Upcoming Workouts Card -->
-              <UCard
-                :ui="{
-                  root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                  body: 'p-4 sm:p-6'
-                }"
-                class="flex flex-col"
-              >
-                <template #header>
-                  <div class="flex items-center justify-between">
-                    <h3
-                      class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"
-                    >
-                      <UIcon name="i-heroicons-calendar-days" class="w-4 h-4" />
-                      {{ t('upcoming_workouts_header') }}
-                    </h3>
-                    <UButton
-                      to="/plan"
-                      variant="ghost"
-                      color="neutral"
-                      size="xs"
-                      icon="i-heroicons-arrow-right"
-                      trailing
-                    />
-                  </div>
-                </template>
-
-                <div class="flex-1 space-y-4">
-                  <div v-if="loadingUpcoming" class="space-y-3">
-                    <div v-for="i in 3" :key="i" class="flex items-center gap-3">
-                      <USkeleton class="w-10 h-10 rounded-lg" />
-                      <div class="flex-1 space-y-2">
-                        <USkeleton class="h-3 w-3/4" />
-                        <USkeleton class="h-2 w-1/2" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-else-if="upcomingWorkouts.length === 0" class="text-center py-8">
-                    <UIcon
-                      name="i-heroicons-calendar"
-                      class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2"
-                    />
-                    <p class="text-sm text-gray-500">{{ t('upcoming_workouts_empty') }}</p>
-                    <UButton to="/plans" variant="link" color="primary" size="xs" class="mt-2">{{
-                      t('upcoming_workouts_view_plans')
-                    }}</UButton>
-                  </div>
-
-                  <div v-else class="divide-y divide-gray-100 dark:divide-gray-800 -mx-4 px-4">
-                    <div
-                      v-for="workout in upcomingWorkouts"
-                      :key="workout.id"
-                      class="py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer -mx-4 px-4 rounded-lg transition-colors group relative"
-                      @click="navigateTo(`/workouts/planned/${workout.id}`)"
-                    >
-                      <!-- Date Box (Standardized) -->
-                      <div
-                        class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0 shadow-sm"
+              <div class="space-y-4 sm:space-y-8">
+                <!-- Upcoming Workouts Card -->
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
+                  }"
+                  class="flex flex-col"
+                >
+                  <template #header>
+                    <div class="flex items-center justify-between">
+                      <h3
+                        class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"
                       >
-                        <span class="text-[10px] font-bold uppercase leading-none">{{
-                          formatDayShort(workout.date)
-                        }}</span>
-                        <span class="text-sm font-bold">{{ formatDateDay(workout.date) }}</span>
-                      </div>
-
-                      <!-- Workout Icon -->
-                      <UTooltip :text="workout.type" class="shrink-0">
-                        <div class="flex items-center justify-center w-8 h-8">
-                          <UIcon
-                            :name="getWorkoutIcon(workout.type)"
-                            class="w-5 h-5"
-                            :class="getWorkoutColorClass(workout.type)"
-                          />
-                        </div>
-                      </UTooltip>
-
-                      <!-- Workout Details -->
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                            {{ workout.title }}
-                          </div>
-                          <UTooltip
-                            v-if="workout.planName"
-                            :text="t('upcoming_workouts_plan_part_of', { name: workout.planName })"
-                          >
-                            <UIcon
-                              name="i-heroicons-trophy"
-                              class="w-3.5 h-3.5 text-primary shrink-0"
-                            />
-                          </UTooltip>
-                        </div>
-                        <div
-                          class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5"
-                        >
-                          <div v-if="workout.durationSec" class="flex items-center gap-1">
-                            <UIcon
-                              name="i-tabler-clock"
-                              class="w-3 h-3 opacity-80"
-                              :class="getWorkoutColorClass(workout.type)"
-                            />
-                            <span class="font-medium"
-                              >{{ Math.round(workout.durationSec / 60) }}m</span
-                            >
-                          </div>
-                          <div v-if="workout.tss" class="flex items-center gap-1">
-                            <UIcon
-                              name="i-tabler-bolt"
-                              class="w-3 h-3 opacity-80"
-                              :class="getWorkoutColorClass(workout.type)"
-                            />
-                            <span class="font-medium">{{ Math.round(workout.tss) }} TSS</span>
-                          </div>
-                        </div>
-                      </div>
-                      <UIcon
-                        name="i-heroicons-chevron-right"
-                        class="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors"
+                        <UIcon name="i-heroicons-calendar-days" class="w-4 h-4" />
+                        {{ t('upcoming_workouts_header') }}
+                      </h3>
+                      <UButton
+                        to="/plan"
+                        variant="ghost"
+                        color="neutral"
+                        size="xs"
+                        icon="i-heroicons-arrow-right"
+                        trailing
                       />
                     </div>
+                  </template>
+
+                  <div class="flex-1 space-y-4">
+                    <div v-if="loadingUpcoming" class="space-y-3">
+                      <div v-for="i in 3" :key="i" class="flex items-center gap-3">
+                        <USkeleton class="w-10 h-10 rounded-lg" />
+                        <div class="flex-1 space-y-2">
+                          <USkeleton class="h-3 w-3/4" />
+                          <USkeleton class="h-2 w-1/2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-else-if="upcomingWorkouts.length === 0" class="text-center py-8">
+                      <UIcon
+                        name="i-heroicons-calendar"
+                        class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2"
+                      />
+                      <p class="text-sm text-gray-500">{{ t('upcoming_workouts_empty') }}</p>
+                      <UButton to="/plans" variant="link" color="primary" size="xs" class="mt-2">{{
+                        t('upcoming_workouts_view_plans')
+                      }}</UButton>
+                    </div>
+
+                    <div v-else class="divide-y divide-gray-100 dark:divide-gray-800 -mx-4 px-4">
+                      <div
+                        v-for="workout in upcomingWorkouts"
+                        :key="workout.id"
+                        class="py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer -mx-4 px-4 rounded-lg transition-colors group relative"
+                        @click="navigateTo(`/workouts/planned/${workout.id}`)"
+                      >
+                        <!-- Date Box (Standardized) -->
+                        <div
+                          class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0 shadow-sm"
+                        >
+                          <span class="text-[10px] font-bold uppercase leading-none">{{
+                            formatDayShort(workout.date)
+                          }}</span>
+                          <span class="text-sm font-bold">{{ formatDateDay(workout.date) }}</span>
+                        </div>
+
+                        <!-- Workout Icon -->
+                        <UTooltip :text="workout.type" class="shrink-0">
+                          <div class="flex items-center justify-center w-8 h-8">
+                            <UIcon
+                              :name="getWorkoutIcon(workout.type)"
+                              class="w-5 h-5"
+                              :class="getWorkoutColorClass(workout.type)"
+                            />
+                          </div>
+                        </UTooltip>
+
+                        <!-- Workout Details -->
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2">
+                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                              {{ workout.title }}
+                            </div>
+                            <UTooltip
+                              v-if="workout.planName"
+                              :text="
+                                t('upcoming_workouts_plan_part_of', { name: workout.planName })
+                              "
+                            >
+                              <UIcon
+                                name="i-heroicons-trophy"
+                                class="w-3.5 h-3.5 text-primary shrink-0"
+                              />
+                            </UTooltip>
+                          </div>
+                          <div
+                            class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5"
+                          >
+                            <div v-if="workout.durationSec" class="flex items-center gap-1">
+                              <UIcon
+                                name="i-tabler-clock"
+                                class="w-3 h-3 opacity-80"
+                                :class="getWorkoutColorClass(workout.type)"
+                              />
+                              <span class="font-medium"
+                                >{{ Math.round(workout.durationSec / 60) }}m</span
+                              >
+                            </div>
+                            <div v-if="workout.tss" class="flex items-center gap-1">
+                              <UIcon
+                                name="i-tabler-bolt"
+                                class="w-3 h-3 opacity-80"
+                                :class="getWorkoutColorClass(workout.type)"
+                              />
+                              <span class="font-medium">{{ Math.round(workout.tss) }} TSS</span>
+                            </div>
+                          </div>
+                        </div>
+                        <UIcon
+                          name="i-heroicons-chevron-right"
+                          class="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </UCard>
+                </UCard>
+              </div>
 
               <!-- Connection Status Card - only shown if syncing is in progress or issues -->
               <DashboardDataSyncStatusCard v-if="integrationStore.syncingData" />
@@ -452,7 +456,6 @@
       userStore.profile?.nutritionTrackingEnabled !== false &&
       userStore.user?.nutritionTrackingEnabled !== false
   )
-
   const isOnboarded = computed(() => {
     // 1. Check if Intervals is connected (current behavior)
     if (integrationStore.intervalsConnected) return true
