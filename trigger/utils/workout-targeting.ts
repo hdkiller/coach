@@ -478,8 +478,13 @@ function paceValueToMps(
     .toLowerCase()
 
   if (normalizedUnits.includes('/km')) {
-    const secondsPerKm = value * 60
+    const secondsPerKm = value > 20 ? value : value * 60
     return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+  }
+
+  if (normalizedUnits === '%pace' || normalizedUnits === 'percentpace') {
+    if (value > 150) return 1000 / value
+    if (value > 2 && value <= 20) return 1000 / (value * 60)
   }
 
   if (normalizedUnits === 'm/s') return value

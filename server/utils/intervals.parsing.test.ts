@@ -76,6 +76,28 @@ describe('Intervals.icu Parsing Logic', () => {
       expect(step.power.range.start).toBe(200)
       expect(step.power.range.end).toBe(300)
     })
+
+    it('repairs malformed absolute %pace seconds from imported planned runs', () => {
+      const event = createEvent(
+        [{ duration: 600, pace: { start: 390, end: 420, units: '%pace' } }],
+        'Run'
+      )
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const step = result.structuredWorkout.steps[0]
+
+      expect(step.pace.units).toBe('/km')
+      expect(step.pace.range.start).toBeCloseTo(6.5)
+      expect(step.pace.range.end).toBeCloseTo(7)
+    })
+
+    it('repairs malformed absolute %pace minute values from imported planned runs', () => {
+      const event = createEvent([{ duration: 600, pace: { value: 7, units: '%pace' } }], 'Run')
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const step = result.structuredWorkout.steps[0]
+
+      expect(step.pace.units).toBe('/km')
+      expect(step.pace.value).toBeCloseTo(7)
+    })
   })
 
   describe('Nested Steps (Repeats)', () => {

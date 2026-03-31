@@ -213,6 +213,74 @@ describe('applyTargetFormatPolicyToStep', () => {
       units: '%'
     })
   })
+
+  it('converts malformed absolute %pace seconds into /km in absolute pace mode', () => {
+    const step: any = {
+      type: 'Warmup',
+      primaryTarget: 'pace',
+      pace: {
+        range: { start: 390, end: 420 },
+        units: '%pace'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(
+      step,
+      {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'absolutePace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
+      {
+        ftp: 290,
+        lthr: 168,
+        maxHr: 185,
+        thresholdPace: 4,
+        hrZones: [],
+        powerZones: [],
+        paceZones: []
+      }
+    )
+
+    expect(step.pace.units).toBe('/km')
+    expect(step.pace.range.start).toBeCloseTo(6.5)
+    expect(step.pace.range.end).toBeCloseTo(7)
+  })
+
+  it('converts malformed absolute %pace minute values into /km in absolute pace mode', () => {
+    const step: any = {
+      type: 'Cooldown',
+      primaryTarget: 'pace',
+      pace: {
+        range: { start: 7, end: 7 },
+        units: '%pace'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(
+      step,
+      {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'absolutePace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
+      {
+        ftp: 290,
+        lthr: 168,
+        maxHr: 185,
+        thresholdPace: 4,
+        hrZones: [],
+        powerZones: [],
+        paceZones: []
+      }
+    )
+
+    expect(step.pace.units).toBe('/km')
+    expect(step.pace.range.start).toBeCloseTo(7)
+    expect(step.pace.range.end).toBeCloseTo(7)
+  })
 })
 
 describe('resolveWorkoutTargeting', () => {

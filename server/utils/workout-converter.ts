@@ -10,16 +10,19 @@ interface WorkoutStep {
   power?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   heartRate?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   pace?: {
     value?: number
     range?: { start: number; end: number }
+    ramp?: boolean
     units?: string
   }
   rpe?: number
@@ -91,26 +94,24 @@ export const WorkoutConverter = {
       // Safely access power
       const power = step.power || { value: 0 }
       const duration = step.durationSeconds || step.duration || 0
+      const isRamp = power.ramp === true
 
       // If we only have Heart Rate, ZWO is not the best format but we can try to approximate or just use 0 power
       // Zwift is primarily power-based.
 
       // ZWO uses percentage of FTP (0.0 - 1.0+)
       if (power.range) {
-        // Ramp
-        // Zwift uses <Ramp> or <Warmup>/<Cooldown> with PowerLow/PowerHigh
-        const isWarmup = step.type === 'Warmup'
-        const isCooldown = step.type === 'Cooldown'
-
-        let tagName = 'Ramp'
-        if (isWarmup) tagName = 'Warmup'
-        else if (isCooldown) tagName = 'Cooldown'
-
-        const el = root
-          .ele(tagName)
-          .att('Duration', String(duration))
-          .att('PowerLow', String(power.range.start ?? 0))
-          .att('PowerHigh', String(power.range.end ?? 0))
+        const tagName = isRamp
+          ? step.type === 'Warmup'
+            ? 'Warmup'
+            : step.type === 'Cooldown'
+              ? 'Cooldown'
+              : 'Ramp'
+          : 'SteadyState'
+        const el = root.ele(tagName)
+        el.att('Duration', String(duration))
+        el.att('PowerLow', String(power.range.start ?? 0))
+        el.att('PowerHigh', String(power.range.end ?? 0))
 
         if (step.cadence) el.att('Cadence', String(step.cadence))
         if (step.name) el.att('Text', step.name)
@@ -390,7 +391,12 @@ export const WorkoutConverter = {
     }
     const normalizeTarget = (
       target: any
-    ): { value?: number; range?: { start: number; end: number }; units?: string } | null => {
+    ): {
+      value?: number
+      range?: { start: number; end: number }
+      ramp?: boolean
+      units?: string
+    } | null => {
       if (target === null || target === undefined) return null
 
       if (Array.isArray(target)) {
@@ -414,6 +420,7 @@ export const WorkoutConverter = {
               start: Number(target.range.start) || 0,
               end: Number(target.range.end) || 0
             },
+            ramp: target.ramp === true,
             units: normalizeUnits(target.units ?? target.range.units)
           }
         }
@@ -423,6 +430,7 @@ export const WorkoutConverter = {
               start: Number(target.start) || 0,
               end: Number(target.end) || 0
             },
+            ramp: target.ramp === true,
             units: normalizeUnits(target.units)
           }
         }
@@ -539,7 +547,12 @@ export const WorkoutConverter = {
       return zoneIdx >= 0 ? `Z${zoneIdx + 1} Pace` : null
     }
     const formatMetric = (
-      target: { value?: number; range?: { start: number; end: number }; units?: string } | null,
+      target: {
+        value?: number
+        range?: { start: number; end: number }
+        ramp?: boolean
+        units?: string
+      } | null,
       kind: 'power' | 'hr' | 'pace'
     ) => {
       if (!target) return ''
@@ -589,7 +602,7 @@ export const WorkoutConverter = {
             return `${Math.round(start)}-${Math.round(end)}w`
           if (inferredPowerUnits?.startsWith('z')) return inferredPowerUnits.toUpperCase()
           const pct = toRangePct(start, end)
-          return `ramp ${pct.start}-${pct.end}%`
+          return target.ramp === true ? `ramp ${pct.start}-${pct.end}%` : `${pct.start}-${pct.end}%`
         }
         if (kind === 'hr') {
           if (units === 'bpm') return formatHrZoneFromBpm(Math.round(start), Math.round(end))

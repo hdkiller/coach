@@ -1092,6 +1092,48 @@ function normalizeWorkoutSteps(steps: any[]): any[] {
   if (!Array.isArray(steps)) return []
 
   return steps.map((step: any) => {
+    const repairMalformedAbsolutePaceTarget = (target: any) => {
+      if (!target || typeof target !== 'object') return target
+
+      const units = String(target.units || '')
+        .trim()
+        .toLowerCase()
+      if (units !== '%pace' && units !== 'percentpace') return target
+
+      const toMinutesPerKm = (value: number): number | null => {
+        if (!Number.isFinite(value) || value <= 0) return null
+        if (value > 150) return Number((value / 60).toFixed(2))
+        if (value > 2 && value <= 20) return Number(value.toFixed(2))
+        return null
+      }
+
+      if (target.range) {
+        const start = toMinutesPerKm(Number(target.range.start))
+        const end = toMinutesPerKm(Number(target.range.end))
+        if (start !== null && end !== null) {
+          return {
+            ...target,
+            range: { start, end },
+            units: '/km'
+          }
+        }
+        return target
+      }
+
+      if (typeof target.value === 'number') {
+        const nextValue = toMinutesPerKm(target.value)
+        if (nextValue !== null) {
+          return {
+            ...target,
+            value: nextValue,
+            units: '/km'
+          }
+        }
+      }
+
+      return target
+    }
+
     const normalizeTarget = (target: any) => {
       if (target === null || target === undefined) return null
 
@@ -1159,6 +1201,7 @@ function normalizeWorkoutSteps(steps: any[]): any[] {
     step.power = normalizeTarget(step.power) || step.power
     step.heartRate = normalizeTarget(step.heartRate) || step.heartRate
     step.pace = normalizeTarget(step.pace) || step.pace
+    step.pace = repairMalformedAbsolutePaceTarget(step.pace)
 
     // Power
     if (step.power) {

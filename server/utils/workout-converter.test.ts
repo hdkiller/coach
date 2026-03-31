@@ -2,6 +2,48 @@ import { describe, it, expect } from 'vitest'
 import { WorkoutConverter } from './workout-converter'
 
 describe('WorkoutConverter', () => {
+  describe('toZWO', () => {
+    it('exports steady power ranges without converting them into ramps', () => {
+      const workout = {
+        title: 'Range Ride',
+        description: 'Stay in zone',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { range: { start: 1.05, end: 1.2 } },
+            name: 'VO2 window'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toZWO(workout as any)
+
+      expect(result).toContain('<SteadyState Duration="600" PowerLow="1.05" PowerHigh="1.2"')
+      expect(result).not.toContain('<Ramp')
+    })
+
+    it('preserves explicit ramp steps in zwo export', () => {
+      const workout = {
+        title: 'Ramp Ride',
+        description: 'Build',
+        steps: [
+          {
+            type: 'Warmup',
+            durationSeconds: 300,
+            power: { range: { start: 0.4, end: 0.6 }, ramp: true },
+            name: 'Build'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toZWO(workout as any)
+
+      expect(result).toContain('<Warmup Duration="300" PowerLow="0.4" PowerHigh="0.6"')
+      expect(result).not.toContain('<SteadyState Duration="300" PowerLow="0.4" PowerHigh="0.6"')
+    })
+  })
+
   describe('toIntervalsICU', () => {
     it('formats Gym exercises correctly with nested bullets', () => {
       const workout = {
@@ -52,7 +94,7 @@ describe('WorkoutConverter', () => {
           {
             type: 'Warmup',
             durationSeconds: 600,
-            power: { range: { start: 0.5, end: 0.7 } },
+            power: { range: { start: 0.5, end: 0.7 }, ramp: true },
             name: 'Warmup'
           },
           { type: 'Active', durationSeconds: 1200, power: { value: 0.9 }, name: 'Interval' }
@@ -475,6 +517,25 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- Endurance 30m 75-85% LTHR')
     })
 
+    it('exports steady power percentage ranges without adding a ramp prefix', () => {
+      const workout = {
+        title: 'Bike Range',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 900,
+            power: { range: { start: 0.65, end: 0.75 } },
+            name: 'Endurance'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('- Endurance 15m 65-75%')
+      expect(result).not.toContain('ramp 65-75%')
+    })
+
     it('converts legacy run %ftp targets into %LTHR export when HR is the preferred run metric', () => {
       const workout = {
         title: 'Tempo Run Intervals',
@@ -583,7 +644,7 @@ describe('WorkoutConverter', () => {
           {
             type: 'Warmup',
             durationSeconds: 300,
-            power: { range: { start: 0.4, end: 0.6 } },
+            power: { range: { start: 0.4, end: 0.6 }, ramp: true },
             name: 'Build'
           }
         ]
