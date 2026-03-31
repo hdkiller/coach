@@ -224,6 +224,12 @@
     return step.pace
   }
 
+  function isRampRange(step: any, target: any) {
+    if (!target?.range) return false
+    if (target.ramp === true) return true
+    return step?.type === 'Warmup' || step?.type === 'Cooldown'
+  }
+
   function initializeSteps(sourceSteps: any[]) {
     return sourceSteps.map((step) => {
       const s = JSON.parse(JSON.stringify(step)) // Deep copy
@@ -242,7 +248,7 @@
           { ...target, value: target.range.end },
           activeMetric.value
         )
-        s._isRamp = target.ramp === true
+        s._isRamp = isRampRange(s, target)
       } else {
         s._intensityStartPct = resolveIntensityPct(target, activeMetric.value)
         s._intensityEndPct = s._intensityStartPct
@@ -374,7 +380,7 @@
           { ...target, value: target.range.end },
           activeMetric.value
         )
-        news._isRamp = target.ramp !== false
+        news._isRamp = isRampRange(news, target)
       } else {
         news._intensityStartPct = resolveIntensityPct(target, activeMetric.value)
         news._intensityEndPct = news._intensityStartPct
