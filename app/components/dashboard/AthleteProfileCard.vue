@@ -651,6 +651,21 @@
 
       <!-- Upcoming Events Section -->
       <div
+        v-if="showHydrationSection"
+        class="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
+      >
+        <DashboardHydrationQuickCard
+          :nutrition="todayNutrition"
+          :date="todayNutritionDate"
+          :loading="loadingNutrition"
+          embedded
+          embedded-plain
+          @refresh="fetchTodayNutrition"
+        />
+      </div>
+
+      <!-- Upcoming Events Section -->
+      <div
         v-if="showUpcomingEventsSection"
         class="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
       >
@@ -828,6 +843,9 @@
         { key: 'vo2max', label: 'VO2 Max', visible: false }
       ]
     },
+    hydration: {
+      enabled: true
+    },
     upcomingEvents: {
       enabled: true
     }
@@ -851,6 +869,9 @@
 
   const showUpcomingEventsSection = computed(() => {
     return (settings.value.upcomingEvents?.enabled ?? true) && upcomingEvents.value.length > 0
+  })
+  const showHydrationSection = computed(() => {
+    return (settings.value.hydration?.enabled ?? true) && nutritionEnabled.value
   })
 
   const metricConfigs: Record<string, any> = {
@@ -1024,6 +1045,14 @@
   const wellnessHistory = ref<any[]>([])
   const weightHistory = ref<any[]>([])
   const upcomingEvents = ref<any[]>([])
+  const todayNutrition = ref<any>(null)
+  const loadingNutrition = ref(false)
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
+  const todayNutritionDate = computed(() => formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd'))
 
   const wKgHistory = computed(() => {
     if (!ftpHistory.value.length || !weightHistory.value.length) return []
@@ -1104,6 +1133,26 @@
     }
   }
 
+  async function fetchTodayNutrition() {
+    if (!nutritionEnabled.value) {
+      todayNutrition.value = null
+      loadingNutrition.value = false
+      return
+    }
+
+    loadingNutrition.value = true
+    try {
+      todayNutrition.value = await ($fetch as any)(`/api/nutrition/${todayNutritionDate.value}`)
+    } catch (error: any) {
+      if (error?.statusCode !== 404) {
+        console.error('Failed to load athlete profile hydration data:', error)
+      }
+      todayNutrition.value = null
+    } finally {
+      loadingNutrition.value = false
+    }
+  }
+
   watch(trainingLoadDisplayMode, () => {
     fetchHistoryData()
   })
@@ -1180,12 +1229,14 @@
 
   onMounted(() => {
     fetchHistoryData()
+    fetchTodayNutrition()
   })
 
   watch(
     () => [integrationStore.intervalsConnected, integrationStore.whoopConnected],
     () => {
       fetchHistoryData()
+      fetchTodayNutrition()
     }
   )
 

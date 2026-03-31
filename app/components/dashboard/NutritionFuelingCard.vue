@@ -22,7 +22,7 @@
               <h3
                 class="font-bold text-gray-900 dark:text-white text-[11px] sm:text-sm tracking-tight uppercase"
               >
-                Daily Fueling:
+                Fueling & Hydration
               </h3>
               <span
                 v-if="nutrition"
@@ -31,7 +31,7 @@
                 {{ stateLabel }}
               </span>
               <span v-else class="text-[9px] sm:text-xs text-gray-500 font-medium italic"
-                >No Plan</span
+                >No Plan Yet</span
               >
             </div>
           </template>
@@ -104,7 +104,7 @@
     >
       <UIcon name="i-heroicons-calendar-slash" class="w-10 h-10 text-gray-300 dark:text-gray-600" />
       <p class="text-xs text-gray-500 dark:text-gray-400">
-        No fueling plan for today. Add a workout to see periodized guidance.
+        No fueling plan for today yet. Add a workout to unlock periodized guidance.
       </p>
       <div class="flex gap-2">
         <UButton
@@ -123,7 +123,7 @@
 
     <!-- Active Plan Content -->
     <div v-else class="p-4 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
         <!-- Left Side: Tank & Info -->
         <div class="space-y-6">
           <!-- Fuel Tank Visualization -->
@@ -356,17 +356,33 @@
               </div>
             </div>
           </div>
+
+          <div class="pt-6 border-t border-gray-100 dark:border-gray-800">
+            <DashboardHydrationQuickCard
+              :nutrition="nutrition"
+              :date="nutritionDate"
+              :loading="loading"
+              embedded
+              embedded-plain
+              :show-header="false"
+              :show-journal-button="false"
+              title="Hydration"
+              @refresh="emit('refresh')"
+            />
+          </div>
         </div>
 
         <!-- Right Side: Timeline -->
-        <div class="space-y-4">
+        <div class="flex h-full flex-col">
           <div
             class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"
           >
             <UIcon name="i-heroicons-clock" class="w-4 h-4" />
             Fueling Timeline
           </div>
-          <div class="space-y-3 max-h-[700px] overflow-y-auto pl-4 pr-2 pt-4 pb-8 custom-scrollbar">
+          <div
+            class="flex-1 space-y-3 min-h-[30rem] md:min-h-[42rem] overflow-y-auto pl-4 pr-2 pt-4 pb-8 custom-scrollbar"
+          >
             <template v-for="(window, index) in timeline" :key="index">
               <!-- Physical Effort Anchor -->
               <NutritionWorkoutEventCard
@@ -483,6 +499,11 @@
   const aiModalContext = ref<any>(null)
 
   const energyViewIdx = ref('0') // '0': %, '1': kcal, '2': carbs
+  const nutritionDate = computed(() =>
+    props.nutrition?.date
+      ? formatDateUTC(props.nutrition.date, 'yyyy-MM-dd')
+      : formatDateUTC(new Date(), 'yyyy-MM-dd')
+  )
   const energyViewMode = computed(() => {
     if (energyViewIdx.value === '0') return 'percent'
     if (energyViewIdx.value === '1') return 'kcal'

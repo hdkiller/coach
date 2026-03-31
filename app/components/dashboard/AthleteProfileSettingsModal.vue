@@ -34,6 +34,22 @@
                 class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
               >
                 <div class="flex items-center gap-3">
+                  <UIcon name="i-tabler-droplet" class="w-4 h-4 text-blue-500" />
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                      Hydration
+                    </span>
+                    <span class="text-[10px] text-muted font-mono">
+                      Show hydration progress and quick logging in athlete profile
+                    </span>
+                  </div>
+                </div>
+                <USwitch v-model="settings.hydration.enabled" />
+              </div>
+              <div
+                class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+              >
+                <div class="flex items-center gap-3">
                   <UIcon name="i-heroicons-calendar-days" class="w-4 h-4 text-cyan-500" />
                   <div class="flex flex-col">
                     <span class="text-sm font-medium text-gray-900 dark:text-white">
@@ -178,6 +194,9 @@
         { key: 'skinTemp', label: 'Skin Temp', visible: false },
         { key: 'vo2max', label: 'VO2 Max', visible: false }
       ]
+    },
+    hydration: {
+      enabled: true
     },
     upcomingEvents: {
       enabled: true
@@ -392,6 +411,11 @@
     const merged = JSON.parse(JSON.stringify(defaultSettings))
 
     for (const sectionKey of Object.keys(merged)) {
+      if (sectionKey === 'hydration') {
+        merged.hydration.enabled = current?.hydration?.enabled ?? true
+        continue
+      }
+
       if (sectionKey === 'upcomingEvents') {
         merged.upcomingEvents.enabled = current?.upcomingEvents?.enabled ?? true
         continue
