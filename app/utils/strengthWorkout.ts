@@ -387,7 +387,7 @@ function normalizeExistingStep(step: any, index: number) {
     setRows: normalizeStrengthSetRows(
       Array.isArray(step?.setRows)
         ? step.setRows
-        : Array.from({ length: legacySetCount }, () => ({
+        : Array.from({ length: legacySetCount || 1 }, () => ({
             value: String(step?.value || starterValue || '').trim(),
             loadValue: starterLoad
           })),
@@ -434,7 +434,10 @@ export function normalizeStrengthBlocks(structuredWorkout: any): StrengthBlock[]
   )
 }
 
-function summarizeSetRows(setRows: StrengthSetRow[], field: 'value' | 'loadValue') {
+function summarizeSetRows(
+  setRows: StrengthSetRow[],
+  field: 'value' | 'loadValue' | 'restOverride'
+) {
   const values = setRows.map((row) => String(row?.[field] || '').trim()).filter(Boolean)
 
   if (!values.length) return ''
