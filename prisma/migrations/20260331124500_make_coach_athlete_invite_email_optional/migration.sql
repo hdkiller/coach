@@ -1,0 +1,2 @@
+ALTER TABLE "CoachAthleteInvite"
+ALTER COLUMN "email" DROP NOT NULL;

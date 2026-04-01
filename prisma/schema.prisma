@@ -168,6 +168,7 @@ model User {
   dashboards                         Dashboard[]
   widgets                            Widget[]
   customFieldDefinitions             CustomFieldDefinition[]
+  coachAthleteInvitesSent            CoachAthleteInvite[]
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -387,6 +388,23 @@ model CoachingInvite {
   updatedAt DateTime @updatedAt
   athlete   User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
+  @@index([code])
+}
+
+model CoachAthleteInvite {
+  id         String   @id @default(uuid())
+  coachId    String
+  email      String?
+  code       String   @unique
+  status     String   @default("PENDING")
+  expiresAt  DateTime
+  acceptedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  coach      User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+  @@index([email])
   @@index([code])
 }
 
