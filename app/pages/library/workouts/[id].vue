@@ -73,6 +73,7 @@
             :generating="generating"
             :allow-edit="true"
             @save="handleSaveStructure"
+            @adjust="openAdjustModal"
             @regenerate="generateStructure"
             @view="openViewModal"
           />
@@ -132,6 +133,55 @@
     v-model:template-id="previewTemplateId"
     :template-owner-scope="template?.ownerScope"
   />
+
+  <UModal
+    v-model:open="showAdjustModal"
+    title="Adjust Workout Structure"
+    description="Tell Coach Watts how you want this structure updated."
+  >
+    <template #body>
+      <div class="p-6 flex flex-col gap-5">
+        <div>
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200">
+            Duration (minutes)
+          </label>
+          <UInput
+            v-model.number="adjustForm.durationMinutes"
+            type="number"
+            min="1"
+            class="w-full"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200">
+            Intensity
+          </label>
+          <USelect v-model="adjustForm.intensity" :items="intensityOptions" class="w-full" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200">
+            What should change?
+          </label>
+          <UTextarea
+            v-model="adjustForm.feedback"
+            :rows="5"
+            class="w-full"
+            placeholder="Make this easier on tired legs, keep the main lifts, and shorten accessories."
+          />
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="showAdjustModal = false">Cancel</UButton>
+        <UButton color="primary" :loading="adjusting" @click="submitAdjustment">
+          Adjust Structure
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -158,9 +208,23 @@
   const userFtp = ref<number | undefined>(undefined)
   const userLthr = ref<number | undefined>(undefined)
   const generating = ref(false)
+  const adjusting = ref(false)
   const isEditorOpen = ref(false)
   const activeStepsTab = ref<'view' | 'edit'>('view')
   const isPreviewModalOpen = ref(false)
+  const showAdjustModal = ref(false)
+  const adjustForm = reactive({
+    durationMinutes: 60,
+    intensity: 'moderate',
+    feedback: ''
+  })
+  const intensityOptions = [
+    { label: 'Recovery', value: 'recovery' },
+    { label: 'Easy', value: 'easy' },
+    { label: 'Moderate', value: 'moderate' },
+    { label: 'Hard', value: 'hard' },
+    { label: 'Very Hard', value: 'very_hard' }
+  ]
 
   // Technical View state
   const showViewModal = ref(false)
@@ -173,7 +237,7 @@
   })
 
   const { onTaskCompleted } = useUserRunsState()
-  const { runs } = useUserRuns()
+  const { runs, refresh: refreshRuns } = useUserRuns()
 
   async function fetchTemplate() {
     loading.value = true
@@ -249,14 +313,19 @@
     }
   }
 
-  async function handleSaveStructure(steps: any[]) {
+  async function handleSaveStructure(payload: any[]) {
+    const isStrength = ['Gym', 'WeightTraining'].includes(String(template.value?.type || ''))
+    const structuredWorkout = {
+      ...(template.value?.structuredWorkout || {}),
+      ...(isStrength ? { exercises: payload } : { steps: payload })
+    }
     try {
       await $fetch(`/api/library/workouts/${route.params.id}`, {
         method: 'PATCH',
         query: {
           scope: template.value?.ownerScope || route.query.scope
         },
-        body: { structuredWorkout: { ...template.value.structuredWorkout, steps } }
+        body: { structuredWorkout }
       })
       toast.add({ title: 'Structure Updated', color: 'success' })
       await fetchTemplate()
@@ -271,11 +340,58 @@
     fetchTemplate()
   }
 
+  function openAdjustModal() {
+    adjustForm.feedback = ''
+    adjustForm.durationMinutes = Math.max(
+      1,
+      Math.round(Number(template.value?.durationSec || 3600) / 60)
+    )
+    const intensity = Number(template.value?.workIntensity || 0.7)
+    adjustForm.intensity =
+      intensity > 0.9
+        ? 'very_hard'
+        : intensity > 0.8
+          ? 'hard'
+          : intensity > 0.6
+            ? 'moderate'
+            : intensity > 0.4
+              ? 'easy'
+              : 'recovery'
+    showAdjustModal.value = true
+  }
+
+  async function submitAdjustment() {
+    adjusting.value = true
+    try {
+      await $fetch(`/api/library/workouts/${route.params.id}/adjust`, {
+        method: 'POST',
+        query: {
+          scope: template.value?.ownerScope || route.query.scope
+        },
+        body: adjustForm
+      })
+      refreshRuns()
+      showAdjustModal.value = false
+      toast.add({
+        title: 'Adjustment Started',
+        description: 'AI is redesigning the workout structure.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      adjusting.value = false
+      toast.add({
+        title: 'Adjustment Failed',
+        description: error.data?.message || 'Failed to submit adjustment',
+        color: 'error'
+      })
+    }
+  }
+
   const activeStructureRun = computed(() => {
     const id = route.params.id as string
     return runs.value.find(
       (run) =>
-        run.taskIdentifier === 'generate-structured-workout' &&
+        ['generate-structured-workout', 'adjust-structured-workout'].includes(run.taskIdentifier) &&
         Array.isArray(run.tags) &&
         run.tags.includes(`workout-template:${id}`)
     )
@@ -283,7 +399,9 @@
 
   const structureJobStatusLabel = computed(() => {
     if (!activeStructureRun.value) return null
-    return 'Structure generation running...'
+    return activeStructureRun.value.taskIdentifier === 'adjust-structured-workout'
+      ? 'Structure adjustment running...'
+      : 'Structure generation running...'
   })
 
   onTaskCompleted('generate-structured-workout', async (run) => {
@@ -293,6 +411,18 @@
       toast.add({
         title: 'Structure Ready',
         description: 'AI has finished generating the structure.',
+        color: 'success'
+      })
+    }
+  })
+
+  onTaskCompleted('adjust-structured-workout', async (run) => {
+    if (Array.isArray(run.tags) && run.tags.includes(`workout-template:${route.params.id}`)) {
+      await fetchTemplate()
+      adjusting.value = false
+      toast.add({
+        title: 'Structure Updated',
+        description: 'AI has finished adjusting the structure.',
         color: 'success'
       })
     }
