@@ -48,7 +48,7 @@
     view: []
     adjust: []
     regenerate: []
-    save: [steps: any[]]
+    save: [payload: any]
   }>()
 
   const isOpen = computed({
