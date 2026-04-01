@@ -24,6 +24,13 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, createInviteSchema.parse)
   const invite = await coachingRepository.createAthleteInviteForCoach(user.id, body.email)
 
+  if (!invite || !invite.id || !invite.code) {
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to create invitation'
+    })
+  }
+
   const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
   const joinUrl = `${baseUrl}/join/${invite.code}`
 

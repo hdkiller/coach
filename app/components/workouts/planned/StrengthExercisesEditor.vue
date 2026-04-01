@@ -306,7 +306,9 @@
     const targetIndex = index + direction
     if (targetIndex < 0 || targetIndex >= localGroups.value.length) return
     const [group] = localGroups.value.splice(index, 1)
-    localGroups.value.splice(targetIndex, 0, group)
+    if (group) {
+      localGroups.value.splice(targetIndex, 0, group)
+    }
   }
 
   function addExercise(groupIndex: number) {
@@ -341,7 +343,9 @@
     const targetIndex = exerciseIndex + direction
     if (targetIndex < 0 || targetIndex >= exercises.length) return
     const [exercise] = exercises.splice(exerciseIndex, 1)
-    exercises.splice(targetIndex, 0, exercise)
+    if (exercise) {
+      exercises.splice(targetIndex, 0, exercise)
+    }
   }
 
   function cleanExercise(exercise: any) {
@@ -377,10 +381,10 @@
       .map((group) => ({
         ...group,
         name: String(group.name || '').trim() || 'Routine',
-        exercises: group.exercises.map(cleanExercise).filter(Boolean)
+        exercises: group.exercises.map(cleanExercise).filter(Boolean) as any[]
       }))
       .filter((group) => group.exercises.length > 0 || localGroups.value.length === 1)
 
-    emit('save', flattenStrengthExerciseGroups(normalizedGroups))
+    emit('save', flattenStrengthExerciseGroups(normalizedGroups as any[]))
   }
 </script>
