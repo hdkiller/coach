@@ -56,6 +56,15 @@
             <UButton
               color="neutral"
               variant="subtle"
+              icon="i-lucide-dumbbell"
+              label="Exercises"
+              size="sm"
+              class="font-bold whitespace-nowrap"
+              to="/library/exercises"
+            />
+            <UButton
+              color="neutral"
+              variant="subtle"
               icon="i-lucide-scroll-text"
               label="Plans"
               size="sm"

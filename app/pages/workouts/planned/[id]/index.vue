@@ -1877,14 +1877,14 @@
     }
   }
 
-  async function handleSaveStructure(payload: any[]) {
+  async function handleSaveStructure(payload: any) {
     if (!workout.value?.id) return
     isSavingStructure.value = true
     try {
       const isStrength = ['Gym', 'WeightTraining'].includes(String(workout.value?.type || ''))
       await $fetch(`/api/workouts/planned/${workout.value.id}/structure`, {
         method: 'PATCH',
-        body: isStrength ? { exercises: payload } : { steps: payload }
+        body: isStrength ? payload : { steps: payload }
       })
       toast.add({
         title: 'Structure Updated',

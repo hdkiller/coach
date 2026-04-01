@@ -313,11 +313,13 @@
     }
   }
 
-  async function handleSaveStructure(payload: any[]) {
+  async function handleSaveStructure(payload: any) {
     const isStrength = ['Gym', 'WeightTraining'].includes(String(template.value?.type || ''))
     const structuredWorkout = {
       ...(template.value?.structuredWorkout || {}),
-      ...(isStrength ? { exercises: payload } : { steps: payload })
+      ...(isStrength
+        ? { blocks: payload.blocks, exercises: payload.exercises }
+        : { steps: payload })
     }
     try {
       await $fetch(`/api/library/workouts/${route.params.id}`, {
@@ -325,7 +327,15 @@
         query: {
           scope: template.value?.ownerScope || route.query.scope
         },
-        body: { structuredWorkout }
+        body: {
+          structuredWorkout,
+          ...(isStrength && Number(payload?.durationSec) > 0
+            ? { durationSec: Number(payload.durationSec) }
+            : {}),
+          ...(isStrength && Number.isFinite(Number(payload?.tss))
+            ? { tss: Number(payload.tss) }
+            : {})
+        }
       })
       toast.add({ title: 'Structure Updated', color: 'success' })
       await fetchTemplate()
