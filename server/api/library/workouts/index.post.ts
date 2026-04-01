@@ -11,6 +11,7 @@ import {
   getWritableLibraryOwnerId,
   parseLibraryScope
 } from '../../../utils/library-access'
+import { normalizeStructuredStrengthWorkout } from '../../../utils/strength-exercise-library'
 
 const workoutTemplateSchema = z.object({
   title: z.string().min(1),
@@ -46,6 +47,20 @@ export default defineEventHandler(async (event) => {
     context,
     parseLibraryScope(data.ownerScope, 'coach')
   )
+
+  if (
+    Array.isArray(data.structuredWorkout?.exercises) ||
+    Array.isArray(data.structuredWorkout?.blocks)
+  ) {
+    try {
+      data.structuredWorkout = normalizeStructuredStrengthWorkout(data.structuredWorkout)
+    } catch (error: any) {
+      throw createError({
+        statusCode: 400,
+        message: error?.message || 'Invalid strength exercise payload'
+      })
+    }
+  }
 
   if (data.folderId) {
     const folder = await (prisma as any).workoutTemplateFolder.findFirst({

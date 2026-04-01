@@ -11,6 +11,7 @@ import {
   getReadableLibraryOwnerIds,
   parseLibraryScope
 } from '../../../utils/library-access'
+import { normalizeStructuredStrengthWorkout } from '../../../utils/strength-exercise-library'
 
 const workoutTemplateUpdateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -68,6 +69,27 @@ export default defineEventHandler(async (event) => {
 
     if (!folder) {
       throw createError({ statusCode: 404, message: 'Folder not found' })
+    }
+  }
+
+  if (Array.isArray(data.structuredWorkout?.exercises)) {
+    try {
+      data.structuredWorkout = normalizeStructuredStrengthWorkout(data.structuredWorkout)
+    } catch (error: any) {
+      throw createError({
+        statusCode: 400,
+        message: error?.message || 'Invalid strength exercise payload'
+      })
+    }
+  }
+  if (Array.isArray(data.structuredWorkout?.blocks)) {
+    try {
+      data.structuredWorkout = normalizeStructuredStrengthWorkout(data.structuredWorkout)
+    } catch (error: any) {
+      throw createError({
+        statusCode: 400,
+        message: error?.message || 'Invalid strength exercise payload'
+      })
     }
   }
 
