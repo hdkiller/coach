@@ -2,13 +2,27 @@
   <div class="space-y-6 animate-fade-in">
     <UCard>
       <template #header>
-        <div>
-          <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-            Public Profile
-          </h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Control how your coaching identity appears on public training plan pages.
-          </p>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+              Public Profile
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Control how your coaching identity appears on public training plan pages.
+            </p>
+          </div>
+
+          <UButton
+            :to="publicProfileUrl"
+            color="primary"
+            variant="outline"
+            class="w-full sm:w-auto justify-center"
+            icon="i-heroicons-arrow-top-right-on-square"
+            :disabled="!publicProfileUrl"
+            target="_blank"
+          >
+            View public profile
+          </UButton>
         </div>
       </template>
 
@@ -53,6 +67,39 @@
             v-model="localProfile.publicWebsiteUrl"
             placeholder="https://example.com"
             class="w-full"
+          />
+        </UFormField>
+      </div>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <div>
+          <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Privacy</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Keep your public profile settings aligned with your overall profile visibility.
+          </p>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <UAlert
+          color="neutral"
+          variant="soft"
+          icon="i-heroicons-shield-check"
+          title="Public coach page visibility"
+          description="If your profile visibility is set to Private, visitors may not be able to discover or access your public-facing presence as expected."
+        />
+
+        <UFormField
+          label="Profile visibility"
+          help="Same setting as Privacy & Location. Update it here if you want your public profile preferences in one place."
+        >
+          <USelectMenu
+            v-model="localProfile.visibility"
+            :items="['Private', 'Public', 'Followers Only']"
+            class="w-full"
+            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
           />
         </UFormField>
       </div>
@@ -156,6 +203,7 @@
   }>()
 
   const localProfile = reactive({
+    visibility: 'Private',
     publicDisplayName: '',
     publicAuthorSlug: '',
     publicCoachingBrand: '',
@@ -169,6 +217,7 @@
     () => props.modelValue,
     (value) => {
       Object.assign(localProfile, {
+        visibility: value?.visibility || 'Private',
         publicDisplayName: value?.publicDisplayName || '',
         publicAuthorSlug: value?.publicAuthorSlug || '',
         publicCoachingBrand: value?.publicCoachingBrand || '',
@@ -188,6 +237,11 @@
     }
   })
 
+  const publicProfileUrl = computed(() => {
+    const slug = props.modelValue?.publicAuthorSlug
+    return slug ? `/coach/${slug}` : undefined
+  })
+
   function addLink() {
     socialLinks.value = [...socialLinks.value, { label: '', url: '' }]
   }
@@ -198,6 +252,7 @@
 
   function save() {
     emit('update:modelValue', {
+      visibility: localProfile.visibility || 'Private',
       publicDisplayName: localProfile.publicDisplayName || null,
       publicAuthorSlug: localProfile.publicAuthorSlug || null,
       publicCoachingBrand: localProfile.publicCoachingBrand || null,

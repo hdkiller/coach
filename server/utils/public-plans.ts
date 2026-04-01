@@ -20,6 +20,7 @@ export const publicSocialLinksSchema = z
   .max(6)
 
 export const publicAuthorProfileSchema = z.object({
+  visibility: z.enum(['Private', 'Public', 'Followers Only']).optional(),
   publicAuthorSlug: z.string().max(80).nullable().optional(),
   publicDisplayName: z.string().max(120).nullable().optional(),
   publicBio: z.string().max(4000).nullable().optional(),

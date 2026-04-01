@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     where: { id: user.id },
     data: data as any,
     select: {
+      visibility: true,
       publicAuthorSlug: true,
       publicDisplayName: true,
       publicBio: true,
