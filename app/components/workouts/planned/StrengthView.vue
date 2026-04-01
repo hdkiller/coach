@@ -32,6 +32,16 @@
           size="sm"
           color="neutral"
           variant="ghost"
+          icon="i-heroicons-pencil-square"
+          :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
+          @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
+        >
+          Edit
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="ghost"
           icon="i-heroicons-arrow-path"
           :loading="generating"
           @click="$emit('regenerate')"
@@ -41,7 +51,14 @@
       </div>
     </div>
 
-    <div v-if="workout.structuredWorkout?.exercises?.length" class="space-y-6">
+    <div v-if="activeTab === 'edit' && allowEdit" class="space-y-4">
+      <StrengthExercisesEditor
+        :exercises="workout.structuredWorkout?.exercises || []"
+        @save="$emit('save', $event)"
+        @cancel="activeTab = 'view'"
+      />
+    </div>
+    <div v-else-if="workout.structuredWorkout?.exercises?.length" class="space-y-6">
       <div v-for="(group, gIndex) in groupedExercises" :key="gIndex">
         <h4
           v-if="group.name"
@@ -70,6 +87,8 @@
                 <span v-if="exercise.weight">{{ exercise.weight }}</span>
                 <span v-if="exercise.duration" class="mx-2">•</span>
                 <span v-if="exercise.duration">{{ exercise.duration }}s</span>
+                <span v-if="exercise.rest" class="mx-2">•</span>
+                <span v-if="exercise.rest">Rest {{ exercise.rest }}</span>
               </div>
               <div v-if="exercise.notes" class="text-xs text-gray-500 italic mt-1">
                 {{ exercise.notes }}
@@ -91,21 +110,26 @@
 </template>
 
 <script setup lang="ts">
+  import StrengthExercisesEditor from './StrengthExercisesEditor.vue'
+  import { groupStrengthExercises } from '~/utils/strengthWorkout'
+
   const props = defineProps<{
     workout: any
     generating?: boolean
+    allowEdit?: boolean
+    stepsTab?: 'view' | 'edit'
     isBlueprint?: boolean
   }>()
 
-  defineEmits(['view', 'adjust', 'regenerate'])
+  const emit = defineEmits(['view', 'adjust', 'regenerate', 'save', 'update:stepsTab'])
+
+  const activeTab = computed({
+    get: () => props.stepsTab || 'view',
+    set: (val) => emit('update:stepsTab', val)
+  })
 
   const groupedExercises = computed(() => {
-    // Logic to group exercises if the data structure supports it (e.g. Warmup, Main Set, Cooldown)
-    // For now, assuming a flat list or simple structure
     if (!props.workout.structuredWorkout?.exercises) return []
-
-    // Example: Check if exercises have 'phase' or 'group' property
-    // Fallback to single group
-    return [{ name: 'Routine', exercises: props.workout.structuredWorkout.exercises }]
+    return groupStrengthExercises(props.workout.structuredWorkout.exercises)
   })
 </script>

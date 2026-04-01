@@ -149,6 +149,54 @@ describe('structured workout persistence', () => {
     expect(durationSec).toBe(2640)
   })
 
+  it('computes duration for grouped strength exercises', () => {
+    const durationSec = computeStructuredWorkoutDurationSec({
+      exercises: [
+        {
+          name: 'Back Squat',
+          group: 'Main Lifts',
+          sets: 4,
+          reps: '5',
+          rest: '2m'
+        },
+        {
+          name: 'Split Squat',
+          group: 'Accessories',
+          sets: 3,
+          reps: '8',
+          rest: '90s'
+        }
+      ]
+    })
+
+    expect(durationSec).toBe(970)
+  })
+
+  it('computes fallback tss and work intensity for strength exercises', () => {
+    const metrics = computeStructuredWorkoutMetrics(
+      {
+        exercises: [
+          {
+            name: 'Deadlift',
+            group: 'Main Lifts',
+            sets: 5,
+            reps: '3',
+            rest: '3m'
+          }
+        ]
+      },
+      {
+        refs,
+        fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+        workoutType: 'WeightTraining'
+      }
+    )
+
+    expect(metrics.durationSec).toBe(975)
+    expect(metrics.tss).toBe(11)
+    expect(metrics.workIntensity).toBeCloseTo(0.64, 2)
+  })
+
   it('infers run duration from distance and pace target', () => {
     const metrics = computeStructuredWorkoutMetrics(
       {

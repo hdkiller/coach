@@ -508,6 +508,49 @@ export function normalizeStructuredWorkoutForPersistence(
   return normalized
 }
 
+export function estimateStrengthExerciseDurationSec(exercise: any) {
+  const explicitDuration = toPositiveInt(exercise?.duration)
+  if (explicitDuration) return explicitDuration
+
+  const sets = toPositiveInt(exercise?.sets) || 1
+  let reps = 10
+  if (typeof exercise?.reps === 'number' && Number.isFinite(exercise.reps) && exercise.reps > 0) {
+    reps = Number(exercise.reps)
+  } else if (typeof exercise?.reps === 'string') {
+    const match = exercise.reps.match(/\d+/)
+    if (match) reps = Number(match[0])
+  }
+
+  const repDurationSec = 5
+  const workDurationSec = sets * reps * repDurationSec
+
+  let restDurationSec = 90
+  if (typeof exercise?.rest === 'string' && exercise.rest.trim()) {
+    const restText = exercise.rest.trim().toLowerCase()
+    if (restText.includes('m') && !restText.includes('ms')) {
+      restDurationSec = (parseFloat(restText) || 0) * 60
+    } else {
+      restDurationSec = parseFloat(restText) || 90
+    }
+  }
+
+  return Math.round(workDurationSec + sets * restDurationSec)
+}
+
+export function computeStrengthExerciseMetrics(exercises: any[] | undefined | null) {
+  let durationSec = 0
+
+  for (const exercise of exercises || []) {
+    durationSec += estimateStrengthExerciseDurationSec(exercise)
+  }
+
+  const tss = durationSec > 0 ? Math.round((durationSec / 3600) * 40) : 0
+  const workIntensity =
+    durationSec > 0 && tss > 0 ? Number(Math.sqrt((36 * tss) / durationSec).toFixed(2)) : null
+
+  return { durationSec, tss, workIntensity }
+}
+
 export function computeStructuredWorkoutMetrics(
   structuredWorkout: any,
   context: {
@@ -551,8 +594,9 @@ export function computeStructuredWorkoutMetrics(
   }
 
   const totals = walk(structuredWorkout?.steps || [])
-  const durationSec = Math.round(totals.duration)
-  const tss = Math.round(totals.tss)
+  const strengthMetrics = computeStrengthExerciseMetrics(structuredWorkout?.exercises || [])
+  const durationSec = Math.round(totals.duration + strengthMetrics.durationSec)
+  const tss = Math.round(totals.tss + strengthMetrics.tss)
   const workIntensity =
     durationSec > 0 && tss > 0 ? Number(Math.sqrt((36 * tss) / durationSec).toFixed(2)) : null
   const distanceMeters = Math.round(totals.distance)
