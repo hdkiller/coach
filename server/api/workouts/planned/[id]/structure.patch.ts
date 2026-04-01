@@ -27,10 +27,17 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { text, steps: providedSteps } = body
+  const { text, steps: providedSteps, exercises: providedExercises } = body
 
-  if (typeof text !== 'string' && !Array.isArray(providedSteps)) {
-    throw createError({ statusCode: 400, message: 'Structure text or steps array is required' })
+  if (
+    typeof text !== 'string' &&
+    !Array.isArray(providedSteps) &&
+    !Array.isArray(providedExercises)
+  ) {
+    throw createError({
+      statusCode: 400,
+      message: 'Structure text, steps array, or exercises array is required'
+    })
   }
 
   // 1. Verify ownership
@@ -54,9 +61,15 @@ export default defineEventHandler(async (event) => {
   // 2. Parse text to JSON or use provided steps
   const steps = Array.isArray(providedSteps)
     ? providedSteps
-    : WorkoutParser.parseIntervalsICU(text!, { workoutType: workout.type || '' })
+    : typeof text === 'string'
+      ? WorkoutParser.parseIntervalsICU(text, { workoutType: workout.type || '' })
+      : []
+  const exercises = Array.isArray(providedExercises) ? providedExercises : undefined
 
-  console.log('[StructurePatch] Received steps count:', steps.length)
+  console.log('[StructurePatch] Received structure payload:', {
+    steps: steps.length,
+    exercises: Array.isArray(exercises) ? exercises.length : 0
+  })
   if (steps.length > 0) {
     console.log('[StructurePatch] Sample step metrics:', {
       power: steps[0].power,
@@ -68,9 +81,10 @@ export default defineEventHandler(async (event) => {
 
   const structuredWorkout = {
     ...((workout.structuredWorkout as any) || {}),
-    steps
+    ...(Array.isArray(providedSteps) || typeof text === 'string' ? { steps } : {}),
+    ...(Array.isArray(exercises) ? { exercises } : {})
   }
-  const syncText = text || WorkoutParser.toIntervalsICU(steps)
+  const syncText = typeof text === 'string' ? text : WorkoutParser.toIntervalsICU(steps)
   const sportSettings = await sportSettingsRepository.getForActivityType(userId, workout.type || '')
   const { targetPolicy, targetFormatPolicy } = resolveWorkoutTargeting(sportSettings)
   const refs = {

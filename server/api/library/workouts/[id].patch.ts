@@ -1,6 +1,9 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
+import {
+  computeStructuredWorkoutDurationSec,
+  computeStrengthExerciseMetrics
+} from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
 import {
   annotateLibraryOwner,
@@ -68,9 +71,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Re-calculate duration if structure changed
-  if (data.structuredWorkout?.steps && !data.durationSec) {
+  // Re-calculate duration/load if structure changed
+  if (data.structuredWorkout && !data.durationSec) {
     data.durationSec = computeStructuredWorkoutDurationSec(data.structuredWorkout)
+  }
+  if (Array.isArray(data.structuredWorkout?.exercises)) {
+    const strengthMetrics = computeStrengthExerciseMetrics(data.structuredWorkout.exercises)
+    if (!data.tss && strengthMetrics.tss > 0) data.tss = strengthMetrics.tss
+    if (!data.workIntensity && strengthMetrics.workIntensity !== null) {
+      data.workIntensity = strengthMetrics.workIntensity
+    }
   }
 
   const template = await (prisma as any).workoutTemplate.update({
