@@ -172,6 +172,42 @@ describe('structured workout persistence', () => {
     expect(durationSec).toBe(970)
   })
 
+  it('computes duration for block-based strength steps', () => {
+    const durationSec = computeStructuredWorkoutDurationSec({
+      blocks: [
+        {
+          type: 'warmup',
+          title: 'Warm Up',
+          steps: [
+            {
+              name: 'Foam Roll',
+              prescriptionMode: 'duration',
+              setRows: [{ index: 1, value: '600' }]
+            }
+          ]
+        },
+        {
+          type: 'single_exercise',
+          title: 'Main Lift',
+          steps: [
+            {
+              name: 'Back Squat',
+              prescriptionMode: 'reps',
+              defaultRest: '2m',
+              setRows: [
+                { index: 1, value: '5' },
+                { index: 2, value: '5' },
+                { index: 3, value: '5' }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(durationSec).toBe(1035)
+  })
+
   it('computes fallback tss and work intensity for strength exercises', () => {
     const metrics = computeStructuredWorkoutMetrics(
       {
@@ -182,6 +218,42 @@ describe('structured workout persistence', () => {
             sets: 5,
             reps: '3',
             rest: '3m'
+          }
+        ]
+      },
+      {
+        refs,
+        fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+        workoutType: 'WeightTraining'
+      }
+    )
+
+    expect(metrics.durationSec).toBe(975)
+    expect(metrics.tss).toBe(11)
+    expect(metrics.workIntensity).toBeCloseTo(0.64, 2)
+  })
+
+  it('computes fallback tss and work intensity for block-based strength workouts', () => {
+    const metrics = computeStructuredWorkoutMetrics(
+      {
+        blocks: [
+          {
+            type: 'single_exercise',
+            title: 'Main Lift',
+            steps: [
+              {
+                name: 'Deadlift',
+                prescriptionMode: 'reps',
+                defaultRest: '3m',
+                setRows: [
+                  { index: 1, value: '3' },
+                  { index: 2, value: '3' },
+                  { index: 3, value: '3' },
+                  { index: 4, value: '3' },
+                  { index: 5, value: '3' }
+                ]
+              }
+            ]
           }
         ]
       },

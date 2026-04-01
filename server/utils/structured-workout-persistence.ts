@@ -509,12 +509,67 @@ export function normalizeStructuredWorkoutForPersistence(
 }
 
 export function estimateStrengthExerciseDurationSec(exercise: any) {
+  if (Array.isArray(exercise?.setRows) && exercise.setRows.length > 0) {
+    let total = 0
+    const isDurationMode = String(exercise?.prescriptionMode || '').trim() === 'duration'
+    for (const row of exercise.setRows) {
+      if (isDurationMode) {
+        const duration = toPositiveInt(row?.value)
+        if (duration) {
+          total += duration
+        }
+      } else {
+        let reps = 10
+        const value = typeof row?.value === 'string' ? row.value : String(row?.value || '')
+        const match = value.match(/\d+/)
+        if (match) reps = Number(match[0])
+
+        const repDurationSec = 5
+        total += reps * repDurationSec
+      }
+
+      const restText = String(row?.restOverride || exercise?.defaultRest || '')
+        .trim()
+        .toLowerCase()
+      let restDurationSec = isDurationMode ? 0 : 90
+      if (restText) {
+        if (restText.includes('m') && !restText.includes('ms')) {
+          restDurationSec = (parseFloat(restText) || 0) * 60
+        } else {
+          restDurationSec = parseFloat(restText) || (isDurationMode ? 0 : 90)
+        }
+      }
+      total += restDurationSec
+    }
+
+    return Math.round(total)
+  }
+
+  if (String(exercise?.prescriptionType || '').trim() === 'duration') {
+    const sets = toPositiveInt(exercise?.sets) || 1
+    const duration = toPositiveInt(exercise?.value) || toPositiveInt(exercise?.duration) || 0
+    if (duration > 0) return duration * sets
+  }
+
   const explicitDuration = toPositiveInt(exercise?.duration)
   if (explicitDuration) return explicitDuration
 
   const sets = toPositiveInt(exercise?.sets) || 1
   let reps = 10
-  if (typeof exercise?.reps === 'number' && Number.isFinite(exercise.reps) && exercise.reps > 0) {
+  if (
+    typeof exercise?.value === 'number' &&
+    Number.isFinite(exercise.value) &&
+    exercise.value > 0
+  ) {
+    reps = Number(exercise.value)
+  } else if (typeof exercise?.value === 'string') {
+    const match = exercise.value.match(/\d+/)
+    if (match) reps = Number(match[0])
+  } else if (
+    typeof exercise?.reps === 'number' &&
+    Number.isFinite(exercise.reps) &&
+    exercise.reps > 0
+  ) {
     reps = Number(exercise.reps)
   } else if (typeof exercise?.reps === 'string') {
     const match = exercise.reps.match(/\d+/)
@@ -549,6 +604,14 @@ export function computeStrengthExerciseMetrics(exercises: any[] | undefined | nu
     durationSec > 0 && tss > 0 ? Number(Math.sqrt((36 * tss) / durationSec).toFixed(2)) : null
 
   return { durationSec, tss, workIntensity }
+}
+
+function collectStrengthExercises(structuredWorkout: any) {
+  if (Array.isArray(structuredWorkout?.blocks) && structuredWorkout.blocks.length > 0) {
+    return structuredWorkout.blocks.flatMap((block: any) => block?.steps || [])
+  }
+
+  return structuredWorkout?.exercises || []
 }
 
 export function computeStructuredWorkoutMetrics(
@@ -594,7 +657,9 @@ export function computeStructuredWorkoutMetrics(
   }
 
   const totals = walk(structuredWorkout?.steps || [])
-  const strengthMetrics = computeStrengthExerciseMetrics(structuredWorkout?.exercises || [])
+  const strengthMetrics = computeStrengthExerciseMetrics(
+    collectStrengthExercises(structuredWorkout)
+  )
   const durationSec = Math.round(totals.duration + strengthMetrics.durationSec)
   const tss = Math.round(totals.tss + strengthMetrics.tss)
   const workIntensity =
