@@ -774,6 +774,7 @@ model StrengthExerciseLibraryItem {
   id              String   @id @default(uuid())
   userId          String
   title           String
+  aliases         String[] @default([])
   intent          String?
   movementPattern String?
   targetMuscleGroups String[]

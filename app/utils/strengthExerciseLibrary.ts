@@ -19,6 +19,7 @@ export type StrengthLibrarySetRow = {
 export type StrengthLibraryExercise = {
   id: string
   title: string
+  aliases?: string[]
   intent?: string
   movementPattern?: string
   targetMuscleGroups?: string[]
@@ -39,6 +40,7 @@ export type StrengthLibraryExercise = {
 
 export type StrengthLibraryExercisePayload = {
   title: string
+  aliases?: string[]
   intent?: string
   movementPattern?: string
   targetMuscleGroups?: string[]
