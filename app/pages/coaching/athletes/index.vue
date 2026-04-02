@@ -363,7 +363,7 @@
 </template>
 
 <script setup lang="ts">
-  import { formatDistanceToNow } from 'date-fns'
+  const { formatRelativeTime } = useFormat()
 
   definePageMeta({
     middleware: 'auth'
@@ -525,7 +525,7 @@
   }
 
   function formatRelative(date: string) {
-    return formatDistanceToNow(new Date(date), { addSuffix: true })
+    return formatRelativeTime(date)
   }
 
   function viewAthlete(athlete: any) {

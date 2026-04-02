@@ -557,6 +557,22 @@
                 </div>
               </div>
 
+              <div class="md:col-span-2">
+                <label
+                  class="mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-muted"
+                >
+                  Aliases
+                </label>
+                <UInput
+                  v-model="form.aliasesText"
+                  placeholder="RDL, BB RDL, Romanian Dead Lift"
+                  class="w-full"
+                />
+                <p class="mt-2 text-xs text-muted">
+                  Optional alternate names used when matching generated exercises to your library.
+                </p>
+              </div>
+
               <div>
                 <label
                   class="mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-muted"
@@ -810,6 +826,7 @@
 
   type EditableLibraryExercise = {
     title: string
+    aliasesText: string
     movementPattern: string
     intent: string
     targetMuscleGroups: string[]
@@ -951,6 +968,7 @@
   function createEmptyForm(): EditableLibraryExercise {
     return {
       title: '',
+      aliasesText: '',
       movementPattern: '',
       intent: '',
       targetMuscleGroups: [],
@@ -1272,6 +1290,7 @@
   function mapExerciseToForm(exercise: StrengthLibraryExercise): EditableLibraryExercise {
     return {
       title: exercise.title || '',
+      aliasesText: Array.isArray(exercise.aliases) ? exercise.aliases.join(', ') : '',
       movementPattern: exercise.movementPattern || '',
       intent: exercise.intent || '',
       targetMuscleGroups: Array.isArray(exercise.targetMuscleGroups)
@@ -1296,6 +1315,10 @@
 
     const payload: StrengthLibraryExercisePayload = {
       title,
+      aliases: String(form.aliasesText || '')
+        .split(',')
+        .map((alias) => alias.trim())
+        .filter(Boolean),
       movementPattern: form.movementPattern || undefined,
       intent: form.intent || undefined,
       targetMuscleGroups: form.targetMuscleGroups,
