@@ -10,6 +10,7 @@ import { normalizeStrengthExerciseLibraryItem } from '../../../utils/strength-ex
 
 const schema = z.object({
   title: z.string().min(1),
+  aliases: z.array(z.string()).optional(),
   intent: z.string().optional(),
   movementPattern: z.string().optional(),
   targetMuscleGroups: z.array(z.string()).optional(),

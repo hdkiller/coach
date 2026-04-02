@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
         ? {
             OR: [
               { title: { contains: q, mode: 'insensitive' } },
+              { aliases: { has: q } },
               { notes: { contains: q, mode: 'insensitive' } },
               { movementPattern: { contains: q, mode: 'insensitive' } }
             ]
