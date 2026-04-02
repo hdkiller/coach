@@ -72,6 +72,13 @@ function normalizeStringArray(value: unknown) {
   return [...new Set(value.map((entry) => String(entry || '').trim()).filter(Boolean))]
 }
 
+function normalizeAliasArray(value: unknown, title?: string) {
+  const normalizedTitle = String(title || '')
+    .trim()
+    .toLowerCase()
+  return normalizeStringArray(value).filter((alias) => alias.toLowerCase() !== normalizedTitle)
+}
+
 function normalizePositiveInt(value: unknown) {
   const numeric = Number(value)
   return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : undefined
@@ -217,6 +224,72 @@ function inferLegacyValue(input: any, prescriptionMode: string) {
   return prescriptionMode === 'reps_per_side' ? reps.replace(/\/side/i, '').trim() || reps : reps
 }
 
+function normalizeLegacyStructuredStepToStrengthStep(
+  input: any,
+  blockIndex: number,
+  stepIndex: number
+) {
+  const durationSeconds = normalizePositiveInt(input?.durationSeconds || input?.duration)
+  const baseName = String(input?.name || input?.type || '').trim() || `Exercise ${stepIndex + 1}`
+  const notes: string[] = []
+
+  if (normalizeOptionalString(input?.description)) {
+    notes.push(String(input.description).trim())
+  }
+  if (typeof input?.rpe === 'number' && Number.isFinite(input.rpe)) {
+    notes.push(`Target RPE ${Number(input.rpe)}/10`)
+  }
+
+  return {
+    id:
+      typeof input?.id === 'string' && input.id.trim()
+        ? input.id.trim()
+        : createId(`step-${blockIndex}`, stepIndex),
+    name: baseName,
+    notes: notes.join('. ') || undefined,
+    intent: normalizeOptionalString(input?.intent),
+    prescriptionMode: 'duration',
+    loadMode: 'none',
+    defaultRest: undefined,
+    showRestColumn: false,
+    setRows: normalizeStrengthSetRows(
+      [
+        {
+          value: durationSeconds ? String(durationSeconds) : ''
+        }
+      ],
+      1,
+      {
+        value: durationSeconds ? String(durationSeconds) : ''
+      }
+    )
+  }
+}
+
+function normalizeLegacyStructuredStepsToBlocks(legacySteps: unknown) {
+  if (!Array.isArray(legacySteps) || legacySteps.length === 0) return []
+
+  return legacySteps.map((step: any, blockIndex: number) => {
+    const type = inferBlockType(step?.name || step?.type)
+    const title = sanitizeTitle(type, step?.name || step?.type)
+    const normalizedBlock: Record<string, any> = {
+      id:
+        typeof step?.id === 'string' && step.id.trim()
+          ? `block-${step.id.trim()}`
+          : createId('block', blockIndex),
+      type,
+      title,
+      steps: []
+    }
+
+    const children = Array.isArray(step?.steps) && step.steps.length > 0 ? step.steps : [step]
+    normalizedBlock.steps = children.map((child: any, stepIndex: number) =>
+      normalizeLegacyStructuredStepToStrengthStep(child, blockIndex, stepIndex)
+    )
+    return normalizedBlock
+  })
+}
+
 function buildLibrarySummaryFields(normalized: Record<string, any>) {
   const setRows = Array.isArray(normalized.setRows) ? normalized.setRows : []
   const valueSummary = summarizeSetRows(setRows, 'value')
@@ -250,6 +323,7 @@ export function normalizeStrengthExerciseLibraryItem(input: any) {
     throw new Error('Exercise title is required')
   }
 
+  normalized.aliases = normalizeAliasArray(input?.aliases, normalized.title)
   if (normalizeOptionalString(input?.intent)) normalized.intent = input.intent.trim()
   if (normalizeOptionalString(input?.movementPattern)) {
     normalized.movementPattern = input.movementPattern.trim()
@@ -429,7 +503,11 @@ function normalizeStep(step: any, blockIndex: number, stepIndex: number) {
   return normalizedStep
 }
 
-export function normalizeStructuredStrengthBlocks(blocks: unknown, legacyExercises?: unknown) {
+export function normalizeStructuredStrengthBlocks(
+  blocks: unknown,
+  legacyExercises?: unknown,
+  legacySteps?: unknown
+) {
   if (Array.isArray(blocks) && blocks.length > 0) {
     return blocks.map((block: any, blockIndex: number) => {
       const type = STRENGTH_BLOCK_TYPES.has(String(block?.type || '').trim())
@@ -480,6 +558,10 @@ export function normalizeStructuredStrengthBlocks(blocks: unknown, legacyExercis
     }
 
     return [...groupMap.values()]
+  }
+
+  if (Array.isArray(legacySteps) && legacySteps.length > 0) {
+    return normalizeLegacyStructuredStepsToBlocks(legacySteps)
   }
 
   return []
@@ -536,7 +618,8 @@ export function flattenStrengthBlocksToExercises(blocks: unknown) {
 export function normalizeStructuredStrengthWorkout(structuredWorkout: any) {
   const blocks = normalizeStructuredStrengthBlocks(
     structuredWorkout?.blocks,
-    structuredWorkout?.exercises
+    structuredWorkout?.exercises,
+    structuredWorkout?.steps
   )
 
   return {

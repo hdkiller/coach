@@ -88,6 +88,15 @@ describe('strength exercise library utils', () => {
     expect(structured.targetMuscleGroups).toEqual(['hamstrings', 'glutes'])
   })
 
+  it('normalizes aliases and removes duplicates of the title', () => {
+    const normalizedLibraryItem = normalizeStrengthExerciseLibraryItem({
+      title: 'Romanian Deadlift',
+      aliases: ['RDL', 'Romanian Deadlift', 'BB RDL', 'RDL']
+    })
+
+    expect(normalizedLibraryItem.aliases).toEqual(['RDL', 'BB RDL'])
+  })
+
   it('normalizes legacy grouped exercises into blocks and back again', () => {
     const blocks = normalizeStructuredStrengthBlocks(undefined, [
       {
@@ -163,5 +172,44 @@ describe('strength exercise library utils', () => {
         duration: 45
       }
     ])
+  })
+
+  it('converts legacy interval-style strength steps into visible strength blocks', () => {
+    const structuredWorkout = normalizeStructuredStrengthWorkout({
+      steps: [
+        {
+          type: 'Warmup',
+          name: 'Dynamic Leg Warmup',
+          intent: 'warmup',
+          rpe: 3,
+          durationSeconds: 600
+        },
+        {
+          type: 'Active',
+          name: 'Barbell Back Squats',
+          intent: 'easy',
+          rpe: 7,
+          durationSeconds: 900
+        }
+      ]
+    })
+
+    expect(structuredWorkout.blocks).toHaveLength(2)
+    expect(structuredWorkout.blocks[0]).toMatchObject({
+      type: 'warmup',
+      title: 'Dynamic Leg Warmup'
+    })
+    expect(structuredWorkout.blocks[0].steps[0]).toMatchObject({
+      name: 'Dynamic Leg Warmup',
+      prescriptionMode: 'duration'
+    })
+    expect(structuredWorkout.blocks[0].steps[0]?.setRows?.[0]?.value).toBe('600')
+    expect(structuredWorkout.blocks[1].steps[0]?.setRows?.[0]?.value).toBe('900')
+    expect(structuredWorkout.exercises).toHaveLength(2)
+    expect(structuredWorkout.exercises[0]).toMatchObject({
+      group: 'Dynamic Leg Warmup',
+      name: 'Dynamic Leg Warmup',
+      duration: 600
+    })
   })
 })

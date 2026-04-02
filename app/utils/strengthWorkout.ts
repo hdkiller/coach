@@ -179,6 +179,70 @@ function inferStarterValue(exercise: StrengthExercise, mode: StrengthPrescriptio
   return mode === 'reps_per_side' ? reps.replace(/\/side/i, '').trim() || reps : reps
 }
 
+function normalizeLegacyStructuredStepToStrengthBlock(
+  step: any,
+  blockIndex: number
+): StrengthBlock {
+  const blockType = inferBlockType(step?.name || step?.type)
+  const title =
+    String(step?.name || step?.type || '').trim() ||
+    (blockType === 'warmup'
+      ? 'Warm Up'
+      : blockType === 'cooldown'
+        ? 'Cooldown'
+        : blockType === 'superset'
+          ? 'Superset'
+          : blockType === 'circuit'
+            ? 'Circuit'
+            : 'Single Exercise')
+  const children = Array.isArray(step?.steps) && step.steps.length > 0 ? step.steps : [step]
+
+  return createStrengthBlock(blockType, {
+    id:
+      typeof step?.id === 'string' && step.id.trim()
+        ? `block-${step.id.trim()}`
+        : createStrengthId('block'),
+    title,
+    steps: children.map((child: any, stepIndex: number) => {
+      const notes: string[] = []
+      if (String(child?.description || '').trim()) {
+        notes.push(String(child.description).trim())
+      }
+      if (typeof child?.rpe === 'number' && Number.isFinite(child.rpe)) {
+        notes.push(`Target RPE ${Number(child.rpe)}/10`)
+      }
+      const durationSeconds =
+        Number.isFinite(Number(child?.durationSeconds || child?.duration)) &&
+        Number(child?.durationSeconds || child?.duration) > 0
+          ? Math.trunc(Number(child?.durationSeconds || child?.duration))
+          : undefined
+
+      return createStrengthBlockStep({
+        id:
+          typeof child?.id === 'string' && child.id.trim()
+            ? child.id.trim()
+            : createStrengthId(`step-${blockIndex}-${stepIndex}`),
+        name: String(child?.name || child?.type || '').trim() || `Exercise ${stepIndex + 1}`,
+        notes: notes.join('. '),
+        intent: String(child?.intent || '').trim(),
+        prescriptionMode: 'duration',
+        loadMode: 'none',
+        setRows: normalizeStrengthSetRows(
+          [
+            {
+              value: durationSeconds ? String(durationSeconds) : ''
+            }
+          ],
+          1,
+          {
+            value: durationSeconds ? String(durationSeconds) : ''
+          }
+        )
+      })
+    })
+  })
+}
+
 export function createStrengthSetRow(overrides: Partial<StrengthSetRow> = {}): StrengthSetRow {
   return {
     id: createStrengthId('set'),
@@ -421,6 +485,11 @@ export function normalizeStrengthBlocks(structuredWorkout: any): StrengthBlock[]
   }
 
   if (!Array.isArray(structuredWorkout?.exercises) || structuredWorkout.exercises.length === 0) {
+    if (Array.isArray(structuredWorkout?.steps) && structuredWorkout.steps.length > 0) {
+      return structuredWorkout.steps.map((step: any, index: number) =>
+        normalizeLegacyStructuredStepToStrengthBlock(step, index)
+      )
+    }
     return []
   }
 
