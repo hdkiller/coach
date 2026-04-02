@@ -273,6 +273,10 @@ export default defineNuxtConfig({
     stripeProAnnualEurPriceId: process.env.STRIPE_PRO_ANNUAL_EUR_PRICE_ID || '',
 
     public: {
+      authAllowedProviders: (process.env.AUTH_ALLOWED_PROVIDERS || '')
+        .split(',')
+        .map((provider) => provider.trim())
+        .filter(Boolean),
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3099',
       version: pkg.version,
       commitHash,
@@ -283,6 +287,14 @@ export default defineNuxtConfig({
       authBypassEnabled: !!process.env.AUTH_BYPASS_USER,
       authBypassUser: process.env.AUTH_BYPASS_USER || '',
       authBypassName: process.env.AUTH_BYPASS_NAME || '',
+      authOidcEnabled: Boolean(
+        process.env.OIDC_PROVIDER_ID &&
+        process.env.OIDC_CLIENT_ID &&
+        process.env.OIDC_CLIENT_SECRET &&
+        (process.env.OIDC_WELL_KNOWN || process.env.OIDC_ISSUER)
+      ),
+      authOidcProviderId: process.env.OIDC_PROVIDER_ID || '',
+      authOidcProviderName: process.env.OIDC_PROVIDER_NAME || process.env.OIDC_PROVIDER_ID || '',
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
       stripeSupporterMonthlyPriceId: process.env.STRIPE_SUPPORTER_MONTHLY_PRICE_ID || '',
       stripeSupporterAnnualPriceId: process.env.STRIPE_SUPPORTER_ANNUAL_PRICE_ID || '',

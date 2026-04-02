@@ -122,6 +122,7 @@
             <div class="space-y-4">
               <!-- Magnetic Google Button -->
               <div
+                v-if="googleEnabled"
                 class="relative transition-transform duration-200"
                 :style="{ transform: `translate(${buttonX}px, ${buttonY}px)` }"
                 @mousemove="handleMouseMove"
@@ -153,6 +154,7 @@
 
               <!-- Strava Button -->
               <UButton
+                v-if="stravaEnabled"
                 block
                 size="xl"
                 color="neutral"
@@ -181,6 +183,7 @@
 
               <!-- Intervals.icu Button -->
               <UButton
+                v-if="intervalsEnabled"
                 block
                 size="xl"
                 color="neutral"
@@ -205,6 +208,34 @@
                 </span>
                 <div
                   class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:2s] pointer-events-none"
+                />
+              </UButton>
+
+              <UButton
+                v-if="oidcProviderEnabled"
+                block
+                size="xl"
+                color="neutral"
+                variant="outline"
+                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all duration-300"
+                :loading="loadingOidc || isInitializing"
+                @click="handleOidcLogin"
+                @mouseenter="isHovering = true"
+                @mouseleave="isHovering = false"
+              >
+                <template #leading>
+                  <UIcon
+                    name="i-heroicons-building-office-2"
+                    class="w-5 h-5 text-white/70 group-hover:scale-110 transition-transform"
+                  />
+                </template>
+                <span
+                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                >
+                  {{ isInitializing ? 'CONNECTING...' : `Continue with ${oidcProviderName}` }}
+                </span>
+                <div
+                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:3s] pointer-events-none"
                 />
               </UButton>
 
@@ -335,6 +366,7 @@
   const route = useRoute()
   const toast = useToast()
   const { trackLogin } = useAnalytics()
+  const runtimeConfig = useRuntimeConfig()
 
   definePageMeta({
     layout: 'home',
@@ -343,6 +375,22 @@
   })
 
   const callbackUrl = (route.query.callbackUrl as string) || '/dashboard'
+  const allowedProviders = computed(() => runtimeConfig.public.authAllowedProviders || [])
+  const isProviderAllowed = (providerId: string) => {
+    return allowedProviders.value.length === 0 || allowedProviders.value.includes(providerId)
+  }
+  const googleEnabled = computed(() => isProviderAllowed('google'))
+  const stravaEnabled = computed(
+    () => runtimeConfig.public.stravaEnabled && isProviderAllowed('strava')
+  )
+  const intervalsEnabled = computed(() => isProviderAllowed('intervals'))
+  const oidcProviderEnabled = computed(
+    () => runtimeConfig.public.authOidcEnabled && isProviderAllowed(oidcProviderId.value)
+  )
+  const oidcProviderId = computed(() => runtimeConfig.public.authOidcProviderId || 'oidc')
+  const oidcProviderName = computed(
+    () => runtimeConfig.public.authOidcProviderName || oidcProviderId.value
+  )
 
   useSeoMeta({
     title: 'Welcome Back | Coach Watts',
@@ -362,6 +410,7 @@
   const loading = ref(false)
   const loadingStrava = ref(false)
   const loadingIntervals = ref(false)
+  const loadingOidc = ref(false)
   const isInitializing = ref(false)
   const isHovering = ref(false)
   const starStyles = ref<any[]>([])
@@ -504,6 +553,24 @@
       })
       isInitializing.value = false
       loadingIntervals.value = false
+    }
+  }
+
+  async function handleOidcLogin() {
+    trackLogin(oidcProviderId.value)
+    isInitializing.value = true
+    loadingOidc.value = true
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await signIn(oidcProviderId.value, { callbackUrl })
+    } catch (error: any) {
+      toast.add({
+        title: 'Login Failed',
+        description: error.message || `Could not initiate ${oidcProviderName.value} login.`,
+        color: 'error'
+      })
+      isInitializing.value = false
+      loadingOidc.value = false
     }
   }
 </script>

@@ -146,98 +146,173 @@ const syncStravaIntegration = async (user: any, account: any) => {
   }
 }
 
-export default NuxtAuthHandler({
-  adapter,
-  providers: [
-    // @ts-expect-error - Types mismatch between next-auth versions
-    GoogleProvider.default({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true
-    }),
-    // @ts-expect-error - Types mismatch between next-auth versions
-    StravaProvider.default({
-      clientId: process.env.STRAVA_CLIENT_ID!,
-      clientSecret: process.env.STRAVA_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: 'read,activity:read_all,profile:read_all'
-        }
-      },
-      async profile(profile: any) {
-        // Try to find if this athlete already exists in our system via Integration table
-        const existingIntegration = await prisma.integration.findFirst({
-          where: {
-            provider: 'strava',
-            externalUserId: profile.id.toString()
-          },
-          include: { user: true }
-        })
+const allowedAuthProviders = new Set(
+  (process.env.AUTH_ALLOWED_PROVIDERS || '')
+    .split(',')
+    .map((provider: string) => provider.trim())
+    .filter(Boolean)
+)
 
-        const email =
-          existingIntegration?.user?.email || profile.email || `${profile.id}@strava.coachwatts.com`
+const isAuthProviderAllowed = (providerId: string) => {
+  return allowedAuthProviders.size === 0 || allowedAuthProviders.has(providerId)
+}
 
-        console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
+const createGenericOidcProvider = () => {
+  const providerId = process.env.OIDC_PROVIDER_ID?.trim()
+  const providerName = process.env.OIDC_PROVIDER_NAME?.trim() || providerId
+  const clientId = process.env.OIDC_CLIENT_ID?.trim()
+  const clientSecret = process.env.OIDC_CLIENT_SECRET?.trim()
+  const wellKnown = process.env.OIDC_WELL_KNOWN?.trim()
+  const issuer = process.env.OIDC_ISSUER?.trim()
+  const scope = process.env.OIDC_SCOPE?.trim() || 'openid profile email'
+  const allowDangerousEmailAccountLinking =
+    process.env.OIDC_ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING !== 'false'
 
-        return {
-          id: profile.id.toString(),
-          name: `${profile.firstname} ${profile.lastname}`,
-          email,
-          image: profile.profile
-        }
-      },
-      allowDangerousEmailAccountLinking: true
-    }),
-    {
-      id: 'intervals',
-      name: 'Intervals.icu',
-      type: 'oauth',
-      authorization: {
-        url: 'https://intervals.icu/oauth/authorize',
-        params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
-      },
-      token: 'https://intervals.icu/api/oauth/token',
-      userinfo: 'https://intervals.icu/api/v1/athlete/0',
-      clientId: process.env.INTERVALS_CLIENT_ID,
-      clientSecret: process.env.INTERVALS_CLIENT_SECRET,
-      client: {
-        token_endpoint_auth_method: 'client_secret_post'
-      },
-      allowDangerousEmailAccountLinking: true,
-      async profile(profile: any) {
-        // Similar lookup for Intervals.icu
-        const existingIntegration = await prisma.integration.findFirst({
-          where: {
-            provider: 'intervals',
-            externalUserId: profile.id.toString()
-          },
-          include: { user: true }
-        })
+  const hasOidcConfig = [providerId, clientId, clientSecret, wellKnown, issuer].some(Boolean)
 
-        const email =
-          existingIntegration?.user?.email ||
-          profile.email ||
-          `${profile.id}@intervals.coachwatts.com`
+  if (!hasOidcConfig) {
+    return null
+  }
 
-        console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
+  if (!providerId || !providerName || !clientId || !clientSecret || (!wellKnown && !issuer)) {
+    console.warn(
+      '[Auth] Skipping generic OIDC provider. Set OIDC_PROVIDER_ID, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, and either OIDC_WELL_KNOWN or OIDC_ISSUER.'
+    )
+    return null
+  }
 
-        return {
-          id: profile.id,
-          name: profile.name,
-          email,
-          image: profile.profile_medium || profile.profile
-        }
+  return {
+    id: providerId,
+    name: providerName,
+    type: 'oauth',
+    ...(wellKnown ? { wellKnown } : { issuer }),
+    clientId,
+    clientSecret,
+    idToken: true,
+    checks: ['pkce', 'state'],
+    authorization: {
+      params: {
+        scope
+      }
+    },
+    allowDangerousEmailAccountLinking,
+    profile(profile: any) {
+      const subject = String(profile.sub || profile.id)
+      const fullName = [profile.given_name, profile.family_name].filter(Boolean).join(' ').trim()
+      const email = profile.email || `${subject}@${providerId}.coachwatts.com`
+
+      return {
+        id: subject,
+        name: profile.name || fullName || profile.preferred_username || email,
+        email,
+        image: profile.picture || profile.avatar_url || null
       }
     }
-  ],
+  }
+}
+
+const genericOidcProvider = createGenericOidcProvider()
+
+const authProviders = [
+  // @ts-expect-error - Types mismatch between next-auth versions
+  GoogleProvider.default({
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    allowDangerousEmailAccountLinking: true
+  }),
+  // @ts-expect-error - Types mismatch between next-auth versions
+  StravaProvider.default({
+    clientId: process.env.STRAVA_CLIENT_ID!,
+    clientSecret: process.env.STRAVA_CLIENT_SECRET!,
+    authorization: {
+      params: {
+        scope: 'read,activity:read_all,profile:read_all'
+      }
+    },
+    async profile(profile: any) {
+      // Try to find if this athlete already exists in our system via Integration table
+      const existingIntegration = await prisma.integration.findFirst({
+        where: {
+          provider: 'strava',
+          externalUserId: profile.id.toString()
+        },
+        include: { user: true }
+      })
+
+      const email =
+        existingIntegration?.user?.email || profile.email || `${profile.id}@strava.coachwatts.com`
+
+      console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
+
+      return {
+        id: profile.id.toString(),
+        name: `${profile.firstname} ${profile.lastname}`,
+        email,
+        image: profile.profile
+      }
+    },
+    allowDangerousEmailAccountLinking: true
+  }),
+  {
+    id: 'intervals',
+    name: 'Intervals.icu',
+    type: 'oauth',
+    authorization: {
+      url: 'https://intervals.icu/oauth/authorize',
+      params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
+    },
+    token: 'https://intervals.icu/api/oauth/token',
+    userinfo: 'https://intervals.icu/api/v1/athlete/0',
+    clientId: process.env.INTERVALS_CLIENT_ID,
+    clientSecret: process.env.INTERVALS_CLIENT_SECRET,
+    client: {
+      token_endpoint_auth_method: 'client_secret_post'
+    },
+    allowDangerousEmailAccountLinking: true,
+    async profile(profile: any) {
+      // Similar lookup for Intervals.icu
+      const existingIntegration = await prisma.integration.findFirst({
+        where: {
+          provider: 'intervals',
+          externalUserId: profile.id.toString()
+        },
+        include: { user: true }
+      })
+
+      const email =
+        existingIntegration?.user?.email ||
+        profile.email ||
+        `${profile.id}@intervals.coachwatts.com`
+
+      console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
+
+      return {
+        id: profile.id,
+        name: profile.name,
+        email,
+        image: profile.profile_medium || profile.profile
+      }
+    }
+  },
+  ...(genericOidcProvider ? [genericOidcProvider] : [])
+].filter((provider: any) => isAuthProviderAllowed(provider.id))
+
+export default NuxtAuthHandler({
+  adapter,
+  providers: authProviders,
   secret: process.env.NUXT_AUTH_SECRET,
   callbacks: {
-    async signIn() {
+    async signIn({ account }: any) {
+      if (account?.provider && !isAuthProviderAllowed(account.provider)) {
+        console.warn(`[Auth] Rejected sign-in for disabled provider: ${account.provider}`)
+        return false
+      }
+
       return true
     },
     async session({ session, user }: any) {
       if (session.user) {
-        ;(session.user as any).id = user.id
+        ; (session.user as any).id = user.id
         session.user.isAdmin = user.isAdmin || false
         session.user.timezone = user.timezone || null
         session.user.language = user.language || 'English'
