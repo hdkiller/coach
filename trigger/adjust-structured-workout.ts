@@ -28,6 +28,11 @@ import {
 } from '../server/utils/planned-workout-structure-sync'
 import { publishActivityEvent } from '../server/utils/activity-realtime'
 import { normalizeSwimStructure } from '../server/utils/swim-structure'
+import { normalizeStructuredStrengthWorkout } from '../server/utils/strength-exercise-library'
+import {
+  applyStrengthLibraryDefaultsToWorkout,
+  validateStrengthStructuredWorkout
+} from '../server/utils/strength-exercise-matching'
 import {
   resolveStructuredWorkoutGeneratorMode,
   type StructuredWorkoutGeneratorMode
@@ -264,6 +269,81 @@ const workoutStructureSchema = {
         },
         required: ['name']
       }
+    },
+    blocks: {
+      type: 'array',
+      description: 'Canonical strength workout structure grouped into blocks',
+      items: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['warmup', 'single_exercise', 'cooldown', 'superset', 'circuit']
+          },
+          title: { type: 'string' },
+          notes: { type: 'string' },
+          durationSec: { type: 'integer', minimum: 1 },
+          steps: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                libraryExerciseId: { type: 'string' },
+                videoUrl: { type: 'string' },
+                notes: { type: 'string' },
+                movementPattern: {
+                  type: 'string',
+                  enum: ['squat', 'hinge', 'push', 'pull', 'lunge', 'core', 'carry', 'mobility']
+                },
+                intent: {
+                  type: 'string',
+                  enum: ['max_strength', 'power', 'muscular_endurance', 'prehab']
+                },
+                prescriptionMode: {
+                  type: 'string',
+                  enum: [
+                    'reps',
+                    'reps_per_side',
+                    'duration',
+                    'distance_meters',
+                    'distance_km',
+                    'distance_ft',
+                    'distance_yd',
+                    'distance_miles'
+                  ]
+                },
+                loadMode: {
+                  type: 'string',
+                  enum: [
+                    'none',
+                    'generic',
+                    'weight_lb',
+                    'weight_kg',
+                    'weight_per_side_lb',
+                    'weight_per_side_kg'
+                  ]
+                },
+                defaultRest: { type: 'string' },
+                showRestColumn: { type: 'boolean' },
+                setRows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      value: { type: 'string' },
+                      loadValue: { type: 'string' },
+                      restOverride: { type: 'string' }
+                    }
+                  }
+                }
+              },
+              required: ['name']
+            }
+          }
+        },
+        required: ['type', 'title', 'steps']
+      }
     }
   },
   required: ['coachInstructions']
@@ -476,6 +556,14 @@ function looksLikeIntervalWorkout(workout: any) {
 
 function getCoverageBounds(workout: any, plannedDurationSec: number) {
   const workoutType = String(workout?.type || '').toLowerCase()
+  if (workoutType.includes('gym') || workoutType.includes('weight')) {
+    const absoluteToleranceRatio = plannedDurationSec > 0 ? 600 / plannedDurationSec : 0
+    return {
+      minCoverage: 0.7,
+      maxCoverage: Math.min(1.35, 1 + Math.max(0.15, absoluteToleranceRatio))
+    }
+  }
+
   if (workoutType.includes('swim')) {
     return { minCoverage: 0.7, maxCoverage: 1.2 }
   }
@@ -809,6 +897,7 @@ export const adjustStructuredWorkoutTask = task({
     const ftp = sportSettings?.ftp || workout.user.ftp || 250
     const lthr = sportSettings?.lthr || workout.user.lthr || 160
     const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
+    const thresholdPace = sportSettings?.thresholdPace || 0
 
     const zoneDefinitions = buildCompactZoneDefinitions({
       workoutType: workout.type || '',
@@ -867,8 +956,20 @@ export const adjustStructuredWorkoutTask = task({
     - Before returning, sanity-check the total session time yourself and expand or trim the set so it stays close to the planned duration.`
           : isStrength
             ? `FOR STRENGTH (Gym/WeightTraining):
-    - Instead of 'steps', provide a list of 'exercises'.
-    - Each exercise should include practical loading guidance and rest.`
+    - Prefer the canonical strength schema: provide 'blocks' instead of a flat 'exercises' list.
+    - Each block should have: 'type', 'title', optional 'notes', and 'steps'.
+    - Use block types like 'warmup', 'single_exercise', 'superset', 'circuit', 'cooldown'.
+    - Each step should have 'name', optional 'notes', optional 'intent'/'movementPattern', and 'setRows'.
+    - Each step should also set a shared 'prescriptionMode' (default 'reps'), optional 'loadMode', and optional 'defaultRest'.
+    - Each entry in 'setRows' represents one set and may contain:
+      * 'value' for reps, reps/side, duration, or distance depending on prescriptionMode
+      * 'loadValue' for load/weight when relevant
+      * 'restOverride' only when a specific set differs from defaultRest
+    - CRITICAL: Return native 'blocks' for strength. Do NOT return interval-style top-level 'steps' for WeightTraining.
+    - CRITICAL: Loaded lifts must use real per-set prescription. Do NOT prescribe main lifts as one long duration row such as 1 x 900 seconds.
+    - Keep the same workout intent while expressing the prescription in native blocks/setRows whenever possible.
+    - Time-based mobility should use prescriptionMode='duration' with setRows.value in seconds.
+    - Only fall back to a flat 'exercises' list if you truly cannot express the workout as blocks.`
             : `FOR THIS SPORT TYPE:
     - Use only sport-relevant fields and targets.
     - Keep steps explicit, measurable, and safe with clear work/recovery structure.`
@@ -1068,12 +1169,60 @@ export const adjustStructuredWorkoutTask = task({
         normalizeSwimStructure(structure)
       }
 
+      const rawStrengthStructure = isStrength ? JSON.parse(JSON.stringify(structure || {})) : null
+
+      if (isStrength) {
+        structure = normalizeStructuredStrengthWorkout(structure)
+        const applyStrengthLibraryDefaults =
+          (workout.user as any)?.featureFlags?.structuredWorkout?.strength?.applyLibraryDefaults !==
+          false
+
+        if (applyStrengthLibraryDefaults) {
+          const libraryExercises = await (prisma as any).strengthExerciseLibraryItem.findMany({
+            where: { userId: workout.userId },
+            orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }]
+          })
+          const matchResult = await applyStrengthLibraryDefaultsToWorkout({
+            structuredWorkout: structure,
+            libraryExercises,
+            userId: workout.userId,
+            entityType,
+            entityId: entityId!,
+            operation: 'match_strength_exercise_defaults'
+          })
+          structure = normalizeStructuredStrengthWorkout(matchResult.structuredWorkout)
+          logStage('strength-library-defaults-applied', {
+            matchedCount: matchResult.matchedCount,
+            libraryCount: libraryExercises.length
+          })
+        }
+
+        const strengthValidation = validateStrengthStructuredWorkout(
+          rawStrengthStructure,
+          structure
+        )
+        if (!strengthValidation.valid) {
+          if (attempt >= 2) {
+            throw new Error(
+              `Adjusted structured workout failed strength validation: ${strengthValidation.reason}`
+            )
+          }
+
+          promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous strength structure was rejected because ${strengthValidation.reason}.\n- Return native strength 'blocks' with exercise 'steps' and per-set 'setRows'.\n- Loaded lifts must use real sets/reps/load, not one long duration block.\n- Retry with a complete and realistic strength prescription now.`
+          logStage('strength-validation-retry-requested', {
+            attempt,
+            reason: strengthValidation.reason
+          })
+          continue
+        }
+      }
+
       structure = normalizeStructuredWorkoutForPersistence(structure, {
         refs: {
           ftp,
           lthr,
           maxHr,
-          thresholdPace: Number(sportSettings?.thresholdPace || 0),
+          thresholdPace,
           hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
           powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
           paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
@@ -1084,9 +1233,14 @@ export const adjustStructuredWorkoutTask = task({
       })
 
       totals = normalizeAndCalculate(structure.steps || [])
+      const validationStrengthMetrics =
+        Array.isArray(structure.exercises) && structure.exercises.length > 0
+          ? computeStrengthExerciseMetrics(structure.exercises)
+          : { durationSec: 0, tss: 0, workIntensity: null }
+      const validationDurationSec = totals.duration + validationStrengthMetrics.durationSec
       const coverageValidation = validateStructuredCoverage({
         plannedDurationSec: Number(workout.durationSec || 0),
-        actualDurationSec: totals.duration,
+        actualDurationSec: validationDurationSec,
         steps: structure.steps || [],
         workout
       })
@@ -1095,7 +1249,7 @@ export const adjustStructuredWorkoutTask = task({
         attempt,
         generatorMode,
         plannedDurationSec: Number(workout.durationSec || 0),
-        actualDurationSec: totals.duration,
+        actualDurationSec: validationDurationSec,
         valid: coverageValidation.valid,
         reason: coverageValidation.reason
       })
@@ -1199,7 +1353,7 @@ export const adjustStructuredWorkoutTask = task({
             ftp,
             lthr,
             maxHr,
-            thresholdPace: Number(sportSettings?.thresholdPace || 0),
+            thresholdPace,
             hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
             powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
             paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
@@ -1215,7 +1369,7 @@ export const adjustStructuredWorkoutTask = task({
             ftp,
             lthr,
             maxHr,
-            thresholdPace: Number(sportSettings?.thresholdPace || 0),
+            thresholdPace,
             hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
             powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
             paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
@@ -1278,7 +1432,7 @@ export const adjustStructuredWorkoutTask = task({
               ftp,
               lthr,
               maxHr,
-              thresholdPace: Number(sportSettings?.thresholdPace || 0),
+              thresholdPace,
               hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
               powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
               paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
