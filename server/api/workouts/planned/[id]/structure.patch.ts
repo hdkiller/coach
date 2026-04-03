@@ -13,6 +13,7 @@ import {
   buildStructureEditFields,
   buildStructurePublishFields
 } from '../../../../utils/planned-workout-structure-sync'
+import { normalizeStructuredStrengthWorkout } from '../../../../utils/strength-exercise-library'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -27,10 +28,25 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { text, steps: providedSteps } = body
+  const {
+    text,
+    steps: providedSteps,
+    exercises: providedExercises,
+    blocks: providedBlocks,
+    durationSec: providedDurationSec,
+    tss: providedTss
+  } = body
 
-  if (typeof text !== 'string' && !Array.isArray(providedSteps)) {
-    throw createError({ statusCode: 400, message: 'Structure text or steps array is required' })
+  if (
+    typeof text !== 'string' &&
+    !Array.isArray(providedSteps) &&
+    !Array.isArray(providedExercises) &&
+    !Array.isArray(providedBlocks)
+  ) {
+    throw createError({
+      statusCode: 400,
+      message: 'Structure text, steps array, exercises array, or blocks array is required'
+    })
   }
 
   // 1. Verify ownership
@@ -54,9 +70,36 @@ export default defineEventHandler(async (event) => {
   // 2. Parse text to JSON or use provided steps
   const steps = Array.isArray(providedSteps)
     ? providedSteps
-    : WorkoutParser.parseIntervalsICU(text!, { workoutType: workout.type || '' })
+    : typeof text === 'string'
+      ? WorkoutParser.parseIntervalsICU(text, { workoutType: workout.type || '' })
+      : []
+  const rawStrengthStructure =
+    Array.isArray(providedExercises) || Array.isArray(providedBlocks)
+      ? {
+          ...((workout.structuredWorkout as any) || {}),
+          ...(Array.isArray(providedBlocks) ? { blocks: providedBlocks } : {}),
+          ...(Array.isArray(providedExercises) ? { exercises: providedExercises } : {})
+        }
+      : null
 
-  console.log('[StructurePatch] Received steps count:', steps.length)
+  let normalizedStrengthStructure: any = null
+  if (rawStrengthStructure) {
+    try {
+      normalizedStrengthStructure = normalizeStructuredStrengthWorkout(rawStrengthStructure)
+    } catch (error: any) {
+      throw createError({
+        statusCode: 400,
+        message: error?.message || 'Invalid strength exercise payload'
+      })
+    }
+  }
+
+  console.log('[StructurePatch] Received structure payload:', {
+    steps: steps.length,
+    exercises: Array.isArray(normalizedStrengthStructure?.exercises)
+      ? normalizedStrengthStructure.exercises.length
+      : 0
+  })
   if (steps.length > 0) {
     console.log('[StructurePatch] Sample step metrics:', {
       power: steps[0].power,
@@ -68,9 +111,10 @@ export default defineEventHandler(async (event) => {
 
   const structuredWorkout = {
     ...((workout.structuredWorkout as any) || {}),
-    steps
+    ...(Array.isArray(providedSteps) || typeof text === 'string' ? { steps } : {}),
+    ...(normalizedStrengthStructure || {})
   }
-  const syncText = text || WorkoutParser.toIntervalsICU(steps)
+  const syncText = typeof text === 'string' ? text : WorkoutParser.toIntervalsICU(steps)
   const sportSettings = await sportSettingsRepository.getForActivityType(userId, workout.type || '')
   const { targetPolicy, targetFormatPolicy } = resolveWorkoutTargeting(sportSettings)
   const refs = {
@@ -105,8 +149,18 @@ export default defineEventHandler(async (event) => {
   const updatedWorkout = await prisma.plannedWorkout.update({
     where: { id },
     data: {
-      durationSec: metrics.durationSec > 0 ? metrics.durationSec : workout.durationSec,
-      tss: metrics.tss > 0 ? metrics.tss : workout.tss,
+      durationSec:
+        Number.isFinite(Number(providedDurationSec)) && Number(providedDurationSec) > 0
+          ? Math.round(Number(providedDurationSec))
+          : metrics.durationSec > 0
+            ? metrics.durationSec
+            : workout.durationSec,
+      tss:
+        Number.isFinite(Number(providedTss)) && Number(providedTss) >= 0
+          ? Number(providedTss)
+          : metrics.tss > 0
+            ? metrics.tss
+            : workout.tss,
       workIntensity: metrics.workIntensity ?? workout.workIntensity,
       syncStatus: getPendingSyncStatus(workout.syncStatus),
       syncError: null,

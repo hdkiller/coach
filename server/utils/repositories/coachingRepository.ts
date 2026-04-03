@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../db'
 import { athleteMetricsService } from '../athleteMetricsService'
 import { sportSettingsRepository } from './sportSettingsRepository'
@@ -25,6 +26,66 @@ function getReadinessStatus(score: number | null) {
   if (score >= 60) return 'Moderate'
   if (score >= 40) return 'Strained'
   return 'Low'
+}
+
+async function getCoachInviteWithCoachByCode(code: string) {
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string
+      coachId: string
+      email: string | null
+      code: string
+      status: string
+      expiresAt: Date
+      acceptedBy: string | null
+      createdAt: Date
+      updatedAt: Date
+      coach_id: string
+      coach_name: string | null
+      coach_email: string
+      coach_image: string | null
+    }>
+  >(Prisma.sql`
+    SELECT
+      invite."id",
+      invite."coachId",
+      invite."email",
+      invite."code",
+      invite."status",
+      invite."expiresAt",
+      invite."acceptedBy",
+      invite."createdAt",
+      invite."updatedAt",
+      coach."id" AS coach_id,
+      coach."name" AS coach_name,
+      coach."email" AS coach_email,
+      coach."image" AS coach_image
+    FROM "CoachAthleteInvite" invite
+    JOIN "User" coach ON coach."id" = invite."coachId"
+    WHERE invite."code" = ${code}
+    LIMIT 1
+  `)
+
+  const row = rows[0]
+  if (!row) return null
+
+  return {
+    id: row.id,
+    coachId: row.coachId,
+    email: row.email,
+    code: row.code,
+    status: row.status,
+    expiresAt: row.expiresAt,
+    acceptedBy: row.acceptedBy,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    coach: {
+      id: row.coach_id,
+      name: row.coach_name,
+      email: row.coach_email,
+      image: row.coach_image
+    }
+  }
 }
 
 export const coachingRepository = {
@@ -358,6 +419,186 @@ export const coachingRepository = {
 
   // --- Invitation Management ---
 
+  async getPendingAthleteInvitesForCoach(coachId: string) {
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string
+        coachId: string
+        email: string | null
+        code: string
+        status: string
+        expiresAt: Date
+        acceptedBy: string | null
+        createdAt: Date
+        updatedAt: Date
+        coach_id: string
+        coach_name: string | null
+        coach_email: string
+        coach_image: string | null
+      }>
+    >(Prisma.sql`
+      SELECT
+        invite."id",
+        invite."coachId",
+        invite."email",
+        invite."code",
+        invite."status",
+        invite."expiresAt",
+        invite."acceptedBy",
+        invite."createdAt",
+        invite."updatedAt",
+        coach."id" AS coach_id,
+        coach."name" AS coach_name,
+        coach."email" AS coach_email,
+        coach."image" AS coach_image
+      FROM "CoachAthleteInvite" invite
+      JOIN "User" coach ON coach."id" = invite."coachId"
+      WHERE invite."coachId" = ${coachId}
+        AND invite."status" = 'PENDING'
+        AND invite."expiresAt" > NOW()
+      ORDER BY invite."createdAt" DESC
+    `)
+
+    return rows.map((row) => ({
+      id: row.id,
+      coachId: row.coachId,
+      email: row.email,
+      code: row.code,
+      status: row.status,
+      expiresAt: row.expiresAt,
+      acceptedBy: row.acceptedBy,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      coach: {
+        id: row.coach_id,
+        name: row.coach_name,
+        email: row.coach_email,
+        image: row.coach_image
+      }
+    }))
+  },
+
+  async createAthleteInviteForCoach(coachId: string, email?: string | null) {
+    const normalizedEmail = email?.trim().toLowerCase() || null
+    const coach = await (prisma as any).user.findUnique({
+      where: { id: coachId },
+      select: { email: true, name: true, image: true }
+    })
+
+    if (!coach) {
+      throw new Error('Coach account not found')
+    }
+
+    if (normalizedEmail && coach.email.toLowerCase() === normalizedEmail) {
+      throw new Error('You cannot invite your own email address')
+    }
+
+    const existingRelationship = normalizedEmail
+      ? await (prisma as any).coachingRelationship.findFirst({
+          where: {
+            coachId,
+            status: 'ACTIVE',
+            athlete: {
+              email: normalizedEmail
+            }
+          }
+        })
+      : null
+
+    if (existingRelationship) {
+      throw new Error('This athlete is already connected to you')
+    }
+
+    if (normalizedEmail) {
+      await prisma.$executeRaw(
+        Prisma.sql`
+          UPDATE "CoachAthleteInvite"
+          SET "status" = 'EXPIRED', "updatedAt" = NOW()
+          WHERE "coachId" = ${coachId}
+            AND "email" = ${normalizedEmail}
+            AND "status" = 'PENDING'
+        `
+      )
+    } else {
+      await prisma.$executeRaw(
+        Prisma.sql`
+          UPDATE "CoachAthleteInvite"
+          SET "status" = 'EXPIRED', "updatedAt" = NOW()
+          WHERE "coachId" = ${coachId}
+            AND "email" IS NULL
+            AND "status" = 'PENDING'
+        `
+      )
+    }
+
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase()
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string
+        coachId: string
+        email: string | null
+        code: string
+        status: string
+        expiresAt: Date
+        acceptedBy: string | null
+        createdAt: Date
+        updatedAt: Date
+      }>
+    >(Prisma.sql`
+      INSERT INTO "CoachAthleteInvite" (
+        "id",
+        "coachId",
+        "email",
+        "code",
+        "status",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES (
+        gen_random_uuid()::text,
+        ${coachId},
+        ${normalizedEmail},
+        ${code},
+        'PENDING',
+        ${expiresAt},
+        NOW(),
+        NOW()
+      )
+      RETURNING "id", "coachId", "email", "code", "status", "expiresAt", "acceptedBy", "createdAt", "updatedAt"
+    `)
+
+    return {
+      ...rows[0],
+      coach: {
+        id: coachId,
+        name: coach.name ?? null,
+        email: coach.email,
+        image: coach.image ?? null
+      }
+    }
+  },
+
+  async revokeAthleteInviteForCoach(coachId: string, inviteId: string) {
+    const result = await prisma.$executeRaw(
+      Prisma.sql`
+        UPDATE "CoachAthleteInvite"
+        SET "status" = 'REVOKED', "updatedAt" = NOW()
+        WHERE "id" = ${inviteId}
+          AND "coachId" = ${coachId}
+          AND "status" = 'PENDING'
+      `
+    )
+
+    if (result === 0) {
+      throw new Error('Invite not found')
+    }
+
+    return result
+  },
+
   async createInvite(athleteId: string) {
     // Expire any old pending invites for this athlete
     await (prisma as any).coachingInvite.updateMany({
@@ -385,6 +626,64 @@ export const coachingRepository = {
         status: 'PENDING',
         expiresAt: { gt: new Date() }
       }
+    })
+  },
+
+  async getCoachAthleteInviteByCode(code: string) {
+    return await getCoachInviteWithCoachByCode(code)
+  },
+
+  async acceptAthleteInviteForCoach(athleteId: string, code: string) {
+    const invite = await getCoachInviteWithCoachByCode(code)
+
+    if (!invite || invite.status !== 'PENDING' || invite.expiresAt < new Date()) {
+      throw new Error('Invalid or expired invite code')
+    }
+
+    const athlete = await (prisma as any).user.findUnique({
+      where: { id: athleteId },
+      select: { id: true, email: true }
+    })
+
+    if (!athlete) {
+      throw new Error('Athlete account not found')
+    }
+
+    if (invite.coachId === athleteId) {
+      throw new Error('You cannot invite yourself')
+    }
+
+    if (invite.email && athlete.email.toLowerCase() !== invite.email) {
+      throw new Error('This invite is restricted to another email address')
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const relationship = await (tx as any).coachingRelationship.upsert({
+        where: {
+          coachId_athleteId: {
+            coachId: invite.coachId,
+            athleteId
+          }
+        },
+        update: { status: 'ACTIVE' },
+        create: {
+          coachId: invite.coachId,
+          athleteId,
+          status: 'ACTIVE'
+        }
+      })
+
+      await tx.$executeRaw(
+        Prisma.sql`
+          UPDATE "CoachAthleteInvite"
+          SET "status" = 'ACCEPTED',
+              "acceptedBy" = ${athleteId},
+              "updatedAt" = NOW()
+          WHERE "id" = ${invite.id}
+        `
+      )
+
+      return relationship
     })
   },
 

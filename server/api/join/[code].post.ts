@@ -62,6 +62,22 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // 3. Check coach-generated athlete invites
+  const coachAthleteInvite = await coachingRepository.getCoachAthleteInviteByCode(code)
+
+  if (
+    coachAthleteInvite &&
+    coachAthleteInvite.status === 'PENDING' &&
+    coachAthleteInvite.expiresAt > new Date()
+  ) {
+    const relationship = await coachingRepository.acceptAthleteInviteForCoach(user.id, code)
+    return {
+      success: true,
+      type: 'ATHLETE_INVITE',
+      coachId: relationship.coachId
+    }
+  }
+
   throw createError({
     statusCode: 404,
     message: 'Invalid or expired invitation code'

@@ -41,6 +41,7 @@ defineRouteMeta({
                 token_type: { type: 'string' },
                 expires_in: { type: 'integer' },
                 refresh_token: { type: 'string' },
+                refresh_token_expires_in: { type: 'integer', nullable: true },
                 scope: { type: 'string' }
               }
             }
@@ -118,13 +119,7 @@ export default defineEventHandler(async (event) => {
     // Cleanup
     await oauthRepository.deleteAuthCode(code)
 
-    return {
-      access_token: token.accessToken,
-      token_type: 'Bearer',
-      expires_in: 3600,
-      refresh_token: token.refreshToken,
-      scope: token.scopes.join(' ')
-    }
+    return serializeTokenResponse(token)
   }
 
   // 2. Refresh Token Grant
@@ -146,13 +141,7 @@ export default defineEventHandler(async (event) => {
       return sendOAuthError(event, 'invalid_grant', 'Invalid or expired refresh token')
     }
 
-    return {
-      access_token: newToken.accessToken,
-      token_type: 'Bearer',
-      expires_in: 3600,
-      refresh_token: newToken.refreshToken,
-      scope: newToken.scopes.join(' ')
-    }
+    return serializeTokenResponse(newToken)
   }
 
   return sendOAuthError(event, 'unsupported_grant_type', 'Unsupported grant type')
@@ -164,4 +153,28 @@ function sendOAuthError(event: any, error: string, description: string) {
     error,
     error_description: description
   }
+}
+
+function serializeTokenResponse(token: {
+  accessToken: string
+  refreshToken: string | null
+  refreshTokenExpiresAt: Date | null
+  scopes: string[]
+}) {
+  const response: Record<string, unknown> = {
+    access_token: token.accessToken,
+    token_type: 'Bearer',
+    expires_in: 3600,
+    refresh_token: token.refreshToken,
+    scope: token.scopes.join(' ')
+  }
+
+  if (token.refreshTokenExpiresAt) {
+    response.refresh_token_expires_in = Math.max(
+      0,
+      Math.floor((token.refreshTokenExpiresAt.getTime() - Date.now()) / 1000)
+    )
+  }
+
+  return response
 }

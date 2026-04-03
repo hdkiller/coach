@@ -61,6 +61,12 @@ Content-Type: application/json
 }
 ```
 
+`expires_in` always refers to the access token lifetime.
+
+`refresh_token_expires_in` may also be returned when the server is enforcing a refresh token lifetime. If present, it is the number of seconds until the refresh token expires.
+
+Clients should always persist the latest `refresh_token` returned by the token endpoint. Future versions of the API may rotate refresh tokens during a successful refresh response.
+
 ### 4. Making Requests
 
 Include the token in the Authorization header:

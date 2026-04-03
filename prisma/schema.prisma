@@ -154,6 +154,7 @@ model User {
   personalBests                      PersonalBest[]
   workoutTemplates                   WorkoutTemplate[]
   workoutTemplateFolders             WorkoutTemplateFolder[]
+  strengthExerciseLibraryItems       StrengthExerciseLibraryItem[]
   journeyEvents                      AthleteJourneyEvent[]
   nutritionSettings                  UserNutritionSettings?
   nutritionRecommendations           NutritionRecommendation[]
@@ -168,6 +169,7 @@ model User {
   dashboards                         Dashboard[]
   widgets                            Widget[]
   customFieldDefinitions             CustomFieldDefinition[]
+  coachAthleteInvitesSent            CoachAthleteInvite[]
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -387,6 +389,23 @@ model CoachingInvite {
   updatedAt DateTime @updatedAt
   athlete   User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
+  @@index([code])
+}
+
+model CoachAthleteInvite {
+  id         String   @id @default(uuid())
+  coachId    String
+  email      String?
+  code       String   @unique
+  status     String   @default("PENDING")
+  expiresAt  DateTime
+  acceptedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  coach      User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+  @@index([email])
   @@index([code])
 }
 
@@ -749,6 +768,35 @@ model WorkoutTemplateFolder {
   @@index([userId])
   @@index([parentId])
   @@index([userId, parentId, order])
+}
+
+model StrengthExerciseLibraryItem {
+  id              String   @id @default(uuid())
+  userId          String
+  title           String
+  aliases         String[] @default([])
+  intent          String?
+  movementPattern String?
+  targetMuscleGroups String[]
+  notes           String?
+  videoUrl        String?
+  sets            Int?
+  reps            String?
+  weight          String?
+  duration        Int?
+  rest            String?
+  rpe             Float?
+  prescriptionMode String?
+  loadMode        String?
+  defaultRest     String?
+  setRows         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model FitFile {

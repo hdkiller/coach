@@ -278,7 +278,9 @@ export const oauthRepository = {
         userId: data.userId,
         scopes: data.scopes,
         accessTokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour
-        refreshTokenExpiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000) // 30 days
+        // Temporary compatibility mode: keep refresh tokens non-expiring until
+        // patched client applications have been deployed.
+        refreshTokenExpiresAt: null
       }
     })
   },
@@ -304,22 +306,17 @@ export const oauthRepository = {
       where: { refreshToken }
     })
 
-    if (
-      !oldToken ||
-      (oldToken.refreshTokenExpiresAt && oldToken.refreshTokenExpiresAt < new Date())
-    ) {
+    if (!oldToken) {
       return null
     }
 
     const crypto = await import('node:crypto')
     const accessToken = crypto.randomBytes(32).toString('hex')
-    const newRefreshToken = crypto.randomBytes(32).toString('hex')
 
     return prisma.oAuthToken.update({
       where: { id: oldToken.id },
       data: {
         accessToken,
-        refreshToken: newRefreshToken,
         accessTokenExpiresAt: new Date(Date.now() + 3600 * 1000),
         lastUsedAt: new Date()
       }

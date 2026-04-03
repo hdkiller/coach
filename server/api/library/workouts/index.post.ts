@@ -1,6 +1,9 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { computeStructuredWorkoutDurationSec } from '../../../utils/structured-workout-persistence'
+import {
+  computeStructuredWorkoutDurationSec,
+  computeStrengthExerciseMetrics
+} from '../../../utils/structured-workout-persistence'
 import { z } from 'zod'
 import {
   annotateLibraryOwner,
@@ -8,6 +11,7 @@ import {
   getWritableLibraryOwnerId,
   parseLibraryScope
 } from '../../../utils/library-access'
+import { normalizeStructuredStrengthWorkout } from '../../../utils/strength-exercise-library'
 
 const workoutTemplateSchema = z.object({
   title: z.string().min(1),
@@ -44,6 +48,20 @@ export default defineEventHandler(async (event) => {
     parseLibraryScope(data.ownerScope, 'coach')
   )
 
+  if (
+    Array.isArray(data.structuredWorkout?.exercises) ||
+    Array.isArray(data.structuredWorkout?.blocks)
+  ) {
+    try {
+      data.structuredWorkout = normalizeStructuredStrengthWorkout(data.structuredWorkout)
+    } catch (error: any) {
+      throw createError({
+        statusCode: 400,
+        message: error?.message || 'Invalid strength exercise payload'
+      })
+    }
+  }
+
   if (data.folderId) {
     const folder = await (prisma as any).workoutTemplateFolder.findFirst({
       where: { id: data.folderId, userId: ownerUserId }
@@ -54,9 +72,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Calculate duration if steps are provided but duration isn't
-  if (!data.durationSec && data.structuredWorkout?.steps) {
+  // Calculate duration/load if structure is provided but explicit values are missing
+  if (!data.durationSec && data.structuredWorkout) {
     data.durationSec = computeStructuredWorkoutDurationSec(data.structuredWorkout)
+  }
+  if (Array.isArray(data.structuredWorkout?.exercises)) {
+    const strengthMetrics = computeStrengthExerciseMetrics(data.structuredWorkout.exercises)
+    if (!data.tss && strengthMetrics.tss > 0) data.tss = strengthMetrics.tss
+    if (!data.workIntensity && strengthMetrics.workIntensity !== null) {
+      data.workIntensity = strengthMetrics.workIntensity
+    }
   }
 
   const template = await (prisma as any).workoutTemplate.create({

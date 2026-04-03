@@ -222,6 +222,14 @@
             }
           },
           {
+            label: 'Exercises',
+            icon: 'i-lucide-dumbbell',
+            to: '/library/exercises',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
             label: 'Plans',
             icon: 'i-lucide-scroll-text',
             to: '/library/plans',

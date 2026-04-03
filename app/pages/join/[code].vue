@@ -134,6 +134,12 @@
               <p v-if="invite.description" class="text-sm text-neutral-500 italic max-w-xs">
                 "{{ invite.description }}"
               </p>
+              <p
+                v-if="invite.type === 'ATHLETE_INVITE' && invite.email"
+                class="text-xs text-neutral-500 max-w-xs"
+              >
+                This invitation is reserved for {{ invite.email }}.
+              </p>
               <div v-if="invite.type === 'TEAM'" class="mt-4 flex flex-wrap justify-center gap-2">
                 <UBadge color="neutral" variant="subtle" size="xs" class="font-bold uppercase">
                   Role: {{ invite.role }}
