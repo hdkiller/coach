@@ -66,9 +66,10 @@ export interface YazioConsumedItemsResponse {
   simple_products: YazioSimpleProduct[]
 }
 
-function getMealGroupKey(
-  daytime: string | null | undefined
-): 'breakfast' | 'lunch' | 'dinner' | 'snacks' {
+type MealGroupKey = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
+type MacroTotals = ReturnType<typeof extractMacroFields>
+
+function getMealGroupKey(daytime: string | null | undefined): MealGroupKey {
   const normalized = String(daytime || '')
     .toLowerCase()
     .trim()
@@ -105,6 +106,60 @@ function extractMacroFields(nutrients: Record<string, number> | null | undefined
     fiber: getNutrientValue(nutrients, 'nutrient.fiber', ['nutrient.dietaryfiber']),
     sugar: getNutrientValue(nutrients, 'nutrient.sugar')
   }
+}
+
+function emptyMacroTotals(): MacroTotals {
+  return {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    fiber: 0,
+    sugar: 0
+  }
+}
+
+function addMacroTotals(target: MacroTotals, source: Partial<MacroTotals>) {
+  target.calories += source.calories || 0
+  target.protein += source.protein || 0
+  target.carbs += source.carbs || 0
+  target.fat += source.fat || 0
+  target.fiber += source.fiber || 0
+  target.sugar += source.sugar || 0
+}
+
+function subtractMacroTotals(total: MacroTotals, used: MacroTotals): MacroTotals {
+  return {
+    calories: Math.max(0, total.calories - used.calories),
+    protein: Math.max(0, total.protein - used.protein),
+    carbs: Math.max(0, total.carbs - used.carbs),
+    fat: Math.max(0, total.fat - used.fat),
+    fiber: Math.max(0, total.fiber - used.fiber),
+    sugar: Math.max(0, total.sugar - used.sugar)
+  }
+}
+
+function hasMeaningfulMacros(macros: MacroTotals): boolean {
+  return Object.values(macros).some((value) => value > 0)
+}
+
+function getMealSummaryMacros(summaryMeals: any, mealTime: MealGroupKey): MacroTotals {
+  const mealSummaryKey = mealTime === 'snacks' ? 'snack' : mealTime
+  return extractMacroFields(summaryMeals?.[mealSummaryKey]?.nutrients || null)
+}
+
+function getRecipePortionWeight(item: YazioRecipePortion): number {
+  const portionCount =
+    typeof (item as any).portion_count === 'number' && Number.isFinite((item as any).portion_count)
+      ? (item as any).portion_count
+      : 0
+  const amount = typeof item.amount === 'number' && Number.isFinite(item.amount) ? item.amount : 0
+  const servingQuantity =
+    typeof item.serving_quantity === 'number' && Number.isFinite(item.serving_quantity)
+      ? item.serving_quantity
+      : 0
+
+  return Math.max(portionCount, amount, servingQuantity, 1)
 }
 
 export async function createYazioClient(integration: Integration): Promise<Yazio> {
@@ -151,7 +206,19 @@ export function normalizeYazioData(
   const dateObj = new Date(Date.UTC(year, month - 1, day))
 
   // Group items by meal time
-  const mealGroups: Record<string, any[]> = {
+  const mealGroups: Record<MealGroupKey, any[]> = {
+    breakfast: [],
+    lunch: [],
+    dinner: [],
+    snacks: []
+  }
+  const mealItemMacros: Record<MealGroupKey, MacroTotals> = {
+    breakfast: emptyMacroTotals(),
+    lunch: emptyMacroTotals(),
+    dinner: emptyMacroTotals(),
+    snacks: emptyMacroTotals()
+  }
+  const sparseRecipeIndexes: Record<MealGroupKey, number[]> = {
     breakfast: [],
     lunch: [],
     dinner: [],
@@ -190,6 +257,7 @@ export function normalizeYazioData(
     }
 
     mealGroups[mealTime]!.push(enrichedItem)
+    addMacroTotals(mealItemMacros[mealTime], enrichedItem)
   }
 
   // Process simple products (AI-generated items with names already included)
@@ -221,6 +289,7 @@ export function normalizeYazioData(
     }
 
     mealGroups[mealTime]!.push(transformedItem)
+    addMacroTotals(mealItemMacros[mealTime], transformedItem)
   }
 
   // Process recipe portions (custom or saved recipes)
@@ -250,18 +319,71 @@ export function normalizeYazioData(
     }
 
     mealGroups[mealTime]!.push(transformedItem)
+
+    if (hasMeaningfulMacros({ calories, protein, carbs, fat, fiber, sugar })) {
+      addMacroTotals(mealItemMacros[mealTime], transformedItem)
+    } else {
+      sparseRecipeIndexes[mealTime].push(mealGroups[mealTime].length - 1)
+    }
+  }
+
+  // Yazio sometimes returns recipe portions without per-item nutrients, even though
+  // the meal summary still includes the correct combined macros for that meal.
+  for (const mealTime of Object.keys(mealGroups) as MealGroupKey[]) {
+    const missingIndexes = sparseRecipeIndexes[mealTime]
+    if (missingIndexes.length === 0) continue
+
+    const mealSummaryMacros = getMealSummaryMacros(summary.meals || {}, mealTime)
+    const remainingMacros = subtractMacroTotals(mealSummaryMacros, mealItemMacros[mealTime])
+    if (!hasMeaningfulMacros(remainingMacros)) continue
+
+    const missingItems = missingIndexes.map(
+      (index) => mealGroups[mealTime][index] as YazioRecipePortion
+    )
+    const totalWeight = missingItems.reduce((sum, item) => sum + getRecipePortionWeight(item), 0)
+    const assignedMacros = emptyMacroTotals()
+
+    missingIndexes.forEach((index, position) => {
+      const item = mealGroups[mealTime][index] as any
+      const isLast = position === missingIndexes.length - 1
+      const ratio =
+        totalWeight > 0
+          ? getRecipePortionWeight(item as YazioRecipePortion) / totalWeight
+          : 1 / missingIndexes.length
+      const recoveredMacros = isLast
+        ? subtractMacroTotals(remainingMacros, assignedMacros)
+        : {
+            calories: remainingMacros.calories * ratio,
+            protein: remainingMacros.protein * ratio,
+            carbs: remainingMacros.carbs * ratio,
+            fat: remainingMacros.fat * ratio,
+            fiber: remainingMacros.fiber * ratio,
+            sugar: remainingMacros.sugar * ratio
+          }
+
+      item.calories = recoveredMacros.calories
+      item.protein = recoveredMacros.protein
+      item.carbs = recoveredMacros.carbs
+      item.fat = recoveredMacros.fat
+      item.fiber = recoveredMacros.fiber
+      item.sugar = recoveredMacros.sugar
+      item.nutrients = item.nutrients || {
+        'energy.energy': recoveredMacros.calories,
+        'nutrient.protein': recoveredMacros.protein,
+        'nutrient.carb': recoveredMacros.carbs,
+        'nutrient.fat': recoveredMacros.fat,
+        ...(recoveredMacros.fiber > 0 ? { 'nutrient.fiber': recoveredMacros.fiber } : {}),
+        ...(recoveredMacros.sugar > 0 ? { 'nutrient.sugar': recoveredMacros.sugar } : {})
+      }
+
+      addMacroTotals(assignedMacros, recoveredMacros)
+      addMacroTotals(mealItemMacros[mealTime], recoveredMacros)
+    })
   }
 
   // Calculate totals from meals data
   const meals = summary.meals || {}
-  const totals = {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    fiber: 0,
-    sugar: 0
-  }
+  const totals = emptyMacroTotals()
 
   // Sum up nutrients from all meals if available
   Object.entries(meals).forEach(([mealName, meal]: [string, any]) => {
