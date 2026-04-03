@@ -8,6 +8,7 @@ import compareSourcesCommand from './compare-sources'
 import tableCommand from './table'
 import syncCommand from './sync'
 import dashboardCommand from './dashboard'
+import replayWebhooksCommand from './replay-webhooks'
 
 const wellnessCommand = new Command('wellness').description('Wellness data debugging tools')
 
@@ -20,5 +21,6 @@ wellnessCommand.addCommand(compareSourcesCommand)
 wellnessCommand.addCommand(tableCommand)
 wellnessCommand.addCommand(syncCommand)
 wellnessCommand.addCommand(dashboardCommand)
+wellnessCommand.addCommand(replayWebhooksCommand)
 
 export default wellnessCommand

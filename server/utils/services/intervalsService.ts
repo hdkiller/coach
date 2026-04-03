@@ -79,6 +79,163 @@ function calculateChunkCount(startDate: Date, endDate: Date, chunkDays: number):
   return Math.max(1, Math.ceil(diffDays / chunkDays))
 }
 
+function parseIntervalsWellnessDate(recordId: unknown): Date | null {
+  if (typeof recordId !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(recordId)) return null
+  const rawDate = new Date(recordId)
+  if (Number.isNaN(rawDate.getTime())) return null
+
+  return new Date(Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate()))
+}
+
+async function buildIntervalsWellnessContext(userId: string) {
+  const integration = await prisma.integration.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'intervals'
+      }
+    },
+    select: { settings: true }
+  })
+
+  const intervalsSettings = (integration?.settings as Record<string, any> | null) || {}
+  const readinessScale = intervalsSettings.readinessScale || 'STANDARD'
+  const sleepScoreScale = intervalsSettings.sleepScoreScale || 'STANDARD'
+  const timezone = await getUserTimezone(userId)
+  const historicalEndLocal = getEndOfDayUTC(timezone, new Date())
+
+  let baselineRawReadiness: number[] = []
+  if (readinessScale === 'HRV4TRAINING') {
+    const recentWellness = await wellnessRepository.getForUser(userId, {
+      limit: 60,
+      orderBy: { date: 'desc' }
+    })
+    baselineRawReadiness = recentWellness
+      .map((w) => (w.rawJson as any)?.readiness)
+      .filter((v) => typeof v === 'number')
+  }
+
+  return {
+    readinessScale,
+    sleepScoreScale,
+    baselineRawReadiness,
+    historicalEndLocal
+  }
+}
+
+async function upsertIntervalsWellnessSnapshot(
+  userId: string,
+  wellness: any,
+  context: {
+    readinessScale: string
+    sleepScoreScale: string
+    baselineRawReadiness: number[]
+    historicalEndLocal: Date
+  }
+) {
+  const wellnessDate = parseIntervalsWellnessDate(wellness?.id)
+  if (!wellnessDate || wellnessDate > context.historicalEndLocal) return false
+
+  const normalizedWellness = normalizeIntervalsWellness(
+    wellness,
+    userId,
+    wellnessDate,
+    context.readinessScale,
+    context.sleepScoreScale,
+    {
+      historicalRawReadiness: context.baselineRawReadiness
+    }
+  )
+
+  if (normalizedWellness.weight) {
+    normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight)
+  }
+
+  if (context.readinessScale === 'HRV4TRAINING' && typeof wellness.readiness === 'number') {
+    context.baselineRawReadiness.push(wellness.readiness)
+    if (context.baselineRawReadiness.length > 60) {
+      context.baselineRawReadiness.shift()
+    }
+  }
+
+  const { record, isNew } = await wellnessRepository.upsert(
+    userId,
+    wellnessDate,
+    normalizedWellness,
+    normalizedWellness,
+    'intervals',
+    {
+      clearFields: ['stress', 'fatigue', 'soreness', 'mood', 'motivation'],
+      replaceRawJson: true
+    }
+  )
+
+  await bodyMeasurementService.recordWellnessMetrics(
+    userId,
+    {
+      id: record.id,
+      date: record.date,
+      weight: record.weight,
+      bodyFat: record.bodyFat,
+      rawJson: record.rawJson
+    },
+    'intervals'
+  )
+
+  const isRecent = new Date().getTime() - wellnessDate.getTime() < 7 * 24 * 60 * 60 * 1000
+  if (isRecent && normalizedWellness.weight) {
+    await athleteMetricsService.updateMetrics(
+      userId,
+      {
+        weight: normalizedWellness.weight,
+        date: wellnessDate
+      },
+      { weightUpdateSource: 'sync' }
+    )
+  }
+
+  return isNew
+}
+
+async function upsertIntervalsFitnessSnapshot(
+  userId: string,
+  record: any,
+  context: {
+    historicalEndLocal: Date
+  }
+) {
+  const wellnessDate = parseIntervalsWellnessDate(record?.id)
+  if (!wellnessDate || wellnessDate > context.historicalEndLocal) return false
+
+  const rawJsonPatch: Record<string, any> = {
+    id: record.id
+  }
+  if (record.updated !== undefined) rawJsonPatch.updated = record.updated
+  if (record.sportInfo !== undefined) rawJsonPatch.sportInfo = record.sportInfo
+  if (record.atlLoad !== undefined) rawJsonPatch.atlLoad = record.atlLoad
+  if (record.ctlLoad !== undefined) rawJsonPatch.ctlLoad = record.ctlLoad
+  if (record.rampRate !== undefined) rawJsonPatch.rampRate = record.rampRate
+
+  const patchData: Record<string, any> = {
+    userId,
+    date: wellnessDate,
+    rawJson: rawJsonPatch
+  }
+
+  if (typeof record.ctl === 'number') patchData.ctl = record.ctl
+  if (typeof record.atl === 'number') patchData.atl = record.atl
+
+  const { isNew } = await wellnessRepository.upsert(
+    userId,
+    wellnessDate,
+    patchData as any,
+    patchData as any,
+    'intervals'
+  )
+
+  return isNew
+}
+
 type IntervalsSyncOptions = {
   skipExisting?: boolean
 }
@@ -752,76 +909,19 @@ export const IntervalsService = {
       for (const wellness of sortedWellness) {
         await heartbeats.yield()
 
-        // Force wellness date to UTC midnight (Intervals.icu returns 'YYYY-MM-DD' as id)
-        const rawDate = new Date(wellness.id)
-        const wellnessDate = new Date(
-          Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate())
-        )
-
-        const normalizedWellness = normalizeIntervalsWellness(
+        const isNew = await upsertIntervalsWellnessSnapshot(
+          userId,
           wellness,
-          userId,
-          wellnessDate,
-          readinessScale,
-          sleepScoreScale,
           {
-            historicalRawReadiness: baselineRawReadiness
+            readinessScale,
+            sleepScoreScale,
+            baselineRawReadiness,
+            historicalEndLocal
           }
         )
 
-        if (normalizedWellness.weight) {
-          normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight)
-        }
-
-        // If using HRV4TRAINING, update baseline for next iteration
-        if (readinessScale === 'HRV4TRAINING' && typeof wellness.readiness === 'number') {
-          baselineRawReadiness.push(wellness.readiness)
-          if (baselineRawReadiness.length > 60) {
-            baselineRawReadiness.shift()
-          }
-        }
-
-        const { record, isNew } = await wellnessRepository.upsert(
-          userId,
-          wellnessDate,
-          normalizedWellness,
-          normalizedWellness,
-          'intervals',
-          {
-            // Intervals wellness is a full daily snapshot, so blank subjective fields
-            // should clear stale values instead of preserving yesterday's/manual leftovers.
-            clearFields: ['stress', 'fatigue', 'soreness', 'mood', 'motivation'],
-            // Replace rawJson so omitted keys in today's Intervals payload do not linger
-            // and get re-read as canonical subjective values later.
-            replaceRawJson: true
-          }
-        )
-        await bodyMeasurementService.recordWellnessMetrics(
-          userId,
-          {
-            id: record.id,
-            date: record.date,
-            weight: record.weight,
-            bodyFat: record.bodyFat,
-            rawJson: record.rawJson
-          },
-          'intervals'
-        )
         if (isNew) {
           chunkUpsertedCount++
-        }
-
-        // Also update the User profile weight if this is a recent measurement
-        const isRecent = new Date().getTime() - wellnessDate.getTime() < 7 * 24 * 60 * 60 * 1000
-        if (isRecent && normalizedWellness.weight) {
-          await athleteMetricsService.updateMetrics(
-            userId,
-            {
-              weight: normalizedWellness.weight,
-              date: wellnessDate
-            },
-            { weightUpdateSource: 'sync' }
-          )
         }
       }
 
@@ -839,6 +939,31 @@ export const IntervalsService = {
     }
 
     return totalUpsertedCount
+  },
+
+  async ingestWebhookWellnessRecords(
+    userId: string,
+    records: any[],
+    options: {
+      mode?: 'wellness' | 'fitness'
+    } = {}
+  ) {
+    if (!Array.isArray(records) || records.length === 0) return 0
+
+    const context = await buildIntervalsWellnessContext(userId)
+    const sortedRecords = [...records].sort((a, b) => String(a?.id || '').localeCompare(String(b?.id || '')))
+
+    let upsertedCount = 0
+    for (const record of sortedRecords) {
+      const isNew =
+        options.mode === 'fitness'
+          ? await upsertIntervalsFitnessSnapshot(userId, record, context)
+          : await upsertIntervalsWellnessSnapshot(userId, record, context)
+
+      if (isNew) upsertedCount++
+    }
+
+    return upsertedCount
   },
 
   /**
@@ -1549,15 +1674,25 @@ export const IntervalsService = {
       }
 
       case 'WELLNESS_UPDATED':
-        // Delta-only worker mode: do not run range pulls on webhook events.
         if (wellnessEnabled) {
+          const records = Array.isArray(intervalEvent?.records) ? intervalEvent.records : []
+          if (records.length > 0) {
+            await IntervalsService.ingestWebhookWellnessRecords(userId, records, {
+              mode: 'wellness'
+            })
+          }
           await triggerReadinessCheckIfNeeded(userId)
         }
         break
 
       case 'FITNESS_UPDATED': {
-        // Delta-only worker mode: do not run range pulls on webhook events.
         if (wellnessEnabled) {
+          const records = Array.isArray(intervalEvent?.records) ? intervalEvent.records : []
+          if (records.length > 0) {
+            await IntervalsService.ingestWebhookWellnessRecords(userId, records, {
+              mode: 'fitness'
+            })
+          }
           await triggerReadinessCheckIfNeeded(userId)
         }
         break
