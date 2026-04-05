@@ -203,6 +203,12 @@ export default defineEventHandler(async (event) => {
         publicWebsiteUrl: true,
         publicSocialLinks: true,
         publicCoachingBrand: true,
+        coachProfileEnabled: true,
+        coachProfileSlug: true,
+        coachPublicPage: true,
+        athleteProfileEnabled: true,
+        athleteProfileSlug: true,
+        athletePublicPage: true,
         nutritionTrackingEnabled: true
       }
     })
