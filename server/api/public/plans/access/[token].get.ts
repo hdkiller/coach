@@ -21,7 +21,10 @@ export default defineEventHandler(async (event) => {
           publicLocation: true,
           publicWebsiteUrl: true,
           publicSocialLinks: true,
-          publicCoachingBrand: true
+          publicCoachingBrand: true,
+          coachProfileEnabled: true,
+          coachProfileSlug: true,
+          coachPublicPage: true
         }
       }
     }
@@ -52,7 +55,10 @@ export default defineEventHandler(async (event) => {
           publicLocation: true,
           publicWebsiteUrl: true,
           publicSocialLinks: true,
-          publicCoachingBrand: true
+          publicCoachingBrand: true,
+          coachProfileEnabled: true,
+          coachProfileSlug: true,
+          coachPublicPage: true
         }
       },
       sampleWeeks: {
