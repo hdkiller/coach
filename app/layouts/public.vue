@@ -1,10 +1,6 @@
 <template>
-  <div
-    class="min-h-screen flex flex-col font-sans bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
-  >
-    <header
-      class="sticky top-0 z-50 bg-white/75 dark:bg-gray-950/75 backdrop-blur border-b border-gray-200 dark:border-gray-800"
-    >
+  <div class="min-h-screen flex flex-col font-sans bg-[#050816] text-gray-100">
+    <header class="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/85 backdrop-blur">
       <UContainer class="h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
           <img
@@ -14,9 +10,7 @@
           />
         </NuxtLink>
 
-        <nav
-          class="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300"
-        >
+        <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-300">
           <NuxtLink to="/#how-it-works" class="hover:text-primary transition-colors">
             {{ t('nav.how_it_works') }}
           </NuxtLink>
@@ -50,7 +44,7 @@
               <LanguageSwitcher />
               <template #fallback>
                 <div
-                  class="h-full w-full rounded-md border border-gray-200/70 bg-gray-100/60 dark:border-gray-800/70 dark:bg-gray-900/60"
+                  class="h-full w-full rounded-md border border-white/10 bg-white/5"
                   aria-hidden="true"
                 />
               </template>
@@ -102,7 +96,7 @@
                   class="text-sm font-medium hover:text-primary transition-colors"
                   >{{ t('nav.stories') }}</NuxtLink
                 >
-                <hr class="border-gray-200 dark:border-gray-800" />
+                <hr class="border-white/10" />
                 <UButton
                   v-if="route.path !== '/login'"
                   to="/login"
@@ -135,4 +129,10 @@
 
   const route = useRoute()
   const { t } = useTranslate('common')
+
+  useHead({
+    htmlAttrs: {
+      class: 'dark'
+    }
+  })
 </script>

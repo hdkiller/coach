@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import CoachJoinPage from '~/components/public/CoachJoinPage.vue'
+
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
@@ -9,6 +11,16 @@
   const loading = ref(true)
   const error = ref<string | null>(null)
   const joining = ref(false)
+  const autoAccepting = ref(false)
+  const brandedJoin = computed(
+    () => invite.value?.type === 'ATHLETE_INVITE' && invite.value?.coachJoin
+  )
+  const signupUrl = computed(
+    () => `/join?callbackUrl=${encodeURIComponent(`/join/${code.value}?accept=1`)}`
+  )
+  const loginUrl = computed(
+    () => `/login?callbackUrl=${encodeURIComponent(`/join/${code.value}?accept=1`)}`
+  )
 
   async function fetchInvite() {
     loading.value = true
@@ -24,8 +36,7 @@
 
   async function acceptJoin() {
     if (!session.value) {
-      // Redirect to login with callback
-      await navigateTo(`/login?callbackUrl=${encodeURIComponent(route.fullPath)}`)
+      await navigateTo(brandedJoin.value ? signupUrl.value : loginUrl.value)
       return
     }
 
@@ -59,10 +70,40 @@
   }
 
   onMounted(fetchInvite)
+
+  watchEffect(() => {
+    if (
+      import.meta.client &&
+      session.value &&
+      route.query.accept === '1' &&
+      brandedJoin.value &&
+      !joining.value &&
+      !autoAccepting.value
+    ) {
+      autoAccepting.value = true
+      acceptJoin().finally(() => {
+        autoAccepting.value = false
+      })
+    }
+  })
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+  <CoachJoinPage
+    v-if="!loading && !error && brandedJoin"
+    :coach="invite.coachJoin.coach"
+    :join-page="invite.coachJoin.joinPage"
+    :proof="invite.coachJoin.proof"
+    :active-invite-available="invite.coachJoin.activeInviteAvailable"
+    :session="session"
+    :joining="joining"
+    :invite-reserved-email="invite.email"
+    :signup-url="signupUrl"
+    :login-url="loginUrl"
+    @join="acceptJoin"
+  />
+
+  <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
     <UCard class="w-full max-w-md overflow-hidden">
       <div v-if="loading" class="p-8 text-center space-y-4">
         <UIcon

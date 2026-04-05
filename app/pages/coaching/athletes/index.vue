@@ -50,6 +50,104 @@
           @refresh="fetchGroups"
         />
 
+        <UCard v-if="pendingRequests.length > 0" :ui="{ body: 'p-6' }">
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                Pending Coaching Requests
+              </h2>
+              <p class="text-sm text-neutral-500">
+                Athletes from your public start page are waiting for your review.
+              </p>
+            </div>
+            <UBadge color="warning" variant="soft" size="sm" class="uppercase font-bold">
+              {{ pendingRequests.length }} pending
+            </UBadge>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="request in pendingRequests"
+              :key="request.id"
+              class="rounded-xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/50 p-4"
+            >
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="space-y-3 min-w-0 flex-1">
+                  <div class="flex items-center gap-3">
+                    <UAvatar
+                      :src="request.athlete?.image || undefined"
+                      :alt="request.athlete?.name || request.athlete?.email || 'Athlete'"
+                    />
+                    <div class="min-w-0">
+                      <div class="text-sm font-bold text-gray-900 dark:text-white">
+                        {{
+                          request.athlete?.name ||
+                          request.athlete?.email ||
+                          request.athleteSnapshot?.email ||
+                          'Athlete request'
+                        }}
+                      </div>
+                      <div class="text-xs text-neutral-500">
+                        Submitted {{ formatRelative(request.createdAt) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="request.athleteSnapshot?.activeCoaches?.length"
+                    class="rounded-xl border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-200"
+                  >
+                    Already coaching with:
+                    {{
+                      request.athleteSnapshot.activeCoaches
+                        .map((coach: any) => coach.name || coach.email)
+                        .join(', ')
+                    }}
+                  </div>
+
+                  <div
+                    v-if="request.answers?.length"
+                    class="space-y-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-neutral-50/80 dark:bg-neutral-950/30 p-3"
+                  >
+                    <div
+                      v-for="answer in request.answers"
+                      :key="answer.fieldId"
+                      class="grid gap-1 md:grid-cols-[220px_minmax(0,1fr)]"
+                    >
+                      <div class="text-xs font-black uppercase tracking-[0.14em] text-neutral-400">
+                        {{ answer.label }}
+                      </div>
+                      <div class="text-sm text-gray-700 dark:text-gray-200 break-words">
+                        {{ formatRequestAnswer(answer.answer) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <UButton
+                    color="primary"
+                    size="sm"
+                    :loading="reviewingRequestId === request.id && reviewingAction === 'approve'"
+                    @click="approveRequest(request.id)"
+                  >
+                    Approve
+                  </UButton>
+                  <UButton
+                    color="error"
+                    variant="outline"
+                    size="sm"
+                    :loading="reviewingRequestId === request.id && reviewingAction === 'decline'"
+                    @click="declineRequest(request.id)"
+                  >
+                    Decline
+                  </UButton>
+                </div>
+              </div>
+            </div>
+          </div>
+        </UCard>
+
         <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <UCard v-for="i in 3" :key="i">
             <template #header>
@@ -213,7 +311,10 @@
                 <p class="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">
                   Expires {{ formatRelative(invite.expiresAt) }}
                 </p>
-                <CoachingInviteLink :code="invite.code" />
+                <CoachingInviteLink
+                  :code="invite.code"
+                  :coach-slug="!invite.email ? invite.coachProfileSlug : undefined"
+                />
               </div>
 
               <div class="flex items-center gap-2">
@@ -390,7 +491,10 @@
   const connectCode = ref('')
   const inviteEmail = ref('')
   const pendingInvites = ref<any[]>([])
+  const pendingRequests = ref<any[]>([])
   const revokingInviteId = ref<string | null>(null)
+  const reviewingRequestId = ref<string | null>(null)
+  const reviewingAction = ref<'approve' | 'decline' | null>(null)
   const inviteTab = ref('share')
   const toast = useToast()
   const router = useRouter()
@@ -406,16 +510,18 @@
   async function fetchData() {
     loading.value = true
     try {
-      const [athletesData, groupsData, teamsData, invitesData] = await Promise.all([
+      const [athletesData, groupsData, teamsData, invitesData, requestsData] = await Promise.all([
         $fetch('/api/coaching/athletes'),
         $fetch('/api/coaching/groups'),
         $fetch('/api/coaching/teams'),
-        $fetch('/api/coaching/athletes/invites').catch(() => [])
+        $fetch('/api/coaching/athletes/invites').catch(() => []),
+        $fetch('/api/coaching/athletes/requests').catch(() => [])
       ])
       athletes.value = athletesData as any[]
       groups.value = groupsData as any[]
       teams.value = teamsData as any[]
       pendingInvites.value = invitesData as any[]
+      pendingRequests.value = requestsData as any[]
     } catch (e) {
       console.error(e)
       toast.add({ title: 'Failed to load coaching data', color: 'error' })
@@ -509,6 +615,56 @@
       })
     } finally {
       creatingInvite.value = false
+    }
+  }
+
+  function formatRequestAnswer(value: unknown) {
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No'
+    }
+    if (typeof value === 'string' && value.trim()) {
+      return value
+    }
+    return 'No answer provided'
+  }
+
+  async function approveRequest(requestId: string) {
+    reviewingRequestId.value = requestId
+    reviewingAction.value = 'approve'
+    try {
+      await $fetch(`/api/coaching/athletes/requests/${requestId}/approve`, {
+        method: 'POST'
+      })
+      toast.add({ title: 'Coaching request approved', color: 'success' })
+      await fetchData()
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to approve request',
+        color: 'error'
+      })
+    } finally {
+      reviewingRequestId.value = null
+      reviewingAction.value = null
+    }
+  }
+
+  async function declineRequest(requestId: string) {
+    reviewingRequestId.value = requestId
+    reviewingAction.value = 'decline'
+    try {
+      await $fetch(`/api/coaching/athletes/requests/${requestId}/decline`, {
+        method: 'POST'
+      })
+      toast.add({ title: 'Coaching request declined', color: 'success' })
+      pendingRequests.value = pendingRequests.value.filter((request) => request.id !== requestId)
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to decline request',
+        color: 'error'
+      })
+    } finally {
+      reviewingRequestId.value = null
+      reviewingAction.value = null
     }
   }
 

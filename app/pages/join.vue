@@ -319,7 +319,11 @@
                   <p class="text-xs text-zinc-500 font-medium">
                     {{ joinAlreadyAccount }}
                     <NuxtLink
-                      to="/login"
+                      :to="
+                        callbackUrl === '/dashboard'
+                          ? '/login'
+                          : `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                      "
                       class="text-primary-500 hover:text-primary-400 transition-colors font-black uppercase tracking-widest text-[10px] ml-2"
                       >{{ joinLogin }}
                     </NuxtLink>
@@ -530,7 +534,7 @@
     try {
       // Simulate technical delay for the animation
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      await signIn('google', { callbackUrl: '/' })
+      await signIn('google', { callbackUrl })
     } catch (error: any) {
       console.error('Login error:', error)
       isInitializing.value = false
@@ -543,7 +547,7 @@
     try {
       // Simulate technical delay for the animation
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      await signIn('strava', { callbackUrl: '/' })
+      await signIn('strava', { callbackUrl })
     } catch (error: any) {
       console.error('Strava login error:', error)
       isInitializing.value = false
@@ -557,7 +561,7 @@
     try {
       // Simulate technical delay for the animation
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      await signIn('intervals', { callbackUrl: '/' })
+      await signIn('intervals', { callbackUrl })
     } catch (error: any) {
       console.error('Intervals login error:', error)
       isInitializing.value = false

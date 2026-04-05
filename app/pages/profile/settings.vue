@@ -107,12 +107,7 @@
             @saved="handleNutritionSaved"
           />
 
-          <ProfilePublicAuthorSettings
-            v-if="activeTab === 'public-author'"
-            :model-value="profile"
-            :loading="savingPublicAuthor"
-            @update:model-value="handlePublicAuthorUpdate"
-          />
+          <ProfilePublicPresenceSettings v-if="activeTab === 'public-author'" />
 
           <ProfileCommunicationSettings v-if="activeTab === 'communication'" />
         </div>
@@ -179,7 +174,7 @@
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
   import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
   import ProfileMeasurementsSettings from '~/components/profile/MeasurementsSettings.vue'
-  import ProfilePublicAuthorSettings from '~/components/profile/PublicAuthorProfileSettings.vue'
+  import ProfilePublicPresenceSettings from '~/components/profile/PublicPresenceSettings.vue'
 
   const { t } = useTranslate('profile')
   const { data } = useAuth()
@@ -225,7 +220,7 @@
     },
     {
       id: 'public-author',
-      label: tr('settings_tabs_public_author', 'Public Profile'),
+      label: tr('settings_tabs_public_author', 'Public Presence'),
       icon: 'i-heroicons-megaphone'
     },
     {
@@ -273,7 +268,6 @@
   const dismissedSportOverlapAlerts = useStorage<string[]>('profile:sport-overlap-alerts', [])
   const nutritionSettings = ref<any>(null)
   const savingProfile = ref(false)
-  const savingPublicAuthor = ref(false)
   const savingSportSettings = ref(false)
   const showSportSettingsWarningModal = ref(false)
   const pendingSportSettingsSave = ref<any[] | null>(null)
@@ -406,33 +400,6 @@
 
       // Refresh full profile to ensure all derived state is correct
       await refreshProfile()
-    }
-  }
-
-  async function handlePublicAuthorUpdate(newProfile: any) {
-    savingPublicAuthor.value = true
-    try {
-      await $fetch('/api/profile/public', {
-        method: 'PATCH',
-        body: newProfile
-      })
-
-      Object.assign(profile.value, newProfile)
-      await refreshProfile()
-
-      toast.add({
-        title: 'Public Profile Updated',
-        description: 'Your public profile settings have been saved.',
-        color: 'success'
-      })
-    } catch (error: any) {
-      toast.add({
-        title: 'Update Failed',
-        description: error.data?.message || 'Failed to save public profile.',
-        color: 'error'
-      })
-    } finally {
-      savingPublicAuthor.value = false
     }
   }
 

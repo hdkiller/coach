@@ -1,0 +1,11 @@
+<template>
+  <PublicProfilePage role="athlete" />
+</template>
+
+<script setup lang="ts">
+  import PublicProfilePage from '~/components/public/PublicProfilePage.vue'
+
+  definePageMeta({
+    layout: 'public'
+  })
+</script>

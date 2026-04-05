@@ -248,7 +248,11 @@
                   <p class="text-xs text-zinc-500 font-medium">
                     {{ t('login.new_athlete') }}
                     <NuxtLink
-                      to="/join"
+                      :to="
+                        callbackUrl === '/dashboard'
+                          ? '/join'
+                          : `/join?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                      "
                       class="text-primary-500 hover:text-primary-400 transition-colors font-black uppercase tracking-widest text-[10px] ml-2"
                       >{{ t('login.create_account') }}
                     </NuxtLink>
