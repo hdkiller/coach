@@ -435,6 +435,7 @@ export const coachingRepository = {
         coach_name: string | null
         coach_email: string
         coach_image: string | null
+        coach_slug: string | null
       }>
     >(Prisma.sql`
       SELECT
@@ -450,7 +451,8 @@ export const coachingRepository = {
         coach."id" AS coach_id,
         coach."name" AS coach_name,
         coach."email" AS coach_email,
-        coach."image" AS coach_image
+        coach."image" AS coach_image,
+        coach."coachProfileSlug" AS coach_slug
       FROM "CoachAthleteInvite" invite
       JOIN "User" coach ON coach."id" = invite."coachId"
       WHERE invite."coachId" = ${coachId}
@@ -474,8 +476,242 @@ export const coachingRepository = {
         name: row.coach_name,
         email: row.coach_email,
         image: row.coach_image
-      }
+      },
+      coachProfileSlug: row.coach_slug
     }))
+  },
+
+  async getPendingCoachingRequestsForCoach(coachId: string) {
+    return await (prisma as any).coachingRequest.findMany({
+      where: {
+        coachId,
+        status: 'PENDING'
+      },
+      include: {
+        athlete: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            coaches: {
+              where: { status: 'ACTIVE' },
+              include: {
+                coach: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  },
+
+  async getPendingCoachingRequestForCoachById(coachId: string, requestId: string) {
+    return await (prisma as any).coachingRequest.findFirst({
+      where: {
+        id: requestId,
+        coachId,
+        status: 'PENDING'
+      },
+      include: {
+        athlete: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        }
+      }
+    })
+  },
+
+  async createCoachingRequestForAthlete(input: {
+    coachId: string
+    athleteId: string
+    answers: any[]
+    athleteSnapshot?: Record<string, any> | null
+  }) {
+    const { coachId, athleteId, answers, athleteSnapshot } = input
+
+    if (coachId === athleteId) {
+      throw new Error('You cannot request coaching from yourself')
+    }
+
+    const [coach, athlete] = await Promise.all([
+      (prisma as any).user.findUnique({
+        where: { id: coachId },
+        select: { id: true }
+      }),
+      (prisma as any).user.findUnique({
+        where: { id: athleteId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          coaches: {
+            where: { status: 'ACTIVE' },
+            include: {
+              coach: {
+                select: { id: true, name: true, email: true }
+              }
+            }
+          }
+        }
+      })
+    ])
+
+    if (!coach) {
+      throw new Error('Coach account not found')
+    }
+
+    if (!athlete) {
+      throw new Error('Athlete account not found')
+    }
+
+    const existingPending = await (prisma as any).coachingRequest.findFirst({
+      where: {
+        coachId,
+        athleteId,
+        status: 'PENDING'
+      }
+    })
+
+    if (existingPending) {
+      return await (prisma as any).coachingRequest.update({
+        where: { id: existingPending.id },
+        data: {
+          answers,
+          athleteSnapshot: athleteSnapshot || {
+            name: athlete.name,
+            email: athlete.email,
+            image: athlete.image,
+            activeCoaches: athlete.coaches.map((rel: any) => ({
+              id: rel.coach.id,
+              name: rel.coach.name,
+              email: rel.coach.email
+            }))
+          }
+        }
+      })
+    }
+
+    return await (prisma as any).coachingRequest.create({
+      data: {
+        coachId,
+        athleteId,
+        status: 'PENDING',
+        source: 'coachStartPage',
+        answers,
+        athleteSnapshot: athleteSnapshot || {
+          name: athlete.name,
+          email: athlete.email,
+          image: athlete.image,
+          activeCoaches: athlete.coaches.map((rel: any) => ({
+            id: rel.coach.id,
+            name: rel.coach.name,
+            email: rel.coach.email
+          }))
+        }
+      }
+    })
+  },
+
+  async approveCoachingRequest(coachId: string, requestId: string) {
+    const request = await this.getPendingCoachingRequestForCoachById(coachId, requestId)
+    if (!request) {
+      throw new Error('Request not found')
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const relationship = await (tx as any).coachingRelationship.upsert({
+        where: {
+          coachId_athleteId: {
+            coachId,
+            athleteId: request.athleteId
+          }
+        },
+        update: {
+          status: 'ACTIVE'
+        },
+        create: {
+          coachId,
+          athleteId: request.athleteId,
+          status: 'ACTIVE'
+        }
+      })
+
+      const updatedRequest = await (tx as any).coachingRequest.update({
+        where: { id: request.id },
+        data: {
+          status: 'APPROVED',
+          reviewedAt: new Date()
+        }
+      })
+
+      return {
+        relationship,
+        request: updatedRequest
+      }
+    })
+  },
+
+  async declineCoachingRequest(coachId: string, requestId: string) {
+    const request = await this.getPendingCoachingRequestForCoachById(coachId, requestId)
+    if (!request) {
+      throw new Error('Request not found')
+    }
+
+    return await (prisma as any).coachingRequest.update({
+      where: { id: request.id },
+      data: {
+        status: 'DECLINED',
+        reviewedAt: new Date()
+      }
+    })
+  },
+
+  async getActivePublicAthleteInviteForCoach(coachId: string) {
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string
+        code: string
+        expiresAt: Date
+        coach_slug: string | null
+      }>
+    >(Prisma.sql`
+      SELECT
+        invite."id",
+        invite."code",
+        invite."expiresAt",
+        coach."coachProfileSlug" AS coach_slug
+      FROM "CoachAthleteInvite" invite
+      JOIN "User" coach ON coach."id" = invite."coachId"
+      WHERE invite."coachId" = ${coachId}
+        AND invite."email" IS NULL
+        AND invite."status" = 'PENDING'
+        AND invite."expiresAt" > NOW()
+      ORDER BY invite."createdAt" DESC
+      LIMIT 1
+    `)
+
+    const invite = rows[0]
+    if (!invite) return null
+
+    return {
+      id: invite.id,
+      code: invite.code,
+      expiresAt: invite.expiresAt,
+      coachProfileSlug: invite.coach_slug
+    }
   },
 
   async createAthleteInviteForCoach(coachId: string, email?: string | null) {
