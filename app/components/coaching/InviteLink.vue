@@ -1,8 +1,10 @@
 <script setup lang="ts">
   import QRCode from 'qrcode'
+  import { buildPublicCoachStartPath } from '#shared/public-presence'
 
   const props = defineProps<{
     code: string
+    coachSlug?: string | null
     label?: string
     variant?: 'soft' | 'subtle' | 'outline' | 'ghost'
   }>()
@@ -12,7 +14,8 @@
 
   const joinUrl = computed(() => {
     const base = import.meta.client ? window.location.origin : 'https://coachwatts.com'
-    return `${base}/join/${props.code.toUpperCase()}`
+    const brandedPath = buildPublicCoachStartPath(props.coachSlug)
+    return brandedPath ? `${base}${brandedPath}` : `${base}/join/${props.code.toUpperCase()}`
   })
 
   function copyUrl() {
