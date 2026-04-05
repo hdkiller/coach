@@ -75,6 +75,12 @@ model User {
   publicWebsiteUrl                   String?
   publicSocialLinks                  Json?
   publicCoachingBrand                String?
+  coachProfileEnabled                Boolean                      @default(false)
+  coachProfileSlug                   String?                      @unique
+  coachPublicPage                    Json?
+  athleteProfileEnabled              Boolean                      @default(false)
+  athleteProfileSlug                 String?                      @unique
+  athletePublicPage                  Json?
   nutritionTrackingEnabled           Boolean                      @default(true)
   recoverySensitivity                String?                      @default("MEDIUM")
   lastLoginAt                        DateTime?
@@ -116,6 +122,8 @@ model User {
   invites                            CoachingInvite[]
   coaches                            CoachingRelationship[]       @relation("AthleteRelation")
   athletes                           CoachingRelationship[]       @relation("CoachRelation")
+  coachingRequestsReceived           CoachingRequest[]            @relation("CoachRequestsReceived")
+  coachingRequestsSent               CoachingRequest[]            @relation("AthleteRequestsSent")
   dailyCheckins                      DailyCheckin[]
   dailyMetrics                       DailyMetric[]
   events                             Event[]
@@ -407,6 +415,24 @@ model CoachAthleteInvite {
   @@index([coachId])
   @@index([email])
   @@index([code])
+}
+
+model CoachingRequest {
+  id             String   @id @default(uuid())
+  coachId        String
+  athleteId      String
+  status         String   @default("PENDING")
+  source         String   @default("coachStartPage")
+  answers        Json?
+  athleteSnapshot Json?
+  reviewedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  coach          User     @relation("CoachRequestsReceived", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete        User     @relation("AthleteRequestsSent", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, status])
+  @@index([athleteId, status])
 }
 
 model Goal {
