@@ -10,6 +10,7 @@ import {
   fetchYazioDailySummary,
   fetchYazioConsumedItems,
   fetchYazioProductDetails,
+  mergeYazioNutritionWithExisting,
   normalizeYazioData
 } from '../server/utils/yazio'
 import type { IngestionResult } from './types'
@@ -121,15 +122,18 @@ export const ingestYazioTask = task({
 
           const productsCount = items?.products?.length || 0
           const simpleProductsCount = items?.simple_products?.length || 0
-          const totalItems = productsCount + simpleProductsCount
+          const recipePortionsCount = items?.recipe_portions?.length || 0
+          const totalItems = productsCount + simpleProductsCount + recipePortionsCount
+          const waterIntake = Number(summary?.water_intake || 0)
+          const hasHydrationOnlyData = waterIntake > 0
 
           logger.log(
-            `[${date}] Found ${totalItems} items (${productsCount} products, ${simpleProductsCount} simple)`
+            `[${date}] Found ${totalItems} items (${productsCount} products, ${simpleProductsCount} simple, ${recipePortionsCount} recipes)`
           )
 
-          if (totalItems === 0) {
+          if (totalItems === 0 && !hasHydrationOnlyData) {
             skippedCount++
-            logger.log(`[${date}] ⊘ Skipping - no food logged`)
+            logger.log(`[${date}] ⊘ Skipping - no food or hydration logged`)
             continue
           }
 
@@ -282,31 +286,32 @@ export const ingestYazioTask = task({
           const canonicalExisting = existingNutrition
             ? applyCanonicalNutritionTargets(existingNutrition as any)
             : null
+          const mergedNutrition = mergeYazioNutritionWithExisting(nutrition, existingNutrition)
 
           // Upsert to database
           // When updating, clear AI analysis since the underlying data has changed
           const result = await nutritionRepository.upsert(
             userId,
-            nutrition.date,
-            nutrition as any,
+            mergedNutrition.date,
+            mergedNutrition as any,
             {
-              ...nutrition,
+              ...mergedNutrition,
               caloriesGoal: canonicalExisting?.fuelingPlan
                 ? canonicalExisting.caloriesGoal
-                : nutrition.caloriesGoal,
+                : mergedNutrition.caloriesGoal,
               carbsGoal: canonicalExisting?.fuelingPlan
                 ? canonicalExisting.carbsGoal
-                : nutrition.carbsGoal,
+                : mergedNutrition.carbsGoal,
               proteinGoal: canonicalExisting?.fuelingPlan
                 ? canonicalExisting.proteinGoal
-                : nutrition.proteinGoal,
+                : mergedNutrition.proteinGoal,
               fatGoal: canonicalExisting?.fuelingPlan
                 ? canonicalExisting.fatGoal
-                : nutrition.fatGoal,
+                : mergedNutrition.fatGoal,
               fuelingPlan: canonicalExisting?.fuelingPlan ?? undefined,
               sourcePrecedence: canonicalExisting?.fuelingPlan
                 ? canonicalExisting.sourcePrecedence
-                : nutrition.sourcePrecedence,
+                : mergedNutrition.sourcePrecedence,
               // Clear AI analysis fields since nutrition data has changed
               aiAnalysis: null,
               aiAnalysisJson: null,

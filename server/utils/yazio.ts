@@ -1,6 +1,7 @@
 import { Yazio } from 'yazio'
 import type { Integration } from '@prisma/client'
 import { getProfileForItem } from './nutrition-domain/absorption'
+import { recalculateNutritionTotals } from './nutrition/totals'
 
 export interface YazioDailySummary {
   steps?: number
@@ -68,6 +69,7 @@ export interface YazioConsumedItemsResponse {
 
 type MealGroupKey = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
 type MacroTotals = ReturnType<typeof extractMacroFields>
+const MEAL_KEYS: MealGroupKey[] = ['breakfast', 'lunch', 'dinner', 'snacks']
 
 function getMealGroupKey(daytime: string | null | undefined): MealGroupKey {
   const normalized = String(daytime || '')
@@ -77,6 +79,66 @@ function getMealGroupKey(daytime: string | null | undefined): MealGroupKey {
     return normalized
   }
   return 'snacks'
+}
+
+function asItemArray(value: unknown): any[] {
+  return Array.isArray(value) ? value : []
+}
+
+function getYazioIdentity(item: any): string | null {
+  if (!item || typeof item !== 'object') return null
+  if (typeof item.id === 'string' && item.id.length > 0) return `id:${item.id}`
+  return null
+}
+
+function hasOwn<T extends string>(value: unknown, key: T): value is Record<T, unknown> {
+  return !!value && typeof value === 'object' && key in value
+}
+
+function isLikelyYazioItem(item: any, incomingIdentities: Set<string>): boolean {
+  if (!item || typeof item !== 'object') return false
+  if (item.source === 'yazio') return true
+
+  const identity = getYazioIdentity(item)
+  if (identity && incomingIdentities.has(identity)) return true
+
+  return (
+    hasOwn(item, 'daytime') ||
+    hasOwn(item, 'product_id') ||
+    hasOwn(item, 'serving_quantity') ||
+    item.type === 'product' ||
+    item.type === 'simple_product' ||
+    item.type === 'recipe_portion'
+  )
+}
+
+function isFluidLikeUnit(unit: unknown): boolean {
+  const normalized = String(unit || '')
+    .toLowerCase()
+    .trim()
+
+  return (
+    normalized === 'ml' ||
+    normalized === 'l' ||
+    normalized === 'liter' ||
+    normalized === 'liters' ||
+    normalized === 'litre' ||
+    normalized === 'litres' ||
+    normalized === 'milliliter' ||
+    normalized === 'milliliters' ||
+    normalized === 'millilitre' ||
+    normalized === 'millilitres' ||
+    normalized === 'oz' ||
+    normalized === 'fl oz' ||
+    normalized === 'floz' ||
+    normalized === 'ounce' ||
+    normalized === 'ounces'
+  )
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
 }
 
 function getNutrientValue(
@@ -195,6 +257,139 @@ export async function fetchYazioProductDetails(
   return await yazio.products.get(productId)
 }
 
+export function mergeYazioNutritionWithExisting(
+  incomingNutrition: any,
+  existingNutrition: any | null
+) {
+  if (!existingNutrition) return incomingNutrition
+
+  const incomingIdentities = new Set<string>()
+  for (const mealKey of MEAL_KEYS) {
+    for (const item of asItemArray(incomingNutrition[mealKey])) {
+      const identity = getYazioIdentity(item)
+      if (identity) incomingIdentities.add(identity)
+    }
+  }
+
+  const existingYazioByIdentity = new Map<string, any>()
+  const existingMealByIdentity = new Map<string, MealGroupKey>()
+
+  for (const mealKey of MEAL_KEYS) {
+    const existingItems = asItemArray(existingNutrition[mealKey])
+    for (const existingItem of existingItems) {
+      const identity = getYazioIdentity(existingItem)
+      if (!identity || !isLikelyYazioItem(existingItem, incomingIdentities)) continue
+      existingYazioByIdentity.set(identity, existingItem)
+      existingMealByIdentity.set(identity, mealKey)
+    }
+  }
+
+  const mergedMealItems: Record<MealGroupKey, any[]> = {
+    breakfast: [],
+    lunch: [],
+    dinner: [],
+    snacks: []
+  }
+
+  for (const mealKey of MEAL_KEYS) {
+    const existingItems = asItemArray(existingNutrition[mealKey])
+    const existingNonYazioItems = existingItems.filter(
+      (item) => !isLikelyYazioItem(item, incomingIdentities)
+    )
+    const incomingItems = asItemArray(incomingNutrition[mealKey])
+
+    mergedMealItems[mealKey].push(...existingNonYazioItems)
+
+    for (const incomingItem of incomingItems) {
+      const identity = getYazioIdentity(incomingItem)
+      const existing = identity ? existingYazioByIdentity.get(identity) : null
+
+      if (!existing) {
+        mergedMealItems[mealKey].push(incomingItem)
+        continue
+      }
+
+      const existingLoggedAt =
+        typeof existing.logged_at === 'string' && existing.logged_at.length > 0
+          ? existing.logged_at
+          : null
+      const incomingLoggedAt =
+        typeof incomingItem.logged_at === 'string' && incomingItem.logged_at.length > 0
+          ? incomingItem.logged_at
+          : null
+      const preserveManualLoggedAt =
+        !!existingLoggedAt && !!incomingLoggedAt && existingLoggedAt !== incomingLoggedAt
+
+      const existingWaterMl = toFiniteNumber(existing.water_ml)
+      const incomingWaterMl = toFiniteNumber(incomingItem.water_ml)
+      const existingFluidMl = toFiniteNumber(existing.fluidMl)
+      const incomingFluidMl = toFiniteNumber(incomingItem.fluidMl)
+      const preserveFluidOverride =
+        existing.entryType === 'HYDRATION' ||
+        isFluidLikeUnit(existing.unit) ||
+        (existingWaterMl ?? 0) > 0 ||
+        (existingFluidMl ?? 0) > 0 ||
+        (toFiniteNumber(existing.hydrationContributionMl) ?? 0) > 0
+
+      const mergedItem: any = {
+        ...incomingItem,
+        id: existing.id || incomingItem.id,
+        ...(preserveManualLoggedAt ? { logged_at: existingLoggedAt } : {})
+      }
+
+      if (preserveFluidOverride) {
+        if (existing.unit !== undefined) mergedItem.unit = existing.unit
+        if (existing.quantity !== undefined) mergedItem.quantity = existing.quantity
+        if (existing.amount !== undefined) mergedItem.amount = existing.amount
+        if (existing.entryType !== undefined) mergedItem.entryType = existing.entryType
+        if (
+          existing.water_ml !== undefined &&
+          ((incomingWaterMl ?? 0) === 0 || incomingItem.unit === 'g')
+        ) {
+          mergedItem.water_ml = existing.water_ml
+        }
+        if (existing.fluidMl !== undefined && (incomingFluidMl ?? 0) === 0) {
+          mergedItem.fluidMl = existing.fluidMl
+        }
+        if (existing.hydrationFactor !== undefined) {
+          mergedItem.hydrationFactor = existing.hydrationFactor
+        }
+        if (existing.hydrationContributionMl !== undefined) {
+          mergedItem.hydrationContributionMl = existing.hydrationContributionMl
+        }
+      }
+
+      const existingMeal = identity ? existingMealByIdentity.get(identity) : null
+      const targetMealKey = existingMeal && existingMeal !== mealKey ? existingMeal : mealKey
+      mergedMealItems[targetMealKey].push(mergedItem)
+    }
+  }
+
+  const mergedMeals: Record<MealGroupKey, any[] | null> = {
+    breakfast: mergedMealItems.breakfast.length ? mergedMealItems.breakfast : null,
+    lunch: mergedMealItems.lunch.length ? mergedMealItems.lunch : null,
+    dinner: mergedMealItems.dinner.length ? mergedMealItems.dinner : null,
+    snacks: mergedMealItems.snacks.length ? mergedMealItems.snacks : null
+  }
+
+  const mergedNutrition = {
+    ...incomingNutrition,
+    ...mergedMeals
+  }
+  const totals = recalculateNutritionTotals(mergedNutrition)
+
+  return {
+    ...mergedNutrition,
+    calories: totals.calories,
+    protein: totals.protein,
+    carbs: totals.carbs,
+    fat: totals.fat,
+    fiber: totals.fiber,
+    sugar: totals.sugar,
+    waterMl: totals.waterMl
+  }
+}
+
 export function normalizeYazioData(
   summary: YazioDailySummary,
   items: YazioConsumedItemsResponse,
@@ -248,6 +443,7 @@ export function normalizeYazioData(
     const enrichedItem = {
       ...item,
       logged_at: item.date, // Preserve Yazio's original timestamp
+      source: 'yazio',
       calories: calories,
       protein: protein,
       carbs: carbs,
@@ -278,6 +474,7 @@ export function normalizeYazioData(
       product_name: item.name, // Already has the name!
       product_brand: null,
       is_ai_generated: item.is_ai_generated,
+      source: 'yazio',
       nutrients: item.nutrients, // Keep original for reference
       // Add top-level fields for easy access in analysis
       calories: calories,
@@ -309,6 +506,7 @@ export function normalizeYazioData(
       serving: item.serving ?? null,
       amount: item.amount ?? item.serving_quantity ?? null,
       serving_quantity: item.serving_quantity ?? null,
+      source: 'yazio',
       nutrients,
       calories,
       protein,

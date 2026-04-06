@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  mergeYazioNutritionWithExisting,
   normalizeYazioData,
   type YazioConsumedItemsResponse,
   type YazioDailySummary
@@ -167,6 +168,181 @@ describe('normalizeYazioData', () => {
         carbs: 46.1,
         protein: 16,
         fat: 28.3
+      })
+    )
+  })
+
+  it('marks normalized Yazio items with source metadata for future merges', () => {
+    const summary: YazioDailySummary = {
+      meals: {
+        breakfast: {
+          nutrients: {
+            'energy.energy': 95,
+            'nutrient.carb': 25
+          }
+        }
+      }
+    }
+
+    const items: YazioConsumedItemsResponse = {
+      products: [],
+      simple_products: [
+        {
+          id: 'simple-1',
+          date: '2026-04-03T08:15:00.000Z',
+          name: 'Water',
+          type: 'simple_product',
+          daytime: 'breakfast',
+          nutrients: {
+            'energy.energy': 0
+          }
+        }
+      ],
+      recipe_portions: []
+    }
+
+    const result = normalizeYazioData(summary, items, 'user-1', '2026-04-03')
+
+    expect(result.breakfast).toEqual([
+      expect.objectContaining({
+        id: 'simple-1',
+        source: 'yazio'
+      })
+    ])
+  })
+})
+
+describe('mergeYazioNutritionWithExisting', () => {
+  it('preserves app-managed items that are not part of the incoming Yazio payload', () => {
+    const incoming = {
+      userId: 'user-1',
+      date: new Date('2026-04-03T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'yazio-1',
+          source: 'yazio',
+          name: 'Eggs',
+          calories: 200,
+          protein: 15,
+          carbs: 2,
+          fat: 14,
+          logged_at: '2026-04-03T07:00:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: null
+    }
+
+    const existing = {
+      userId: 'user-1',
+      date: new Date('2026-04-03T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'yazio-1',
+          source: 'yazio',
+          name: 'Eggs',
+          calories: 200,
+          protein: 15,
+          carbs: 2,
+          fat: 14,
+          logged_at: '2026-04-03T07:00:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: [
+        {
+          id: 'manual-1',
+          source: 'ai',
+          name: 'Coffee',
+          entryType: 'HYDRATION',
+          water_ml: 300,
+          fluidMl: 300,
+          hydrationFactor: 0.9,
+          hydrationContributionMl: 270,
+          calories: 5,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          logged_at: '2026-04-03T06:20:00.000Z'
+        }
+      ]
+    }
+
+    const merged = mergeYazioNutritionWithExisting(incoming, existing)
+
+    expect(merged.snacks).toEqual([
+      expect.objectContaining({
+        id: 'manual-1',
+        source: 'ai',
+        water_ml: 300
+      })
+    ])
+    expect(merged.waterMl).toBeGreaterThanOrEqual(270)
+  })
+
+  it('preserves manual fluid-unit overrides for matched Yazio items', () => {
+    const incoming = {
+      userId: 'user-1',
+      date: new Date('2026-04-03T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'yazio-water-1',
+          source: 'yazio',
+          name: 'Water',
+          unit: 'g',
+          amount: 300,
+          water_ml: 0,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          logged_at: '2026-04-03T07:15:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: null
+    }
+
+    const existing = {
+      userId: 'user-1',
+      date: new Date('2026-04-03T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'yazio-water-1',
+          source: 'yazio',
+          name: 'Water',
+          unit: 'ml',
+          amount: 300,
+          water_ml: 300,
+          fluidMl: 300,
+          hydrationFactor: 1,
+          hydrationContributionMl: 300,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          logged_at: '2026-04-03T06:15:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: null
+    }
+
+    const merged = mergeYazioNutritionWithExisting(incoming, existing)
+    const breakfast = merged.breakfast as any[]
+
+    expect(breakfast[0]).toEqual(
+      expect.objectContaining({
+        id: 'yazio-water-1',
+        unit: 'ml',
+        amount: 300,
+        water_ml: 300,
+        hydrationContributionMl: 300,
+        logged_at: '2026-04-03T06:15:00.000Z'
       })
     )
   })
