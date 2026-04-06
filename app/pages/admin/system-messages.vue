@@ -234,7 +234,7 @@
     data: messagesData,
     pending,
     refresh
-  } = await useFetch<{ messages: any[] }>('/api/admin/system-messages')
+  } = (await (useFetch as any)('/api/admin/system-messages')) as any
   const messages = computed(() =>
     (messagesData.value?.messages || []).map((m: any) => ({
       ...m,

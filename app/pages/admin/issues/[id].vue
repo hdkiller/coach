@@ -215,7 +215,7 @@
     reactingIssueId.value = true
     isIssueReactionPopoverOpen.value = false
     try {
-      await $fetch<any>(`/api/admin/issues/${id}/reaction`, {
+      await ($fetch as any)(`/api/admin/issues/${id}/reaction`, {
         method: 'POST',
         body: { emoji }
       } as any)
@@ -233,7 +233,7 @@
     reactingCommentId.value = commentId
     openReactionCommentId.value = null
     try {
-      await $fetch<any>(`/api/admin/issues/${id}/comments/${commentId}/reaction`, {
+      await ($fetch as any)(`/api/admin/issues/${id}/comments/${commentId}/reaction`, {
         method: 'POST',
         body: { emoji }
       } as any)

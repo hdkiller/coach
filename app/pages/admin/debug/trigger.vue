@@ -14,7 +14,7 @@
 
   // Fetch Trigger config
 
-  const { data: envData } = await useFetch<any>('/api/admin/debug/env')
+  const { data: envData } = (await (useFetch as any)('/api/admin/debug/env')) as any
 
   const triggerConfig = computed(() => {
     const env = envData.value?.env || {}
@@ -30,13 +30,10 @@
     loading.value = taskName
     result.value = null
     try {
-      const res = await $fetch<{ success: boolean; runId: string; runUrl: string }>(
-        '/api/admin/debug/trigger-test',
-        {
-          method: 'POST',
-          body: { taskName }
-        }
-      )
+      const res = (await ($fetch as any)('/api/admin/debug/trigger-test', {
+        method: 'POST',
+        body: { taskName }
+      })) as { success: boolean; runId: string; runUrl: string }
       result.value = res
       toast.add({ title: 'Task Triggered', description: `Run ID: ${res.runId}`, color: 'success' })
     } catch (e: any) {

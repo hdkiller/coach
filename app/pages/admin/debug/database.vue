@@ -28,9 +28,9 @@
     total_size_bytes: number
   }
 
-  const { data: stats, pending, refresh } = useFetch<TableStat[]>('/api/admin/database')
+  const { data: stats, pending, refresh } = (useFetch as any)('/api/admin/database') as any
 
-  const formatBytes = (bytes: number, decimals = 2) => {
+  const formatBytes = (bytes: number | undefined | null, decimals = 2) => {
     if (!bytes) return '0 Bytes'
 
     const k = 1024
@@ -87,10 +87,10 @@
 
           <UTable :columns="columns" :data="stats || []" :loading="pending">
             <template #row_count-cell="{ row }">
-              {{ row.original.row_count.toLocaleString() }}
+              {{ ((row.original as any).row_count ?? 0).toLocaleString() }}
             </template>
             <template #total_size_bytes-cell="{ row }">
-              {{ formatBytes(row.original.total_size_bytes) }}
+              {{ formatBytes((row.original as any).total_size_bytes ?? 0) }}
             </template>
           </UTable>
         </UCard>

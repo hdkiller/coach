@@ -13,7 +13,7 @@
     }
   }
 
-  const { data, pending, refresh } = await useFetch<EnvResponse>('/api/admin/debug/env')
+  const { data, pending, refresh } = (await (useFetch as any)('/api/admin/debug/env')) as any
   const searchQuery = ref('')
 
   const filteredRows = computed(() => {
