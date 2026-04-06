@@ -30,13 +30,13 @@ export function usePlanArchitect(planId: string) {
     data: workoutTemplates,
     status: workoutTemplateStatus,
     refresh: refreshWorkoutTemplates
-  } = useLazyFetch<any[]>('/api/library/workouts', {
+  } = (useLazyFetch as any)('/api/library/workouts', {
     server: false,
-    default: () => [],
+    default: () => [] as any[],
     query: computed(() => ({
       scope: librarySource.value
     }))
-  })
+  }) as any
 
   // State
   const loading = computed(() => status.value === 'pending' && !draftPlan.value)

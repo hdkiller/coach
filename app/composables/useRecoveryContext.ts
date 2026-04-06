@@ -4,15 +4,12 @@ export function useRecoveryContext(period: Ref<string | number> | ComputedRef<st
   const normalizedPeriod = computed(() => unref(period))
   const { getUserLocalDate } = useFormat()
 
-  const { data, pending, refresh, error } = useFetch<RecoveryContextItem[]>(
-    '/api/recovery-context',
-    {
-      query: computed(() => ({
-        days: unref(period)
-      })),
-      default: () => []
-    }
-  )
+  const { data, pending, refresh, error } = (useFetch as any)('/api/recovery-context', {
+    query: computed(() => ({
+      days: unref(period)
+    })),
+    default: () => []
+  }) as any
 
   const items = computed(() => data.value || [])
 

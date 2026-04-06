@@ -15,9 +15,10 @@ export const useReleaseNotes = () => {
 
     loading.value = true
     try {
-      const { version, content } = await $fetch<{ version: string; content: string | null }>(
-        '/api/releases/current'
-      )
+      const { version, content } = (await ($fetch as any)('/api/releases/current')) as {
+        version: string
+        content: string | null
+      }
 
       if (!content) {
         hasNewRelease.value = false

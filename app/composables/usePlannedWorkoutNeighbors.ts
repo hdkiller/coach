@@ -23,9 +23,10 @@ export function usePlannedWorkoutNeighbors(workoutIdSource: any) {
 
     neighborsPending.value = true
     try {
-      const response = await $fetch<{ previous: NeighborWorkout; next: NeighborWorkout }>(
-        `/api/workouts/planned/${workoutId}/neighbors`
-      )
+      const response = (await ($fetch as any)(`/api/workouts/planned/${workoutId}/neighbors`)) as {
+        previous: NeighborWorkout
+        next: NeighborWorkout
+      }
       previousWorkout.value = response?.previous || null
       nextWorkout.value = response?.next || null
     } catch {
