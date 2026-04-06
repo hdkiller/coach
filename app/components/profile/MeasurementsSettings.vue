@@ -588,7 +588,9 @@
       query.cursorId = nextCursor.value.id
     }
 
-    const response = await $fetch<{
+    const response = (await ($fetch as any)('/api/body-measurements', {
+      query
+    })) as {
       items?: any[]
       latestByMetric?: Record<string, any>
       latestByMetricSource?: Record<string, Record<string, any>>
@@ -596,9 +598,7 @@
         hasMore?: boolean
         nextCursor?: { recordedAt: string; id: string } | null
       }
-    }>('/api/body-measurements', {
-      query
-    })
+    }
 
     latestMetricEntries.value = response.latestByMetric || {}
     latestMetricSourceEntries.value = response.latestByMetricSource || {}

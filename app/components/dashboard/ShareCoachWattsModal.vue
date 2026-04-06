@@ -236,7 +236,7 @@
 
     claimingReward.value = true
     try {
-      const response = (await $fetch('/api/system-messages/share-reward/claim', {
+      const response = (await ($fetch as any)('/api/system-messages/share-reward/claim', {
         method: 'POST',
         body: { messageId: messageId || undefined }
       } as any)) as {

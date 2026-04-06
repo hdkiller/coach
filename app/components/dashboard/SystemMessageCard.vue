@@ -156,9 +156,9 @@
 
   async function fetchMessage() {
     try {
-      const { message: msg } = await $fetch<{ message: DashboardSystemMessage | null }>(
-        '/api/system-messages/latest'
-      )
+      const { message: msg } = (await ($fetch as any)('/api/system-messages/latest')) as {
+        message: DashboardSystemMessage | null
+      }
       message.value = msg
       if (msg?.type === 'SHARE') {
         trackSharePromptView('SHARE')

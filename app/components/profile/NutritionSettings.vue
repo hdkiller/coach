@@ -1325,10 +1325,10 @@
   async function saveSettings() {
     loading.value = true
     try {
-      const response = await $fetch<{ settings?: Record<string, any> }>('/api/profile/nutrition', {
+      const response = (await ($fetch as any)('/api/profile/nutrition', {
         method: 'POST',
         body: localSettings.value
-      })
+      })) as { settings?: Record<string, any> }
 
       if (response?.settings) {
         localSettings.value = {

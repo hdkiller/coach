@@ -133,14 +133,10 @@
 
   const { formatRelativeTime, formatUserDate, timezone } = useFormat()
 
-  const { data, pending } = useFetch<{
-    tier: string
-    trialEndsAt: string | null
-    quotas: QuotaStatus[]
-  }>('/api/profile/quotas', {
+  const { data, pending } = (useFetch as any)('/api/profile/quotas', {
     server: false,
     lazy: true
-  })
+  }) as any
 
   const isTrialActive = computed(() => {
     if (!data.value?.trialEndsAt) return false
