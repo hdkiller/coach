@@ -152,7 +152,7 @@ export default defineEventHandler(async (event) => {
   // Check authentication (supports Session, API Key, and OAuth Token)
   const user = await requireAuth(event, ['health:write'])
 
-  const body = await readBody(event)
+  const body = normalizeWellnessFields(await readBody(event))
   const result = wellnessUploadSchema.safeParse(body)
 
   if (!result.success) {

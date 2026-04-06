@@ -31,5 +31,17 @@ export function normalizeWellnessFields<T extends Record<string, any>>(data: T):
     normalized.stress = normalizeStressScoreForStorage(normalized.stress)
   }
 
+  // Calorie fields are stored as integers, but some clients may send
+  // decimal values. Accept them and normalize to the nearest kcal.
+  for (const key of [
+    'restingCaloriesBurned',
+    'activeCaloriesBurned',
+    'totalCaloriesBurned'
+  ] as const) {
+    if (typeof normalized[key] === 'number' && Number.isFinite(normalized[key])) {
+      normalized[key] = Math.round(normalized[key])
+    }
+  }
+
   return normalized as T
 }
