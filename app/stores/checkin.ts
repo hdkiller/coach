@@ -18,7 +18,7 @@ export const useCheckinStore = defineStore('checkin', () => {
   async function fetchToday() {
     try {
       loading.value = true
-      const data = await $fetch<any>('/api/checkin/today')
+      const data = await ($fetch as any)('/api/checkin/today')
       currentCheckin.value = data
     } catch (e: any) {
       error.value = e.message

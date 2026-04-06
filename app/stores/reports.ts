@@ -12,7 +12,7 @@ export const useReportStore = defineStore('report', () => {
   async function fetchReports() {
     status.value = 'pending'
     try {
-      const data = await $fetch<any[]>('/api/reports')
+      const data = await ($fetch as any)('/api/reports')
       reports.value = data || []
       status.value = 'success'
     } catch (error) {
@@ -79,10 +79,10 @@ export const useReportStore = defineStore('report', () => {
         }
       }
 
-      const result = await $fetch<{ reportId: string }>('/api/reports/generate', {
+      const result = (await ($fetch as any)('/api/reports/generate', {
         method: 'POST',
         body
-      })
+      })) as { reportId: string }
       refreshRuns()
 
       toast.add({
