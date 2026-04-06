@@ -277,6 +277,21 @@ function buildHumangoReconciliationLogPayload(params: {
   }
 }
 
+function getIntervalsDeletedEventIds(deletedEvents: any[]): string[] {
+  return deletedEvents
+    .map((entry: any) => {
+      if (entry == null) return null
+      if (typeof entry === 'string' || typeof entry === 'number') {
+        return String(entry)
+      }
+      if (typeof entry === 'object' && 'id' in entry && entry.id != null) {
+        return String(entry.id)
+      }
+      return null
+    })
+    .filter((id: string | null): id is string => !!id)
+}
+
 export const IntervalsService = {
   /**
    * Get athlete profile from Intervals.icu
@@ -909,16 +924,12 @@ export const IntervalsService = {
       for (const wellness of sortedWellness) {
         await heartbeats.yield()
 
-        const isNew = await upsertIntervalsWellnessSnapshot(
-          userId,
-          wellness,
-          {
-            readinessScale,
-            sleepScoreScale,
-            baselineRawReadiness,
-            historicalEndLocal
-          }
-        )
+        const isNew = await upsertIntervalsWellnessSnapshot(userId, wellness, {
+          readinessScale,
+          sleepScoreScale,
+          baselineRawReadiness,
+          historicalEndLocal
+        })
 
         if (isNew) {
           chunkUpsertedCount++
@@ -951,7 +962,9 @@ export const IntervalsService = {
     if (!Array.isArray(records) || records.length === 0) return 0
 
     const context = await buildIntervalsWellnessContext(userId)
-    const sortedRecords = [...records].sort((a, b) => String(a?.id || '').localeCompare(String(b?.id || '')))
+    const sortedRecords = [...records].sort((a, b) =>
+      String(a?.id || '').localeCompare(String(b?.id || ''))
+    )
 
     let upsertedCount = 0
     for (const record of sortedRecords) {
@@ -1710,7 +1723,7 @@ export const IntervalsService = {
         const changedEvents = Array.isArray(intervalEvent.events) ? intervalEvent.events : []
         const deletedEvents = intervalEvent.deleted_events || []
         if (deletedEvents.length > 0) {
-          const deletedIds = deletedEvents.map((id: any) => id.toString())
+          const deletedIds = getIntervalsDeletedEventIds(deletedEvents)
           await IntervalsService.deletePlannedWorkouts(userId, deletedIds)
         }
 

@@ -189,3 +189,31 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
     syncSpy.mockRestore()
   })
 })
+
+describe('IntervalsService CALENDAR_UPDATED', () => {
+  const userId = 'user-1'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.integration.findUnique).mockResolvedValue({
+      ingestWorkouts: true,
+      settings: null
+    } as any)
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([])
+  })
+
+  it('deletes planned workouts when deleted_events contains object payloads', async () => {
+    const deleteSpy = vi
+      .spyOn(IntervalsService, 'deletePlannedWorkouts')
+      .mockResolvedValue(undefined as any)
+
+    await IntervalsService.processWebhookEvent(userId, 'CALENDAR_UPDATED', {
+      deleted_events: [{ id: 102317301 }, { id: '102184251' }],
+      events: []
+    })
+
+    expect(deleteSpy).toHaveBeenCalledWith(userId, ['102317301', '102184251'])
+
+    deleteSpy.mockRestore()
+  })
+})
