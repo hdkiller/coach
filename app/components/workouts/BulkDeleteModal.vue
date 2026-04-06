@@ -166,17 +166,17 @@
   async function previewDeletion() {
     loading.value = true
     try {
-      const res = await $fetch<{
-        success: boolean
-        preview?: boolean
-        counts?: { plannedWorkouts: number; events: number; notes: number; total: number }
-      }>('/api/workouts/planned/bulk-delete', {
+      const res = (await ($fetch as any)('/api/workouts/planned/bulk-delete', {
         method: 'POST',
         body: {
           ...filters,
           preview: true
         }
-      })
+      })) as {
+        success: boolean
+        preview?: boolean
+        counts?: { plannedWorkouts: number; events: number; notes: number; total: number }
+      }
       if (res.counts) {
         previewCounts.value = res.counts
         step.value = 'confirm'
@@ -195,17 +195,17 @@
   async function executeDeletion() {
     loading.value = true
     try {
-      const res = await $fetch<{
-        success: boolean
-        preview?: boolean
-        deleted?: { plannedWorkouts: number; events: number; notes: number; total: number }
-      }>('/api/workouts/planned/bulk-delete', {
+      const res = (await ($fetch as any)('/api/workouts/planned/bulk-delete', {
         method: 'POST',
         body: {
           ...filters,
           preview: false
         }
-      })
+      })) as {
+        success: boolean
+        preview?: boolean
+        deleted?: { plannedWorkouts: number; events: number; notes: number; total: number }
+      }
       if (res.deleted) {
         toast.add({
           title: 'Deletion Complete',

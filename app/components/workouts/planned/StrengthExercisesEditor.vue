@@ -1192,7 +1192,7 @@
   async function fetchLibraryExercises() {
     libraryLoading.value = true
     try {
-      libraryItems.value = await $fetch('/api/library/strength-exercises', {
+      libraryItems.value = await ($fetch as any)('/api/library/strength-exercises', {
         query: {
           scope: props.ownerScope,
           q: libraryQuery.value || undefined

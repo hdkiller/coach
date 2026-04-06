@@ -9,8 +9,8 @@ import {
 } from './strengthWorkout'
 
 export type StrengthLibrarySetRow = {
-  id?: string
-  index?: number
+  id: string
+  index: number
   value?: string
   loadValue?: string
   restOverride?: string
@@ -35,7 +35,10 @@ export type StrengthLibraryExercise = {
   prescriptionMode?: StrengthPrescriptionMode
   loadMode?: StrengthLoadMode
   defaultRest?: string
+  showRestColumn?: boolean
   setRows?: StrengthLibrarySetRow[]
+  updatedAt?: string | Date
+  createdAt?: string | Date
 }
 
 export type StrengthLibraryExercisePayload = {
@@ -56,7 +59,10 @@ export type StrengthLibraryExercisePayload = {
   prescriptionMode?: StrengthPrescriptionMode
   loadMode?: StrengthLoadMode
   defaultRest?: string
+  showRestColumn?: boolean
   setRows?: StrengthLibrarySetRow[]
+  updatedAt?: string | Date
+  createdAt?: string | Date
 }
 
 function parseUrl(value: unknown) {
