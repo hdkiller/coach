@@ -159,7 +159,7 @@ export function buildTrainingPlansBrowsePath(filters: {
 }
 
 export function buildPublicCoachPath(slug?: string | null) {
-  return slug ? `/coach/${slug}` : null
+  return slug ? `/coach/${slug}` : undefined
 }
 
 export function isPlanFullyPublic(plan: {

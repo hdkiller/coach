@@ -456,17 +456,17 @@ export function buildDefaultAthletePublicProfile(): AthletePublicProfile {
 }
 
 export function buildPublicCoachPath(slug?: string | null) {
-  return slug ? `/coach/${slug}` : null
+  return slug ? `/coach/${slug}` : undefined
 }
 
 export function buildPublicCoachHomePath(slug?: string | null) {
-  return slug ? `/coach/${slug}/home` : null
+  return slug ? `/coach/${slug}/home` : undefined
 }
 
 export function buildPublicCoachStartPath(slug?: string | null) {
-  return slug ? `/coach/${slug}/start` : null
+  return slug ? `/coach/${slug}/start` : undefined
 }
 
 export function buildPublicAthletePath(slug?: string | null) {
-  return slug ? `/athlete/${slug}` : null
+  return slug ? `/athlete/${slug}` : undefined
 }

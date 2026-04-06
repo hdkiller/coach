@@ -13,14 +13,16 @@ import {
 import { slugifyPublicName } from '../../shared/public-plans'
 import { normalizeYouTubeUrl } from './strength-exercise-library'
 
-function formatZodIssuePath(path: (string | number)[]) {
-  return path.map((segment) => (typeof segment === 'number' ? `${segment + 1}` : segment)).join('.')
+function formatZodIssuePath(path: PropertyKey[]) {
+  return path
+    .map((segment) => (typeof segment === 'number' ? `${segment + 1}` : String(segment)))
+    .join('.')
 }
 
 function formatZodErrorMessage(error: z.ZodError, fallback: string) {
   const issue = error.issues[0]
   if (!issue) return fallback
-  const path = issue.path.length ? `${formatZodIssuePath(issue.path)}: ` : ''
+  const path = issue.path.length ? `${formatZodIssuePath(issue.path as PropertyKey[])}: ` : ''
   return `${path}${issue.message}`
 }
 
@@ -59,7 +61,7 @@ const coachSectionSchema = z.object({
   headline: z.string().max(160).nullable().optional(),
   intro: z.string().max(400).nullable().optional(),
   styleVariant: z.string().max(80).nullable().optional(),
-  content: z.record(z.string(), z.any()).optional().default({})
+  content: z.record(z.string(), z.any()).optional()
 })
 
 const coachStartSectionSchema = z.object({
@@ -71,7 +73,7 @@ const coachStartSectionSchema = z.object({
   headline: z.string().max(160).nullable().optional(),
   intro: z.string().max(400).nullable().optional(),
   styleVariant: z.string().max(80).nullable().optional(),
-  content: z.record(z.string(), z.any()).optional().default({})
+  content: z.record(z.string(), z.any()).optional()
 })
 
 const athleteSectionSchema = z.object({
@@ -83,7 +85,7 @@ const athleteSectionSchema = z.object({
   headline: z.string().max(160).nullable().optional(),
   intro: z.string().max(400).nullable().optional(),
   styleVariant: z.string().max(80).nullable().optional(),
-  content: z.record(z.string(), z.any()).optional().default({})
+  content: z.record(z.string(), z.any()).optional()
 })
 
 const testimonialSchema = z.object({
@@ -132,7 +134,7 @@ const coachStartFormFieldSchema = z.object({
   required: z.boolean().default(false),
   helpText: z.string().max(240).nullable().optional(),
   placeholder: z.string().max(200).nullable().optional(),
-  options: z.array(coachStartFormFieldOptionSchema).max(12).optional().default([])
+  options: z.array(coachStartFormFieldOptionSchema).max(12).optional()
 })
 
 const coachStartOfferSchema = z.object({
@@ -144,7 +146,7 @@ const coachStartOfferSchema = z.object({
   features: z.array(z.string().trim().min(1).max(140)).max(8).default([]),
   ctaLabel: z.string().max(80).nullable().optional(),
   ctaUrl: z.string().url().nullable().optional(),
-  highlighted: z.boolean().optional().default(false)
+  highlighted: z.boolean().optional()
 })
 
 const featuredPlanConfigSchema = z.object({
@@ -244,10 +246,13 @@ const coachStartPageSchema = z.object({
       successTitle: z.string().max(160).nullable().optional(),
       successMessage: z.string().max(400).nullable().optional()
     })
-    .default(buildDefaultCoachPublicProfile().startPage.settings),
-  sections: z.array(coachStartSectionSchema).default(buildDefaultCoachStartSections()),
+    .default(buildDefaultCoachPublicProfile().startPage.settings as any),
+  sections: z.array(coachStartSectionSchema).default(buildDefaultCoachStartSections() as any),
   introBody: z.string().max(4000).nullable().optional(),
-  steps: z.array(coachJoinPageStepSchema).length(3).default([]),
+  steps: z
+    .array(coachJoinPageStepSchema)
+    .length(3)
+    .default([] as any),
   faq: z.array(faqItemSchema).max(8).default([]),
   trustNote: z.string().max(400).nullable().optional(),
   noCommitmentBody: z.string().max(4000).nullable().optional(),
@@ -257,14 +262,14 @@ const coachStartPageSchema = z.object({
       note: z.string().max(400).nullable().optional(),
       offers: z.array(coachStartOfferSchema).max(6).default([])
     })
-    .default(buildDefaultCoachPublicProfile().startPage.pricing),
+    .default(buildDefaultCoachPublicProfile().startPage.pricing as any),
   form: z
     .object({
       title: z.string().max(160).nullable().optional(),
       intro: z.string().max(400).nullable().optional(),
       fields: z.array(coachStartFormFieldSchema).max(10).default([])
     })
-    .default(buildDefaultCoachPublicProfile().startPage.form)
+    .default(buildDefaultCoachPublicProfile().startPage.form as any)
 })
 
 export const coachPublicProfileSchema = z.object({
@@ -287,11 +292,11 @@ export const coachPublicProfileSchema = z.object({
     seoTitle: z.string().max(140).nullable().optional(),
     seoDescription: z.string().max(300).nullable().optional()
   }),
-  sections: z.array(coachSectionSchema).default(buildDefaultCoachPublicProfile().sections),
+  sections: z.array(coachSectionSchema).default(buildDefaultCoachPublicProfile().sections as any),
   media: z.array(publicMediaItemSchema).max(7).default([]),
   testimonials: z.array(testimonialSchema).max(8).default([]),
-  startPage: coachStartPageSchema.default(buildDefaultCoachPublicProfile().startPage),
-  joinPage: coachJoinPageSchema.default(buildDefaultCoachPublicProfile().joinPage)
+  startPage: coachStartPageSchema.default(buildDefaultCoachPublicProfile().startPage as any),
+  joinPage: coachJoinPageSchema.default(buildDefaultCoachPublicProfile().joinPage as any)
 })
 
 export const athletePublicProfileSchema = z.object({
@@ -309,7 +314,9 @@ export const athletePublicProfileSchema = z.object({
     seoTitle: z.string().max(140).nullable().optional(),
     seoDescription: z.string().max(300).nullable().optional()
   }),
-  sections: z.array(athleteSectionSchema).default(buildDefaultAthletePublicProfile().sections),
+  sections: z
+    .array(athleteSectionSchema)
+    .default(buildDefaultAthletePublicProfile().sections as any),
   media: z.array(publicMediaItemSchema).max(7).default([]),
   highlights: z.array(highlightSchema).max(8).default([]),
   achievements: z.array(achievementSchema).max(12).default([])
