@@ -854,17 +854,14 @@
     savingEditedMessage.value = true
 
     try {
-      const response = await $fetch<{ regenerateFromEdit?: boolean }>(
-        `/api/chat/messages/${editingMessage.value.id}`,
-        {
-          method: 'PATCH',
-          body: {
-            roomId: currentRoomId.value,
-            content,
-            regenerateFromEdit: true
-          }
+      const response = (await ($fetch as any)(`/api/chat/messages/${editingMessage.value.id}`, {
+        method: 'PATCH',
+        body: {
+          roomId: currentRoomId.value,
+          content,
+          regenerateFromEdit: true
         }
-      )
+      })) as { regenerateFromEdit?: boolean }
 
       cancelEditedMessage(true)
       await loadMessages(currentRoomId.value)

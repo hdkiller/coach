@@ -96,6 +96,7 @@
               v-model="selectedMuscleGroups"
               multiple
               :items="muscleGroupOptions"
+              value-key="value"
               placeholder="Filter muscle groups"
               class="w-full"
             />
@@ -605,6 +606,7 @@
                   v-model="form.targetMuscleGroups"
                   multiple
                   :items="muscleGroupOptions"
+                  value-key="value"
                   placeholder="Select target muscle groups"
                   class="w-full"
                 />

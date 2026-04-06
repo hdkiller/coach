@@ -175,14 +175,14 @@
 
   const selectedIntensity = ref('all')
 
-  const { data, status, refresh } = await useFetch<any[]>('/api/workouts', {
+  const { data, status, refresh } = (await (useFetch as any)('/api/workouts', {
     query: computed(() => ({
       limit: limit.value,
       offset: offset.value,
       type: selectedSport.value === 'all' ? undefined : selectedSport.value
     })),
     watch: [selectedSport, limit]
-  })
+  })) as any
 
   const filteredWorkouts = computed(() => {
     if (!workouts.value) return []

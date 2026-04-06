@@ -221,7 +221,7 @@
   const isShareModalOpen = ref(false)
   const shareExpiryValue = ref('2592000')
 
-  const { data, status, refresh } = await useFetch<any>('/api/plans/active')
+  const { data, status, refresh } = (await (useFetch as any)('/api/plans/active')) as any
   const activePlan = computed(() => data.value?.plan)
 
   const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(

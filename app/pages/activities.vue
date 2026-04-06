@@ -1200,13 +1200,13 @@
     data: workoutTemplates,
     status: workoutTemplateStatus,
     refresh: refreshWorkoutTemplates
-  } = useLazyFetch<any[]>('/api/library/workouts', {
+  } = (useLazyFetch as any)('/api/library/workouts', {
     server: false,
-    default: () => [],
+    default: () => [] as any[],
     query: computed(() => ({
       scope: workoutLibrarySource.value
     }))
-  })
+  }) as any
 
   const activityMenuItems = computed(() => {
     const isTReady = typeof t.value === 'function'
@@ -1291,10 +1291,10 @@
     data: calendarResponse,
     status,
     refresh
-  } = useFetch<any>('/api/calendar', {
+  } = (useFetch as any)('/api/calendar', {
     query: calendarRange,
     watch: [currentDate]
-  })
+  }) as any
 
   const activities = computed(() => {
     if (!calendarResponse.value) return []
@@ -1387,7 +1387,7 @@
   )
 
   // User Profile for Zones
-  const { data: profile } = useFetch<any>('/api/profile')
+  const { data: profile } = (useFetch as any)('/api/profile') as any
 
   const allSportSettings = computed(() => profile.value?.profile?.sportSettings || [])
 

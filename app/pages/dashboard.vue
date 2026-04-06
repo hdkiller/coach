@@ -560,7 +560,9 @@
   async function fetchUpcomingWorkouts() {
     loadingUpcoming.value = true
     try {
-      const { workouts } = await $fetch<{ workouts: any[] }>('/api/workouts/planned/upcoming')
+      const { workouts } = (await ($fetch as any)('/api/workouts/planned/upcoming')) as {
+        workouts: any[]
+      }
       if (workouts) {
         upcomingWorkouts.value = workouts
       }

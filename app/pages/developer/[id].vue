@@ -536,7 +536,11 @@
   const { data: authData } = useAuth()
   const isAdmin = computed(() => Boolean((authData.value?.user as any)?.isAdmin))
 
-  const { data: app, pending, refresh } = await useFetch<any>(`/api/developer/apps/${appId}`)
+  const {
+    data: app,
+    pending,
+    refresh
+  } = (await (useFetch as any)(`/api/developer/apps/${appId}`)) as any
 
   useHead({
     title: computed(() =>

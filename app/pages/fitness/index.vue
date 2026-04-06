@@ -486,7 +486,7 @@
   ]
 
   // Period-aware fetching for additional metrics
-  const { data: ftpData, pending: loadingFTP } = await useFetch<any>(
+  const { data: ftpData, pending: loadingFTP } = (await (useFetch as any)(
     '/api/performance/ftp-evolution',
     {
       query: computed(() => ({
@@ -500,9 +500,9 @@
               )
       }))
     }
-  )
+  )) as any
 
-  const { data: goalsData } = await useFetch<any>('/api/goals')
+  const { data: goalsData } = (await (useFetch as any)('/api/goals')) as any
   const {
     items: recoveryContextItems,
     activeToday: activeRecoveryItems,
@@ -512,14 +512,14 @@
     () => userStore.user?.dashboardSettings?.trainingLoad?.displayMode || 'adjusted'
   )
 
-  const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
+  const { data: pmcData, pending: loadingPMC } = (await (useFetch as any)('/api/performance/pmc', {
     query: computed(() => ({
       days: selectedPeriod.value,
       displayMode: trainingLoadDisplayMode.value
     }))
-  })
+  })) as any
 
-  const { data: zonesData, pending: loadingZones } = await useFetch<any>(
+  const { data: zonesData, pending: loadingZones } = (await (useFetch as any)(
     '/api/analytics/weekly-zones',
     {
       query: computed(() => ({
@@ -529,11 +529,11 @@
             : Math.ceil(
                 (typeof selectedPeriod.value === 'string'
                   ? parseInt(selectedPeriod.value)
-                  : selectedPeriod.value) / 7
+                  : selectedPeriod.value) / 30
               )
       }))
     }
-  )
+  )) as any
 
   // Trend Calculations
   const ctlChange = computed(() => {
