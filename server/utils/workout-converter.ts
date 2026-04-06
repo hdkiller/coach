@@ -730,6 +730,46 @@ export const WorkoutConverter = {
 
       return null
     }
+    const deriveRunPaceTargetFromPower = (
+      powerTarget: { value?: number; range?: { start: number; end: number }; units?: string } | null
+    ) => {
+      if (!isRun || !powerTarget) return null
+      const normalizedUnits = String(powerTarget.units || '')
+        .trim()
+        .toLowerCase()
+      const isRelativePower =
+        normalizedUnits.includes('%') ||
+        normalizedUnits === '' ||
+        normalizedUnits === 'ftp' ||
+        normalizedUnits === '%ftp'
+
+      const normalizeRelativeValue = (value: number) => {
+        if (!Number.isFinite(value) || value <= 0) return null
+        if (value > 3) return value / 100
+        return value
+      }
+
+      if (powerTarget.range) {
+        const start = normalizeRelativeValue(powerTarget.range.start)
+        const end = normalizeRelativeValue(powerTarget.range.end)
+        if (!isRelativePower || start === null || end === null) return null
+        return {
+          range: { start, end },
+          units: 'Pace'
+        }
+      }
+
+      if (typeof powerTarget.value === 'number') {
+        const value = normalizeRelativeValue(powerTarget.value)
+        if (!isRelativePower || value === null) return null
+        return {
+          value,
+          units: 'Pace'
+        }
+      }
+
+      return null
+    }
 
     if (workout.description) {
       const cleanPreamble = workout.description
@@ -802,7 +842,8 @@ export const WorkoutConverter = {
         const heartRate = normalizeHrTargetForExport(
           rawHeartRate || deriveRunHeartRateTargetFromPower(power)
         )
-        const pace = normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace)
+        const rawPace = normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace)
+        const pace = rawPace || deriveRunPaceTargetFromPower(power)
         const distanceStr = toDistanceToken(step.distance)
         const duration = step.durationSeconds || step.duration || 0
         const shouldIncludeDuration =
@@ -821,31 +862,41 @@ export const WorkoutConverter = {
         const metrics = metricPriority
         const shouldExportSinglePrimaryMetric =
           normalizedPolicy.strictPrimary || !normalizedPolicy.allowMixedTargetsPerStep
+        const prefersRunDualMetricExport =
+          isRun && metricPriority[0] === 'hr' && metricPriority[1] === 'pace'
+        const suppressPowerForRunDualMetric =
+          prefersRunDualMetricExport && Boolean(heartRate || pace)
+        const maxMetricsToExport = prefersRunDualMetricExport
+          ? 2
+          : shouldExportSinglePrimaryMetric
+            ? 1
+            : Number.POSITIVE_INFINITY
 
         for (const metric of metrics) {
           if (metric === 'hr') {
             const s = getHrStr()
             if (s) {
               intensities.push(s)
-              if (shouldExportSinglePrimaryMetric) break
+              if (intensities.length >= maxMetricsToExport) break
             }
           } else if (metric === 'power') {
+            if (suppressPowerForRunDualMetric) continue
             const s = getPowerStr()
             if (s) {
               intensities.push(s)
-              if (shouldExportSinglePrimaryMetric) break
+              if (intensities.length >= maxMetricsToExport) break
             }
           } else if (metric === 'pace') {
             const s = getPaceStr()
             if (s) {
               intensities.push(s)
-              if (shouldExportSinglePrimaryMetric) break
+              if (intensities.length >= maxMetricsToExport) break
             }
           } else if (metric === 'rpe') {
             const s = getRpeStr()
             if (s) {
               intensities.push(s)
-              if (shouldExportSinglePrimaryMetric) break
+              if (intensities.length >= maxMetricsToExport) break
             }
           }
         }

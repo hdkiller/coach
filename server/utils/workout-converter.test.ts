@@ -571,6 +571,41 @@ describe('WorkoutConverter', () => {
       expect(result).not.toContain('%ftp')
     })
 
+    it('exports legacy run power targets as HR plus Pace when run priority is HR_PACE', () => {
+      const workout = {
+        title: 'Tempo Run Intervals',
+        type: 'Run',
+        sportSettings: {
+          loadPreference: 'HR_PACE_POWER',
+          targetPolicy: {
+            primaryMetric: 'heartRate',
+            fallbackOrder: ['heartRate', 'pace', 'power'],
+            strictPrimary: true,
+            allowMixedTargetsPerStep: false
+          }
+        },
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { value: 90, units: '%ftp' },
+            name: 'Tempo'
+          },
+          {
+            type: 'Rest',
+            durationSeconds: 180,
+            power: { value: 60, units: '%ftp' },
+            name: 'Jog'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Tempo 10m 90% LTHR 90% Pace')
+      expect(result).toContain('- Jog 3m 60% LTHR 60% Pace')
+      expect(result).not.toContain('%ftp')
+    })
+
     it('can convert single HR targets into ranges using tolerance setting', () => {
       const workout = {
         title: 'Run Steady',

@@ -152,5 +152,17 @@ describe('Fit Utils', () => {
 
       expect(workout.title).toBe('Sunday Endurance Ride')
     })
+
+    it('falls back to a readable sport title when the filename is only numeric', () => {
+      const fitSession = {
+        start_time: new Date('2023-01-01T10:00:00Z'),
+        total_timer_time: 3600,
+        sport: 'cycling'
+      }
+
+      const workout = normalizeFitSession(fitSession, 'user-123', '476559673212829996.fit')
+
+      expect(workout.title).toBe('Cycling workout')
+    })
   })
 })

@@ -269,7 +269,14 @@ export function normalizeFitSession(
   // Use timestamp if available, otherwise filename hash
   const timestamp = session.start_time ? new Date(session.start_time).getTime() : Date.now()
   const externalId = `fit_${timestamp}_${filename.replace(/\W/g, '_')}`
-  const preferredTitle = activityName?.trim() || filename.replace('.fit', '').replace(/[_-]/g, ' ')
+  const filenameTitle = filename
+    .replace(/\.fit$/i, '')
+    .replace(/[_-]/g, ' ')
+    .trim()
+  const hasOpaqueFilename = /^[\d\s]+$/.test(filenameTitle)
+  const preferredTitle =
+    activityName?.trim() ||
+    (hasOpaqueFilename ? `${capitalize(session.sport) || 'Workout'} workout` : filenameTitle)
 
   return {
     userId,
