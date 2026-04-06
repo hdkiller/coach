@@ -156,7 +156,7 @@
       if (!editor.value) return
       if ((value || null) === lastSyncedValue.value) return
       const htmlContent = value ? (marked.parse(value) as string) : ''
-      editor.value.commands.setContent(htmlContent, false)
+      editor.value.commands.setContent(htmlContent, { emitUpdate: false })
       lastSyncedValue.value = value || null
     },
     { immediate: true }

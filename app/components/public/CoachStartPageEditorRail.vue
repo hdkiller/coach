@@ -230,7 +230,7 @@
                         class="space-y-3 rounded-2xl border border-default/70 p-4"
                       >
                         <div class="text-xs font-black uppercase tracking-[0.18em] text-primary">
-                          Step {{ index + 1 }}
+                          Step {{ Number(index) + 1 }}
                         </div>
                         <UInput v-model="step.title" placeholder="Step title" class="w-full" />
                         <UTextarea

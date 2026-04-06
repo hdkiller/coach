@@ -822,7 +822,7 @@
                           color="error"
                           variant="ghost"
                           icon="i-heroicons-trash"
-                          @click="removeSocialLink(index)"
+                          @click="removeSocialLink(Number(index))"
                         />
                       </div>
                       <div
