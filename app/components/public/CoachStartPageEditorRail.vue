@@ -875,5 +875,8 @@
   function syncOfferFeatures(offer: any) {
     offer.features = tokenizeList(offer.featuresText || '')
   }
+
+  function fieldError(path: string) {
+    return props.validationErrors?.[path]
+  }
 </script>
-function fieldError(path: string) { return props.validationErrors?.[path] }
