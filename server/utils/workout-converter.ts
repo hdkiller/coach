@@ -836,13 +836,39 @@ export const WorkoutConverter = {
           return
         }
 
-        const power = normalizeTarget(step.power) || normalizeTarget(parentStep?.power)
-        const rawHeartRate =
-          normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate)
+        const normalizeTargetForExport = (
+          target: {
+            value?: number
+            range?: { start: number; end: number }
+            ramp?: boolean
+            units?: string
+          } | null,
+          stepType: WorkoutStep['type']
+        ) => {
+          if (!target?.range) return target
+          if (target.ramp === true) return target
+          if (stepType !== 'Warmup' && stepType !== 'Cooldown') return target
+          return {
+            ...target,
+            ramp: true
+          }
+        }
+
+        const power = normalizeTargetForExport(
+          normalizeTarget(step.power) || normalizeTarget(parentStep?.power),
+          step.type
+        )
+        const rawHeartRate = normalizeTargetForExport(
+          normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate),
+          step.type
+        )
         const heartRate = normalizeHrTargetForExport(
           rawHeartRate || deriveRunHeartRateTargetFromPower(power)
         )
-        const rawPace = normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace)
+        const rawPace = normalizeTargetForExport(
+          normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace),
+          step.type
+        )
         const pace = rawPace || deriveRunPaceTargetFromPower(power)
         const distanceStr = toDistanceToken(step.distance)
         const duration = step.durationSeconds || step.duration || 0

@@ -109,6 +109,38 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- Interval 20m 90%')
     })
 
+    it('infers ramps for warmup and cooldown ranges when older data is missing the ramp flag', () => {
+      const workout = {
+        title: 'Legacy Range Ride',
+        steps: [
+          {
+            type: 'Warmup',
+            durationSeconds: 1200,
+            power: { range: { start: 0.5, end: 0.65 } },
+            name: 'Warmup Ramp'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { range: { start: 0.65, end: 0.75 } },
+            name: 'Steady Range'
+          },
+          {
+            type: 'Cooldown',
+            durationSeconds: 600,
+            power: { range: { start: 0.6, end: 0.5 } },
+            name: 'Cooldown'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('- Warmup Ramp 20m ramp 50-65%')
+      expect(result).toContain('- Steady Range 10m 65-75%')
+      expect(result).toContain('- Cooldown 10m ramp 60-50%')
+    })
+
     it('formats loops correctly using Nx syntax', () => {
       const workout = {
         title: 'Intervals',
