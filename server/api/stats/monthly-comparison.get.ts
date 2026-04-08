@@ -1,6 +1,13 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { getEffectiveUserId } from '../../utils/coaching'
-import { getUserTimezone, getUserLocalDate, formatUserDate } from '../../utils/date'
+import {
+  getUserTimezone,
+  getUserLocalDate,
+  formatUserDate,
+  formatDateUTC,
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC
+} from '../../utils/date'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { prisma } from '../../utils/db'
 
@@ -18,16 +25,26 @@ export default defineEventHandler(async (event) => {
   const currentMonth = nowLocal.getUTCMonth()
 
   const startOfCurrentMonth = new Date(Date.UTC(currentYear, currentMonth, 1))
-  const endOfCurrentMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 0, 23, 59, 59, 999))
+  const endOfCurrentMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 0))
 
   const startOfLastMonth = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
-  const endOfLastMonth = new Date(Date.UTC(currentYear, currentMonth, 0, 23, 59, 59, 999))
+  const endOfLastMonth = new Date(Date.UTC(currentYear, currentMonth, 0))
+
+  const currentMonthDateKeyStart = formatDateUTC(startOfCurrentMonth, 'yyyy-MM-dd')
+  const currentMonthDateKeyEnd = formatDateUTC(endOfCurrentMonth, 'yyyy-MM-dd')
+  const lastMonthDateKeyStart = formatDateUTC(startOfLastMonth, 'yyyy-MM-dd')
+  const lastMonthDateKeyEnd = formatDateUTC(endOfLastMonth, 'yyyy-MM-dd')
+
+  const startOfCurrentMonthUtc = getStartOfLocalDateUTC(timezone, currentMonthDateKeyStart)
+  const endOfCurrentMonthUtc = getEndOfLocalDateUTC(timezone, currentMonthDateKeyEnd)
+  const startOfLastMonthUtc = getStartOfLocalDateUTC(timezone, lastMonthDateKeyStart)
+  const endOfLastMonthUtc = getEndOfLocalDateUTC(timezone, lastMonthDateKeyEnd)
 
   // 2. Fetch completed and planned workouts
   const [currentWorkouts, lastWorkouts, plannedWorkouts] = await Promise.all([
     workoutRepository.getForUser(userId, {
-      startDate: startOfCurrentMonth,
-      endDate: endOfCurrentMonth,
+      startDate: startOfCurrentMonthUtc,
+      endDate: endOfCurrentMonthUtc,
       includeDuplicates: false,
       where: sport ? { type: sport } : undefined,
       select: {
@@ -39,8 +56,8 @@ export default defineEventHandler(async (event) => {
       }
     }),
     workoutRepository.getForUser(userId, {
-      startDate: startOfLastMonth,
-      endDate: endOfLastMonth,
+      startDate: startOfLastMonthUtc,
+      endDate: endOfLastMonthUtc,
       includeDuplicates: false,
       where: sport ? { type: sport } : undefined,
       select: {
@@ -135,7 +152,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     currentMonth: {
-      name: formatUserDate(nowLocal, timezone, 'MMMM'),
+      name: formatDateUTC(startOfCurrentMonth, 'MMMM'),
       days: daysInCurrentMonth,
       daily: currentDaily,
       plannedDaily: plannedDaily,
@@ -143,7 +160,7 @@ export default defineEventHandler(async (event) => {
       plannedCumulative: calculateCumulative(plannedDaily) // Planned shows full month
     },
     lastMonth: {
-      name: formatUserDate(startOfLastMonth, timezone, 'MMMM'),
+      name: formatDateUTC(startOfLastMonth, 'MMMM'),
       days: daysInLastMonth,
       daily: lastDaily,
       cumulative: calculateCumulative(lastDaily)
