@@ -6,6 +6,7 @@ import {
   autoUploadPlannedWorkoutToIntervalsIfEnabled
 } from '../../../utils/intervals-sync'
 import { isIntervalsEventId } from '../../../utils/intervals'
+import { validateRecommendationAcceptanceTarget } from '../../../utils/recommendation-guardrails'
 
 defineRouteMeta({
   openAPI: {
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
 
   const analysis = recommendation.analysisJson as any
   const modifications = analysis?.suggested_modifications
+  const targetSnapshot = analysis?.guardrails?.targetPlannedWorkout
 
   if (!modifications) {
     throw createError({ statusCode: 400, message: 'No suggested modifications found' })
@@ -76,71 +78,48 @@ export default defineEventHandler(async (event) => {
     modifications.new_title?.trim() ||
     (type === 'Rest' ? 'Rest Day' : recommendation.plannedWorkout?.title || 'Updated Workout')
 
-  let targetPlannedWorkoutId = recommendation.plannedWorkoutId
+  const activeWorkoutCountForDate = await prisma.plannedWorkout.count({
+    where: {
+      userId,
+      date: recommendation.date,
+      completed: { not: true },
+      completedWorkouts: { none: {} }
+    }
+  })
 
-  // Check if the linked planned workout is already completed
-  if (
-    recommendation.plannedWorkout &&
-    (recommendation.plannedWorkout.completed ||
-      recommendation.plannedWorkout.completionStatus === 'COMPLETED' ||
-      recommendation.plannedWorkout.completedWorkouts.length > 0)
-  ) {
-    // If the workout is already completed, we treat this as a new recommendation request
-    // and create a NEW workout instead of updating the completed one.
-    // This prevents the "517% compliance" bug where a completed workout's targets are retroactively changed.
-    targetPlannedWorkoutId = null
+  const validation = validateRecommendationAcceptanceTarget({
+    recommendationDate: recommendation.date,
+    currentWorkout: recommendation.plannedWorkout,
+    targetSnapshot,
+    activeWorkoutCountForDate
+  })
+
+  if (!validation.ok) {
+    throw createError({
+      statusCode: 409,
+      message: validation.message
+    })
   }
 
-  let updatedWorkout
+  const targetPlannedWorkoutId = recommendation.plannedWorkoutId!
   const nextSyncStatus = (syncStatus: string | null | undefined) =>
     syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
 
-  if (targetPlannedWorkoutId) {
-    // UPDATE existing workout
-    updatedWorkout = await prisma.plannedWorkout.update({
-      where: { id: targetPlannedWorkoutId },
-      data: {
-        title,
-        type,
-        durationSec: modifications.new_duration_min
-          ? Math.round(modifications.new_duration_min * 60)
-          : undefined,
-        tss: modifications.new_tss,
-        description: newDescription,
-        modifiedLocally: true,
-        syncStatus: nextSyncStatus(recommendation.plannedWorkout?.syncStatus),
-        syncError: null
-      }
-    })
-  } else {
-    // CREATE new workout
-    updatedWorkout = await prisma.plannedWorkout.create({
-      data: {
-        userId,
-        date: recommendation.date,
-        title,
-        type,
-        durationSec: modifications.new_duration_min
-          ? Math.round(modifications.new_duration_min * 60)
-          : 0,
-        tss: modifications.new_tss || 0,
-        description: newDescription,
-        category: modifications.new_type === 'Rest' ? 'WORKOUT' : 'WORKOUT', // As per Issue #89
-        syncStatus: 'LOCAL_ONLY',
-        externalId: `ai_gen_${userId}_${recommendation.date.toISOString().split('T')[0]}_${Date.now()}`,
-        managedBy: 'COACH_WATTS',
-        modifiedLocally: true,
-        syncError: null
-      }
-    })
-    targetPlannedWorkoutId = updatedWorkout.id
-
-    // Link it to the recommendation
-    await prisma.activityRecommendation.update({
-      where: { id },
-      data: { plannedWorkoutId: targetPlannedWorkoutId }
-    })
-  }
+  let updatedWorkout = await prisma.plannedWorkout.update({
+    where: { id: targetPlannedWorkoutId },
+    data: {
+      title,
+      type,
+      durationSec: modifications.new_duration_min
+        ? Math.round(modifications.new_duration_min * 60)
+        : undefined,
+      tss: modifications.new_tss,
+      description: newDescription,
+      modifiedLocally: true,
+      syncStatus: nextSyncStatus(recommendation.plannedWorkout?.syncStatus),
+      syncError: null
+    }
+  })
 
   const requiresStructure = updatedWorkout.type !== 'Rest'
 
