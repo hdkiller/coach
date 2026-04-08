@@ -1,6 +1,33 @@
 <template>
   <div class="mini-chart-container h-8 w-24 relative">
-    <div class="absolute inset-0 flex items-end gap-px">
+    <div v-if="isStrengthChart" class="absolute inset-0 flex items-end gap-px">
+      <div
+        v-for="(block, index) in strengthSegments"
+        :key="`${block.id}-${index}`"
+        :style="getStrengthBlockStyle(block)"
+        class="relative h-full overflow-hidden rounded-[2px]"
+        :title="getStrengthBlockTooltip(block)"
+      >
+        <div
+          class="absolute inset-0 opacity-20"
+          :style="{ backgroundColor: getStrengthBlockColor(block.type) }"
+        />
+        <div class="absolute inset-[1px] flex items-end gap-px">
+          <div
+            v-for="(column, columnIndex) in block.columns"
+            :key="`${block.id}-col-${columnIndex}`"
+            class="min-w-0 flex-1 rounded-[1px]"
+            :style="{
+              height: `${column.height}%`,
+              backgroundColor: getStrengthBlockColor(block.type),
+              opacity: column.opacity
+            }"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="absolute inset-0 flex items-end gap-px">
       <div
         v-for="(step, index) in chartSteps"
         :key="index"
@@ -12,7 +39,7 @@
     </div>
 
     <svg
-      v-if="showCadenceLine"
+      v-if="!isStrengthChart && showCadenceLine"
       class="absolute inset-0 pointer-events-none z-10"
       preserveAspectRatio="none"
       viewBox="0 0 100 100"
@@ -37,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeStrengthBlocks, type StrengthBlockType } from '~/utils/strengthWorkout'
   import { ZONE_COLORS, FALLBACK_ZONE_COLOR } from '~/utils/zone-colors'
 
   const props = withDefaults(
@@ -85,6 +113,50 @@
     const rawSteps = normalizedWorkout.value?.steps
     if (!Array.isArray(rawSteps) || rawSteps.length === 0) return []
     return flattenWorkoutSteps(rawSteps)
+  })
+
+  const strengthBlocks = computed(() => normalizeStrengthBlocks(normalizedWorkout.value || {}))
+
+  const strengthSegments = computed(() => {
+    if (!strengthBlocks.value.length) return []
+
+    const blockDurations = strengthBlocks.value.map((block) => estimateStrengthBlockDuration(block))
+    const totalDuration = blockDurations.reduce((sum, duration) => sum + duration, 0)
+
+    return strengthBlocks.value.map((block, index) => {
+      const steps = Array.isArray(block.steps) ? block.steps : []
+      const maxSets = Math.max(...steps.map((step) => Math.max(step.setRows?.length || 0, 1)), 1)
+      const columns = steps.length
+        ? steps.map((step) => {
+            const setCount = Math.max(step.setRows?.length || 0, 1)
+            return {
+              height: Math.max(28, Math.round((setCount / maxSets) * 100)),
+              opacity: 0.55 + Math.min(setCount / Math.max(maxSets, 1), 1) * 0.35
+            }
+          })
+        : [{ height: 42, opacity: 0.45 }]
+
+      return {
+        ...block,
+        estimatedDuration: blockDurations[index] || 1,
+        widthPct: totalDuration > 0 ? ((blockDurations[index] || 1) / totalDuration) * 100 : 0,
+        columns
+      }
+    })
+  })
+
+  const isStrengthChart = computed(() => {
+    const type = String(normalizedWorkout.value?._workoutContext?.type || props.workout?.type || '')
+      .trim()
+      .toLowerCase()
+
+    return (
+      strengthSegments.value.length > 0 &&
+      (type.includes('gym') ||
+        type.includes('weighttraining') ||
+        type.includes('strength') ||
+        chartSteps.value.length === 0)
+    )
   })
 
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
@@ -316,6 +388,83 @@
       resolvedZoneRanges.value.find((range) => intensity <= range.end) ||
       resolvedZoneRanges.value[resolvedZoneRanges.value.length - 1]
     return zone?.color || FALLBACK_ZONE_COLOR
+  }
+
+  function getStrengthBlockColor(type: StrengthBlockType): string {
+    switch (type) {
+      case 'warmup':
+        return '#f59e0b'
+      case 'cooldown':
+        return '#60a5fa'
+      case 'superset':
+        return '#ef4444'
+      case 'circuit':
+        return '#8b5cf6'
+      default:
+        return '#10b981'
+    }
+  }
+
+  function parseStrengthRestToSeconds(rest: string | undefined) {
+    const normalized = String(rest || '')
+      .trim()
+      .toLowerCase()
+    if (!normalized) return 90
+    if (normalized.includes('m') && !normalized.includes('ms')) {
+      return Math.round((parseFloat(normalized) || 0) * 60)
+    }
+    return Math.round(parseFloat(normalized) || 90)
+  }
+
+  function estimateStrengthSetDurationSec(step: any, row: any) {
+    const value = String(row?.value || '').trim()
+    const restSeconds = parseStrengthRestToSeconds(row?.restOverride || step?.defaultRest)
+
+    if (step?.prescriptionMode === 'duration') {
+      const work = Number(value)
+      return (Number.isFinite(work) && work > 0 ? Math.round(work) : 30) + restSeconds
+    }
+
+    const repsMatch = value.match(/\d+/)
+    const reps = repsMatch ? Number(repsMatch[0]) : 10
+    return reps * 5 + restSeconds
+  }
+
+  function estimateStrengthBlockDuration(block: any) {
+    const blockDuration =
+      Number.isFinite(Number(block?.durationSec)) && Number(block.durationSec) > 0
+        ? Math.round(Number(block.durationSec))
+        : 0
+    const stepDuration = (block?.steps || []).reduce((sum: number, step: any) => {
+      const rows = Array.isArray(step?.setRows) && step.setRows.length > 0 ? step.setRows : [{}]
+      return (
+        sum +
+        rows.reduce(
+          (rowSum: number, row: any) => rowSum + estimateStrengthSetDurationSec(step, row),
+          0
+        )
+      )
+    }, 0)
+
+    return Math.max(blockDuration + stepDuration, 1)
+  }
+
+  function getStrengthBlockStyle(block: { widthPct: number }) {
+    const width =
+      block.widthPct > 0 ? block.widthPct : 100 / Math.max(strengthSegments.value.length, 1)
+    return {
+      width: `${width}%`,
+      flex: `0 0 ${width}%`
+    }
+  }
+
+  function getStrengthBlockTooltip(block: any) {
+    const exerciseCount = Array.isArray(block.steps) ? block.steps.length : 0
+    const setCount = (block.steps || []).reduce(
+      (sum: number, step: any) => sum + Math.max(step?.setRows?.length || 0, 1),
+      0
+    )
+    return `${block.title || 'Strength Block'}: ${exerciseCount} exercises, ${setCount} sets`
   }
 
   function formatDuration(seconds: number): string {

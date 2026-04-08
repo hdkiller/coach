@@ -297,6 +297,9 @@
                 .description
             }}
           </p>
+          <p class="mt-2 text-[11px] text-blue-700/80 dark:text-blue-200/70">
+            This is a proposal only. Your calendar changes only if you accept it.
+          </p>
         </div>
 
         <div class="flex justify-end pt-2">

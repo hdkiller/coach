@@ -1,11 +1,9 @@
 <template>
-  <UModal
-    v-model:open="isOpen"
-    :dismissible="!loading"
-    :close="loading ? false : undefined"
-  >
+  <UModal v-model:open="isOpen" :dismissible="!loading" :close="loading ? false : undefined">
     <template #title>
-      <h3 class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight truncate">
+      <h3
+        class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight truncate"
+      >
         Planned Workout
       </h3>
     </template>
@@ -232,8 +230,116 @@
               Regenerate
             </UButton>
           </div>
+          <div v-if="isStrengthWorkout && strengthBlocks.length" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div
+                class="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950"
+              >
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Blocks
+                </div>
+                <div class="mt-1 text-lg font-black text-gray-900 dark:text-white">
+                  {{ strengthSummary.blockCount }}
+                </div>
+              </div>
+              <div
+                class="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950"
+              >
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Exercises
+                </div>
+                <div class="mt-1 text-lg font-black text-gray-900 dark:text-white">
+                  {{ strengthSummary.exerciseCount }}
+                </div>
+              </div>
+              <div
+                class="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950"
+              >
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Sets
+                </div>
+                <div class="mt-1 text-lg font-black text-gray-900 dark:text-white">
+                  {{ strengthSummary.totalSets }}
+                </div>
+              </div>
+              <div
+                class="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950"
+              >
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Duration
+                </div>
+                <div class="mt-1 text-lg font-black text-gray-900 dark:text-white">
+                  {{ formatDuration(plannedWorkout.durationSec || strengthSummary.durationSec) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                v-for="(block, blockIndex) in strengthBlocks"
+                :key="block.id"
+                class="overflow-hidden rounded-xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div
+                  class="border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-950"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div
+                        class="text-[10px] font-black uppercase tracking-widest text-primary-500"
+                      >
+                        {{ strengthBlockTypeLabel(block.type) }}
+                      </div>
+                      <div class="text-sm font-black text-gray-900 dark:text-white">
+                        {{ block.title || `Block ${blockIndex + 1}` }}
+                      </div>
+                      <div v-if="block.notes" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {{ block.notes }}
+                      </div>
+                    </div>
+                    <div
+                      v-if="block.durationSec"
+                      class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                    >
+                      {{ formatDuration(block.durationSec) }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <div v-for="(step, stepIndex) in block.steps" :key="step.id" class="px-4 py-3">
+                    <div class="min-w-0">
+                      <div class="text-sm font-bold text-gray-900 dark:text-white">
+                        {{ blockIndex + 1 }}{{ alphabet(stepIndex) }}. {{ step.name }}
+                      </div>
+                      <div class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {{ step.setRows.length }} sets
+                        <span v-if="step.defaultRest"> • Rest {{ step.defaultRest }}</span>
+                      </div>
+                      <div
+                        v-if="step.notes"
+                        class="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
+                      >
+                        {{ step.notes }}
+                      </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <div
+                        v-for="setRow in step.setRows"
+                        :key="setRow.id"
+                        class="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-xs dark:border-gray-800 dark:bg-gray-950"
+                      >
+                        {{ formatStrengthSet(step, setRow) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           <WorkoutRunChart
-            v-if="isRunWorkout"
+            v-else-if="isRunWorkout"
             :workout="plannedWorkout"
             :preference="preference"
             :sport-settings="effectiveSportSettings"
@@ -617,6 +723,14 @@
   import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
   import WorkoutRunChart from '~/components/workouts/WorkoutRunChart.vue'
   import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
+  import {
+    normalizeStrengthBlocks,
+    summarizeStrengthBlocks,
+    type StrengthBlock,
+    type StrengthBlockStep,
+    type StrengthBlockType,
+    type StrengthSetRow
+  } from '~/utils/strengthWorkout'
   import { getSportSettingsForActivity } from '~/utils/sportSettings'
   import {
     getStructuredWorkoutPayload,
@@ -629,17 +743,17 @@
 
   const props = withDefaults(
     defineProps<{
-    plannedWorkout: any | null
-    modelValue: boolean
-    userFtp?: number
-    allSportSettings?: any[]
-    savingToLibrary?: boolean
-    endpointBase?: string
-    viewPathBase?: string
-    showCompletionActions?: boolean
-    showStructureActions?: boolean
-    showViewDetails?: boolean
-    showSaveToLibrary?: boolean
+      plannedWorkout: any | null
+      modelValue: boolean
+      userFtp?: number
+      allSportSettings?: any[]
+      savingToLibrary?: boolean
+      endpointBase?: string
+      viewPathBase?: string
+      showCompletionActions?: boolean
+      showStructureActions?: boolean
+      showViewDetails?: boolean
+      showSaveToLibrary?: boolean
     }>(),
     {
       showCompletionActions: true,
@@ -728,6 +842,22 @@
       props.plannedWorkout?.type?.toLowerCase().includes('ride') ||
       props.plannedWorkout?.type?.toLowerCase().includes('cycle')
   )
+  const isStrengthWorkout = computed(() => {
+    const type = String(props.plannedWorkout?.type || '').toLowerCase()
+    const structure = props.plannedWorkout?.structuredWorkout || {}
+
+    return (
+      type.includes('gym') ||
+      type.includes('weighttraining') ||
+      type.includes('strength') ||
+      (Array.isArray(structure?.blocks) && structure.blocks.length > 0) ||
+      (Array.isArray(structure?.exercises) && structure.exercises.length > 0)
+    )
+  })
+  const strengthBlocks = computed<StrengthBlock[]>(() =>
+    normalizeStrengthBlocks(props.plannedWorkout?.structuredWorkout || {})
+  )
+  const strengthSummary = computed(() => summarizeStrengthBlocks(strengthBlocks.value))
 
   const applicableSettings = computed(() => {
     if (!props.allSportSettings || !props.plannedWorkout) return null
@@ -1038,6 +1168,33 @@
       return `${h}h ${m}m`
     }
     return `${m}m`
+  }
+
+  function strengthBlockTypeLabel(value: StrengthBlockType) {
+    if (value === 'warmup') return 'Warm Up'
+    if (value === 'cooldown') return 'Cooldown'
+    if (value === 'superset') return 'Superset'
+    if (value === 'circuit') return 'Circuit'
+    return 'Single Exercise'
+  }
+
+  function alphabet(index: number) {
+    return String.fromCharCode(97 + (index % 26))
+  }
+
+  function formatStrengthSet(step: StrengthBlockStep, setRow: StrengthSetRow) {
+    const parts = [`Set ${setRow.index + 1}`]
+
+    if (setRow.value) {
+      if (step.prescriptionMode === 'duration') parts.push(`${setRow.value}s`)
+      else if (step.prescriptionMode === 'reps_per_side') parts.push(`${setRow.value}/side`)
+      else parts.push(setRow.value)
+    }
+
+    if (setRow.loadValue) parts.push(`@ ${setRow.loadValue}`)
+    if (setRow.restOverride) parts.push(`Rest ${setRow.restOverride}`)
+
+    return parts.join(' • ')
   }
 
   function getActivityIcon(type: string) {

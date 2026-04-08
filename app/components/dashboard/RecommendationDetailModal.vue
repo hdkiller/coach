@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     title="Today's Training Recommendation"
-    description="In-depth breakdown of your daily training recommendation, including reasoning and suggested modifications."
+    description="In-depth breakdown of your daily training recommendation. Suggested changes are only applied if you explicitly accept them."
   >
     <template #body>
       <div v-if="recommendation" class="space-y-4">
