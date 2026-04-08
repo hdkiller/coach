@@ -49,6 +49,11 @@ import {
   getActiveWellnessEventsForDate,
   getWellnessEventOverlaysForUser
 } from '../server/utils/services/wellnessEventService'
+import {
+  ATHLETE_AUTONOMY_PROMPT_BLOCK,
+  attachRecommendationGuardrails,
+  buildCalendarSourceOfTruthPrompt
+} from '../server/utils/recommendation-guardrails'
 
 interface RecommendationAnalysis {
   recommendation: 'proceed' | 'modify' | 'reduce_intensity' | 'rest'
@@ -842,6 +847,8 @@ WORKOUT ${i + 1}${i === 0 ? ' (Primary)' : ''}:
 ${upcomingContext}
 ${eventsContext}
 ${metricsContext}
+${buildCalendarSourceOfTruthPrompt(futureWorkouts)}
+${ATHLETE_AUTONOMY_PROMPT_BLOCK}
 
 TODAY'S RECOVERY METRICS:
 ${
@@ -897,6 +904,8 @@ CRITICAL INSTRUCTIONS:
 6. If Fitbit recovery alert is triggered, bias strongly toward 'rest' or 'reduce_intensity' unless user feedback explicitly requests otherwise.
 7. Never invent subjective scores. If stress, fatigue, soreness, mood, or motivation are missing, explicitly describe them as "not reported today" instead of assigning a value.
 8. If a synced wellness event overlaps today or the recent biometrics downturn, explicitly call out that correlation in your reasoning and adjust the recommendation accordingly.
+9. Treat future goals, athlete-profile themes, and event categories as planning context only. They do NOT make a workout scheduled unless that intensity appears in the planned workouts list.
+10. Never frame the athlete's current ride, tour, or planned session as something you can abort or overwrite. You may only propose a safer alternative.
 
 ${zoneDefinitions}
 
@@ -1032,7 +1041,11 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
         recommendation: analysis.recommendation,
         confidence: analysis.confidence,
         reasoning: analysis.reasoning,
-        analysisJson: analysis as any,
+        analysisJson: attachRecommendationGuardrails(
+          analysis as any,
+          primaryPlannedWorkout,
+          plannedWorkouts
+        ) as any,
         plannedWorkout: primaryPlannedWorkout?.id
           ? { connect: { id: primaryPlannedWorkout.id } }
           : undefined,
@@ -1047,7 +1060,11 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
         recommendation: analysis.recommendation,
         confidence: analysis.confidence,
         reasoning: analysis.reasoning,
-        analysisJson: analysis as any,
+        analysisJson: attachRecommendationGuardrails(
+          analysis as any,
+          primaryPlannedWorkout,
+          plannedWorkouts
+        ) as any,
         plannedWorkout: primaryPlannedWorkout?.id
           ? { connect: { id: primaryPlannedWorkout.id } }
           : undefined,

@@ -33,6 +33,10 @@ import {
   getInjuryLabel,
   getCanonicalWellnessStress
 } from '../server/utils/wellness'
+import {
+  ATHLETE_AUTONOMY_PROMPT_BLOCK,
+  buildCalendarSourceOfTruthPrompt
+} from '../server/utils/recommendation-guardrails'
 
 const checkinSchema = {
   type: 'object',
@@ -513,6 +517,8 @@ ${upcomingWorkoutsContext}
 ${eventsContext}
 ${projectedMetricsContext}
 ${contextualEventsContext}
+${buildCalendarSourceOfTruthPrompt(futureWorkouts)}
+${ATHLETE_AUTONOMY_PROMPT_BLOCK}
 
 ${historyContext}
 
@@ -542,6 +548,8 @@ STRATEGY:
    - Do NOT ask "Did you sleep well?" if the sleep score is 95%. Instead ask "Do you feel energized despite the short sleep?" if sleep was short but high quality, or skip it.
    - **CRITICAL:** Do NOT repeat the same questions from the last 3 days unless there is a specific reason to follow up on a problem.
 7. **Contextual Explanation:** If there is an active illness, symptom, or contextual event above (for example a cold, travel, or injury note), treat it as a primary explanation for abnormal recovery metrics before assuming generic under-recovery or poor compliance.
+8. **Calendar Truth:** Do not turn goals, profile commentary, or event types into fake scheduled sessions. If VO2, threshold, or another intensity is not in the planned workouts list, refer to it only as a future goal or theme.
+9. **Athlete Autonomy:** Never imply that today's ride or tour has already been cancelled, stopped, shortened, or overwritten.
 
 REQUIREMENTS:
 1. Questions must be answerable with YES or NO.
