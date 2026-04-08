@@ -9,6 +9,12 @@ interface GarminTokenResponse {
   scope?: string
 }
 
+interface GarminApiErrorPayload {
+  errorMessage?: string
+  error?: string | { message?: string }
+  message?: string
+}
+
 const GARMIN_WRITE_SCOPE = 'PARTNER_WRITE'
 const GARMIN_IMPORT_PERMISSIONS = new Set(['WORKOUT_IMPORT', 'COURSE_IMPORT'])
 
@@ -121,6 +127,46 @@ async function ensureValidToken(integration: Integration): Promise<Integration> 
   return latest
 }
 
+function extractGarminErrorMessage(
+  response: Response,
+  errorBody: GarminApiErrorPayload | Record<string, unknown>
+): string {
+  if (typeof errorBody?.errorMessage === 'string' && errorBody.errorMessage.trim()) {
+    return errorBody.errorMessage.trim()
+  }
+  if (typeof errorBody?.message === 'string' && errorBody.message.trim()) {
+    return errorBody.message.trim()
+  }
+  if (typeof errorBody?.error === 'string' && errorBody.error.trim()) {
+    return errorBody.error.trim()
+  }
+
+  // Handle nested object error: { error: { message: "..." } }
+  const nestedError = errorBody?.error
+  if (
+    nestedError &&
+    typeof nestedError === 'object' &&
+    'message' in nestedError &&
+    typeof nestedError.message === 'string' &&
+    nestedError.message.trim()
+  ) {
+    return nestedError.message.trim()
+  }
+
+  return response.statusText || 'Unknown error'
+}
+
+function shouldRetryGarminAuth(
+  response: Response,
+  errorBody: GarminApiErrorPayload | Record<string, unknown>,
+  hasRetried: boolean
+) {
+  if (hasRetried || response.status !== 401) return false
+
+  const message = extractGarminErrorMessage(response, errorBody).toLowerCase()
+  return message.includes('token is not active') || message.includes('authentication credentials')
+}
+
 /**
  * Generic fetch with retry logic
  */
@@ -167,22 +213,30 @@ export async function fetchGarminData(
   url: string,
   params: Record<string, string> = {}
 ) {
-  const validIntegration = await ensureValidToken(integration)
-
   const targetUrl = new URL(url)
   Object.entries(params).forEach(([key, value]) => targetUrl.searchParams.append(key, value))
 
-  try {
-    const response = await fetchWithRetry(targetUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${validIntegration.accessToken}`
-      }
-    })
+  let activeIntegration = await ensureValidToken(integration)
 
-    if (!response.ok) {
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetchWithRetry(targetUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${activeIntegration.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        return await response.json()
+      }
+
       const errorBody = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorBody.errorMessage || errorBody.error?.message || response.statusText || 'Unknown error'
+      const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+      if (shouldRetryGarminAuth(response, errorBody, attempt > 0)) {
+        activeIntegration = await refreshGarminToken(activeIntegration)
+        continue
+      }
 
       console.error(`[DEBUG] Garmin API Request Failed:`, {
         url: targetUrl.toString(),
@@ -195,7 +249,7 @@ export async function fetchGarminData(
       throw new Error(`Garmin API error (${response.status}): ${errorMessage}`)
     }
 
-    return await response.json()
+    throw new Error('Garmin API request failed after token refresh retry')
   } catch (error: any) {
     console.error(`[DEBUG] Garmin fetch exception:`, {
       url: targetUrl.toString(),
@@ -290,48 +344,68 @@ export async function fetchGarminActivityFile(
   fileId: string,
   pullToken?: string | null
 ): Promise<Buffer> {
-  const validIntegration = await ensureValidToken(integration)
-
   const url = new URL('https://apis.garmin.com/wellness-api/rest/activityFile')
   url.searchParams.set('id', fileId)
   if (pullToken) url.searchParams.set('token', pullToken)
 
-  const response = await fetchWithRetry(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
-    }
-  })
+  let activeIntegration = await ensureValidToken(integration)
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetchWithRetry(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${activeIntegration.accessToken}`
+      }
+    })
+
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer()
+      return Buffer.from(arrayBuffer)
+    }
+
     const errorBody = await response.json().catch(() => ({}))
-    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+    if (shouldRetryGarminAuth(response, errorBody, attempt > 0)) {
+      activeIntegration = await refreshGarminToken(activeIntegration)
+      continue
+    }
+
     throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
   }
 
-  const arrayBuffer = await response.arrayBuffer()
-  return Buffer.from(arrayBuffer)
+  throw new Error('Garmin File API request failed after token refresh retry')
 }
 
 export async function fetchGarminActivityFileByCallbackUrl(
   integration: Integration,
   callbackUrl: string
 ): Promise<Buffer> {
-  const validIntegration = await ensureValidToken(integration)
+  let activeIntegration = await ensureValidToken(integration)
 
-  const response = await fetchWithRetry(callbackUrl, {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetchWithRetry(callbackUrl, {
+      headers: {
+        Authorization: `Bearer ${activeIntegration.accessToken}`
+      }
+    })
+
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer()
+      return Buffer.from(arrayBuffer)
     }
-  })
 
-  if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
-    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+    if (shouldRetryGarminAuth(response, errorBody, attempt > 0)) {
+      activeIntegration = await refreshGarminToken(activeIntegration)
+      continue
+    }
+
     throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
   }
 
-  const arrayBuffer = await response.arrayBuffer()
-  return Buffer.from(arrayBuffer)
+  throw new Error('Garmin File API request failed after token refresh retry')
 }
 
 /**
@@ -343,29 +417,35 @@ export async function requestGarminBackfill(
   startTimestamp: number,
   endTimestamp: number
 ) {
-  const validIntegration = await ensureValidToken(integration)
-
   const url = `https://apis.garmin.com/wellness-api/rest/backfill/${type}`
   const targetUrl = new URL(url)
   targetUrl.searchParams.append('summaryStartTimeInSeconds', startTimestamp.toString())
   targetUrl.searchParams.append('summaryEndTimeInSeconds', endTimestamp.toString())
 
-  const response = await fetchWithRetry(targetUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
-    }
-  })
+  let activeIntegration = await ensureValidToken(integration)
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetchWithRetry(targetUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${activeIntegration.accessToken}`
+      }
+    })
+
+    if (response.ok) return { success: true }
     if (response.status === 409) return { success: true, message: 'Already requested' }
 
     const errorBody = await response.json().catch(() => ({}))
-    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+    if (shouldRetryGarminAuth(response, errorBody, attempt > 0)) {
+      activeIntegration = await refreshGarminToken(activeIntegration)
+      continue
+    }
 
     throw new Error(`Garmin Backfill API error (${response.status}): ${errorMessage}`)
   }
 
-  return { success: true }
+  throw new Error('Garmin Backfill API request failed after token refresh retry')
 }
 
 /**
@@ -396,27 +476,38 @@ export async function deRegisterGarminUser(integration: Integration) {
  * Fetch current user permissions granted to this app.
  */
 export async function fetchGarminUserPermissions(integration: Integration): Promise<string[]> {
-  const validIntegration = await ensureValidToken(integration)
   const url = 'https://apis.garmin.com/wellness-api/rest/user/permissions'
 
-  const response = await fetchWithRetry(url, {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
-    }
-  })
+  let activeIntegration = await ensureValidToken(integration)
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetchWithRetry(url, {
+      headers: {
+        Authorization: `Bearer ${activeIntegration.accessToken}`
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (Array.isArray(data)) {
+        return data.filter((x) => typeof x === 'string')
+      }
+      if (Array.isArray(data?.permissions)) {
+        return data.permissions.filter((x: unknown) => typeof x === 'string')
+      }
+      return []
+    }
+
     const errorBody = await response.json().catch(() => ({}))
-    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+    if (shouldRetryGarminAuth(response, errorBody, attempt > 0)) {
+      activeIntegration = await refreshGarminToken(activeIntegration)
+      continue
+    }
+
     throw new Error(`Garmin permissions API error (${response.status}): ${errorMessage}`)
   }
 
-  const data = await response.json()
-  if (Array.isArray(data)) {
-    return data.filter((x) => typeof x === 'string')
-  }
-  if (Array.isArray(data?.permissions)) {
-    return data.permissions.filter((x: unknown) => typeof x === 'string')
-  }
-  return []
+  throw new Error('Garmin permissions API request failed after token refresh retry')
 }

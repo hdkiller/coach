@@ -133,7 +133,14 @@ export const ingestGarminTask = task({
       // If all failed, we should still consider it an error
       if (results.every((r) => r.status === 'rejected')) {
         console.error('[DEBUG] All Garmin API requests failed for user:', userId)
-        throw new Error('All Garmin API requests failed')
+        const firstFailure = results.find(
+          (r): r is PromiseRejectedResult => r.status === 'rejected'
+        )
+        const failureMessage =
+          firstFailure?.reason instanceof Error
+            ? firstFailure.reason.message
+            : String(firstFailure?.reason || 'All Garmin API requests failed')
+        throw new Error(failureMessage)
       }
 
       await prisma.integration.update({
