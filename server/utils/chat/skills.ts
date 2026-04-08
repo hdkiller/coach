@@ -500,6 +500,83 @@ function getLatestUserText(messages: any[]) {
   return ''
 }
 
+function getLatestAssistantText(messages: any[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role !== 'assistant') continue
+
+    if (typeof message.content === 'string' && message.content.trim()) {
+      return message.content.trim()
+    }
+
+    const text = Array.isArray(message.parts)
+      ? message.parts
+          .filter((part: any) => part?.type === 'text' && typeof part.text === 'string')
+          .map((part: any) => part.text)
+          .join(' ')
+          .trim()
+      : ''
+
+    if (text) return text
+  }
+
+  return ''
+}
+
+function latestUserLooksLikeMissingReplyComplaint(messages: any[]) {
+  const latestUserText = getLatestUserText(messages).toLowerCase()
+  if (!latestUserText) return false
+
+  const patterns = [
+    'no text back',
+    'no reply',
+    'not replying',
+    'why no text back',
+    'why no reply',
+    'why arent you replying',
+    "why aren't you replying",
+    'why no response',
+    'text back',
+    'reply back',
+    'write back'
+  ]
+
+  return patterns.some((pattern) => latestUserText.includes(pattern))
+}
+
+function getRecentAssistantReplyPresence(messages: any[]) {
+  const latestAssistantText = getLatestAssistantText(messages)
+  if (!latestAssistantText) return false
+
+  const latestAssistantIndex = [...messages]
+    .reverse()
+    .findIndex((message) => message?.role === 'assistant')
+  if (latestAssistantIndex === -1) return false
+
+  return latestAssistantIndex <= 2
+}
+
+export function getFalseMissingReplySkillSelection(messages: any[]): ChatSkillSelection | null {
+  if (!latestUserLooksLikeMissingReplyComplaint(messages)) {
+    return null
+  }
+
+  if (!getRecentAssistantReplyPresence(messages)) {
+    return null
+  }
+
+  return {
+    skillIds: ['general_chat'],
+    confidence: 1,
+    useTools: false,
+    extractMemories: false,
+    reason:
+      'The user appears to be reacting to tone or reply style, but the assistant already responded recently, so keep the turn in regular chat instead of creating a support ticket.',
+    usedFallback: false,
+    source: 'fallback'
+  }
+}
+
 function buildRouterPrompt(params: {
   messages: any[]
   roomMetadata?: Record<string, any> | null
@@ -558,7 +635,11 @@ Recent conversation:
 ${recentConversation || '(none)'}
 
 Latest user message:
-${latestUserText || '(empty)'}`
+${latestUserText || '(empty)'}
+
+Guardrails:
+- Do not route to "support" just because the user says things like "why no text back", "why no reply", or similar conversational complaints when the recent conversation already shows the assistant replying normally.
+- For those cases, prefer "general_chat" unless the user explicitly asks to report a bug, open a ticket, contact support, or fix a real product failure.`
 }
 
 function normalizeChatSkillSelection(raw: Partial<ChatSkillSelection> | null | undefined) {
@@ -1014,6 +1095,21 @@ async function logRouterUsage(params: {
 export async function classifyChatSkills(
   params: ChatSkillRouterParams
 ): Promise<ChatSkillSelection> {
+  const falseMissingReply = getFalseMissingReplySkillSelection(params.messages)
+  if (falseMissingReply) {
+    await logRouterUsage({
+      userId: params.userId,
+      turnId: params.turnId,
+      provider: 'internal',
+      model: 'false_missing_reply_guard',
+      success: true,
+      promptPreview: getLatestUserText(params.messages) || '(missing reply complaint)',
+      responsePreview: JSON.stringify(falseMissingReply),
+      durationMs: 0
+    })
+    return falseMissingReply
+  }
+
   const continuation = getContinuationSkillSelection(params.messages)
   if (continuation) {
     await logRouterUsage({

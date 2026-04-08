@@ -3,6 +3,7 @@ import {
   classifyChatSkills,
   composeSkillInstructions,
   getContinuationSkillSelection,
+  getFalseMissingReplySkillSelection,
   getPendingApprovalSkillSelection,
   getRetryContinuationSkillSelection,
   resolveApprovalToolNamesForSelection,
@@ -253,6 +254,25 @@ describe('classifyChatSkills', () => {
       usedFallback: false
     })
   })
+
+  it('short-circuits false missing-reply complaints before support routing', async () => {
+    const selection = await classifyChatSkills({
+      userId: 'user-1',
+      turnId: 'turn-false-missing-reply',
+      messages: [
+        { role: 'user', content: 'Hey' },
+        { role: 'assistant', content: 'Yo, what is up?' },
+        { role: 'user', content: 'why no text back?' }
+      ]
+    })
+
+    expect(selection).toMatchObject({
+      skillIds: ['general_chat'],
+      useTools: false,
+      source: 'fallback'
+    })
+    expect(generateObjectMock).not.toHaveBeenCalled()
+  })
 })
 
 describe('getContinuationSkillSelection', () => {
@@ -392,6 +412,41 @@ describe('getPendingApprovalSkillSelection', () => {
       {
         role: 'user',
         content: 'ettem egy banant rogzitsd le'
+      }
+    ])
+
+    expect(selection).toBeNull()
+  })
+})
+
+describe('getFalseMissingReplySkillSelection', () => {
+  it('keeps ambiguous missing-reply complaints in general chat when the assistant already replied', () => {
+    const selection = getFalseMissingReplySkillSelection([
+      {
+        role: 'user',
+        content: 'Hey'
+      },
+      {
+        role: 'assistant',
+        content: 'Yo, what is up?'
+      },
+      {
+        role: 'user',
+        content: 'why no text back?'
+      }
+    ])
+
+    expect(selection).toMatchObject({
+      skillIds: ['general_chat'],
+      useTools: false
+    })
+  })
+
+  it('does not suppress real support routing when there was no recent assistant reply', () => {
+    const selection = getFalseMissingReplySkillSelection([
+      {
+        role: 'user',
+        content: 'why no text back?'
       }
     ])
 
