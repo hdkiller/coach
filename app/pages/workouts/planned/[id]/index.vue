@@ -790,21 +790,34 @@
   <UModal
     v-if="showPublishModal"
     v-model:open="showPublishModal"
-    :title="isLocalWorkout ? 'Publish to Intervals.icu' : 'Update on Intervals.icu'"
+    :title="publishModalTitle"
     :description="
-      isLocalWorkout
-        ? 'Sync this workout to your Intervals.icu calendar.'
-        : 'Push local changes to Intervals.icu.'
+      garminConnected
+        ? 'Choose where to send this planned workout.'
+        : isLocalWorkout
+          ? 'Sync this workout to your Intervals.icu calendar.'
+          : 'Push local changes to Intervals.icu.'
     "
   >
     <template #body>
       <div class="p-6 space-y-4">
         <p class="text-sm text-gray-600 dark:text-gray-300">
-          This will {{ isLocalWorkout ? 'create a new' : 'update the' }} workout on your
-          Intervals.icu calendar for
+          This workout is scheduled for
           <strong>{{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}</strong
           >.
         </p>
+        <div v-if="garminConnected" class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm">
+          <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+            <li>
+              <strong>Intervals.icu:</strong>
+              {{ isLocalWorkout ? 'create a new calendar workout' : 'update the synced workout' }}
+            </li>
+            <li>
+              <strong>Garmin Training:</strong> send the structured workout to Garmin Connect for
+              that day
+            </li>
+          </ul>
+        </div>
         <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm">
           <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>Structured intervals will be {{ isLocalWorkout ? 'included' : 'updated' }}</li>
@@ -1216,6 +1229,10 @@
   const publishingGarminTraining = ref(false)
   const publishingGarminCourse = ref(false)
   const garminConnected = ref(false)
+  const publishModalTitle = computed(() => {
+    if (garminConnected.value) return 'Publish Workout'
+    return isLocalWorkout.value ? 'Publish to Intervals.icu' : 'Update on Intervals.icu'
+  })
 
   // Eject logic
   const showEjectModal = ref(false)
@@ -1686,7 +1703,7 @@
     if (!workout.value?.id) return
     deleting.value = true
     try {
-      await $fetch(`/api/planned-workouts/${workout.value.id}`, {
+      await ($fetch as any)(`/api/planned-workouts/${workout.value.id}`, {
         method: 'DELETE'
       })
       toast.add({
@@ -1712,9 +1729,12 @@
 
     publishing.value = true
     try {
-      const response: any = await $fetch(`/api/workouts/planned/${workout.value.id}/publish`, {
-        method: 'POST'
-      })
+      const response: any = await ($fetch as any)(
+        `/api/workouts/planned/${workout.value.id}/publish`,
+        {
+          method: 'POST'
+        }
+      )
 
       // Update local state
       if (response.success && response.workout) {
@@ -1741,7 +1761,7 @@
 
   async function fetchIntegrationStatus() {
     try {
-      const data: any = await $fetch('/api/integrations/status')
+      const data: any = await ($fetch as any)('/api/integrations/status')
       const integrations = Array.isArray(data?.integrations) ? data.integrations : []
       garminConnected.value = integrations.some(
         (integration: any) => integration.provider === 'garmin'
@@ -1760,7 +1780,7 @@
     else publishingGarminCourse.value = true
 
     try {
-      const response: any = await $fetch(
+      const response: any = await ($fetch as any)(
         `/api/workouts/planned/${workout.value.id}/publish-garmin`,
         {
           method: 'POST',
@@ -1797,7 +1817,7 @@
     ejecting.value = true
     try {
       // Re-use the link API but pass null trainingWeekId
-      await $fetch(`/api/workouts/planned/${workout.value.id}/link`, {
+      await ($fetch as any)(`/api/workouts/planned/${workout.value.id}/link`, {
         method: 'POST',
         body: { trainingWeekId: null }
       })
@@ -1835,9 +1855,9 @@
     structureText.value = ''
     showStructureModal.value = true
     try {
-      const response = await $fetch<{ intervalsDescription: string }>(
+      const response = (await ($fetch as any)(
         `/api/workouts/planned/${workout.value.id}/intervals-preview`
-      )
+      )) as { intervalsDescription: string }
       structureText.value = response?.intervalsDescription || ''
     } catch (error: any) {
       toast.add({
@@ -1854,7 +1874,7 @@
     if (!workout.value?.id) return
     isSavingStructure.value = true
     try {
-      await $fetch(`/api/workouts/planned/${workout.value.id}/structure`, {
+      await ($fetch as any)(`/api/workouts/planned/${workout.value.id}/structure`, {
         method: 'PATCH',
         body: { text: structureText.value }
       })
@@ -1882,7 +1902,7 @@
     isSavingStructure.value = true
     try {
       const isStrength = ['Gym', 'WeightTraining'].includes(String(workout.value?.type || ''))
-      await $fetch(`/api/workouts/planned/${workout.value.id}/structure`, {
+      await ($fetch as any)(`/api/workouts/planned/${workout.value.id}/structure`, {
         method: 'PATCH',
         body: isStrength ? payload : { steps: payload }
       })
@@ -1926,7 +1946,7 @@
     loadError.value = null
     workoutFuelingPlan.value = null
     try {
-      const data: any = await $fetch(`/api/workouts/planned/${route.params.id}`)
+      const data: any = await ($fetch as any)(`/api/workouts/planned/${route.params.id}`)
       workout.value = data.workout
       userFtp.value = data.userFtp
       llmUsageId.value = data.llmUsageId
@@ -2016,9 +2036,9 @@
 
     loadingViewPreview.value = true
     try {
-      const response = await $fetch<{ intervalsDescription: string }>(
+      const response = (await ($fetch as any)(
         `/api/workouts/planned/${workout.value.id}/intervals-preview`
-      )
+      )) as { intervalsDescription: string }
       intervalsPreviewText.value = response?.intervalsDescription || ''
     } catch (error: any) {
       viewPreviewError.value = error?.data?.message || 'Failed to load Intervals.icu preview.'
@@ -2064,13 +2084,10 @@
     if (!workout.value?.id) return
     updatingTime.value = true
     try {
-      const response = await $fetch<{ workout?: any }>(
-        `/api/planned-workouts/${workout.value.id}`,
-        {
-          method: 'PATCH',
-          body: { date: timeForm.date, startTime: timeForm.startTime }
-        }
-      )
+      const response = (await ($fetch as any)(`/api/planned-workouts/${workout.value.id}`, {
+        method: 'PATCH',
+        body: { date: timeForm.date, startTime: timeForm.startTime }
+      })) as { workout?: any }
       workout.value.date = response?.workout?.date || workout.value.date
       workout.value.startTime = response?.workout?.startTime || timeForm.startTime
       toast.add({
@@ -2105,13 +2122,10 @@
 
     updatingTss.value = true
     try {
-      const response = await $fetch<{ workout?: any }>(
-        `/api/planned-workouts/${workout.value.id}`,
-        {
-          method: 'PATCH',
-          body: { tss: nextTss }
-        }
-      )
+      const response = (await ($fetch as any)(`/api/planned-workouts/${workout.value.id}`, {
+        method: 'PATCH',
+        body: { tss: nextTss }
+      })) as { workout?: any }
 
       workout.value.tss = response?.workout?.tss ?? nextTss
       toast.add({
@@ -2139,7 +2153,7 @@
   async function submitMessages() {
     generatingMessages.value = true
     try {
-      await $fetch(`/api/workouts/planned/${route.params.id}/messages`, {
+      await ($fetch as any)(`/api/workouts/planned/${route.params.id}/messages`, {
         method: 'POST',
         body: messageForm
       })
@@ -2259,7 +2273,7 @@
     pendingStructureAction.value = 'generate'
     generating.value = true
     try {
-      await $fetch(`/api/workouts/planned/${route.params.id}/generate-structure`, {
+      await ($fetch as any)(`/api/workouts/planned/${route.params.id}/generate-structure`, {
         method: 'POST'
       })
       refreshRuns()
@@ -2298,7 +2312,7 @@
     pendingStructureAction.value = 'adjust'
     adjusting.value = true
     try {
-      await $fetch(`/api/workouts/planned/${route.params.id}/adjust`, {
+      await ($fetch as any)(`/api/workouts/planned/${route.params.id}/adjust`, {
         method: 'POST',
         body: adjustForm
       })
@@ -2341,7 +2355,7 @@
 
     savingToLibrary.value = true
     try {
-      await $fetch('/api/library/workouts/save', {
+      await ($fetch as any)('/api/library/workouts/save', {
         method: 'POST',
         body: {
           plannedWorkoutId: workout.value.id,
@@ -2387,7 +2401,7 @@
 
     updatingFuelingStrategy.value = true
     try {
-      await $fetch(`/api/planned-workouts/${workout.value.id}`, {
+      await ($fetch as any)(`/api/planned-workouts/${workout.value.id}`, {
         method: 'PATCH',
         body: { fuelingStrategy: strategy }
       })

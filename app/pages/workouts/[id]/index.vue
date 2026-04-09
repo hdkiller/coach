@@ -4986,7 +4986,7 @@
       const id = route.params.id
       workout.value = await $fetch(`/api/workouts/${id}`)
     } catch (e: any) {
-      error.value = e.data?.message || e.message || t.value('error_failed_to_load')
+      error.value = e?.data?.message || e?.message || t.value('error_failed_to_load')
       console.error('Error fetching workout:', e)
     } finally {
       loading.value = false
@@ -4998,15 +4998,12 @@
 
     savingTags.value = true
     try {
-      const response = await $fetch<{ success: boolean; workout: any }>(
-        `/api/workouts/${workout.value.id}`,
-        {
-          method: 'PATCH',
-          body: {
-            setLocalTags: normalizedLocalTagDraft.value
-          }
+      const response = (await ($fetch as any)(`/api/workouts/${workout.value.id}`, {
+        method: 'PATCH',
+        body: {
+          setLocalTags: normalizedLocalTagDraft.value
         }
-      )
+      })) as { success: boolean; workout: any }
 
       workout.value = response.workout
       syncLocalTagDraft()
@@ -5021,7 +5018,7 @@
       console.error('Error updating workout tags:', e)
       toast.add({
         title: 'Failed to update tags',
-        description: e.data?.message || e.message || 'Could not save workout tags.',
+        description: e?.data?.message || e?.message || 'Could not save workout tags.',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
@@ -5094,7 +5091,7 @@
 
       toast.add({
         title: t.value('analyzing_failed_title'),
-        description: e.data?.message || e.message || 'Failed to start workout analysis',
+        description: e?.data?.message || e?.message || 'Failed to start workout analysis',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
@@ -5135,7 +5132,7 @@
 
       toast.add({
         title: t.value('analyzing_failed_title'),
-        description: e.data?.message || e.message || 'Failed to start adherence analysis',
+        description: e?.data?.message || e?.message || 'Failed to start adherence analysis',
         color: 'error'
       })
     }
@@ -5162,7 +5159,7 @@
       console.error('Error unlinking workout from plan:', e)
       toast.add({
         title: 'Failed to unlink',
-        description: e.data?.message || e.message || 'Failed to unlink workout from plan',
+        description: e?.data?.message || e?.message || 'Failed to unlink workout from plan',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
@@ -5192,7 +5189,7 @@
       console.error('Error publishing workout summary:', e)
       toast.add({
         title: 'Publish Failed',
-        description: e.data?.message || e.message || 'Failed to publish workout summary',
+        description: e?.data?.message || e?.message || 'Failed to publish workout summary',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
@@ -5258,7 +5255,7 @@
       console.error('Failed to unlink duplicate workout:', e)
       toast.add({
         title: 'Failed to unlink workout',
-        description: e.data?.message || e.message || 'Could not remove the duplicate link.',
+        description: e?.data?.message || e?.message || 'Could not remove the duplicate link.',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })

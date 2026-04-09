@@ -399,16 +399,14 @@
   const toast = useToast()
   const { formatDateUTC } = useFormat()
 
-  const { data: workoutResponse, pending } = await useFetch<any>(
-    `/api/workouts/planned/${route.params.id}`,
-    {
-      key: `planned-workout-charts-${route.params.id}`
-    }
-  )
+  const { data: workoutResponse, pending } = (await useAsyncData<any>(
+    `planned-workout-charts-${route.params.id}`,
+    () => ($fetch as any)(`/api/workouts/planned/${route.params.id}`)
+  )) as any
 
-  const { data: profile } = await useFetch<any>('/api/profile', {
-    key: 'planned-workout-charts-profile'
-  })
+  const { data: profile } = (await useAsyncData<any>('planned-workout-charts-profile', () =>
+    ($fetch as any)('/api/profile')
+  )) as any
 
   const workout = computed(() => workoutResponse.value?.workout || null)
   const allSportSettings = computed(() => profile.value?.profile?.sportSettings || [])
@@ -471,9 +469,9 @@
 
     loadingViewPreview.value = true
     try {
-      const response = await $fetch<{ intervalsDescription: string }>(
+      const response = (await ($fetch as any)(
         `/api/workouts/planned/${workout.value.id}/intervals-preview`
-      )
+      )) as { intervalsDescription: string }
       intervalsPreviewText.value = response?.intervalsDescription || ''
     } catch (error: any) {
       viewPreviewError.value = error?.data?.message || 'Failed to load Intervals.icu preview.'
