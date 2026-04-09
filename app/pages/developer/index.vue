@@ -234,7 +234,13 @@
 
   const toast = useToast()
 
-  const { data: apps, pending, refresh } = await useFetch<any[]>('/api/developer/apps')
+  const {
+    data: apps,
+    pending,
+    refresh
+  } = (await useAsyncData<any[]>('developer-apps', () =>
+    ($fetch as any)('/api/developer/apps')
+  )) as any
 
   const isCreateModalOpen = ref(false)
   const isSuccessModalOpen = ref(false)

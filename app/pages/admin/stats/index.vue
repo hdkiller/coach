@@ -25,7 +25,9 @@
     totalUsersLast30Days: number
   }
 
-  const { data: stats, pending } = await useFetch<SystemStats>('/api/admin/stats')
+  const { data: stats, pending } = (await useAsyncData<SystemStats>('admin-stats', () =>
+    ($fetch as any)('/api/admin/stats')
+  )) as any
 
   const chartOptions = {
     responsive: true,

@@ -222,10 +222,14 @@
 
   const id = computed(() => route.params.id as string)
 
-  const { data } = await useFetch<LlmUsage>(`/api/analytics/llm-usage/${id.value}`, {
-    lazy: true,
-    server: false
-  })
+  const { data } = (await useAsyncData<LlmUsage>(
+    `llm-usage-${id.value}`,
+    () => ($fetch as any)(`/api/analytics/llm-usage/${id.value}`),
+    {
+      lazy: true,
+      server: false
+    }
+  )) as any
 
   watchEffect(() => {
     if (data.value !== undefined) {

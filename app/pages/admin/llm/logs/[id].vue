@@ -39,7 +39,9 @@
     }
   }
 
-  const { data, pending } = await useFetch<LlmUsage>(`/api/admin/stats/llm/${id}`)
+  const { data, pending } = (await useAsyncData<LlmUsage>(`admin-llm-log-${id}`, () =>
+    ($fetch as any)(`/api/admin/stats/llm/${id}`)
+  )) as any
 
   function formatNumber(num: number | null | undefined): string {
     if (!num || num === 0) return '0'

@@ -20,11 +20,7 @@
     page.value = 1
   })
 
-  const {
-    data: reports,
-    pending,
-    refresh
-  } = await useFetch<{
+  interface IssuesResponse {
     count: number
     reports: any[]
     page: number
@@ -36,15 +32,27 @@
       resolved: number
       total: number
     }
-  }>('/api/admin/issues' as any, {
-    query: {
-      page,
-      limit,
-      status: computed(() => filterStatus.value.join(',')),
-      search: debouncedSearch
-    },
-    watch: [page, filterStatus, debouncedSearch]
-  })
+  }
+
+  const {
+    data: reports,
+    pending,
+    refresh
+  } = (await useAsyncData<IssuesResponse>(
+    'admin-issues',
+    () =>
+      ($fetch as any)('/api/admin/issues', {
+        query: {
+          page: page.value,
+          limit: limit.value,
+          status: filterStatus.value.join(','),
+          search: debouncedSearch.value
+        }
+      }),
+    {
+      watch: [page, filterStatus, debouncedSearch]
+    }
+  )) as any
 
   const groupedReports = computed(() => {
     if (!reports.value?.reports) return []

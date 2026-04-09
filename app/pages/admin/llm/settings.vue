@@ -4,7 +4,13 @@
     middleware: ['auth', 'admin']
   })
 
-  const { data: settings, pending, refresh } = await useFetch<any[]>('/api/admin/llm/settings')
+  const {
+    data: settings,
+    pending,
+    refresh
+  } = (await useAsyncData<any[]>('admin-llm-settings', () =>
+    ($fetch as any)('/api/admin/llm/settings')
+  )) as any
   const toast = useToast()
   const saving = ref(false)
 

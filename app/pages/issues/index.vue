@@ -24,25 +24,33 @@
   const debouncedSearch = useDebounce(searchQuery, 500)
   const showReportModal = ref(false)
 
+  interface IssuesResponse {
+    items: any[]
+    total: number
+    totalPages: number
+    stats: { total: number; active: number; resolved: number }
+  }
+
   // Fetching
   const {
     data: reportsData,
     pending,
     refresh
-  } = await useFetch<{
-    items: any[]
-    total: number
-    totalPages: number
-    stats: { total: number; active: number; resolved: number }
-  }>('/api/issues' as any, {
-    query: {
-      page,
-      limit,
-      status: computed(() => (filterStatus.value === 'ALL' ? undefined : filterStatus.value)),
-      search: debouncedSearch
-    },
-    watch: [page, filterStatus, debouncedSearch]
-  })
+  } = (await useAsyncData<IssuesResponse>(
+    'user-issues',
+    () =>
+      ($fetch as any)('/api/issues', {
+        query: {
+          page: page.value,
+          limit: limit.value,
+          status: filterStatus.value === 'ALL' ? undefined : filterStatus.value,
+          search: debouncedSearch.value
+        }
+      }),
+    {
+      watch: [page, filterStatus, debouncedSearch]
+    }
+  )) as any
 
   // Reset page on filter/search change
   watch([filterStatus, debouncedSearch], () => {
