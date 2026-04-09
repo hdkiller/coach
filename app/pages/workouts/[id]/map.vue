@@ -771,19 +771,21 @@
       }))
   })
 
-  // Fetch workout and streams using useFetch
-  const { data: workoutData, error: workoutError } = await useFetch<any>(
-    `/api/workouts/${workoutId}`,
+  // Fetch workout and streams using useAsyncData
+  const { data: workoutData, error: workoutError } = (await useAsyncData<any>(
+    `workout-${workoutId}`,
+    () => ($fetch as any)(`/api/workouts/${workoutId}`),
     {
       lazy: true
     }
-  )
-  const { data: streamsData, error: streamsError } = await useFetch<any>(
-    `/api/workouts/${workoutId}/streams`,
+  )) as any
+  const { data: streamsData, error: streamsError } = (await useAsyncData<any>(
+    `workout-streams-${workoutId}`,
+    () => ($fetch as any)(`/api/workouts/${workoutId}/streams`),
     {
       lazy: true
     }
-  )
+  )) as any
 
   watch(
     [workoutData, streamsData],

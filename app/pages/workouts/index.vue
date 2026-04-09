@@ -697,11 +697,13 @@
     { label: 'Garmin', value: 'garmin' }
   ]
 
-  const { data: workoutTagsData } =
-    await useFetch<Array<{ value: string; count: number }>>('/api/workouts/tags')
+  const { data: workoutTagsData } = (await useAsyncData<Array<{ value: string; count: number }>>(
+    'workouts-tags',
+    () => ($fetch as any)('/api/workouts/tags')
+  )) as any
 
   const tagOptions = computed(() =>
-    (workoutTagsData.value || []).map((tag) => ({
+    (workoutTagsData.value || []).map((tag: any) => ({
       label: `${tag.value} (${tag.count})`,
       value: tag.value
     }))

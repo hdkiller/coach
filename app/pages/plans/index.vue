@@ -260,11 +260,13 @@
     title: 'My Plans'
   })
 
-  const { data: plans, refresh } = await useFetch<any[]>('/api/plans')
+  const { data: plans, refresh } = (await useAsyncData<any[]>('user-plans', () =>
+    ($fetch as any)('/api/plans')
+  )) as any
   const toast = useToast()
 
-  const templates = computed(() => plans.value?.filter((p) => p.isTemplate) || [])
-  const history = computed(() => plans.value?.filter((p) => !p.isTemplate) || [])
+  const templates = computed(() => plans.value?.filter((p: any) => p.isTemplate) || [])
+  const history = computed(() => plans.value?.filter((p: any) => !p.isTemplate) || [])
 
   const loadingId = ref<string | null>(null)
   const deletingId = ref<string | null>(null)
@@ -384,15 +386,12 @@
 
     activating.value = true
     try {
-      const response = await $fetch<{ planId?: string }>(
-        `/api/plans/${selectedTemplate.value.id}/activate`,
-        {
-          method: 'POST',
-          body: {
-            startDate: new Date(startDate.value + 'T00:00:00').toISOString()
-          }
+      const response = (await ($fetch as any)(`/api/plans/${selectedTemplate.value.id}/activate`, {
+        method: 'POST',
+        body: {
+          startDate: new Date(startDate.value + 'T00:00:00').toISOString()
         }
-      )
+      })) as { planId?: string }
 
       toast.add({
         title: 'Success',
