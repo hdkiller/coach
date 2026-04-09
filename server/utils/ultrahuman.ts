@@ -47,6 +47,19 @@ export async function refreshUltrahumanToken(integration: Integration): Promise<
   if (!response.ok) {
     const errorText = await response.text()
     console.error('Ultrahuman token refresh failed:', errorText)
+
+    // If we get a 400 Bad Request during refresh, it typically means the refresh token is invalid/revoked
+    if (response.status === 400) {
+      const { prisma: db } = await import('./db')
+      await db.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'FAILED',
+          errorMessage: `Refresh token revoked or invalid: ${errorText}`
+        }
+      })
+    }
+
     throw new Error(`Failed to refresh Ultrahuman token: ${response.status} ${response.statusText}`)
   }
 

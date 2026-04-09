@@ -44,6 +44,18 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
   if (!response.ok) {
     const errorText = await response.text()
     console.error('Whoop token refresh failed:', errorText)
+
+    // If we get a 400 Bad Request during refresh, it typically means the refresh token is invalid/revoked
+    if (response.status === 400) {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'FAILED',
+          errorMessage: `Refresh token revoked or invalid: ${errorText}`
+        }
+      })
+    }
+
     throw new Error(`Failed to refresh Whoop token: ${response.status} ${response.statusText}`)
   }
 

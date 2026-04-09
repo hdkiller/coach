@@ -136,6 +136,18 @@ export async function refreshWithingsToken(integration: Integration): Promise<In
 
   if (data.status !== 0) {
     console.error('Withings token refresh failed:', data)
+
+    // Status 601 (Unauthorized) usually means the refresh token is invalid or revoked
+    if (data.status === 601 || data.status === 401) {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'FAILED',
+          errorMessage: `Refresh token revoked or invalid (Status ${data.status})`
+        }
+      })
+    }
+
     throw new Error(`Failed to refresh Withings token: Status ${data.status}`)
   }
 
