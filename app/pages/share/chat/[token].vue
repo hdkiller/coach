@@ -13,7 +13,9 @@
     data: chatData,
     pending: loading,
     error: fetchError
-  } = await useFetch<any>(`/api/share/chat/${token}`)
+  } = (await useAsyncData<any>(`share-chat-${token}`, () =>
+    ($fetch as any)(`/api/share/chat/${token}`)
+  )) as any
 
   const error = computed(() => {
     if (fetchError.value) {

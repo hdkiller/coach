@@ -85,7 +85,9 @@
 <script setup lang="ts">
   import { h } from 'vue'
 
-  const { data, pending, error, refresh } = useFetch<any[]>('/api/releases')
+  const { data, pending, error, refresh } = useAsyncData<any[]>('releases', () =>
+    ($fetch as any)('/api/releases')
+  ) as any
 
   useHead({
     title: 'Release Notes',

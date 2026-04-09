@@ -189,7 +189,9 @@
   const route = useRoute()
   const token = route.params.token as string
 
-  const { data, pending, error } = await useFetch<any>(`/api/public/plans/access/${token}`)
+  const { data, pending, error } = (await useAsyncData<any>(`public-plan-${token}`, () =>
+    ($fetch as any)(`/api/public/plans/access/${token}`)
+  )) as any
 
   const plan = computed(() => data.value?.plan)
   const user = computed(() => data.value?.plan?.author)

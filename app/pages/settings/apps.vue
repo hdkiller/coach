@@ -287,13 +287,14 @@
   })
 
   // Integration status
-  const { data: integrationStatus, refresh: refreshIntegrations } = useFetch<any>(
-    '/api/integrations/status',
+  const { data: integrationStatus, refresh: refreshIntegrations } = useAsyncData<any>(
+    'integrations-status',
+    () => ($fetch as any)('/api/integrations/status'),
     {
       lazy: true,
       server: false
     }
-  )
+  ) as any
 
   const intervalsConnected = computed(
     () =>
@@ -424,25 +425,30 @@
 
   const syncingProviders = ref(new Set<string>())
 
-  const { data: publicApps, pending: pendingPublicApps } = await useFetch<any[] | null>(
-    '/api/oauth/public-apps',
+  const { data: publicApps, pending: pendingPublicApps } = (await useAsyncData<any[] | null>(
+    'public-apps',
+    () => ($fetch as any)('/api/oauth/public-apps'),
     {
       lazy: true,
       server: false,
       default: () => null
     }
-  )
+  )) as any
 
   // Authorized Apps Logic
   const {
     data: consents,
     pending: pendingConsents,
     refresh: refreshConsents
-  } = await useFetch<any[] | null>('/api/oauth/consents', {
-    lazy: true,
-    server: false,
-    default: () => null
-  })
+  } = (await useAsyncData<any[] | null>(
+    'oauth-consents',
+    () => ($fetch as any)('/api/oauth/consents'),
+    {
+      lazy: true,
+      server: false,
+      default: () => null
+    }
+  )) as any
 
   const isRevokeModalOpen = ref(false)
   const revoking = ref(false)

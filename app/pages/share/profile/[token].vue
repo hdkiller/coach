@@ -418,7 +418,13 @@
 
   const { formatDate, formatShortDate } = useFormat()
 
-  const { data: sharedData, pending, error } = await useFetch<any>(`/api/share/${token}`)
+  const {
+    data: sharedData,
+    pending,
+    error
+  } = (await useAsyncData<any>(`share-resource-profile-${token}`, () =>
+    ($fetch as any)(`/api/share/${token}`)
+  )) as any
 
   const profile = computed(() => {
     if (

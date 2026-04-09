@@ -555,7 +555,9 @@
     data: workout,
     pending: loading,
     error: fetchError
-  } = await useFetch<any>(`/api/share/workouts/${token}`)
+  } = (await useAsyncData<any>(`share-workout-${token}`, () =>
+    ($fetch as any)(`/api/share/workouts/${token}`)
+  )) as any
 
   const error = computed(() => {
     if (fetchError.value) {

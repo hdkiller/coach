@@ -191,7 +191,9 @@
   const route = useRoute()
   const token = route.params.token as string
 
-  const { data, pending, error } = await useFetch<any>(`/api/share/${token}`)
+  const { data, pending, error } = (await useAsyncData<any>(`share-resource-${token}`, () =>
+    ($fetch as any)(`/api/share/${token}`)
+  )) as any
 
   const workout = computed(() => data.value?.data)
   const user = computed(() => data.value?.user)

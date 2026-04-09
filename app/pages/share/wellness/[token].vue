@@ -299,7 +299,9 @@
     data: shareData,
     pending: loading,
     error: fetchError
-  } = await useFetch<any>(`/api/share/${token}`)
+  } = (await useAsyncData<any>(`share-resource-wellness-${token}`, () =>
+    ($fetch as any)(`/api/share/${token}`)
+  )) as any
 
   const wellness = computed(() => shareData.value?.data)
   const user = computed(() => shareData.value?.user)
