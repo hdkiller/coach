@@ -439,7 +439,10 @@
         </div>
         <div>
           <h3 class="font-semibold">Garmin</h3>
-          <p class="text-sm text-muted">Direct sync for activities and health metrics</p>
+          <p class="text-sm text-muted">
+            Direct sync for activities and health metrics, plus manual workout send from planned
+            workout details
+          </p>
         </div>
       </div>
 

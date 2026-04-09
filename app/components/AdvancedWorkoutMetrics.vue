@@ -20,6 +20,7 @@
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getDriftColor(data.advanced.decoupling)"
           @click="
+            data.advanced.decoupling !== null &&
             emit('open-metric', {
               key: 'Aerobic Decoupling',
               value: data.advanced.decoupling.toFixed(1),
@@ -55,7 +56,7 @@
 
           <div v-if="data.advanced.decoupling !== null">
             <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
-              {{ data.advanced.decoupling.toFixed(1) }}%
+              {{ (data.advanced.decoupling || 0).toFixed(1) }}%
             </div>
             <div class="text-[9px] font-black uppercase tracking-widest mt-2">
               <span
@@ -194,19 +195,22 @@
             </div>
           </div>
 
-          <div v-if="data.advanced.quadrants" class="space-y-4">
+          <div
+            v-if="data.advanced.quadrants && data.advanced.quadrants.distribution"
+            class="space-y-4"
+          >
             <!-- Q1: Sprint -->
             <div class="space-y-1.5">
               <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
                 <span class="text-gray-500">Sprint (Hi Force / Hi Vel)</span>
                 <span class="text-gray-900 dark:text-white"
-                  >{{ data.advanced.quadrants.distribution.q1.toFixed(1) }}%</span
+                  >{{ (data.advanced.quadrants.distribution.q1 || 0).toFixed(1) }}%</span
                 >
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
                   class="bg-red-500 h-1 rounded-full transition-all duration-1000"
-                  :style="{ width: `${data.advanced.quadrants.distribution.q1}%` }"
+                  :style="{ width: `${data.advanced.quadrants.distribution.q1 || 0}%` }"
                 />
               </div>
             </div>
@@ -216,13 +220,13 @@
               <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
                 <span class="text-gray-500">Grind (Hi Force / Lo Vel)</span>
                 <span class="text-gray-900 dark:text-white"
-                  >{{ data.advanced.quadrants.distribution.q2.toFixed(1) }}%</span
+                  >{{ (data.advanced.quadrants.distribution.q2 || 0).toFixed(1) }}%</span
                 >
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
                   class="bg-orange-500 h-1 rounded-full transition-all duration-1000"
-                  :style="{ width: `${data.advanced.quadrants.distribution.q2}%` }"
+                  :style="{ width: `${data.advanced.quadrants.distribution.q2 || 0}%` }"
                 />
               </div>
             </div>
@@ -232,13 +236,13 @@
               <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
                 <span class="text-gray-500">Spin (Lo Force / Hi Vel)</span>
                 <span class="text-gray-900 dark:text-white"
-                  >{{ data.advanced.quadrants.distribution.q4.toFixed(1) }}%</span
+                  >{{ (data.advanced.quadrants.distribution.q4 || 0).toFixed(1) }}%</span
                 >
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
                   class="bg-yellow-400 h-1 rounded-full transition-all duration-1000"
-                  :style="{ width: `${data.advanced.quadrants.distribution.q4}%` }"
+                  :style="{ width: `${data.advanced.quadrants.distribution.q4 || 0}%` }"
                 />
               </div>
             </div>
@@ -246,7 +250,7 @@
             <div
               class="text-[9px] font-black text-gray-400 uppercase tracking-widest text-right pt-2"
             >
-              Recovery/Coast: {{ data.advanced.quadrants.distribution.q3.toFixed(1) }}%
+              Recovery/Coast: {{ (data.advanced.quadrants.distribution.q3 || 0).toFixed(1) }}%
             </div>
           </div>
           <div
@@ -261,6 +265,8 @@
         <div
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-blue-500 cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
           @click="
+            data.advanced.coasting &&
+            data.advanced.coasting.percentTime !== null &&
             emit('open-metric', {
               key: 'Coasting Efficiency',
               value: data.advanced.coasting.percentTime.toFixed(1),
@@ -302,14 +308,14 @@
                 {{ formatDuration(data.advanced.coasting.totalTime) }}
               </span>
               <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                ({{ data.advanced.coasting.percentTime.toFixed(1) }}%)
+                ({{ (data.advanced.coasting.percentTime || 0).toFixed(1) }}%)
               </span>
             </div>
 
             <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1 mt-4">
               <div
                 class="bg-blue-600 h-1 rounded-full transition-all duration-1000"
-                :style="{ width: `${Math.min(100, data.advanced.coasting.percentTime)}%` }"
+                :style="{ width: `${Math.min(100, data.advanced.coasting.percentTime || 0)}%` }"
               />
             </div>
 
@@ -398,6 +404,8 @@
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getFadeColor(data.advanced.fatigueSensitivity?.decay)"
           @click="
+            data.advanced.fatigueSensitivity &&
+            data.advanced.fatigueSensitivity.decay !== null &&
             emit('open-metric', {
               key: 'Durability (Late Fade)',
               value: data.advanced.fatigueSensitivity.decay.toFixed(1),
