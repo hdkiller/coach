@@ -791,9 +791,9 @@
     data: report,
     pending,
     refresh: refreshReport
-  } = await useFetch<Report>(`/api/reports/${reportId}`, {
-    watch: false
-  })
+  } = (await useAsyncData<Report>(`report-${reportId}`, () =>
+    ($fetch as any)(`/api/reports/${reportId}`)
+  )) as any
 
   // Poll for updates if report is processing or pending
   let pollInterval: NodeJS.Timeout | null = null

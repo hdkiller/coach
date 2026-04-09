@@ -357,7 +357,13 @@
   const toast = useToast()
   const { formatDate: format, formatShortDate: formatShort } = useFormat()
 
-  const { data: rec, pending, refresh } = await useFetch<any>(`/api/recommendations/${recId}`)
+  const {
+    data: rec,
+    pending,
+    refresh
+  } = (await useAsyncData<any>(`recommendation-${recId}`, () =>
+    ($fetch as any)(`/api/recommendations/${recId}`)
+  )) as any
 
   const priorityColor = computed(() => {
     switch (rec.value?.priority) {

@@ -823,13 +823,17 @@
   const powerCurveScope = ref<string>('all')
 
   // Fetch available sports
-  const { data: sportsData } = await useFetch<string[]>('/api/workouts/sports')
-  const { data: workoutTagsData } =
-    await useFetch<Array<{ value: string; count: number }>>('/api/workouts/tags')
+  const { data: sportsData } = (await useAsyncData<string[]>('workouts-sports', () =>
+    ($fetch as any)('/api/workouts/sports')
+  )) as any
+  const { data: workoutTagsData } = (await useAsyncData<Array<{ value: string; count: number }>>(
+    'workouts-tags',
+    () => ($fetch as any)('/api/workouts/tags')
+  )) as any
   const sportOptions = computed(() => {
     const options = [{ label: t.value('highlights_all_sports'), value: 'all' }]
     if (sportsData.value) {
-      sportsData.value.forEach((sport) => {
+      sportsData.value.forEach((sport: string) => {
         options.push({ label: sport, value: sport })
       })
     }
@@ -837,7 +841,7 @@
   })
 
   const availableWorkoutTags = computed(() =>
-    (workoutTagsData.value || []).map((tag) => ({
+    (workoutTagsData.value || []).map((tag: any) => ({
       label: `${tag.value} (${tag.count})`,
       value: tag.value
     }))
@@ -854,7 +858,7 @@
     if (availableWorkoutTags.value.length > 0) {
       groups.push([
         { label: 'Tags', type: 'label' },
-        ...availableWorkoutTags.value.map((tag) => ({
+        ...availableWorkoutTags.value.map((tag: any) => ({
           label: tag.label,
           value: `tag:${tag.value}`
         }))
@@ -936,31 +940,40 @@
   }
 
   // Fetch athlete profile data
-  const { data: profileData, pending: profileLoading } = await useFetch<AthleteProfile>(
-    '/api/scores/athlete-profile'
-  )
+  const { data: profileData, pending: profileLoading } = (await useAsyncData<AthleteProfile>(
+    'athlete-profile',
+    () => ($fetch as any)('/api/scores/athlete-profile')
+  )) as any
 
   // Fetch workout score trends
-  const { data: workoutData, pending: workoutLoading } = await useFetch(
-    '/api/scores/workout-trends',
+  const { data: workoutData, pending: workoutLoading } = (await useAsyncData(
+    'workout-trends',
+    () =>
+      ($fetch as any)('/api/scores/workout-trends', {
+        query: {
+          days: selectedPeriod.value,
+          sport: scopeToSport(workoutScope.value),
+          tags: scopeToTags(workoutScope.value).join(',')
+        }
+      }),
     {
-      query: computed(() => ({
-        days: selectedPeriod.value,
-        sport: scopeToSport(workoutScope.value),
-        tags: scopeToTags(workoutScope.value).join(',')
-      }))
+      watch: [selectedPeriod, workoutScope]
     }
-  )
+  )) as any
 
   // Fetch nutrition score trends
-  const { data: nutritionData, pending: nutritionLoading } = await useFetch(
-    '/api/scores/nutrition-trends',
+  const { data: nutritionData, pending: nutritionLoading } = (await useAsyncData(
+    'nutrition-trends',
+    () =>
+      ($fetch as any)('/api/scores/nutrition-trends', {
+        query: {
+          days: selectedPeriod.value
+        }
+      }),
     {
-      query: computed(() => ({
-        days: selectedPeriod.value
-      }))
+      watch: [selectedPeriod]
     }
-  )
+  )) as any
   // Modal state
   const showModal = ref(false)
   const loadingExplanation = ref(false)

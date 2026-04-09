@@ -68,7 +68,7 @@
   })
 
   // Fetch athlete profile data which includes personalBests
-  const { data, pending, refresh } = await useFetch<any>('/api/scores/athlete-profile', {
-    key: 'athlete-profile-bests'
-  })
+  const { data, pending, refresh } = (await useAsyncData<any>('athlete-profile-bests', () =>
+    ($fetch as any)('/api/scores/athlete-profile')
+  )) as any
 </script>
