@@ -438,12 +438,18 @@
   const toast = useToast()
   const coachingStore = useCoachingStore()
 
-  const { data, pending } = await useFetch(`/api/library/plans/${route.params.id}/architect`)
-  const { data: coachedAthletes } = await useLazyFetch<any[]>('/api/coaching/athletes', {
-    server: false,
-    default: () => [],
-    immediate: coachingStore.isCoachingMode
-  })
+  const { data, pending } = (await useAsyncData(`library-plan-architect-${route.params.id}`, () =>
+    ($fetch as any)(`/api/library/plans/${route.params.id}/architect`)
+  )) as any
+  const { data: coachedAthletes } = (await useAsyncData<any[]>(
+    'coached-athletes',
+    () => ($fetch as any)('/api/coaching/athletes'),
+    {
+      server: false,
+      default: () => [],
+      immediate: coachingStore.isCoachingMode
+    }
+  )) as any
 
   const plan = computed<any | null>(() => data.value || null)
   const isCoachingMode = computed(() => coachingStore.isCoachingMode)

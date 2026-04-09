@@ -489,25 +489,39 @@
     data: workoutTemplates,
     status: workoutTemplateStatus,
     refresh: refreshWorkoutTemplates
-  } = useLazyFetch<any[]>('/api/library/workouts', {
-    server: false,
-    default: () => [],
-    query: computed(() => ({
-      scope: workoutLibraryScope.value
-    }))
-  })
+  } = useAsyncData<any[]>(
+    'coach-workout-templates',
+    () =>
+      ($fetch as any)('/api/library/workouts', {
+        query: {
+          scope: workoutLibraryScope.value
+        }
+      }),
+    {
+      server: false,
+      default: () => [],
+      watch: [workoutLibraryScope]
+    }
+  ) as any
 
   const {
     data: planTemplates,
     status: planTemplateStatus,
     refresh: refreshPlanTemplates
-  } = useLazyFetch<any[]>('/api/library/plans', {
-    server: false,
-    default: () => [],
-    query: computed(() => ({
-      scope: planLibraryScope.value
-    }))
-  })
+  } = useAsyncData<any[]>(
+    'coach-plan-templates',
+    () =>
+      ($fetch as any)('/api/library/plans', {
+        query: {
+          scope: planLibraryScope.value
+        }
+      }),
+    {
+      server: false,
+      default: () => [],
+      watch: [planLibraryScope]
+    }
+  ) as any
 
   const panelState = reactive({
     primary: {

@@ -610,10 +610,13 @@
     data: athlete,
     pending,
     error
-  } = useFetch<AthleteProfile>(`/api/coaching/athletes/${athleteId}`, {
-    key: `athlete-${athleteId}`,
-    lazy: true
-  })
+  } = useAsyncData<AthleteProfile>(
+    `athlete-${athleteId}`,
+    () => ($fetch as any)(`/api/coaching/athletes/${athleteId}`),
+    {
+      lazy: true
+    }
+  ) as any
 
   const athleteName = computed(() => athlete.value?.name || 'Athlete Profile')
 

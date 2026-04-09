@@ -459,22 +459,40 @@
     { label: 'Public Store', value: 'public' as const, icon: 'i-heroicons-globe-alt' }
   ]
 
+  const queryParams = computed(() => ({
+    scope: librarySource.value,
+    type: selectedTab.value,
+    folderId:
+      selectedTab.value === 'my' && selectedScope.value !== 'all'
+        ? selectedScope.value === 'unfiled'
+          ? null
+          : selectedScope.value
+        : undefined
+  }))
+
   const {
     data: plans,
     refresh,
     status
-  } = await useFetch<any>('/api/library/plans', {
-    query: computed(() => ({
-      scope: librarySource.value,
-      type: selectedTab.value,
-      folderId:
-        selectedTab.value === 'my' && selectedScope.value !== 'all'
-          ? selectedScope.value === 'unfiled'
-            ? null
-            : selectedScope.value
-          : undefined
-    }))
-  })
+  } = (await useAsyncData<any>(
+    'library-plans',
+    () =>
+      ($fetch as any)('/api/library/plans', {
+        query: {
+          scope: librarySource.value,
+          type: selectedTab.value,
+          folderId:
+            selectedTab.value === 'my' && selectedScope.value !== 'all'
+              ? selectedScope.value === 'unfiled'
+                ? null
+                : selectedScope.value
+              : undefined
+        }
+      }),
+    {
+      watch: [librarySource, selectedTab, selectedScope]
+    }
+  )) as any
 
   const loading = computed(() => status.value === 'pending')
 
@@ -702,10 +720,10 @@
 
   async function sharePlan(plan: any) {
     try {
-      const res = await $fetch<{ url: string }>('/api/share/generate', {
+      const res = (await ($fetch as any)('/api/share/generate', {
         method: 'POST',
         body: { resourceType: 'TRAINING_PLAN', resourceId: plan.id }
-      })
+      })) as { url: string }
       if (import.meta.client && navigator?.clipboard) {
         await navigator.clipboard.writeText(res.url)
       }

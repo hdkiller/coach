@@ -874,12 +874,19 @@
     data: exercises,
     refresh,
     status
-  } = await useFetch<StrengthLibraryExercise[]>('/api/library/strength-exercises', {
-    query: computed(() => ({
-      scope: librarySource.value,
-      q: searchQuery.value || undefined
-    }))
-  })
+  } = (await useAsyncData<StrengthLibraryExercise[]>(
+    'library-strength-exercises',
+    () =>
+      ($fetch as any)('/api/library/strength-exercises', {
+        query: {
+          scope: librarySource.value,
+          q: searchQuery.value || undefined
+        }
+      }),
+    {
+      watch: [librarySource, searchQuery]
+    }
+  )) as any
   const loading = computed(() => status.value === 'pending')
 
   const sortOptions = [

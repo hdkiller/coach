@@ -618,11 +618,18 @@
     data: templates,
     refresh,
     status
-  } = await useFetch<any>('/api/library/workouts', {
-    query: computed(() => ({
-      scope: librarySource.value
-    }))
-  })
+  } = (await useAsyncData<any>(
+    'library-workouts',
+    () =>
+      ($fetch as any)('/api/library/workouts', {
+        query: {
+          scope: librarySource.value
+        }
+      }),
+    {
+      watch: [librarySource]
+    }
+  )) as any
   const loading = computed(() => status.value === 'pending')
   const searchQuery = ref('')
   const selectedType = ref('all')
@@ -694,7 +701,7 @@
   })
 
   const activePreviewTemplate = computed(
-    () => templateItems.value.find((item) => item.id === previewTemplateId.value) || null
+    () => templateItems.value.find((item: any) => item.id === previewTemplateId.value) || null
   )
 
   function applyTemplateFilters(items: any[]) {
