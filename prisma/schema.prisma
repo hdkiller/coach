@@ -1087,6 +1087,7 @@ model UserNutritionSettings {
   ultimateCarbGoal        Int      @default(90)
   sweatRate               Float?
   sodiumTarget            Int      @default(750)
+  quickAddVolumes         Int[]    @default([250, 500, 750])
   preWorkoutWindow        Int      @default(120)
   postWorkoutWindow       Int      @default(60)
   carbsPerHourLow         Int      @default(30)

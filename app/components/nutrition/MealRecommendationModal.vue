@@ -514,7 +514,7 @@
     else loading.value = true
 
     try {
-      const res = await ($fetch as any)('/api/nutrition/recommend-meals', {
+      const res = await ($fetch as any)('/api/nutrition/recommendations/meal', {
         method: 'POST',
         body: {
           date: props.date,

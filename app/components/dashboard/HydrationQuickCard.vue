@@ -220,6 +220,7 @@
 <script setup lang="ts">
   const props = defineProps<{
     nutrition?: any | null
+    settings?: any | null
     date: string
     loading?: boolean
     embedded?: boolean
@@ -239,10 +240,43 @@
   } catch {
     toast = null
   }
-  const quickAddOptions = [250, 500, 750]
+  const fetchedSettings = ref<any | null>(null)
   const optimisticWaterMl = ref<number | null>(null)
   const submitting = ref(false)
   const pendingVolume = ref<number | null>(null)
+
+  function normalizeQuickAddVolumes(values: unknown) {
+    const fallback = [250, 500, 750]
+    if (!Array.isArray(values)) return fallback
+
+    const normalized = values
+      .map((value) => Math.round(Number(value)))
+      .filter((value) => Number.isFinite(value) && value >= 50 && value <= 2000)
+      .slice(0, 3)
+      .sort((a, b) => a - b)
+
+    while (normalized.length < 3) {
+      normalized.push(fallback[normalized.length] ?? fallback[fallback.length - 1] ?? 250)
+    }
+
+    return normalized
+  }
+
+  const effectiveSettings = computed(() => props.settings ?? fetchedSettings.value)
+  const quickAddOptions = computed(() =>
+    normalizeQuickAddVolumes(effectiveSettings.value?.quickAddVolumes)
+  )
+
+  onMounted(async () => {
+    if (props.settings) return
+
+    try {
+      const response = await ($fetch as any)('/api/profile/nutrition')
+      fetchedSettings.value = response?.settings || null
+    } catch {
+      fetchedSettings.value = null
+    }
+  })
 
   watch(
     () => props.nutrition?.waterMl,
@@ -284,6 +318,11 @@
     if (progressPercent.value >= 35) return 'warning'
     return 'error'
   })
+  const embedded = computed(() => props.embedded === true)
+  const embeddedPlain = computed(() => props.embeddedPlain === true)
+  const showHeader = computed(() => props.showHeader !== false)
+  const showJournalButton = computed(() => props.showJournalButton !== false)
+  const title = computed(() => props.title || 'Hydration')
 
   async function quickAdd(volumeMl: number) {
     if (submitting.value) return
@@ -325,7 +364,3 @@
     }
   }
 </script>
-const embedded = computed(() => props.embedded === true) const embeddedPlain = computed(() =>
-props.embeddedPlain === true) const showHeader = computed(() => props.showHeader !== false) const
-showJournalButton = computed(() => props.showJournalButton !== false) const title = computed(() =>
-props.title || 'Hydration')

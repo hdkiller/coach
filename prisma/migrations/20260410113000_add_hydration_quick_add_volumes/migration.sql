@@ -1,0 +1,2 @@
+ALTER TABLE "UserNutritionSettings"
+ADD COLUMN "quickAddVolumes" INTEGER[] DEFAULT ARRAY[250, 500, 750]::INTEGER[] NOT NULL;

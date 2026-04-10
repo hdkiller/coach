@@ -360,6 +360,7 @@
           <div class="pt-6 border-t border-gray-100 dark:border-gray-800">
             <DashboardHydrationQuickCard
               :nutrition="nutrition"
+              :settings="settings"
               :date="nutritionDate"
               :loading="loading"
               embedded

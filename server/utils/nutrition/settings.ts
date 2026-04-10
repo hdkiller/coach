@@ -15,6 +15,7 @@ export const DEFAULT_NUTRITION_SETTINGS: Omit<
   ultimateCarbGoal: 90,
   sweatRate: 0.8,
   sodiumTarget: 750,
+  quickAddVolumes: [250, 500, 750],
   preWorkoutWindow: 120,
   postWorkoutWindow: 60,
   carbsPerHourLow: 30,

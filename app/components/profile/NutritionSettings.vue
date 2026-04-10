@@ -853,6 +853,28 @@
         </UFormField>
 
         <UFormField
+          :label="t('nutrition_form_quick_add_volumes')"
+          name="quickAddVolumes"
+          :help="t('nutrition_help_quick_add_volumes')"
+        >
+          <div class="grid grid-cols-3 gap-3">
+            <UInput
+              v-for="(volume, index) in localSettings.quickAddVolumes"
+              :key="`quick-add-${index}`"
+              v-model.number="localSettings.quickAddVolumes[index]"
+              type="number"
+              :min="50"
+              :max="2000"
+              class="w-full"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">ml</span>
+              </template>
+            </UInput>
+          </div>
+        </UFormField>
+
+        <UFormField
           :label="t('nutrition_form_sodium')"
           name="sodiumTarget"
           :help="t('nutrition_help_sodium')"
@@ -911,6 +933,7 @@
     ultimateCarbGoal: 90,
     sweatRate: 0.8,
     sodiumTarget: 750,
+    quickAddVolumes: [250, 500, 750],
     carbScalingFactor: 1.0,
     fuelingSensitivity: 1.0,
     fuelState1Trigger: 0.6,
@@ -1205,6 +1228,23 @@
     }
   })
 
+  function normalizeQuickAddVolumes(values: unknown) {
+    const fallback = [250, 500, 750]
+    if (!Array.isArray(values)) return fallback
+
+    const normalized = values
+      .map((value) => Math.round(Number(value)))
+      .filter((value) => Number.isFinite(value) && value >= 50 && value <= 2000)
+      .slice(0, 3)
+      .sort((a, b) => a - b)
+
+    while (normalized.length < 3) {
+      normalized.push(fallback[normalized.length] ?? fallback[fallback.length - 1] ?? 250)
+    }
+
+    return normalized
+  }
+
   // Reset adjustment when profile changes
   watch(
     () => localSettings.value.goalProfile,
@@ -1318,6 +1358,10 @@
           }
         }
       }
+
+      localSettings.value.quickAddVolumes = normalizeQuickAddVolumes(
+        localSettings.value.quickAddVolumes
+      )
     },
     { deep: true, immediate: true }
   )
@@ -1325,16 +1369,23 @@
   async function saveSettings() {
     loading.value = true
     try {
+      const payload = {
+        ...localSettings.value,
+        quickAddVolumes: normalizeQuickAddVolumes(localSettings.value.quickAddVolumes)
+      }
       const response = (await ($fetch as any)('/api/profile/nutrition', {
         method: 'POST',
-        body: localSettings.value
+        body: payload
       })) as { settings?: Record<string, any> }
 
       if (response?.settings) {
         localSettings.value = {
           ...localSettings.value,
-          ...response.settings
+          ...response.settings,
+          quickAddVolumes: normalizeQuickAddVolumes(response.settings.quickAddVolumes)
         }
+      } else {
+        localSettings.value.quickAddVolumes = payload.quickAddVolumes
       }
 
       toast.add({
