@@ -390,6 +390,48 @@
                     {{ win.meal.reasoning }}
                   </p>
                 </div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <UButton
+                    v-if="win.status === 'planned'"
+                    size="xs"
+                    color="success"
+                    variant="soft"
+                    icon="i-lucide-check"
+                    @click="updateMealStatus(win, 'complete')"
+                  >
+                    Mark done
+                  </UButton>
+                  <UButton
+                    v-if="win.status === 'planned'"
+                    size="xs"
+                    color="warning"
+                    variant="soft"
+                    icon="i-lucide-skip-forward"
+                    @click="updateMealStatus(win, 'skip')"
+                  >
+                    Skip
+                  </UButton>
+                  <UButton
+                    v-if="win.planMealId"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-lucide-refresh-cw"
+                    @click="emitSuggestWindow(activeDay.date, win)"
+                  >
+                    Replace
+                  </UButton>
+                  <UButton
+                    v-if="win.planMealId && win.status !== 'done'"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-lucide-unlock"
+                    @click="updateMealStatus(win, 'unlock')"
+                  >
+                    Unlock
+                  </UButton>
+                </div>
               </div>
               <div v-else class="mt-1 flex justify-end">
                 <UButton
@@ -449,7 +491,7 @@
     source?: string
   }
 
-  type WindowStatus = 'target' | 'planned' | 'logged'
+  type WindowStatus = 'target' | 'planned' | 'done' | 'skipped'
 
   interface FuelWindow {
     type: string
@@ -460,6 +502,8 @@
     targetKcal: number
     mealTitle: string
     meal?: any | null
+    planMealId?: string | null
+    planMealStatus?: string | null
     status: WindowStatus
   }
 
@@ -550,10 +594,12 @@
     return raw.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
   }
 
-  function toWindowStatus(locked: boolean, logged: boolean): WindowStatus {
-    if (logged) return 'logged'
-    if (locked) return 'planned'
-    return 'target'
+  function toWindowStatus(meal: any): WindowStatus {
+    if (!meal) return 'target'
+    const status = String(meal.status || '').toUpperCase()
+    if (status === 'SKIPPED') return 'skipped'
+    if (status === 'DONE' || isLoggedMeal(meal)) return 'done'
+    return 'planned'
   }
 
   function isWorkoutWindow(type: string) {
@@ -643,7 +689,9 @@
           targetKcal: Number(totals.kcal || 0),
           mealTitle: mealJson.title || '',
           meal: mealJson || null,
-          status: toWindowStatus(true, logged)
+          planMealId: meal.id,
+          planMealStatus: meal.status || null,
+          status: toWindowStatus(meal)
         }
       })
 
@@ -653,9 +701,6 @@
             const matchingMeal = dayMeals.find((meal: any) => matchesMealToWindow(meal, window))
             const mealJson = matchingMeal?.mealJson || {}
             const totals = mealJson.totals || {}
-            const locked = Boolean(matchingMeal)
-            const logged = isLoggedMeal(matchingMeal)
-
             return {
               type: window.type,
               label: window.label,
@@ -665,7 +710,9 @@
               targetKcal: Number(window.targetKcal ?? totals.kcal ?? 0),
               mealTitle: mealJson.title || '',
               meal: mealJson || null,
-              status: toWindowStatus(locked, logged)
+              planMealId: matchingMeal?.id || null,
+              planMealStatus: matchingMeal?.status || null,
+              status: toWindowStatus(matchingMeal)
             }
           })
         : []
@@ -692,7 +739,9 @@
           targetKcal: Number(totals.kcal || 0),
           mealTitle: mealJson.title || '',
           meal: mealJson || null,
-          status: toWindowStatus(true, isLoggedMeal(meal))
+          planMealId: meal.id,
+          planMealStatus: meal.status || null,
+          status: toWindowStatus(meal)
         }
       })
 
@@ -718,7 +767,7 @@
           : windows.reduce((sum, window) => sum + Number(window.targetCarbs || 0), 0)
 
       const plannedCarbs = windows
-        .filter((window) => window.status !== 'target')
+        .filter((window) => window.status === 'planned' || window.status === 'done')
         .reduce((sum, window) => sum + Number(window.targetCarbs || 0), 0)
 
       const hasWorkoutWindows = windows.some(
@@ -728,7 +777,7 @@
       const criticalMissingCount = windows.filter(
         (window) =>
           isWorkoutWindow(window.type) &&
-          window.status === 'target' &&
+          (window.status === 'target' || window.status === 'skipped') &&
           Number(window.targetCarbs || 0) > 0
       ).length
 
@@ -803,27 +852,31 @@
   }
 
   function pipClass(status: WindowStatus) {
-    if (status === 'logged')
-      return 'size-4 border-success-600 bg-success-100 dark:bg-success-900/30'
+    if (status === 'done') return 'size-4 border-success-600 bg-success-100 dark:bg-success-900/30'
+    if (status === 'skipped')
+      return 'size-4 border-warning-600 bg-warning-100 dark:bg-warning-900/30'
     if (status === 'planned')
       return 'size-4 border-primary-600 bg-primary-100 dark:bg-primary-900/40'
     return 'size-4 border-gray-300 bg-transparent dark:border-gray-600'
   }
 
   function pipInnerClass(status: WindowStatus) {
-    if (status === 'logged') return 'bg-success-600'
+    if (status === 'done') return 'bg-success-600'
+    if (status === 'skipped') return 'bg-warning-600'
     if (status === 'planned') return 'bg-primary-600'
     return 'bg-transparent'
   }
 
   function statusBadgeColor(status: WindowStatus) {
-    if (status === 'logged') return 'success'
+    if (status === 'done') return 'success'
+    if (status === 'skipped') return 'warning'
     if (status === 'planned') return 'primary'
     return 'neutral'
   }
 
   function statusLabel(status: WindowStatus) {
-    if (status === 'logged') return 'Logged'
+    if (status === 'done') return 'Done'
+    if (status === 'skipped') return 'Skipped'
     if (status === 'planned') return 'Planned'
     return 'Target only'
   }
@@ -910,6 +963,20 @@
 
   function refresh() {
     fetchPlan()
+  }
+
+  async function updateMealStatus(window: FuelWindow, action: 'complete' | 'skip' | 'unlock') {
+    if (!window.planMealId) return
+    try {
+      await $fetch(`/api/nutrition/plan/meals/${window.planMealId}`, {
+        method: 'PATCH',
+        body: { action }
+      })
+      await fetchPlan()
+      drawerOpen.value = false
+    } catch (error) {
+      console.error('Failed to update planned meal status:', error)
+    }
   }
 
   watch(

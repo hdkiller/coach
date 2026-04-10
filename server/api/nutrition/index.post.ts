@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { nutritionPlanService } from '../../utils/services/nutritionPlanService'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../utils/date'
 
@@ -250,6 +251,7 @@ export default defineEventHandler(async (event) => {
     await metabolicService.calculateFuelingPlanForDate(userId, targetDate, {
       persist: true
     })
+    await nutritionPlanService.reconcileLoggedMealsForDate(userId, targetDate, timezone)
   } catch (err) {
     console.error('[NutritionUpload] Failed to trigger plan regeneration:', err)
   }

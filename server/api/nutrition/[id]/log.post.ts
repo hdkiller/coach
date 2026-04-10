@@ -4,6 +4,7 @@ import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../../utils/date'
 import { metabolicService } from '../../../utils/services/metabolicService'
+import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
 import { getUserNutritionSettings } from '../../../utils/nutrition/settings'
 import {
   extractFluidIntakeMl,
@@ -337,6 +338,7 @@ export default defineEventHandler(async (event) => {
     // REACTIVE: Trigger fueling plan update for the log date
     try {
       await metabolicService.calculateFuelingPlanForDate(userId, targetDate, { persist: true })
+      await nutritionPlanService.reconcileLoggedMealsForDate(userId, targetDate, timezone)
     } catch (err) {
       console.error('[NutritionLog] Failed to trigger regeneration:', err)
     }

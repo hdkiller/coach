@@ -9,14 +9,24 @@ vi.mock('../../../../../server/utils/db', () => ({
       findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
-      upsert: vi.fn()
+      upsert: vi.fn(),
+      update: vi.fn()
     },
     nutritionPlanMeal: {
-      upsert: vi.fn()
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn()
     },
     nutrition: {
       findUnique: vi.fn(),
       update: vi.fn()
+    },
+    userNutritionSettings: {
+      findUnique: vi.fn()
+    },
+    user: {
+      findUnique: vi.fn()
     }
   }
 }))
@@ -117,11 +127,17 @@ describe('nutritionPlanService', () => {
         'Breakfast'
       )
 
-      expect(prisma.nutritionPlan.findFirst).toHaveBeenCalledWith({
+      expect(prisma.nutritionPlan.findFirst).toHaveBeenNthCalledWith(2, {
         where: {
           userId: 'user-1',
           startDate: { lte: new Date('2026-02-15T00:00:00.000Z') },
           endDate: { gte: new Date('2026-02-15T00:00:00.000Z') }
+        },
+        include: {
+          meals: {
+            where: { date: new Date('2026-02-15T00:00:00.000Z') },
+            orderBy: { scheduledAt: 'asc' }
+          }
         }
       })
 

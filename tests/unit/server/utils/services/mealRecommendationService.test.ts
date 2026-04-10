@@ -119,7 +119,7 @@ describe('mealRecommendationService', () => {
       windowType: 'PRE_WORKOUT'
     })
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: 'error',
       message: 'plannedWorkoutRepository is not defined'
     })

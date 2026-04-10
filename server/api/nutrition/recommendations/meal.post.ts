@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { recommendNutritionMealTask } from '../../../../trigger/recommend-nutrition-meal'
+import { prisma } from '../../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -14,6 +15,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Date is required' })
   }
 
+  const recommendation = await prisma.nutritionRecommendation.create({
+    data: {
+      userId,
+      date: new Date(body.date),
+      scope: 'MEAL',
+      windowType: body.windowType,
+      status: 'PROCESSING',
+      contextJson: {}
+    }
+  })
+
   const handle = await recommendNutritionMealTask.trigger(
     {
       userId,
@@ -22,7 +34,9 @@ export default defineEventHandler(async (event) => {
       forceLlm: body.forceLlm,
       targetCarbs: body.targetCarbs,
       targetProtein: body.targetProtein,
-      targetKcal: body.targetKcal
+      targetKcal: body.targetKcal,
+      recommendationId: recommendation.id,
+      runId: null
     },
     {
       concurrencyKey: userId,
@@ -30,14 +44,14 @@ export default defineEventHandler(async (event) => {
     }
   )
 
-  // We need to find the recommendation record created by the service if we want to return it here,
-  // but since the service creates it, we might want to return the Trigger handle and let the frontend
-  // wait for the task result which returns the recommendation object.
-  // Actually, the service creates the record BEFORE returning.
-  // Let's modify the service or the API to be more coordinated.
+  await prisma.nutritionRecommendation.update({
+    where: { id: recommendation.id },
+    data: { runId: handle.id }
+  })
 
   return {
     success: true,
-    runId: handle.id
+    runId: handle.id,
+    recommendationId: recommendation.id
   }
 })

@@ -1264,6 +1264,7 @@ model NutritionPlan {
   user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   meals                  NutritionPlanMeal[]
 
+  @@unique([userId, startDate])
   @@index([userId, startDate, endDate])
 }
 

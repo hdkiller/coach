@@ -11,11 +11,17 @@ export interface MealRecommendationOptions {
   targetCarbs?: number
   targetProtein?: number
   targetKcal?: number
+  recommendationId?: string
+  runId?: string
 }
 
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+}
+
+function toUpperStringArray(value: unknown): string[] {
+  return toStringArray(value).map((entry) => entry.trim().toUpperCase())
 }
 
 function joinOrNone(values: unknown): string {
@@ -49,26 +55,37 @@ function sanitizeMealTitle(value: unknown): string {
   return raw.replace(/^(?:\s*(?:option\s*\d+|daily\s*base)\s*[:\-–]\s*)+/i, '').trim()
 }
 
-function sanitizeRecommendationTitles(options: any[]): any[] {
-  return options.map((option) => ({
+function normalizeOptionShape(option: any) {
+  const normalizedIngredients = Array.isArray(option?.ingredients)
+    ? option.ingredients
+    : Array.isArray(option?.items)
+      ? option.items
+      : []
+
+  return {
     ...option,
-    title: sanitizeMealTitle(option?.title) || option?.title || 'Meal Option'
-  }))
+    title: sanitizeMealTitle(option?.title) || option?.title || 'Meal Option',
+    ingredients: normalizedIngredients
+  }
 }
 
 function normalizeRecommendationOptions(options: any[]): any[] {
-  return sanitizeRecommendationTitles(options).map((option) => {
-    const normalizedIngredients = Array.isArray(option?.ingredients)
-      ? option.ingredients
-      : Array.isArray(option?.items)
-        ? option.items
-        : []
+  return options.map((option) => normalizeOptionShape(option))
+}
 
-    return {
-      ...option,
-      ingredients: normalizedIngredients
-    }
-  })
+function buildRecommendationResult(
+  source: 'catalog' | 'llm',
+  options: any[],
+  extra: Record<string, unknown> = {}
+) {
+  const normalized = normalizeRecommendationOptions(options)
+  return {
+    status: 'ready',
+    source,
+    options: normalized,
+    recommendations: normalized,
+    ...extra
+  }
 }
 
 const recommendationSchema = {
@@ -123,29 +140,53 @@ const recommendationSchema = {
 }
 
 export const mealRecommendationService = {
-  /**
-   * Generates meal recommendations for a specific user, date, and optionally a window.
-   */
-  async getRecommendations(userId: string, date: Date, options: MealRecommendationOptions) {
-    const { scope, windowType, forceLlm = false, targetCarbs, targetProtein, targetKcal } = options
+  sanitizeMealTitle,
 
-    // 0. Create PENDING recommendation record
-    const recommendation = await prisma.nutritionRecommendation.create({
+  async ensureRecommendationRecord(userId: string, date: Date, options: MealRecommendationOptions) {
+    const { recommendationId, runId, scope, windowType } = options
+    if (recommendationId) {
+      await prisma.nutritionRecommendation.update({
+        where: { id: recommendationId },
+        data: {
+          status: 'PROCESSING',
+          runId: runId || undefined
+        }
+      })
+      return { id: recommendationId }
+    }
+
+    return prisma.nutritionRecommendation.create({
       data: {
         userId,
         date,
         scope,
         windowType,
         status: 'PROCESSING',
-        contextJson: {} // Will update below
+        runId,
+        contextJson: {}
       }
     })
+  },
+
+  /**
+   * Generates meal recommendations for a specific user, date, and optionally a window.
+   */
+  async getRecommendations(userId: string, date: Date, options: MealRecommendationOptions) {
+    const {
+      scope,
+      windowType,
+      forceLlm = false,
+      targetCarbs,
+      targetProtein,
+      targetKcal,
+      runId
+    } = options
+
+    const recommendation = await this.ensureRecommendationRecord(userId, date, options)
 
     try {
-      // 1. Resolve target context from metabolic engine
       const targetContext = await metabolicService.getMealTargetContext(userId, date)
 
-      // 2. Pull user constraints and preference profile
       const settings = await prisma.userNutritionSettings.findUnique({
         where: { userId },
         select: {
@@ -167,35 +208,33 @@ export const mealRecommendationService = {
       const context = {
         targetContext,
         constraints: {
-          dietaryProfile: toStringArray(settings?.dietaryProfile),
-          foodAllergies: toStringArray(settings?.foodAllergies),
-          foodIntolerances: toStringArray(settings?.foodIntolerances),
-          lifestyleExclusions: toStringArray(settings?.lifestyleExclusions)
+          dietaryProfile: toUpperStringArray(settings?.dietaryProfile),
+          foodAllergies: toUpperStringArray(settings?.foodAllergies),
+          foodIntolerances: toUpperStringArray(settings?.foodIntolerances),
+          lifestyleExclusions: toUpperStringArray(settings?.lifestyleExclusions)
         },
         athlete: {
           weightKg: effectiveWeight.value || 75
         }
       }
 
-      // Update context snapshot
       await prisma.nutritionRecommendation.update({
         where: { id: recommendation.id },
-        data: { contextJson: context as any }
+        data: {
+          contextJson: context as any,
+          runId: runId || undefined
+        }
       })
 
-      // 3. Try Catalog-First selection (if not forcing LLM)
       if (!forceLlm) {
         const catalogOptions = await this.selectFromCatalog(context, scope, windowType, {
           carbs: targetCarbs,
           protein: targetProtein,
           kcal: targetKcal
         })
-        if (catalogOptions.length >= 2) {
-          const result = {
-            status: 'ready',
-            source: 'catalog',
-            recommendations: normalizeRecommendationOptions(catalogOptions)
-          }
+
+        if (catalogOptions.length >= 1) {
+          const result = buildRecommendationResult('catalog', catalogOptions)
 
           await prisma.nutritionRecommendation.update({
             where: { id: recommendation.id },
@@ -205,11 +244,14 @@ export const mealRecommendationService = {
             }
           })
 
-          return result
+          return {
+            recommendationId: recommendation.id,
+            runId: runId || null,
+            ...result
+          }
         }
       }
 
-      // 4. Fallback to Gemini
       const llmResult = await this.generateLlmRecommendation(
         userId,
         date,
@@ -227,11 +269,16 @@ export const mealRecommendationService = {
         where: { id: recommendation.id },
         data: {
           status: llmResult.status === 'ready' ? 'COMPLETED' : 'FAILED',
-          resultJson: llmResult as any
+          resultJson: llmResult as any,
+          runId: runId || undefined
         }
       })
 
-      return llmResult
+      return {
+        recommendationId: recommendation.id,
+        runId: runId || null,
+        ...llmResult
+      }
     } catch (error) {
       logger.error('Failed to get nutrition recommendations', {
         error,
@@ -239,9 +286,11 @@ export const mealRecommendationService = {
       })
       await prisma.nutritionRecommendation.update({
         where: { id: recommendation.id },
-        data: { status: 'FAILED' }
+        data: { status: 'FAILED', runId: runId || undefined }
       })
       return {
+        recommendationId: recommendation.id,
+        runId: runId || null,
         status: 'error',
         message:
           error instanceof Error ? error.message : 'Internal error generating recommendations'
@@ -250,7 +299,7 @@ export const mealRecommendationService = {
   },
 
   /**
-   * Deterministic Portion Scaler (Catalog-first mode)
+   * Deterministic portion scaling with hard constraint enforcement.
    */
   async selectFromCatalog(
     context: any,
@@ -261,10 +310,9 @@ export const mealRecommendationService = {
     const { targetContext, constraints, athlete } = context
 
     const window = windowType
-      ? targetContext.windowProgress.find((w: any) => w.type === windowType)
+      ? targetContext.windowProgress.find((entry: any) => entry.type === windowType)
       : targetContext.nextFuelingWindow
 
-    // Prefer explicit target from UI context (planning flow). Otherwise use unmet/suggested.
     const targetCarbs = Math.round(
       normalizeTarget(targetOverrides?.carbs)
         ? normalizeTarget(targetOverrides?.carbs)!
@@ -276,7 +324,6 @@ export const mealRecommendationService = {
 
     if (targetCarbs <= 0) return []
 
-    // 1. Search candidates in catalog
     const query: any = {}
     const resolvedType = window?.type || windowType
     if (resolvedType) {
@@ -288,10 +335,14 @@ export const mealRecommendationService = {
       where: query
     })
 
+    const dietaryProfile = constraints.dietaryProfile || []
+
     const options = candidates
       .map((template) => {
-        // 2. Apply hard filters
-        const hasConflict = template.constraintTags.some(
+        const normalizedConstraintTags = toUpperStringArray(template.constraintTags)
+        const normalizedDietaryBuckets = toUpperStringArray(template.dietaryBuckets)
+
+        const hasConflict = normalizedConstraintTags.some(
           (tag) =>
             constraints.foodAllergies.includes(tag) ||
             constraints.lifestyleExclusions.includes(tag) ||
@@ -299,51 +350,53 @@ export const mealRecommendationService = {
         )
         if (hasConflict) return null
 
-        // 3. Compute scale factor
+        const violatesDietaryProfile =
+          dietaryProfile.length > 0 &&
+          dietaryProfile.some((profile: string) => !normalizedDietaryBuckets.includes(profile))
+        if (violatesDietaryProfile) return null
+
         const baseMacros = template.baseMacros as any
-        const scaleFactor = targetCarbs / baseMacros.carbs
+        const baseCarbs = Number(baseMacros?.carbs || 0)
+        if (!Number.isFinite(baseCarbs) || baseCarbs <= 0) return null
 
-        // 4. Reject unbalanced scales
-        if (scaleFactor > 2.5 || scaleFactor < 0.4) return null
+        const requestedScaleFactor = targetCarbs / baseCarbs
+        if (requestedScaleFactor > 2.5 || requestedScaleFactor < 0.4) return null
 
-        // 5. Scale ingredients
-        const ingredients = (template.ingredients as any[]).map((ing) => ({
-          ...ing,
-          quantity: ing.isScalable ? Math.round(ing.quantity * scaleFactor) : ing.quantity
+        const carbCap = 2.0 * athlete.weightKg
+        const finalCarbs = Math.min(targetCarbs, carbCap)
+        const finalScaleFactor = finalCarbs / baseCarbs
+        const splitRequired = targetCarbs > carbCap
+        const postWorkoutDebtCarbs = Math.max(0, Math.round(targetCarbs - finalCarbs))
+
+        const ingredients = (template.ingredients as any[]).map((ingredient) => ({
+          ...ingredient,
+          quantity: ingredient.isScalable
+            ? Math.round(Number(ingredient.quantity || 0) * finalScaleFactor)
+            : ingredient.quantity
         }))
 
-        // 6. Enforce per-sitting carb cap
-        const carbCap = 2.0 * athlete.weightKg
-        let scaledCarbs = Math.round(baseMacros.carbs * scaleFactor)
-        let splitRequired = false
-        let postWorkoutDebtCarbs = 0
-
-        if (scaledCarbs > carbCap) {
-          scaledCarbs = Math.round(carbCap)
-          postWorkoutDebtCarbs = Math.round(baseMacros.carbs * scaleFactor - carbCap)
-          splitRequired = true
-        }
-
-        return {
+        return normalizeOptionShape({
           id: template.id,
-          title: sanitizeMealTitle(template.title) || template.title,
+          title: template.title,
           ingredients,
           totals: {
-            carbs: scaledCarbs,
-            protein: Math.round(baseMacros.protein * scaleFactor),
-            fat: Math.round(baseMacros.fat * scaleFactor),
-            kcal: Math.round(baseMacros.kcal * scaleFactor)
+            carbs: Math.round(baseCarbs * finalScaleFactor),
+            protein: Math.round(Number(baseMacros?.protein || 0) * finalScaleFactor),
+            fat: Math.round(Number(baseMacros?.fat || 0) * finalScaleFactor),
+            kcal: Math.round(Number(baseMacros?.kcal || 0) * finalScaleFactor)
           },
-          scaleFactor,
+          scaleFactor: Number(finalScaleFactor.toFixed(4)),
           splitRequired,
           postWorkoutDebtCarbs,
           absorptionType: template.absorptionType,
-          prepMinutes: template.prepMinutes
-        }
+          prepMinutes: template.prepMinutes,
+          reasoning: splitRequired
+            ? `Capped to ${Math.round(carbCap)}g carbs for one sitting; ${postWorkoutDebtCarbs}g remains to place elsewhere.`
+            : undefined
+        })
       })
       .filter(Boolean)
 
-    // 8. Rank by macro fit (window-aware weighted objective)
     const weights = getScoringWeights(resolvedWindowType)
     return (options as any[]).sort((a, b) => {
       const score = (candidate: any) => {
@@ -355,16 +408,19 @@ export const mealRecommendationService = {
         const kcalDiff = targetKcal
           ? Math.abs((candidate?.totals?.kcal || 0) - targetKcal) / Math.max(targetKcal, 1)
           : 0
-        return carbsDiff * weights.carbs + proteinDiff * weights.protein + kcalDiff * weights.kcal
+        const prepPenalty = Number(candidate?.prepMinutes || 0) / 120
+        return (
+          carbsDiff * weights.carbs +
+          proteinDiff * weights.protein +
+          kcalDiff * weights.kcal +
+          prepPenalty * 0.02
+        )
       }
 
       return score(a) - score(b)
     })
   },
 
-  /**
-   * Generates structured prompt for Gemini
-   */
   async generateLlmRecommendation(
     userId: string,
     date: Date,
@@ -375,7 +431,7 @@ export const mealRecommendationService = {
   ) {
     const { targetContext, constraints, athlete } = context
     const window = windowType
-      ? targetContext.windowProgress.find((w: any) => w.type === windowType)
+      ? targetContext.windowProgress.find((entry: any) => entry.type === windowType)
       : targetContext.nextFuelingWindow
 
     const targetCarbs = Math.round(
@@ -413,7 +469,7 @@ GUIDELINES:
 4. If the target carbs exceed ${2.0 * athlete.weightKg}g, cap the meal at that limit and note it in the reasoning.
 5. Meal titles must be plain dish names only.
    - Do NOT include list labels or prefixes such as "Option 1:", "Option 2 -", "Daily Base:", "Meal 1:", or equivalents in any language.
-   - Keep the user's language naturally, but always output a clean title without numbering/category prefixes.
+6. Use "items" for ingredient rows and keep them suitable for a future grocery list aggregation flow.
 
 Return the options in a structured JSON format.`
 
@@ -425,11 +481,7 @@ Return the options in a structured JSON format.`
         entityId: undefined
       })
 
-      return {
-        status: 'ready',
-        source: 'llm',
-        recommendations: normalizeRecommendationOptions(result.options || [])
-      }
+      return buildRecommendationResult('llm', result.options || [])
     } catch (error) {
       logger.error('Failed to generate LLM recommendation', { error })
       return {

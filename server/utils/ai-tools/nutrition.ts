@@ -1101,5 +1101,99 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       const result = await nutritionPlanService.lockMeal(userId, targetDate, window_type, meal)
       return { success: true, planMeal: result }
     }
+  }),
+
+  create_nutrition_plan: tool({
+    description:
+      'Generate or refresh the nutrition plan for a date range using catalog-first planned meals.',
+    inputSchema: z.object({
+      start_date: z.string().describe('Start date in ISO format (YYYY-MM-DD)'),
+      end_date: z.string().describe('End date in ISO format (YYYY-MM-DD)')
+    }),
+    execute: async ({ start_date, end_date }) => {
+      const startParsed = parseToolDateInput('start_date', start_date, { start_date, end_date })
+      if ('error' in startParsed) return startParsed.error
+      const endParsed = parseToolDateInput('end_date', end_date, { start_date, end_date })
+      if ('error' in endParsed) return endParsed.error
+
+      const result = await nutritionPlanService.generateDraftPlan(
+        userId,
+        startParsed.date,
+        endParsed.date
+      )
+      return { success: true, plan: result }
+    }
+  }),
+
+  show_nutrition_plan: tool({
+    description:
+      'Show the nutrition plan and selected meals for a date range, including target-only gaps.',
+    inputSchema: z.object({
+      start_date: z.string().describe('Start date in ISO format (YYYY-MM-DD)'),
+      end_date: z.string().describe('End date in ISO format (YYYY-MM-DD)')
+    }),
+    execute: async ({ start_date, end_date }) => {
+      const startParsed = parseToolDateInput('start_date', start_date, { start_date, end_date })
+      if ('error' in startParsed) return startParsed.error
+      const endParsed = parseToolDateInput('end_date', end_date, { start_date, end_date })
+      if ('error' in endParsed) return endParsed.error
+
+      const plan = await nutritionPlanService.getPlanForRange(
+        userId,
+        startParsed.date,
+        endParsed.date
+      )
+      return { success: true, plan }
+    }
+  }),
+
+  swap_planned_meal: tool({
+    description:
+      'Replace an existing planned meal with a new meal object while keeping the same window.',
+    inputSchema: z.object({
+      meal_id: z.string().describe('The NutritionPlanMeal id to replace'),
+      meal: z.any().describe('The replacement meal object')
+    }),
+    execute: async ({ meal_id, meal }) => {
+      const result = await nutritionPlanService.updatePlanMealStatus(userId, meal_id, 'replace', {
+        meal
+      })
+      return { success: true, result }
+    }
+  }),
+
+  complete_planned_meal: tool({
+    description:
+      'Mark a planned meal as done, skipped, or unlocked when the plan needs explicit execution state updates.',
+    inputSchema: z.object({
+      meal_id: z.string().describe('The NutritionPlanMeal id to update'),
+      action: z.enum(['complete', 'skip', 'unlock']).describe('The state transition to apply')
+    }),
+    execute: async ({ meal_id, action }) => {
+      const result = await nutritionPlanService.updatePlanMealStatus(userId, meal_id, action)
+      return { success: true, result }
+    }
+  }),
+
+  export_grocery_list: tool({
+    description:
+      'Return an aggregated grocery list from planned meals for the selected date range.',
+    inputSchema: z.object({
+      start_date: z.string().describe('Start date in ISO format (YYYY-MM-DD)'),
+      end_date: z.string().describe('End date in ISO format (YYYY-MM-DD)')
+    }),
+    execute: async ({ start_date, end_date }) => {
+      const startParsed = parseToolDateInput('start_date', start_date, { start_date, end_date })
+      if ('error' in startParsed) return startParsed.error
+      const endParsed = parseToolDateInput('end_date', end_date, { start_date, end_date })
+      if ('error' in endParsed) return endParsed.error
+
+      const grocery = await nutritionPlanService.getGroceryList(
+        userId,
+        startParsed.date,
+        endParsed.date
+      )
+      return { success: true, grocery }
+    }
   })
 })

@@ -421,45 +421,68 @@
         >
           <template #content>
             <div class="p-6 space-y-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <UButton
+                  v-for="option in groceryRangeOptions"
+                  :key="option.value"
+                  size="xs"
+                  :color="groceryRange === option.value ? 'primary' : 'neutral'"
+                  :variant="groceryRange === option.value ? 'solid' : 'soft'"
+                  @click="groceryRange = option.value"
+                >
+                  {{ option.label }}
+                </UButton>
+              </div>
+
               <div
                 class="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800"
               >
-                <p
-                  class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1"
-                >
-                  {{ t('grocery_carb_target') }}
-                </p>
-                <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-black text-primary-700 dark:text-primary-300"
-                    >{{ next48hCarbTotal }}g</span
-                  >
-                  <span class="text-sm text-primary-600/70">{{ t('grocery_total_carbs') }}</span>
+                <div class="flex flex-wrap items-baseline gap-3">
+                  <span class="text-3xl font-black text-primary-700 dark:text-primary-300">
+                    {{ groceryData.totals.ingredients }}
+                  </span>
+                  <span class="text-sm text-primary-600/70">ingredients</span>
+                  <span class="text-xs text-primary-600/60">
+                    from {{ groceryData.totals.meals }} planned meals
+                  </span>
                 </div>
                 <p class="text-[10px] text-primary-600/60 mt-1 italic">
-                  {{ t('grocery_sum_desc') }}
+                  Built from selected planned meals in the chosen range.
                 </p>
               </div>
 
-              <p class="text-sm text-gray-500">
-                {{ t('grocery_essentials_desc') }}
-              </p>
+              <div v-if="groceryLoading" class="py-10 flex items-center justify-center">
+                <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-gray-400" />
+              </div>
 
-              <ul class="space-y-2">
+              <div v-else-if="!groceryData.items.length" class="py-8 text-center text-gray-500">
+                No planned meal ingredients found for this range yet.
+              </div>
+
+              <ul v-else class="space-y-2">
                 <li
-                  v-for="item in groceryItems"
-                  :key="item.name"
-                  class="flex items-center gap-2 text-sm"
+                  v-for="item in groceryData.items"
+                  :key="`${item.ingredient}-${item.unit}`"
+                  class="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2"
                 >
-                  <UIcon :name="item.icon" class="size-4 text-primary-500" />
-                  <span>{{ item.name }}</span>
-                  <span class="ml-auto text-xs text-gray-400">{{ item.reason }}</span>
+                  <div class="flex items-center gap-3">
+                    <span class="font-semibold">{{ item.ingredient }}</span>
+                    <span class="text-sm text-primary-600 dark:text-primary-400 ml-auto">
+                      {{ formatGroceryQuantity(item.quantity)
+                      }}{{ item.unit ? ` ${item.unit}` : '' }}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-[10px] text-gray-500">
+                    {{ formatGrocerySources(item.sourceMeals) }}
+                  </p>
                 </li>
               </ul>
 
               <div
                 class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-xs text-primary-700 dark:text-primary-300"
               >
-                <strong>{{ t('grocery_tip_title') }}</strong> {{ t('grocery_tip_desc') }}
+                <strong>{{ t('grocery_tip_title') }}</strong> Grocery rows only include ingredients
+                from planned meals, not loose targets or recommendation candidates.
               </div>
             </div>
           </template>
@@ -556,6 +579,12 @@
   const activeFeed = ref<any>(null)
   const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
+  const groceryLoading = ref(false)
+  const groceryRange = ref<'24h' | '48h' | '7d'>('48h')
+  const groceryData = ref<{ items: any[]; totals: { ingredients: number; meals: number } }>({
+    items: [],
+    totals: { ingredients: 0, meals: 0 }
+  })
   const highlightedDate = ref<string | null>(null)
   const missingPlannedStartActivities = ref<any[]>([])
   const selectedRecoveryItem = ref<RecoveryContextItem | null>(null)
@@ -871,55 +900,63 @@
     }
   }
 
-  const groceryItems = computed(() => {
-    if (!strategy.value) return []
-    const items = [
-      {
-        name: t.value('grocery_item_complex_carbs'),
-        reason: t.value('grocery_reason_baseline'),
-        icon: 'i-lucide-wheat'
-      },
-      {
-        name: t.value('grocery_item_electrolytes'),
-        reason: t.value('grocery_reason_retention'),
-        icon: 'i-lucide-flask-conical'
+  const groceryRangeOptions = [
+    { value: '24h', label: '24h' },
+    { value: '48h', label: '48h' },
+    { value: '7d', label: '7d' }
+  ] as const
+
+  function getGroceryRangeDates() {
+    const start = format(new Date(), 'yyyy-MM-dd')
+    if (groceryRange.value === '24h') {
+      return { start, end: format(addDays(new Date(), 1), 'yyyy-MM-dd') }
+    }
+    if (groceryRange.value === '7d') {
+      return { start, end: format(addDays(new Date(), 6), 'yyyy-MM-dd') }
+    }
+    return { start, end: format(addDays(new Date(), 2), 'yyyy-MM-dd') }
+  }
+
+  async function loadGroceryList() {
+    groceryLoading.value = true
+    try {
+      const range = getGroceryRangeDates()
+      const response = await $fetch('/api/nutrition/grocery', {
+        query: range
+      })
+      groceryData.value = {
+        items: (response as any).items || [],
+        totals: (response as any).totals || { ingredients: 0, meals: 0 }
       }
-    ]
-
-    if (strategy.value.fuelingMatrix.some((d: any) => d.state === 3)) {
-      items.push({
-        name: t.value('grocery_item_sugars'),
-        reason: t.value('grocery_reason_high_intensity'),
-        icon: 'i-lucide-zap'
-      })
-      items.push({
-        name: t.value('grocery_item_rice_pasta'),
-        reason: t.value('grocery_reason_loading'),
-        icon: 'i-lucide-utensils-crossed'
-      })
+    } catch (error) {
+      console.error('Failed to load grocery list:', error)
+      groceryData.value = {
+        items: [],
+        totals: { ingredients: 0, meals: 0 }
+      }
+    } finally {
+      groceryLoading.value = false
     }
+  }
 
-    if (strategy.value.hydrationDebt > 1000) {
-      items.push({
-        name: t.value('grocery_item_sodium'),
-        reason: t.value('grocery_reason_rehydration'),
-        icon: 'i-lucide-waves'
-      })
+  function formatGroceryQuantity(value: number) {
+    if (!Number.isFinite(value)) return '0'
+    return Math.round(value * 10) / 10
+  }
+
+  function formatGrocerySources(sourceMeals: Array<{ date: string; title: string }> = []) {
+    return sourceMeals.map((meal) => `${meal.date} • ${meal.title}`).join(' · ')
+  }
+
+  watch(showGroceryList, (open) => {
+    if (open) {
+      loadGroceryList()
     }
-
-    return items
   })
 
-  const next48hCarbTotal = computed(() => {
-    if (!upcomingPlan.value?.windows) return 0
-    const now = new Date()
-    const limit = new Date(now.getTime() + 48 * 60 * 60 * 1000)
-
-    return upcomingPlan.value.windows
-      .filter((w: any) => {
-        const d = new Date(w.startTime)
-        return d >= now && d <= limit
-      })
-      .reduce((sum: number, w: any) => sum + (w.targetCarbs || 0), 0)
+  watch(groceryRange, () => {
+    if (showGroceryList.value) {
+      loadGroceryList()
+    }
   })
 </script>

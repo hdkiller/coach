@@ -99,6 +99,11 @@ export const metabolicService = {
     return planMeal.windowType === expectedKey
   },
 
+  isActivePlanMeal(planMeal: any) {
+    const status = String(planMeal?.status || 'PLANNED').toUpperCase()
+    return status !== 'SKIPPED' && status !== 'REPLACED'
+  },
+
   /**
    * Calculates the current "Live" glycogen status for a user.
    */
@@ -387,6 +392,7 @@ export const metabolicService = {
 
       const lockedMeal = plan?.meals.find(
         (pm) =>
+          this.isActivePlanMeal(pm) &&
           this.matchPlanMealToWindow(pm, w, timezone) &&
           pm.date.toISOString().split('T')[0] === date.toISOString().split('T')[0]
       )
@@ -443,6 +449,8 @@ export const metabolicService = {
         targetCarbs,
         actualCarbs,
         plannedCarbs,
+        planMealId: lockedMeal?.id || null,
+        planMealStatus: lockedMeal?.status || null,
         lockedMeal: lockedMeal?.mealJson || null,
         unmetCarbs: rawUnmetCarbs,
         carryoverCredit: Math.round(carryoverCredit),
@@ -1317,11 +1325,14 @@ export const metabolicService = {
       const windowsWithLocks = windows.map((w: any) => {
         const lockedMeal = planRecord?.meals.find(
           (pm) =>
+            this.isActivePlanMeal(pm) &&
             this.matchPlanMealToWindow(pm, w, timezone) &&
             pm.date.toISOString().split('T')[0] === date.toISOString().split('T')[0]
         )
         return {
           ...w,
+          planMealId: lockedMeal?.id || null,
+          planMealStatus: lockedMeal?.status || null,
           lockedMeal: lockedMeal?.mealJson || null,
           isLocked: !!lockedMeal
         }

@@ -15,8 +15,20 @@ export const recommendNutritionMealTask = task({
     targetCarbs?: number
     targetProtein?: number
     targetKcal?: number
+    recommendationId?: string
+    runId?: string
   }) => {
-    const { userId, date, windowType, forceLlm, targetCarbs, targetProtein, targetKcal } = payload
+    const {
+      userId,
+      date,
+      windowType,
+      forceLlm,
+      targetCarbs,
+      targetProtein,
+      targetKcal,
+      recommendationId,
+      runId
+    } = payload
 
     logger.log('Starting meal recommendation', { userId, date, windowType })
 
@@ -26,7 +38,7 @@ export const recommendNutritionMealTask = task({
     } catch (quotaError: any) {
       if (quotaError.statusCode === 429) {
         logger.warn('Meal recommendation quota exceeded', { userId })
-        
+
         // Create a FAILED recommendation record with the quota error
         await prisma.nutritionRecommendation.create({
           data: {
@@ -52,7 +64,9 @@ export const recommendNutritionMealTask = task({
       forceLlm,
       targetCarbs,
       targetProtein,
-      targetKcal
+      targetKcal,
+      recommendationId,
+      runId
     })
 
     return result

@@ -2,6 +2,7 @@ import { getServerSession } from '../../../utils/session'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { z } from 'zod'
 import { metabolicService } from '../../../utils/services/metabolicService'
+import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
 import { MEAL_LINKED_WATER_ML } from '../../../utils/nutrition/hydration'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
 
@@ -214,6 +215,7 @@ export default defineEventHandler(async (event) => {
     await metabolicService.calculateFuelingPlanForDate(userId, updatedNutrition.date, {
       persist: true
     })
+    await nutritionPlanService.reconcileLoggedMealsForDate(userId, updatedNutrition.date)
   } catch (err) {
     console.error('[NutritionItemsPatch] Failed to trigger regeneration:', err)
   }
