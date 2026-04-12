@@ -9,14 +9,14 @@ type SwimStepLike = {
   steps?: SwimStepLike[]
 }
 
-const SWIM_DISTANCE_TOKEN_RE = /\b(\d+(?:\.\d+)?)\s*(km|mtrs|m)\b/i
+const SWIM_DISTANCE_TOKEN_RE = /\b(\d+(?:\.\d+)?)\s*(km|mtr|mtrs|m)\b/i
 
 function toDistanceMeters(rawValue: string, rawUnit: string) {
   const value = Number.parseFloat(rawValue)
   if (!Number.isFinite(value) || value <= 0) return null
   const normalizedUnit = rawUnit.toLowerCase()
   if (normalizedUnit === 'km') return Math.round(value * 1000)
-  if (normalizedUnit === 'mtrs') return Math.round(value)
+  if (normalizedUnit === 'mtr' || normalizedUnit === 'mtrs') return Math.round(value)
   if (normalizedUnit === 'm') {
     // In swim text, bare "m" is ambiguous. Treat it as distance only for realistic pool lengths.
     if (value >= 25) return Math.round(value)

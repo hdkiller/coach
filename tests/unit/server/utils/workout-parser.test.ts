@@ -40,4 +40,13 @@ describe('WorkoutParser', () => {
       units: '%'
     })
   })
+
+  it('parses Intervals meter distance tokens using mtr', () => {
+    const steps = WorkoutParser.parseIntervalsICU('Main Set\n- 400mtr Easy Z1 Pace', {
+      workoutType: 'Swim'
+    })
+
+    expect(steps[0]?.distance).toBe(400)
+    expect(steps[0]?.name).toBe('Easy Z1')
+  })
 })

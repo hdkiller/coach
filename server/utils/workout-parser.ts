@@ -143,9 +143,9 @@ export const WorkoutParser = {
       step.durationSeconds = totalSeconds
     }
 
-    // 4. Extract Distance: "1000m", "1.5km", "400mtrs"
+    // 4. Extract Distance: "1000m", "1.5km", "400mtr"
     if (!step.distance) {
-      const distanceMatch = text.match(/\b(\d+(\.\d+)?)\s*(km|mtrs|m)\b/i)
+      const distanceMatch = text.match(/\b(\d+(\.\d+)?)\s*(km|mtr|mtrs|m)\b/i)
       if (distanceMatch) {
         const val = parseFloat(distanceMatch[1] || '0')
         const unit = (distanceMatch[3] || 'm').toLowerCase()
