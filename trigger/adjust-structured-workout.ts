@@ -19,6 +19,7 @@ import {
   applyTargetPolicyToStep,
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard,
+  normalizeCooldownRampDirection,
   buildPlannedWorkoutSettingsSnapshot,
   buildPlannedWorkoutGenerationContext
 } from './utils/workout-targeting'
@@ -1401,6 +1402,7 @@ export const adjustStructuredWorkoutTask = task({
         if (step.durationSeconds === undefined && step.duration !== undefined) {
           step.durationSeconds = step.duration
         }
+        normalizeCooldownRampDirection(step)
 
         let stepDistance = 0
         let stepDuration = 0

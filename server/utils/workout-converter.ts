@@ -856,6 +856,26 @@ export const WorkoutConverter = {
             ramp: true
           }
         }
+        const normalizeCooldownRampForExport = <
+          T extends {
+            value?: number
+            range?: { start: number; end: number }
+            ramp?: boolean
+            units?: string
+          } | null
+        >(
+          target: T,
+          stepType: WorkoutStep['type']
+        ): T => {
+          if (stepType !== 'Cooldown' || !target?.range || target.ramp !== true) return target
+          const start = Number(target.range.start)
+          const end = Number(target.range.end)
+          if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return target
+          return {
+            ...target,
+            range: { start: end, end: start }
+          }
+        }
 
         const defaultTargetValue = (stepType: WorkoutStep['type'], metric: string) => {
           if (stepType === 'Warmup') return 0.6
@@ -872,22 +892,29 @@ export const WorkoutConverter = {
           return 0.75
         }
 
-        let power = normalizeTargetForExport(
-          normalizeTarget(step.power) || normalizeTarget(parentStep?.power),
+        let power = normalizeCooldownRampForExport(
+          normalizeTargetForExport(
+            normalizeTarget(step.power) || normalizeTarget(parentStep?.power),
+            step.type
+          ),
           step.type
         )
         const rawHeartRate = normalizeTargetForExport(
           normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate),
           step.type
         )
-        let heartRate = normalizeHrTargetForExport(
-          rawHeartRate || deriveRunHeartRateTargetFromPower(power)
+        let heartRate = normalizeCooldownRampForExport(
+          normalizeHrTargetForExport(rawHeartRate || deriveRunHeartRateTargetFromPower(power)),
+          step.type
         )
         const rawPace = normalizeTargetForExport(
           normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace),
           step.type
         )
-        let pace = rawPace || deriveRunPaceTargetFromPower(power)
+        let pace = normalizeCooldownRampForExport(
+          rawPace || deriveRunPaceTargetFromPower(power),
+          step.type
+        )
         const primaryExportMetric = normalizedPolicy.primaryMetric
         const missingPrimaryTarget =
           (primaryExportMetric === 'power' && !power) ||

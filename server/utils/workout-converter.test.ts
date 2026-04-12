@@ -141,6 +141,34 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- Cooldown 10m ramp 60-50%')
     })
 
+    it('exports cooldown ramps descending even when stored range is increasing', () => {
+      const workout = {
+        title: 'Run Cooldown',
+        type: 'Run',
+        sportSettings: {
+          targetPolicy: {
+            primaryMetric: 'power',
+            fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+            strictPrimary: true,
+            allowMixedTargetsPerStep: false
+          }
+        },
+        steps: [
+          {
+            type: 'Cooldown',
+            durationSeconds: 300,
+            power: { range: { start: 0.5, end: 0.59 }, ramp: true, units: '%' },
+            name: 'Cool-down Jog'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('- Cool-down Jog 5m ramp 59-50%')
+      expect(result).not.toContain('ramp 50-59%')
+    })
+
     it('formats loops correctly using Nx syntax', () => {
       const workout = {
         title: 'Intervals',

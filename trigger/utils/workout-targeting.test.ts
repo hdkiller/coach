@@ -3,6 +3,7 @@ import {
   applyTargetPolicyToStep,
   applyStepIntentGuard,
   applyTargetFormatPolicyToStep,
+  normalizeCooldownRampDirection,
   resolveWorkoutTargeting
 } from './workout-targeting'
 
@@ -147,6 +148,22 @@ describe('applyTargetPolicyToStep', () => {
     expect(step.primaryTarget).toBe('heartRate')
     expect(step.heartRate).toMatchObject({ value: 0.8, units: 'LTHR' })
     expect(step.pace).toBeUndefined()
+  })
+})
+
+describe('normalizeCooldownRampDirection', () => {
+  it('reverses increasing cooldown ramp ranges', () => {
+    const step: any = {
+      type: 'Cooldown',
+      power: {
+        ramp: true,
+        range: { start: 0.5, end: 0.59 }
+      }
+    }
+
+    normalizeCooldownRampDirection(step)
+
+    expect(step.power.range).toEqual({ start: 0.59, end: 0.5 })
   })
 })
 

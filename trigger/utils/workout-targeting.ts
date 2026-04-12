@@ -122,6 +122,19 @@ function removeOtherMetricTargets(step: any, selectedMetric: TargetStepMetric) {
   if (selectedMetric !== 'rpe') delete step.rpe
 }
 
+export function normalizeCooldownRampDirection(step: any) {
+  if (step?.type !== 'Cooldown') return
+
+  for (const metric of ['power', 'heartRate', 'pace'] as const) {
+    const target = step?.[metric]
+    if (!target?.range || target.ramp !== true) continue
+    const start = Number(target.range.start)
+    const end = Number(target.range.end)
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) continue
+    target.range = { start: end, end: start }
+  }
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
