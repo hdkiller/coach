@@ -41,7 +41,7 @@ describe('join code endpoint', () => {
       coachId: 'coach-1',
       code: 'ABC12345',
       status: 'PENDING',
-      expiresAt: new Date('2026-04-10T00:00:00Z'),
+      expiresAt: new Date('2026-04-20T00:00:00Z'),
       email: null,
       coach: {
         id: 'coach-1',
