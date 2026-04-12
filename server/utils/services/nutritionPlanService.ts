@@ -202,12 +202,12 @@ export const nutritionPlanService = {
       this.findPlanForDate(userId, dayStartUtc)
     ])
 
-    if (!nutrition?.fuelingPlan?.windows || !plan) return
+    if (!nutrition || !plan || !(nutrition.fuelingPlan as any)?.windows) return
 
     const fuelingPlan = {
-      ...((nutrition.fuelingPlan as any) || {}),
-      windows: Array.isArray((nutrition.fuelingPlan as any)?.windows)
-        ? [...((nutrition.fuelingPlan as any).windows as any[])].map((window) => ({ ...window }))
+      ...((nutrition!.fuelingPlan as any) || {}),
+      windows: Array.isArray((nutrition!.fuelingPlan as any)?.windows)
+        ? [...((nutrition!.fuelingPlan as any).windows as any[])].map((window) => ({ ...window }))
         : []
     }
     const windows = Array.isArray(fuelingPlan.windows) ? [...fuelingPlan.windows] : []
@@ -236,7 +236,7 @@ export const nutritionPlanService = {
     })
 
     await prisma.nutrition.update({
-      where: { id: nutrition.id },
+      where: { id: nutrition!.id },
       data: { fuelingPlan }
     })
   },
@@ -760,9 +760,9 @@ export const nutritionPlanService = {
       })
     ])
 
-    if (!nutrition || plans.length === 0) return []
-
     const primaryPlan = plans[0]
+    if (!nutrition || !primaryPlan) return []
+
     const daySummary =
       primaryPlan?.summaryJson && Array.isArray((primaryPlan.summaryJson as any)?.days)
         ? (primaryPlan.summaryJson as any).days.find(

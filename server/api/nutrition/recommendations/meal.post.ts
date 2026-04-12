@@ -35,8 +35,7 @@ export default defineEventHandler(async (event) => {
       targetCarbs: body.targetCarbs,
       targetProtein: body.targetProtein,
       targetKcal: body.targetKcal,
-      recommendationId: recommendation.id,
-      runId: null
+      recommendationId: recommendation.id
     },
     {
       concurrencyKey: userId,
