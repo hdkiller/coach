@@ -455,7 +455,7 @@ export const WorkoutConverter = {
     const toDistanceToken = (meters?: number) => {
       if (!meters || meters <= 0) return ''
       if (meters % 1000 === 0) return `${meters / 1000}km`
-      return `${meters}mtrs`
+      return `${meters}mtr`
     }
     const toValuePct = (value: number) => {
       if (!Number.isFinite(value)) return 0
@@ -663,6 +663,9 @@ export const WorkoutConverter = {
     const fallbackLoadPreference = isRun || isSwim ? 'HR_PACE_POWER' : 'POWER_HR_PACE'
     const currentPolicySource = workout.sportSettings || null
     const snapshotPolicySource = workout.generationSettingsSnapshot || null
+    const hasExplicitTargetPolicy = Boolean(
+      currentPolicySource?.targetPolicy || snapshotPolicySource?.targetPolicy
+    )
     const normalizedPolicy = normalizeTargetPolicy(
       currentPolicySource?.targetPolicy || snapshotPolicySource?.targetPolicy,
       currentPolicySource?.loadPreference ||
@@ -854,7 +857,22 @@ export const WorkoutConverter = {
           }
         }
 
-        const power = normalizeTargetForExport(
+        const defaultTargetValue = (stepType: WorkoutStep['type'], metric: string) => {
+          if (stepType === 'Warmup') return 0.6
+          if (stepType === 'Rest') return 0.5
+          if (stepType === 'Cooldown') return 0.55
+          if (metric === 'pace') {
+            const intent = String((step as any).intent || '').toLowerCase()
+            if (intent === 'threshold') return 1
+            if (intent === 'tempo') return 0.9
+            if (intent === 'vo2') return 1.08
+            if (intent === 'endurance') return 0.85
+            if (intent === 'easy' || intent === 'recovery' || intent === 'drills') return 0.75
+          }
+          return 0.75
+        }
+
+        let power = normalizeTargetForExport(
           normalizeTarget(step.power) || normalizeTarget(parentStep?.power),
           step.type
         )
@@ -862,21 +880,30 @@ export const WorkoutConverter = {
           normalizeTarget(step.heartRate) || normalizeTarget(parentStep?.heartRate),
           step.type
         )
-        const heartRate = normalizeHrTargetForExport(
+        let heartRate = normalizeHrTargetForExport(
           rawHeartRate || deriveRunHeartRateTargetFromPower(power)
         )
         const rawPace = normalizeTargetForExport(
           normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace),
           step.type
         )
-        const pace = rawPace || deriveRunPaceTargetFromPower(power)
+        let pace = rawPace || deriveRunPaceTargetFromPower(power)
+        const primaryExportMetric = normalizedPolicy.primaryMetric
+        const missingPrimaryTarget =
+          (primaryExportMetric === 'power' && !power) ||
+          (primaryExportMetric === 'heartRate' && !heartRate) ||
+          (primaryExportMetric === 'pace' && !pace) ||
+          (primaryExportMetric === 'rpe' && typeof step.rpe !== 'number')
+
+        if (hasExplicitTargetPolicy && normalizedPolicy.strictPrimary && missingPrimaryTarget) {
+          const value = defaultTargetValue(step.type, primaryExportMetric)
+          if (primaryExportMetric === 'power') power = { value, units: '%' }
+          if (primaryExportMetric === 'heartRate') heartRate = { value, units: 'LTHR' }
+          if (primaryExportMetric === 'pace') pace = { value, units: 'Pace' }
+        }
         const distanceStr = toDistanceToken(step.distance)
         const duration = step.durationSeconds || step.duration || 0
-        const shouldIncludeDuration =
-          !isSwim ||
-          !step.distance ||
-          step.type === 'Rest' ||
-          (step.type === 'Active' && duration > 0)
+        const shouldIncludeDuration = !isSwim || !step.distance || step.type === 'Rest'
         const durationStr = duration > 0 && shouldIncludeDuration ? toDurationToken(duration) : ''
 
         const intensities: string[] = []
@@ -964,6 +991,7 @@ export const WorkoutConverter = {
         const nameIncludesDistance =
           distanceStr &&
           (name.toLowerCase().includes(`${step.distance}m`) ||
+            name.toLowerCase().includes(`${step.distance}mtr`) ||
             name.toLowerCase().includes(`${step.distance}mtrs`) ||
             name.toLowerCase().includes(`${Number(step.distance) / 1000}km`))
 

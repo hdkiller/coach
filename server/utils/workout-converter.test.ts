@@ -284,13 +284,13 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      expect(result).toContain('- 400mtrs Mixed 60% LTHR')
+      expect(result).toContain('- 400mtr Mixed 60% LTHR')
       expect(result).toContain('4x')
-      expect(result).toContain(' - 100mtrs Hard 90% Pace')
+      expect(result).toContain(' - 100mtr Hard 90% Pace')
       expect(result).toContain(' - Rest 30s')
     })
 
-    it('includes duration for active swim reps when available', () => {
+    it('omits calculated duration for distance-based active swim reps', () => {
       const workout = {
         title: 'Swim Durations',
         type: 'Swim',
@@ -313,8 +313,56 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      expect(result).toContain(' - 100mtrs Aerobic Swim 140s 82% LTHR')
+      expect(result).toContain(' - 100mtr Aerobic Swim 82% LTHR')
+      expect(result).not.toContain('140s')
       expect(result).toContain(' - Recover 30s')
+    })
+
+    it('synthesizes the strict primary metric during export when legacy swim steps are mixed', () => {
+      const workout = {
+        title: 'Strict Swim',
+        type: 'Swim',
+        sportSettings: {
+          targetPolicy: {
+            primaryMetric: 'pace',
+            fallbackOrder: ['pace', 'heartRate', 'power', 'rpe'],
+            strictPrimary: true,
+            allowMixedTargetsPerStep: false
+          }
+        },
+        steps: [
+          {
+            reps: 2,
+            steps: [
+              {
+                type: 'Active',
+                distance: 50,
+                durationSeconds: 87,
+                rpe: 4,
+                primaryTarget: 'rpe',
+                name: 'Drill'
+              },
+              {
+                type: 'Active',
+                distance: 100,
+                durationSeconds: 173,
+                heartRate: { range: { start: 0.73, end: 0.83 }, units: 'LTHR' },
+                primaryTarget: 'heartRate',
+                name: 'Pull'
+              }
+            ]
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain(' - 50mtr Drill 75% Pace')
+      expect(result).toContain(' - 100mtr Pull 75% Pace')
+      expect(result).not.toContain('RPE 4')
+      expect(result).not.toContain('73-83% LTHR')
+      expect(result).not.toContain('87s')
+      expect(result).not.toContain('173s')
     })
 
     it('formats running pace zones as zone labels instead of percentages', () => {
