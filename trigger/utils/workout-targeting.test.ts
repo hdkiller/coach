@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyTargetPolicyToStep,
   applyStepIntentGuard,
   applyTargetFormatPolicyToStep,
   resolveWorkoutTargeting
@@ -99,6 +100,53 @@ describe('applyStepIntentGuard', () => {
 
     expect(step.power).toEqual({ value: 1.1, units: '%' })
     expect(step.intent).toBe('vo2')
+  })
+})
+
+describe('applyTargetPolicyToStep', () => {
+  it('makes strict primary authoritative and removes fallback targets', () => {
+    const step: any = {
+      type: 'Active',
+      primaryTarget: 'heartRate',
+      heartRate: { range: { start: 0.73, end: 0.83 }, units: 'LTHR' },
+      rpe: 4
+    }
+
+    applyTargetPolicyToStep(step, {
+      primaryMetric: 'pace',
+      fallbackOrder: ['pace', 'heartRate', 'power', 'rpe'],
+      strictPrimary: true,
+      allowMixedTargetsPerStep: false,
+      defaultTargetStyle: 'range',
+      preferRangesForSteady: true
+    })
+
+    expect(step.primaryTarget).toBe('pace')
+    expect(step.pace).toMatchObject({ value: 0.75, units: 'Pace' })
+    expect(step.heartRate).toBeUndefined()
+    expect(step.rpe).toBeUndefined()
+  })
+
+  it('keeps an existing valid step primary when strict primary is disabled', () => {
+    const step: any = {
+      type: 'Active',
+      primaryTarget: 'heartRate',
+      heartRate: { value: 0.8, units: 'LTHR' },
+      pace: { value: 0.75, units: 'Pace' }
+    }
+
+    applyTargetPolicyToStep(step, {
+      primaryMetric: 'pace',
+      fallbackOrder: ['pace', 'heartRate', 'power', 'rpe'],
+      strictPrimary: false,
+      allowMixedTargetsPerStep: false,
+      defaultTargetStyle: 'range',
+      preferRangesForSteady: true
+    })
+
+    expect(step.primaryTarget).toBe('heartRate')
+    expect(step.heartRate).toMatchObject({ value: 0.8, units: 'LTHR' })
+    expect(step.pace).toBeUndefined()
   })
 })
 

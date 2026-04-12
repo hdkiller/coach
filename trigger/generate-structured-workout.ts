@@ -16,7 +16,7 @@ import {
   formatTargetPolicyPrompt,
   formatTargetFormatPolicyPrompt,
   STEP_INTENTS,
-  applyRunTargetPolicyToStep,
+  applyTargetPolicyToStep,
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard,
   buildPlannedWorkoutSettingsSnapshot,
@@ -1514,7 +1514,11 @@ export const generateStructuredWorkoutTask = task({
           }
           step.stroke = undefined
           step.equipment = undefined
-        } else if (workout.type === 'Run') {
+        } else if (
+          String(workout.type || '')
+            .toLowerCase()
+            .includes('run')
+        ) {
           recoverTarget('heartRate')
           recoverTarget('pace')
           recoverTarget('power')
@@ -1524,7 +1528,7 @@ export const generateStructuredWorkoutTask = task({
           if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
           if (step.pace && !step.pace.units) step.pace.units = 'Pace'
           if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
-          applyRunTargetPolicyToStep(step, targetPolicy)
+          applyTargetPolicyToStep(step, targetPolicy)
           applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
             ftp,
             lthr,
@@ -1541,6 +1545,19 @@ export const generateStructuredWorkoutTask = task({
           })
           if (step.distance) step.distance = Number(step.distance)
         } else {
+          const isStrengthWorkout = /gym|weight/i.test(String(workout.type || ''))
+          if (!isStrengthWorkout) {
+            recoverTarget('heartRate')
+            recoverTarget('pace')
+            recoverTarget('power')
+            ensureTargetObject('heartRate')
+            ensureTargetObject('pace')
+            ensureTargetObject('power')
+            if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
+            if (step.pace && !step.pace.units) step.pace.units = 'Pace'
+            if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
+            applyTargetPolicyToStep(step, targetPolicy)
+          }
           applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
             ftp,
             lthr,

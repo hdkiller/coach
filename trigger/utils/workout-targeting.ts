@@ -762,7 +762,7 @@ function normalizeCadenceTarget(step: any, targetFormatPolicy: TargetFormatPolic
   }
 }
 
-export function applyRunTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
+export function applyTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
   console.log('[Targeting] Policy:', {
     primary: targetPolicy.primaryMetric,
     strict: targetPolicy.strictPrimary,
@@ -775,17 +775,21 @@ export function applyRunTargetPolicyToStep(step: any, targetPolicy: TargetPolicy
 
   // 1. Determine search order
   const orderedMetrics: TargetStepMetric[] = []
-
-  // If step already has a valid primaryTarget with data, prioritize it
-  const currentPrimary = step.primaryTarget as TargetStepMetric
-  if (currentPrimary && hasMetricTarget(step, currentPrimary)) {
-    orderedMetrics.push(currentPrimary)
-  }
-
-  // Then add policy primary if not already added
   const policyPrimary = targetPolicy.primaryMetric as TargetStepMetric
-  if (!orderedMetrics.includes(policyPrimary)) {
+
+  if (targetPolicy.strictPrimary) {
     orderedMetrics.push(policyPrimary)
+  } else {
+    // If step already has a valid primaryTarget with data, prioritize it when strict primary is off.
+    const currentPrimary = step.primaryTarget as TargetStepMetric
+    if (currentPrimary && hasMetricTarget(step, currentPrimary)) {
+      orderedMetrics.push(currentPrimary)
+    }
+
+    // Then add policy primary if not already added
+    if (!orderedMetrics.includes(policyPrimary)) {
+      orderedMetrics.push(policyPrimary)
+    }
   }
 
   // Then add the rest of the candidates
@@ -793,8 +797,11 @@ export function applyRunTargetPolicyToStep(step: any, targetPolicy: TargetPolicy
     if (!orderedMetrics.includes(m)) orderedMetrics.push(m)
   })
 
-  // 2. Find the first metric that actually has data
-  let selectedMetric = orderedMetrics.find((metric) => hasMetricTarget(step, metric))
+  // 2. Find the first metric that actually has data. In strict mode the configured
+  // primary remains authoritative even when generation returned only fallback data.
+  let selectedMetric = targetPolicy.strictPrimary
+    ? policyPrimary
+    : orderedMetrics.find((metric) => hasMetricTarget(step, metric))
 
   console.log(
     '[Targeting] Step:',
@@ -823,6 +830,8 @@ export function applyRunTargetPolicyToStep(step: any, targetPolicy: TargetPolicy
 
   step.primaryTarget = selectedMetric
 }
+
+export const applyRunTargetPolicyToStep = applyTargetPolicyToStep
 
 export function applyTargetFormatPolicyToStep(
   step: any,
