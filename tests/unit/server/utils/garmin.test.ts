@@ -108,6 +108,92 @@ describe('Garmin auth retry', () => {
     })
   })
 
+  it('refreshes and retries summary requests when Garmin returns a generic unauthorized response', async () => {
+    const integration = {
+      id: 'integration-generic-401',
+      accessToken: 'expired-token',
+      refreshToken: 'refresh-token',
+      expiresAt: new Date(Date.now() + 3600_000)
+    } as any
+
+    prismaIntegrationFindUnique.mockResolvedValue(integration)
+    prismaIntegrationUpdate.mockResolvedValue({
+      ...integration,
+      accessToken: 'fresh-token',
+      refreshToken: 'fresh-refresh-token',
+      expiresAt: new Date(Date.now() + 3600_000)
+    })
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({}),
+        headers: new Headers()
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: 'fresh-token',
+          refresh_token: 'fresh-refresh-token',
+          expires_in: 3600
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ok: true })
+      })
+
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const result = await fetchGarminData(
+      integration,
+      'https://apis.garmin.com/wellness-api/rest/dailies'
+    )
+
+    expect(result).toEqual({ ok: true })
+    expect(prismaIntegrationUpdate).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock.mock.calls[2]?.[1]?.headers).toMatchObject({
+      Authorization: 'Bearer fresh-token'
+    })
+  })
+
+  it('marks Garmin integration failed when the refresh token is rejected', async () => {
+    const integration = {
+      id: 'integration-invalid-refresh',
+      accessToken: 'expired-token',
+      refreshToken: 'invalid-refresh-token',
+      expiresAt: new Date(Date.now() - 1000)
+    } as any
+
+    prismaIntegrationFindUnique.mockResolvedValue(integration)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: async () => ({ error: 'invalid_grant' })
+      }) as any
+    )
+
+    await expect(
+      fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/dailies')
+    ).rejects.toThrow('Failed to refresh Garmin token: invalid_grant')
+
+    expect(prismaIntegrationUpdate).toHaveBeenCalledWith({
+      where: { id: integration.id },
+      data: {
+        syncStatus: 'FAILED',
+        errorMessage: 'Garmin authorization expired or was revoked. Please reconnect Garmin.'
+      }
+    })
+  })
+
   it('refreshes and retries FIT file fetches when Garmin reports an inactive token', async () => {
     const integration = {
       id: 'integration-2',

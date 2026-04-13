@@ -96,7 +96,27 @@ export async function refreshGarminToken(integration: Integration): Promise<Inte
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to refresh Garmin token: ${response.statusText}`)
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = extractGarminErrorMessage(response, errorBody)
+
+    if (response.status === 400 || response.status === 401) {
+      try {
+        await prisma.integration.update({
+          where: { id: integration.id },
+          data: {
+            syncStatus: 'FAILED',
+            errorMessage: 'Garmin authorization expired or was revoked. Please reconnect Garmin.'
+          }
+        })
+      } catch (updateError) {
+        console.error('[Garmin] Failed to mark integration as reconnect required', {
+          integrationId: integration.id,
+          updateError
+        })
+      }
+    }
+
+    throw new Error(`Failed to refresh Garmin token: ${errorMessage}`)
   }
 
   const tokenData: GarminTokenResponse = await response.json()
@@ -164,7 +184,11 @@ function shouldRetryGarminAuth(
   if (hasRetried || response.status !== 401) return false
 
   const message = extractGarminErrorMessage(response, errorBody).toLowerCase()
-  return message.includes('token is not active') || message.includes('authentication credentials')
+  return (
+    message.includes('token is not active') ||
+    message.includes('authentication credentials') ||
+    message === 'unauthorized'
+  )
 }
 
 /**

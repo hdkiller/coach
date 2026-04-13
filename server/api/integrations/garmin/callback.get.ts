@@ -101,7 +101,9 @@ export default defineEventHandler(async (event) => {
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       externalUserId,
       scope: tokenData.scope || null,
-      ingestWorkouts: true
+      ingestWorkouts: true,
+      syncStatus: 'SUCCESS',
+      errorMessage: null
     },
     update: {
       accessToken: tokenData.access_token,
@@ -109,7 +111,9 @@ export default defineEventHandler(async (event) => {
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       externalUserId,
       scope: tokenData.scope || null,
-      ingestWorkouts: true
+      ingestWorkouts: true,
+      syncStatus: 'SUCCESS',
+      errorMessage: null
     }
   })
 
