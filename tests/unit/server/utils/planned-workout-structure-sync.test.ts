@@ -46,6 +46,57 @@ describe('planned workout structure sync helpers', () => {
     expect(result.fields.pendingRemoteStructuredWorkout).toEqual(remote)
   })
 
+  it('accepts remote structure when the local record has no executable structure', () => {
+    const local = {
+      structuredWorkout: { steps: [], description: 'Text-only workout' },
+      modifiedLocally: true,
+      lastStructureEditedAt: new Date('2026-03-06T12:00:00Z'),
+      lastStructurePublishedAt: null,
+      structureHash: 'local-empty-hash'
+    }
+    const remote = {
+      steps: [{ type: 'Active', durationSeconds: 900, power: { value: 0.7, units: '%' } }]
+    }
+
+    const result = buildRemoteStructureMergeFields(local, remote, new Date('2026-03-06T12:30:00Z'))
+
+    expect(result.decision.accept).toBe(true)
+    expect(result.decision.reason).toBe('local_missing_structure')
+    expect(result.fields.structuredWorkout).toEqual(remote)
+    expect(result.fields.syncConflict).toBe(false)
+  })
+
+  it('accepts remote structure when local steps no longer match planned duration', () => {
+    const local = {
+      durationSec: 9000,
+      structuredWorkout: {
+        steps: [
+          { type: 'Warmup', durationSeconds: 1200 },
+          { type: 'Active', durationSeconds: 1800 },
+          { type: 'Cooldown', durationSeconds: 600 }
+        ]
+      },
+      modifiedLocally: true,
+      lastStructureEditedAt: new Date('2026-03-06T12:00:00Z'),
+      lastStructurePublishedAt: null,
+      structureHash: 'local-stale-hash'
+    }
+    const remote = {
+      steps: [
+        { type: 'Warmup', durationSeconds: 900 },
+        { type: 'Active', durationSeconds: 7500 },
+        { type: 'Cooldown', durationSeconds: 600 }
+      ]
+    }
+
+    const result = buildRemoteStructureMergeFields(local, remote, new Date('2026-03-06T12:30:00Z'))
+
+    expect(result.decision.accept).toBe(true)
+    expect(result.decision.reason).toBe('local_structure_duration_mismatch')
+    expect(result.fields.structuredWorkout).toEqual(remote)
+    expect(result.fields.syncConflict).toBe(false)
+  })
+
   it('accepts remote structure for a clean local record', () => {
     const local = {
       structuredWorkout: { steps: [{ type: 'Active', power: { value: 1.1, units: '%' } }] },

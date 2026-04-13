@@ -5,6 +5,7 @@ type StructureEditSource = 'USER' | 'AI' | 'REMOTE_IMPORT' | 'PUBLISH'
 
 type PlannedWorkoutStructureState = {
   structuredWorkout?: unknown
+  durationSec?: number | null
   modifiedLocally?: boolean | null
   lastStructureEditedAt?: Date | null
   lastStructurePublishedAt?: Date | null
@@ -25,6 +26,50 @@ function sortJson(value: unknown): unknown {
       )
   }
   return value
+}
+
+function hasStructuredWorkoutContent(structuredWorkout: unknown): boolean {
+  if (!structuredWorkout || typeof structuredWorkout !== 'object') return false
+  const value = structuredWorkout as Record<string, unknown>
+
+  for (const key of ['steps', 'exercises', 'blocks'] as const) {
+    const entries = value[key]
+    if (Array.isArray(entries) && entries.length > 0) return true
+  }
+
+  return false
+}
+
+function getStructuredWorkoutStepDurationSec(structuredWorkout: unknown): number | null {
+  if (!structuredWorkout || typeof structuredWorkout !== 'object') return null
+
+  const readPositiveInt = (value: unknown): number => {
+    const numeric = Number(value)
+    return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : 0
+  }
+
+  const walk = (steps: unknown): number => {
+    if (!Array.isArray(steps)) return 0
+
+    return steps.reduce((total, step) => {
+      if (!step || typeof step !== 'object') return total
+      const value = step as Record<string, unknown>
+      const reps = readPositiveInt(value.reps) || readPositiveInt(value.repeat) || 1
+      const nestedDuration = walk(value.steps)
+      const ownDuration =
+        nestedDuration || readPositiveInt(value.durationSeconds) || readPositiveInt(value.duration)
+
+      return total + ownDuration * reps
+    }, 0)
+  }
+
+  const duration = walk((structuredWorkout as Record<string, unknown>).steps)
+  return duration > 0 ? duration : null
+}
+
+function durationMatches(expected: number, actual: number | null): boolean {
+  if (!actual || expected <= 0) return false
+  return Math.abs(actual - expected) <= Math.max(60, expected * 0.02)
 }
 
 export function computeStructuredWorkoutHash(structuredWorkout: unknown): string | null {
@@ -84,6 +129,24 @@ export function shouldAcceptRemoteStructure(
 
   if (!local) {
     return { accept: true, reason: 'new_local_record' as const }
+  }
+
+  if (
+    !hasStructuredWorkoutContent(local.structuredWorkout) &&
+    hasStructuredWorkoutContent(remoteStructuredWorkout)
+  ) {
+    return { accept: true, reason: 'local_missing_structure' as const }
+  }
+
+  const plannedDurationSec = Number(local.durationSec || 0)
+  const localDurationSec = getStructuredWorkoutStepDurationSec(local.structuredWorkout)
+  const remoteDurationSec = getStructuredWorkoutStepDurationSec(remoteStructuredWorkout)
+  if (
+    plannedDurationSec > 0 &&
+    !durationMatches(plannedDurationSec, localDurationSec) &&
+    durationMatches(plannedDurationSec, remoteDurationSec)
+  ) {
+    return { accept: true, reason: 'local_structure_duration_mismatch' as const }
   }
 
   if (local.modifiedLocally) {

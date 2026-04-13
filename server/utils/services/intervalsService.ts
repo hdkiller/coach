@@ -47,6 +47,13 @@ import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
 import { mergeWorkoutTags } from '../workout-tags'
 
+function preserveLocallyEditedStructureMetadata(updateData: Record<string, any>) {
+  delete updateData.durationSec
+  delete updateData.distanceMeters
+  delete updateData.tss
+  delete updateData.workIntensity
+}
+
 function parseIntervalsActivityDate(activity: any): Date | null {
   const rawDate = activity?.start_date || activity?.start_date_local
   if (!rawDate) return null
@@ -1144,6 +1151,7 @@ export const IntervalsService = {
       select: {
         id: true,
         externalId: true,
+        durationSec: true,
         structuredWorkout: true,
         modifiedLocally: true,
         lastStructureEditedAt: true,
@@ -1238,6 +1246,12 @@ export const IntervalsService = {
           const remoteMerge = buildRemoteStructureMergeFields(existingRecord, newStruct, seenAt)
           if (!('structuredWorkout' in remoteMerge.fields)) {
             delete updateData.structuredWorkout
+          }
+          if (
+            remoteMerge.decision.reason === 'local_modified' ||
+            remoteMerge.decision.reason === 'local_unpublished_changes'
+          ) {
+            preserveLocallyEditedStructureMetadata(updateData)
           }
           Object.assign(updateData, remoteMerge.fields)
         } else {
@@ -1803,6 +1817,7 @@ export const IntervalsService = {
                 select: {
                   id: true,
                   externalId: true,
+                  durationSec: true,
                   structuredWorkout: true,
                   modifiedLocally: true,
                   lastStructureEditedAt: true,
@@ -1885,6 +1900,12 @@ export const IntervalsService = {
                 )
                 if (!('structuredWorkout' in remoteMerge.fields)) {
                   delete updateData.structuredWorkout
+                }
+                if (
+                  remoteMerge.decision.reason === 'local_modified' ||
+                  remoteMerge.decision.reason === 'local_unpublished_changes'
+                ) {
+                  preserveLocallyEditedStructureMetadata(updateData)
                 }
                 Object.assign(updateData, remoteMerge.fields)
               } else {
