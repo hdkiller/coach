@@ -38,6 +38,7 @@ const garminIngestCommand = new Command('garmin-ingest')
     const pool = new pg.Pool({ connectionString })
     const adapter = new PrismaPg(pool)
     const prisma = new PrismaClient({ adapter })
+    ;(globalThis as any).prismaGlobalV2 = prisma
 
     try {
       console.log(chalk.blue(`Finding user: ${userIdentifier}...`))
