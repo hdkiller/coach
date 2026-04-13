@@ -71,12 +71,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // Prepare the new description (completely replacing the old one)
-  const newDescription = `${modifications.description}${modifications.zone_adjustments ? `\n\nZone Adjustments: ${modifications.zone_adjustments}` : ''}`
+  const newDescription = `${modifications.description || ''}${modifications.zone_adjustments ? `\n\nZone Adjustments: ${modifications.zone_adjustments}` : ''}`
   const type =
     modifications.new_type === 'Gym' ? 'WeightTraining' : modifications.new_type || 'Ride'
   const title =
     modifications.new_title?.trim() ||
     (type === 'Rest' ? 'Rest Day' : recommendation.plannedWorkout?.title || 'Updated Workout')
+  const durationSec =
+    modifications.new_duration_min !== undefined && modifications.new_duration_min !== null
+      ? Math.round(modifications.new_duration_min * 60)
+      : undefined
 
   const activeWorkoutCountForDate = await prisma.plannedWorkout.count({
     where: {
@@ -87,39 +91,66 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const validation = validateRecommendationAcceptanceTarget({
-    recommendationDate: recommendation.date,
-    currentWorkout: recommendation.plannedWorkout,
-    targetSnapshot,
-    activeWorkoutCountForDate
-  })
+  const canCreateWorkoutFromUntargetedRecommendation =
+    !recommendation.plannedWorkoutId && !targetSnapshot?.id && activeWorkoutCountForDate === 0
 
-  if (!validation.ok) {
-    throw createError({
-      statusCode: 409,
-      message: validation.message
+  if (!canCreateWorkoutFromUntargetedRecommendation) {
+    const validation = validateRecommendationAcceptanceTarget({
+      recommendationDate: recommendation.date,
+      currentWorkout: recommendation.plannedWorkout,
+      targetSnapshot,
+      activeWorkoutCountForDate
     })
+
+    if (!validation.ok) {
+      throw createError({
+        statusCode: 409,
+        message: validation.message
+      })
+    }
   }
 
-  const targetPlannedWorkoutId = recommendation.plannedWorkoutId!
+  let targetPlannedWorkoutId = recommendation.plannedWorkoutId
   const nextSyncStatus = (syncStatus: string | null | undefined) =>
     syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
 
-  let updatedWorkout = await prisma.plannedWorkout.update({
-    where: { id: targetPlannedWorkoutId },
-    data: {
-      title,
-      type,
-      durationSec: modifications.new_duration_min
-        ? Math.round(modifications.new_duration_min * 60)
-        : undefined,
-      tss: modifications.new_tss,
-      description: newDescription,
-      modifiedLocally: true,
-      syncStatus: nextSyncStatus(recommendation.plannedWorkout?.syncStatus),
-      syncError: null
-    }
-  })
+  let updatedWorkout
+
+  if (targetPlannedWorkoutId) {
+    updatedWorkout = await prisma.plannedWorkout.update({
+      where: { id: targetPlannedWorkoutId },
+      data: {
+        title,
+        type,
+        durationSec,
+        tss: modifications.new_tss,
+        description: newDescription,
+        modifiedLocally: true,
+        syncStatus: nextSyncStatus(recommendation.plannedWorkout?.syncStatus),
+        syncError: null
+      }
+    })
+  } else {
+    updatedWorkout = await prisma.plannedWorkout.create({
+      data: {
+        userId,
+        externalId: `recommendation-${id}`,
+        date: recommendation.date,
+        title,
+        description: newDescription,
+        type,
+        durationSec,
+        tss: modifications.new_tss,
+        completed: false,
+        modifiedLocally: true,
+        syncStatus: 'LOCAL_ONLY',
+        syncError: null,
+        rawJson: {},
+        managedBy: 'COACH_WATTS'
+      }
+    })
+    targetPlannedWorkoutId = updatedWorkout.id
+  }
 
   const requiresStructure = updatedWorkout.type !== 'Rest'
 
@@ -184,7 +215,8 @@ export default defineEventHandler(async (event) => {
   await prisma.activityRecommendation.update({
     where: { id },
     data: {
-      userAccepted: true
+      userAccepted: true,
+      plannedWorkoutId: targetPlannedWorkoutId
     }
   })
 
