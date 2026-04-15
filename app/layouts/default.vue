@@ -775,14 +775,14 @@
 </script>
 
 <template>
-  <UDashboardGroup unit="rem">
+  <UDashboardGroup unit="rem" class="print:static print:inset-auto print:block print:overflow-visible">
     <UDashboardSidebar
       id="default"
       :key="tolgee.getLanguage()"
       v-model:open="open"
       collapsible
       resizable
-      class="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800"
+      class="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 print:hidden"
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
