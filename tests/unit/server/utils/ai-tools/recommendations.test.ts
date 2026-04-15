@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { recommendationTools } from '../../../../../server/utils/ai-tools/recommendations'
 import { recommendationRepository } from '../../../../../server/utils/repositories/recommendationRepository'
 
-// Mock the repository
 vi.mock('../../../../../server/utils/repositories/recommendationRepository', () => ({
   recommendationRepository: {
     findById: vi.fn(),
@@ -17,6 +16,28 @@ describe('recommendationTools', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('makes workout recommendations explicit that they are not scheduled or synced', async () => {
+    const tools = recommendationTools('user-1', 'Europe/Budapest')
+
+    const result = await tools.recommend_workout.execute(
+      {
+        day_of_week: 5,
+        bike_access: true,
+        indoor_only: true,
+        notes: 'Testing MyWhoosh sync'
+      },
+      { toolCallId: 'tool-1', messages: [] }
+    )
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        created: false,
+        synced: false,
+        next_action: expect.stringContaining('create_planned_workout')
+      })
+    )
   })
 
   describe('get_recommendation_details', () => {

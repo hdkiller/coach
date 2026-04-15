@@ -4,7 +4,8 @@ import { recommendationRepository } from '../repositories/recommendationReposito
 
 export const recommendationTools = (userId: string, timezone: string) => ({
   recommend_workout: tool({
-    description: 'Recommend a specific workout based on the users goal and availability.',
+    description:
+      'Recommend a specific workout based on the users goal and availability. This is read-only and does not create, schedule, publish, or sync a workout. If the user asks to generate, create, schedule, send, or sync a workout, use create_planned_workout instead.',
     inputSchema: z.object({
       day_of_week: z.number().describe('0=Sunday, 1=Monday...'),
       morning: z.boolean().optional(),
@@ -18,6 +19,10 @@ export const recommendationTools = (userId: string, timezone: string) => ({
     execute: async (args) => {
       // Logic to select a workout from a library or generate one
       return {
+        created: false,
+        synced: false,
+        next_action:
+          'This is only a recommendation. To put it on the calendar or publish it to Intervals.icu, call create_planned_workout with these details.',
         recommendation: {
           title: 'Zone 2 Endurance Ride',
           duration_minutes: 90,
