@@ -17,6 +17,7 @@ import {
   calculateGlycogenState,
   calculateFuelingStrategy,
   calculateDailyCalorieBreakdown,
+  calculateMacroTargetCalories,
   mergeFuelingWindows,
   selectRelevantWorkouts,
   synthesizeRefills,
@@ -1184,15 +1185,18 @@ export const metabolicService = {
     const breakdown = calculateDailyCalorieBreakdown(profile, contexts)
     const mergedWindows = mergeWindows ? mergeFuelingWindows(combinedWindows) : combinedWindows
     const uniqueNotes = Array.from(new Set([...combinedNotes, ...(override?.notes || [])]))
+    const finalCarbs = Math.round(maxDailyCarbs)
+    const finalProtein = Math.round(maxDailyProtein)
+    const finalFat = Math.round(maxDailyFat)
 
     const finalPlan = {
       windows: mergedWindows,
       notes: uniqueNotes,
       dailyTotals: {
-        carbs: Math.round(maxDailyCarbs),
-        protein: Math.round(maxDailyProtein),
-        fat: Math.round(maxDailyFat),
-        calories: breakdown.totalTarget,
+        carbs: finalCarbs,
+        protein: finalProtein,
+        fat: finalFat,
+        calories: calculateMacroTargetCalories(finalCarbs, finalProtein, finalFat),
         fluid: totalFluid,
         sodium: totalSodium,
         baseCalories: breakdown.baseCalories,

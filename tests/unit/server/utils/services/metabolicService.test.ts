@@ -65,6 +65,7 @@ vi.mock('../../../../../server/utils/nutrition-domain', () => ({
   calculateGlycogenState: vi.fn(),
   calculateFuelingStrategy: vi.fn(),
   calculateDailyCalorieBreakdown: vi.fn(),
+  calculateMacroTargetCalories: vi.fn(),
   mergeFuelingWindows: vi.fn(),
   selectRelevantWorkouts: vi.fn(),
   synthesizeRefills: vi.fn(),

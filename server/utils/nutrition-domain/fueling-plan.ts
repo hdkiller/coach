@@ -10,6 +10,10 @@ import type {
 /**
  * Calculates a fueling strategy for a specific workout context and user profile.
  */
+export function calculateMacroTargetCalories(carbs: number, protein: number, fat: number): number {
+  return Math.round(carbs * 4 + protein * 4 + fat * 9)
+}
+
 export function calculateFuelingStrategy(
   profile: FuelingProfile,
   workout: WorkoutContext
@@ -48,20 +52,21 @@ export function calculateFuelingStrategy(
 
   // --- 1b. HANDLE REST DAYS (NO WINDOWS) ---
   if (workout.type === 'Rest' || workout.durationSec === 0) {
+    const carbs = Math.round(dailyCarbTargetGrams)
+    const protein = Math.round(profile.weight * baseProtein)
+    const fat = Math.round(profile.weight * baseFat)
+    const macroCalories = calculateMacroTargetCalories(carbs, protein, fat)
+
     return {
       windows: [],
       dailyTotals: {
-        calories: Math.round(
-          dailyCarbTargetGrams * 4 + profile.weight * baseProtein * 4 + profile.weight * baseFat * 9
-        ),
-        carbs: Math.round(dailyCarbTargetGrams),
-        protein: Math.round(profile.weight * baseProtein),
-        fat: Math.round(profile.weight * baseFat),
+        calories: macroCalories,
+        carbs,
+        protein,
+        fat,
         fluid: 2000,
         sodium: 1000,
-        baseCalories: Math.round(
-          dailyCarbTargetGrams * 4 + profile.weight * baseProtein * 4 + profile.weight * baseFat * 9
-        ),
+        baseCalories: macroCalories,
         baseCaloriesMode,
         activityCalories: 0,
         adjustmentCalories: 0,
@@ -227,14 +232,17 @@ export function calculateFuelingStrategy(
   const breakdown = calculateDailyCalorieBreakdown(profile, [
     { ...workout, durationHours, intensity }
   ])
+  const carbs = Math.round(dailyCarbTargetGrams)
+  const protein = Math.round(profile.weight * baseProtein)
+  const fat = Math.round(profile.weight * baseFat)
 
   return {
     windows,
     dailyTotals: {
-      calories: breakdown.totalTarget,
-      carbs: Math.round(dailyCarbTargetGrams),
-      protein: Math.round(profile.weight * baseProtein),
-      fat: Math.round(profile.weight * baseFat),
+      calories: calculateMacroTargetCalories(carbs, protein, fat),
+      carbs,
+      protein,
+      fat,
       fluid: intraFluid + 2000,
       sodium: intraSodium + 1000,
       baseCalories: breakdown.baseCalories,
