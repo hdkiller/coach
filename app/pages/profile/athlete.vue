@@ -1,7 +1,11 @@
 <template>
-  <UDashboardPanel id="athlete-profile">
+  <UDashboardPanel
+    id="athlete-profile"
+    class="athlete-profile-print-panel print:block print:min-h-0 print:w-full print:overflow-visible"
+    :ui="{ body: 'print:block print:overflow-visible print:p-0' }"
+  >
     <template #header>
-      <UDashboardNavbar>
+      <UDashboardNavbar class="print:hidden">
         <template #leading>
           <UDashboardSidebarCollapse />
           <UButton
@@ -528,7 +532,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="mt-6 flex justify-between items-center">
+          <div class="actions mt-6 flex justify-between items-center">
             <div class="flex gap-4">
               <UButton color="neutral" variant="outline" @click="handlePrint">
                 <UIcon name="i-heroicons-printer" class="w-4 h-4 mr-2" />
