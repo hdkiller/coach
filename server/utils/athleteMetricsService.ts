@@ -1,7 +1,7 @@
 import { prisma } from './db'
 import { userRepository } from './repositories/userRepository'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
-import { calculatePowerZones, calculateHrZones } from './zones'
+import { calculatePowerZones, calculateHrZones, calculatePaceZones } from './zones'
 import { roundToTwoDecimals } from './number'
 import { metabolicService } from './services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from './date'
@@ -210,6 +210,112 @@ export const athleteMetricsService = {
         completedAt: new Date()
       }
     })
+  },
+
+  /**
+   * Apply a completed threshold recommendation to the athlete profile.
+   * Threshold recommendations are generated from workouts, but the user action
+   * that marks them complete is what should promote the detected value into
+   * active profile settings.
+   */
+  async applyThresholdRecommendation(recommendation: {
+    userId: string
+    sourceType: string
+    metric: string
+    history?: unknown
+  }) {
+    if (recommendation.sourceType !== 'workout') return false
+
+    const metric = recommendation.metric
+    if (!['FTP', 'LTHR', 'MAX_HR', 'THRESHOLD_PACE'].includes(metric)) return false
+
+    const history = recommendation.history as
+      | {
+          newValue?: unknown
+          workoutId?: unknown
+          sportName?: unknown
+        }
+      | null
+      | undefined
+    const newValue = Number(history?.newValue)
+    if (!Number.isFinite(newValue) || newValue <= 0) return false
+
+    const [user, workout] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: recommendation.userId },
+        select: { id: true, ftp: true, lthr: true, maxHr: true }
+      }),
+      typeof history?.workoutId === 'string'
+        ? prisma.workout.findUnique({
+            where: { id: history.workoutId },
+            select: { type: true }
+          })
+        : null
+    ])
+
+    if (!user) throw new Error('User not found')
+
+    const userUpdateData: any = {}
+    const sportUpdateData: any = {}
+
+    if (metric === 'FTP') {
+      userUpdateData.ftp = Math.round(newValue)
+      sportUpdateData.ftp = Math.round(newValue)
+      sportUpdateData.powerZones = calculatePowerZones(Math.round(newValue))
+    } else if (metric === 'LTHR') {
+      userUpdateData.lthr = Math.round(newValue)
+      sportUpdateData.lthr = Math.round(newValue)
+      sportUpdateData.hrZones = calculateHrZones(Math.round(newValue), user.maxHr)
+    } else if (metric === 'MAX_HR') {
+      userUpdateData.maxHr = Math.round(newValue)
+      sportUpdateData.maxHr = Math.round(newValue)
+      sportUpdateData.hrZones = calculateHrZones(user.lthr, Math.round(newValue))
+    } else if (metric === 'THRESHOLD_PACE') {
+      sportUpdateData.thresholdPace = newValue
+      sportUpdateData.paceZones = calculatePaceZones(newValue)
+    }
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await prisma.user.update({
+        where: { id: recommendation.userId },
+        data: userUpdateData
+      })
+    }
+
+    const profilesToUpdate = new Map<string, any>()
+    const defaultProfile = await sportSettingsRepository.getDefault(recommendation.userId)
+    if (defaultProfile) profilesToUpdate.set(defaultProfile.id, defaultProfile)
+
+    if (workout?.type) {
+      const sportProfile = await sportSettingsRepository.getForActivityType(
+        recommendation.userId,
+        workout.type
+      )
+      if (sportProfile) profilesToUpdate.set(sportProfile.id, sportProfile)
+    }
+
+    if (typeof history?.sportName === 'string' && history.sportName.trim()) {
+      const sportProfiles = await prisma.sportSettings.findMany({
+        where: {
+          userId: recommendation.userId,
+          name: history.sportName.trim()
+        }
+      })
+      for (const profile of sportProfiles) profilesToUpdate.set(profile.id, profile)
+    }
+
+    for (const profile of profilesToUpdate.values()) {
+      await prisma.sportSettings.update({
+        where: { id: profile.id },
+        data: sportUpdateData
+      })
+    }
+
+    if (metric === 'FTP') {
+      await this.syncGoalProgress(recommendation.userId, { ftp: Math.round(newValue) })
+    }
+
+    return true
   },
 
   /**

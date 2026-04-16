@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { recommendationRepository } from '../../utils/repositories/recommendationRepository'
+import { athleteMetricsService } from '../../utils/athleteMetricsService'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
   if (result.data.status) {
     data.status = result.data.status
     if (result.data.status === 'COMPLETED') {
+      await athleteMetricsService.applyThresholdRecommendation(recommendation)
       data.completedAt = new Date()
     }
   }
