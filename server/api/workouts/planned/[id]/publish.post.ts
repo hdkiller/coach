@@ -11,6 +11,7 @@ import { getServerSession } from '../../../../utils/session'
 import { sportSettingsRepository } from '../../../../utils/repositories/sportSettingsRepository'
 import { plannedWorkoutPublishRepository } from '../../../../utils/repositories/plannedWorkoutPublishRepository'
 import { buildStructurePublishFields } from '../../../../utils/planned-workout-structure-sync'
+import { publishPlannedWorkoutToRouvy } from '../../../../utils/rouvy-workout-publisher'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -24,6 +25,26 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  const body = await readBody(event).catch(() => ({}))
+  const provider = body?.provider === 'rouvy' ? 'rouvy' : 'intervals'
+
+  if (provider === 'rouvy') {
+    try {
+      const result = await publishPlannedWorkoutToRouvy(id, userId)
+      const updatedWorkout = await prisma.plannedWorkout.findUnique({ where: { id } })
+
+      return {
+        ...result,
+        workout: updatedWorkout
+      }
+    } catch (error: any) {
+      console.error('Error publishing workout to ROUVY:', error)
+      throw createError({
+        statusCode: error.statusCode || 500,
+        message: error.message || 'Failed to sync workout with ROUVY'
+      })
+    }
+  }
 
   // Fetch the workout
   const workout = await prisma.plannedWorkout.findUnique({
@@ -49,7 +70,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Intervals.icu integration not found' })
   }
 
-  const provider = 'intervals'
   const existingTarget = await plannedWorkoutPublishRepository.getByProvider(id, provider)
   const existingExternalId =
     existingTarget?.externalId && isIntervalsEventId(existingTarget.externalId)

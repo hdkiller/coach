@@ -792,7 +792,7 @@
     v-model:open="showPublishModal"
     :title="publishModalTitle"
     :description="
-      garminConnected
+      garminConnected || rouvyConnected
         ? 'Choose where to send this planned workout.'
         : isLocalWorkout
           ? 'Sync this workout to your Intervals.icu calendar.'
@@ -806,13 +806,19 @@
           <strong>{{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}</strong
           >.
         </p>
-        <div v-if="garminConnected" class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm">
+        <div
+          v-if="garminConnected || rouvyConnected"
+          class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm"
+        >
           <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>
               <strong>Intervals.icu:</strong>
               {{ isLocalWorkout ? 'create a new calendar workout' : 'update the synced workout' }}
             </li>
-            <li>
+            <li v-if="rouvyConnected">
+              <strong>ROUVY:</strong> send the structured workout as a ZWO workout for that day
+            </li>
+            <li v-if="garminConnected">
               <strong>Garmin Training:</strong> send the structured workout to Garmin Connect for
               that day
             </li>
@@ -835,6 +841,14 @@
           color="primary"
           :loading="publishing"
           @click="publishWorkout"
+        />
+        <UButton
+          v-if="rouvyConnected"
+          label="Publish ROUVY"
+          color="neutral"
+          variant="outline"
+          :loading="publishingRouvy"
+          @click="publishWorkoutToRouvy"
         />
         <UButton
           v-if="garminConnected"
@@ -1228,9 +1242,11 @@
   const publishing = ref(false)
   const publishingGarminTraining = ref(false)
   const publishingGarminCourse = ref(false)
+  const publishingRouvy = ref(false)
   const garminConnected = ref(false)
+  const rouvyConnected = ref(false)
   const publishModalTitle = computed(() => {
-    if (garminConnected.value) return 'Publish Workout'
+    if (garminConnected.value || rouvyConnected.value) return 'Publish Workout'
     return isLocalWorkout.value ? 'Publish to Intervals.icu' : 'Update on Intervals.icu'
   })
 
@@ -1766,9 +1782,48 @@
       garminConnected.value = integrations.some(
         (integration: any) => integration.provider === 'garmin'
       )
+      rouvyConnected.value = integrations.some(
+        (integration: any) => integration.provider === 'rouvy'
+      )
     } catch (error) {
       console.error('Failed to fetch integration status', error)
       garminConnected.value = false
+      rouvyConnected.value = false
+    }
+  }
+
+  async function publishWorkoutToRouvy() {
+    if (!workout.value?.id || !rouvyConnected.value) return
+
+    publishingRouvy.value = true
+    try {
+      const response: any = await ($fetch as any)(
+        `/api/workouts/planned/${workout.value.id}/publish`,
+        {
+          method: 'POST',
+          body: { provider: 'rouvy' }
+        }
+      )
+
+      if (response.success && response.workout) {
+        workout.value = response.workout
+        showPublishModal.value = false
+
+        toast.add({
+          title: 'Published',
+          description: response.message || 'Workout published to ROUVY.',
+          color: 'success'
+        })
+      }
+    } catch (error: any) {
+      console.error('Failed to publish workout to ROUVY:', error)
+      toast.add({
+        title: 'Publish Failed',
+        description: error.data?.message || 'Failed to publish workout to ROUVY',
+        color: 'error'
+      })
+    } finally {
+      publishingRouvy.value = false
     }
   }
 

@@ -281,7 +281,7 @@ export function normalizeRouvyActivity(activity: RouvyActivity, userId: string) 
     tss: activity.trainingStressScore,
     trainingLoad: activity.trainingStressScore, // Using TSS as training load
     intensity: activity.intensityFactor,
-    energyKcal: activity.energyKcal,
+    calories: activity.energyKcal,
 
     // Metadata
     rawJson: activity as any
