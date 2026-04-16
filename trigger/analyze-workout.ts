@@ -85,7 +85,7 @@ interface StructuredAnalysis {
 }
 
 // Flexible analysis schema that works for workouts, reports, planning, etc.
-const analysisSchema = {
+export const analysisSchema = {
   type: 'object',
   properties: {
     type: {
@@ -644,7 +644,7 @@ export const analyzeWorkoutTask = task({
   }
 })
 
-function buildWorkoutAnalysisData(workout: any) {
+export function buildWorkoutAnalysisData(workout: any) {
   const workoutType = String(workout.type || '')
   const isRunningWorkout = workoutType.toLowerCase().includes('run')
   const normalizeRunningCadence = (cadence: number | null | undefined) => {
@@ -1771,7 +1771,7 @@ ${buildAnalysisRequestMetricRules(metricPriorityContext)
 }
 
 // Convert structured analysis to markdown for fallback/export
-function convertStructuredToMarkdown(analysis: any): string {
+export function convertStructuredToMarkdown(analysis: any): string {
   let markdown = `# ${analysis.title}\n\n`
 
   if (analysis.date) {
