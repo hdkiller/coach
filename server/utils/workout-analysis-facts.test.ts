@@ -190,6 +190,37 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.performanceSignals.zones.dominantPowerZone).toBe('Z2')
   })
 
+  it('recomputes power zone facts from current sport settings instead of stale stream buckets', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Updated FTP Ride',
+        durationSec: 300,
+        averageWatts: 160,
+        streams: {
+          time: [0, 1, 2, 3, 4],
+          watts: [100, 130, 160, 170, 190],
+          heartrate: [120, 130, 140, 150, 160],
+          powerZoneTimes: [0, 0, 0, 0, 5, 0, 0]
+        }
+      }),
+      sportSettings: {
+        ftp: 166,
+        powerZones: [
+          { min: 0, max: 91 },
+          { min: 92, max: 125 },
+          { min: 126, max: 149 },
+          { min: 150, max: 174 },
+          { min: 175, max: 199 },
+          { min: 200, max: 249 },
+          { min: 250, max: 2000 }
+        ]
+      }
+    })
+
+    expect(facts.performanceSignals.zones.dominantPowerZone).toBe('Z4')
+    expect(facts.performanceSignals.zones.timeAboveThresholdPct).toBe(60)
+  })
+
   it('prefers the stored workout decoupling over a divergent stream-derived value', () => {
     const time = Array.from({ length: 720 }, (_, index) => index * 5)
     const watts = Array.from({ length: 720 }, () => 205)

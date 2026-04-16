@@ -2168,6 +2168,32 @@ function getTimeAboveThresholdPct(zoneTimes: unknown): number | null {
   return round((aboveThreshold / total) * 100, 1)
 }
 
+function computeZoneTimesFromSamples(samples: unknown, zones: any[] | null | undefined) {
+  const values = asNumberArray(samples)
+  if (values.length === 0 || !Array.isArray(zones) || zones.length === 0) return null
+
+  const normalizedZones = zones
+    .map((zone) => ({
+      min: Number(zone?.min),
+      max: Number(zone?.max)
+    }))
+    .filter((zone) => Number.isFinite(zone.min) && Number.isFinite(zone.max))
+
+  if (normalizedZones.length === 0) return null
+
+  const zoneTimes = new Array(normalizedZones.length).fill(0)
+
+  for (const value of values) {
+    const zoneIndex = normalizedZones.findIndex((zone, index) => {
+      const isLast = index === normalizedZones.length - 1
+      return value >= zone.min && (value <= zone.max || (isLast && value > zone.max))
+    })
+    if (zoneIndex >= 0) zoneTimes[zoneIndex] += 1
+  }
+
+  return zoneTimes.some((value) => value > 0) ? zoneTimes : null
+}
+
 function computeAverage(values: number[]): number | null {
   if (values.length === 0) return null
   return values.reduce((sum, value) => sum + value, 0) / values.length
@@ -3114,17 +3140,23 @@ export function buildWorkoutAnalysisFactsV2({
     durability,
     sportSpecific
   })
+  const currentPowerZoneTimes =
+    computeZoneTimesFromSamples(workout?.streams?.watts, refs.powerZones) ??
+    workout?.streams?.powerZoneTimes
+  const currentHrZoneTimes =
+    computeZoneTimesFromSamples(workout?.streams?.heartrate, refs.hrZones) ??
+    workout?.streams?.hrZoneTimes
 
   const performanceSignals: WorkoutAnalysisFactsV2['performanceSignals'] = {
     applicability,
     decoupling,
     durability,
     zones: {
-      dominantPowerZone: getZoneDominance(workout?.streams?.powerZoneTimes, 'Z'),
-      dominantHrZone: getZoneDominance(workout?.streams?.hrZoneTimes, 'HRZ'),
+      dominantPowerZone: getZoneDominance(currentPowerZoneTimes, 'Z'),
+      dominantHrZone: getZoneDominance(currentHrZoneTimes, 'HRZ'),
       timeAboveThresholdPct:
-        getTimeAboveThresholdPct(workout?.streams?.powerZoneTimes) ??
-        getTimeAboveThresholdPct(workout?.streams?.hrZoneTimes)
+        getTimeAboveThresholdPct(currentPowerZoneTimes) ??
+        getTimeAboveThresholdPct(currentHrZoneTimes)
     },
     sportSpecific
   }
