@@ -12,6 +12,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import type { IngestionResult } from './types'
 import { ingestStravaStreamsForWorkout } from './utils/strava-stream-ingestion'
+import { linkWorkoutToMatchingPlannedWorkout } from '../server/utils/planned-workout-linking'
 
 function buildStravaStreamRepairTrigger(userId: string, workoutId: string, activityId: number) {
   return tasks.trigger(
@@ -184,6 +185,21 @@ export const ingestStravaTask = task({
 
         if (isNew) {
           workoutsUpserted++
+        }
+
+        try {
+          const linkResult = await linkWorkoutToMatchingPlannedWorkout(upsertedWorkout)
+          if (linkResult.linked) {
+            logger.log('Linked Strava workout to matching planned workout', {
+              workoutId: upsertedWorkout.id,
+              plannedWorkoutId: linkResult.plannedWorkoutId
+            })
+          }
+        } catch (error) {
+          logger.error('Failed to link Strava workout to matching planned workout', {
+            workoutId: upsertedWorkout.id,
+            error
+          })
         }
 
         try {

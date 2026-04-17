@@ -10,6 +10,7 @@ import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { ingestStravaStreamsForWorkout } from './utils/strava-stream-ingestion'
+import { linkWorkoutToMatchingPlannedWorkout } from '../server/utils/planned-workout-linking'
 
 export const ingestStravaActivityTask = task({
   id: 'ingest-strava-activity',
@@ -101,6 +102,21 @@ export const ingestStravaActivityTask = task({
       )
 
       logger.log(`Successfully ${isNew ? 'created' : 'updated'} workout ${upsertedWorkout.id}`)
+
+      try {
+        const linkResult = await linkWorkoutToMatchingPlannedWorkout(upsertedWorkout)
+        if (linkResult.linked) {
+          logger.log('Linked Strava workout to matching planned workout', {
+            workoutId: upsertedWorkout.id,
+            plannedWorkoutId: linkResult.plannedWorkoutId
+          })
+        }
+      } catch (error) {
+        logger.error('Failed to link Strava workout to matching planned workout', {
+          workoutId: upsertedWorkout.id,
+          error
+        })
+      }
 
       try {
         const streamIntegration =
