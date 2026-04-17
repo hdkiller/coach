@@ -48,8 +48,9 @@ export async function findMatchingPlannedWorkoutForWorkout(
     return null
   }
 
-  if (candidates.length === 1) {
-    return candidates[0]
+  const candidate = candidates[0]
+  if (candidates.length === 1 && candidate) {
+    return candidate
   }
 
   const workoutType = (workout.type || '').toLowerCase()
@@ -57,8 +58,9 @@ export async function findMatchingPlannedWorkoutForWorkout(
     workoutTypeMatchesPlan(workoutType, (plannedWorkout.type || '').toLowerCase())
   )
 
-  if (typeMatches.length === 1) {
-    return typeMatches[0]
+  const firstTypeMatch = typeMatches[0]
+  if (typeMatches.length === 1 && firstTypeMatch) {
+    return firstTypeMatch
   }
 
   if (typeMatches.length > 1) {
