@@ -1,7 +1,7 @@
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { logger } from '@trigger.dev/sdk/v3'
-import { formatUserDate, getUserTimezone } from '../date'
+import { findMatchingPlannedWorkoutForWorkout } from '../planned-workout-linking'
 
 export interface DuplicateGroup {
   workouts: Array<any> // Full workout objects
@@ -290,68 +290,7 @@ export const deduplicationService = {
    * Find a potential planned workout link for a given workout
    */
   async findProposedLink(workout: any): Promise<any | null> {
-    // Match planned workouts by the athlete's local calendar day.
-    // Completed workouts are timestamped, while planned workouts are stored as UTC-midnight date rows.
-    const timezone = await getUserTimezone(workout.userId)
-    const workoutDateKey = formatUserDate(workout.date, timezone, 'yyyy-MM-dd')
-    const plannedDate = new Date(`${workoutDateKey}T00:00:00Z`)
-
-    const candidates = await prisma.plannedWorkout.findMany({
-      where: {
-        userId: workout.userId,
-        date: plannedDate,
-        completed: false // Only if not already completed
-      }
-    })
-
-    let matchingPlanned = null
-
-    if (candidates.length === 1) {
-      matchingPlanned = candidates[0]
-    } else if (candidates.length > 1) {
-      // 1. Filter by Type
-      const workoutType = (workout.type || '').toLowerCase()
-
-      const typeMatches = candidates.filter((p) => {
-        const planType = (p.type || '').toLowerCase()
-        // Direct match
-        if (planType === workoutType) return true
-        // Fuzzy match (Ride vs VirtualRide)
-        if (workoutType.includes('ride') && planType.includes('ride')) return true
-        if (workoutType.includes('run') && planType.includes('run')) return true
-        return false
-      })
-
-      if (typeMatches.length === 1) {
-        matchingPlanned = typeMatches[0]
-      } else if (typeMatches.length > 1) {
-        // 2. Tie-break by Duration (if available)
-        const withDiff = typeMatches.map((p) => {
-          const planDur = p.durationSec || 0
-          const actualDur = workout.durationSec || 0
-          return { plan: p, diff: Math.abs(planDur - actualDur) }
-        })
-
-        // Sort by smallest difference
-        withDiff.sort((a, b) => a.diff - b.diff)
-
-        const bestMatch = withDiff[0]
-        if (bestMatch) {
-          // Pick the closest one
-          matchingPlanned = bestMatch.plan
-
-          logger.log(
-            `Multiple matching types found. Selected best duration match: ${matchingPlanned.title} (Diff: ${bestMatch.diff}s)`
-          )
-        }
-      } else {
-        logger.log(
-          `Multiple planned workouts found for ${workout.date.toISOString()} but none matched type '${workout.type}'. Skipping auto-link.`
-        )
-      }
-    }
-
-    return matchingPlanned
+    return findMatchingPlannedWorkoutForWorkout(workout)
   },
 
   /**
