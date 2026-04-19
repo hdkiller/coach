@@ -1,0 +1,75 @@
+{
+  "lastResult": {
+    "success": false,
+    "output": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+    "stderr": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+    "exitCode": null,
+    "result": {
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "files": [],
+      "artifacts": ""
+    },
+    "toolCalls": [],
+    "duration": 14,
+    "tokens": {
+      "input": 0,
+      "output": 0
+    }
+  },
+  "results": {
+    "check-status": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    },
+    "run-tests": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    },
+    "run-typecheck": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    },
+    "retest-after-types": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    },
+    "verify-loop": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    },
+    "nothing-to-do": {
+      "fullOutput": "",
+      "status": "skipped",
+      "summary": "",
+      "artifacts": "",
+      "files": ""
+    },
+    "commit": {
+      "fullOutput": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "status": "error",
+      "summary": "No API key found for amazon-bedrock.\n\nUse /login or set an API key environment variable. See /Users/hdkiller/.nvm/versions/node/v25.8.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/providers.md",
+      "artifacts": "",
+      "files": ""
+    }
+  },
+  "forks": {},
+  "flowName": "nuxt-commit-helper",
+  "stepCount": 7,
+  "totalDuration": 92
+}

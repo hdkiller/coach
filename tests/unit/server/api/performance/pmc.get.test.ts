@@ -11,6 +11,7 @@ import {
 } from '../../../../../server/utils/date'
 
 import { requireAuth } from '../../../../../server/utils/auth-guard'
+import { prisma } from '../../../../../server/utils/db'
 
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
 vi.stubGlobal('defineRouteMeta', () => {})
@@ -41,6 +42,14 @@ vi.mock('../../../../../server/utils/training-stress', () => ({
   getFormStatus: vi.fn()
 }))
 
+vi.mock('../../../../../server/utils/db', () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn()
+    }
+  }
+}))
+
 const getHandler = async () => {
   const mod = await import('../../../../../server/api/performance/pmc.get')
   return mod.default
@@ -58,6 +67,9 @@ describe('GET /api/performance/pmc', () => {
       color: 'blue',
       description: 'Optimal training zone; building fitness'
     })
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      dashboardSettings: { trainingLoad: { displayMode: 'adjusted' } }
+    } as any)
   })
 
   it('uses pre-workout current fitness for the summary', async () => {

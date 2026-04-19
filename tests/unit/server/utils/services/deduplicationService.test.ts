@@ -124,6 +124,15 @@ describe('deduplicationService.findProposedLink', () => {
         userId: 'user-1',
         date: new Date('2026-03-29T00:00:00Z'),
         completed: false
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        durationSec: true,
+        date: true,
+        completed: true,
+        completionStatus: true
       }
     })
     expect(result).toEqual({ id: 'planned-1', title: 'VO2 Max Mixer' })
