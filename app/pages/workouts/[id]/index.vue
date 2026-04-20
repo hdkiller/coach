@@ -5338,7 +5338,8 @@
     const d = new Date(date)
     return d.toLocaleDateString('en-US', {
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      year: 'numeric'
     })
   }
 
