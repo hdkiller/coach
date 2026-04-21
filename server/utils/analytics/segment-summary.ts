@@ -1,7 +1,7 @@
 import { prisma } from '../db'
-import { calculatePowerZones, calculateHrZones } from '../zones'
 import { getZoneIndex } from '../training-metrics'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
+import { calculateNormalizedPower } from '../power-metrics'
 
 interface SegmentRange {
   start: number
@@ -9,7 +9,7 @@ interface SegmentRange {
   alignment: 'elapsed_time' | 'distance' | 'percent_complete'
 }
 
-interface SegmentSummaryResult {
+export interface SegmentSummaryResult {
   averageWatts: number | null
   maxWatts: number | null
   normalizedPower: number | null
@@ -19,9 +19,114 @@ interface SegmentSummaryResult {
   durationSec: number
   distanceMeters: number
   elevationGain: number
+  gradientPercent: number | null
+  vam: number | null
+  startIndex?: number
+  endIndex?: number
+  startTime?: number
+  endTime?: number
   zoneDistribution?: {
     hr?: any
     power?: any
+  }
+}
+
+interface SegmentMetricStreams {
+  time?: number[]
+  distance?: number[]
+  watts?: number[]
+  heartrate?: number[]
+  cadence?: number[]
+  altitude?: number[]
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function average(values: number[]) {
+  const valid = values.filter(isFiniteNumber)
+  return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null
+}
+
+function max(values: number[]) {
+  const valid = values.filter(isFiniteNumber)
+  return valid.length > 0 ? Math.max(...valid) : null
+}
+
+function sliceValid(stream: number[] | undefined, startIdx: number, endIdx: number) {
+  return Array.isArray(stream) ? stream.slice(startIdx, endIdx + 1).filter(isFiniteNumber) : []
+}
+
+export function calculateSegmentMetricsFromStreams(
+  streams: SegmentMetricStreams,
+  startIdx: number,
+  endIdx: number
+): Omit<SegmentSummaryResult, 'zoneDistribution'> {
+  const time = streams.time || []
+  const distance = streams.distance || []
+  const watts = streams.watts || []
+  const heartrate = streams.heartrate || []
+  const cadence = streams.cadence || []
+  const altitude = streams.altitude || []
+
+  const safeStartIdx = Math.max(0, Math.min(startIdx, Math.max(0, time.length - 1)))
+  const safeEndIdx = Math.max(safeStartIdx, Math.min(endIdx, Math.max(0, time.length - 1)))
+
+  const segmentWatts = sliceValid(watts, safeStartIdx, safeEndIdx)
+  const segmentHr = sliceValid(heartrate, safeStartIdx, safeEndIdx)
+  const segmentCadence = sliceValid(cadence, safeStartIdx, safeEndIdx)
+  const segmentAltitude = sliceValid(altitude, safeStartIdx, safeEndIdx)
+
+  const startTime = time[safeStartIdx] || 0
+  const endTime = time[safeEndIdx] || startTime
+  const durationSec = Math.max(0, endTime - startTime)
+
+  const startDistance = distance[safeStartIdx]
+  const endDistance = distance[safeEndIdx]
+  const distanceMeters =
+    isFiniteNumber(startDistance) && isFiniteNumber(endDistance)
+      ? Math.max(0, endDistance - startDistance)
+      : 0
+
+  let elevationGain = 0
+  if (segmentAltitude.length > 1) {
+    for (let i = 1; i < segmentAltitude.length; i++) {
+      const diff = segmentAltitude[i]! - segmentAltitude[i - 1]!
+      if (diff > 0) elevationGain += diff
+    }
+  }
+
+  const startAltitude = altitude[safeStartIdx]
+  const endAltitude = altitude[safeEndIdx]
+  const netElevation =
+    isFiniteNumber(startAltitude) && isFiniteNumber(endAltitude)
+      ? endAltitude - startAltitude
+      : null
+  const gradientPercent =
+    netElevation !== null && distanceMeters > 0
+      ? Math.round((netElevation / distanceMeters) * 1000) / 10
+      : null
+  const vam =
+    durationSec > 0 && elevationGain > 0 ? Math.round((elevationGain / durationSec) * 3600) : null
+
+  return {
+    averageWatts: average(segmentWatts),
+    maxWatts: max(segmentWatts),
+    normalizedPower:
+      segmentWatts.length > 0 ? Math.round(calculateNormalizedPower(segmentWatts)) : null,
+    averageHr: average(segmentHr),
+    maxHr: max(segmentHr),
+    averageCadence: average(segmentCadence),
+    durationSec,
+    distanceMeters,
+    elevationGain: Math.round(elevationGain),
+    gradientPercent,
+    vam,
+    startIndex: safeStartIdx,
+    endIndex: safeEndIdx,
+    startTime,
+    endTime
   }
 }
 
@@ -88,41 +193,20 @@ export async function calculateSegmentSummary(
       averageCadence: null,
       durationSec: 0,
       distanceMeters: 0,
-      elevationGain: 0
+      elevationGain: 0,
+      gradientPercent: null,
+      vam: null
     }
   }
+
+  const metrics = calculateSegmentMetricsFromStreams(
+    { time, distance, watts, heartrate, cadence, altitude },
+    startIdx,
+    endIdx
+  )
 
   const segmentWatts = watts?.slice(startIdx, endIdx + 1).filter((v) => v !== null) || []
   const segmentHr = heartrate?.slice(startIdx, endIdx + 1).filter((v) => v !== null) || []
-  const segmentCadence = cadence?.slice(startIdx, endIdx + 1).filter((v) => v !== null) || []
-  const segmentAltitude = altitude?.slice(startIdx, endIdx + 1).filter((v) => v !== null) || []
-
-  const avg = (arr: number[]) =>
-    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-  const max = (arr: number[]) => (arr.length > 0 ? Math.max(...arr) : null)
-
-  // Normalized Power (NP) calculation for segment
-  let np: number | null = null
-  if (segmentWatts.length >= 30) {
-    // 30s rolling average
-    const rolling: number[] = []
-    for (let i = 29; i < segmentWatts.length; i++) {
-      const sum = segmentWatts.slice(i - 29, i + 1).reduce((a, b) => a + b, 0)
-      rolling.push(Math.pow(sum / 30, 4))
-    }
-    if (rolling.length > 0) {
-      np = Math.round(Math.pow(rolling.reduce((a, b) => a + b, 0) / rolling.length, 0.25))
-    }
-  }
-
-  // Elevation gain in segment
-  let elevationGain = 0
-  if (segmentAltitude.length > 1) {
-    for (let i = 1; i < segmentAltitude.length; i++) {
-      const diff = segmentAltitude[i]! - segmentAltitude[i - 1]!
-      if (diff > 0) elevationGain += diff
-    }
-  }
 
   // Zone Distribution for Segment
   const sportSettings = await sportSettingsRepository.getForActivityType(
@@ -168,15 +252,7 @@ export async function calculateSegmentSummary(
   }
 
   return {
-    averageWatts: avg(segmentWatts),
-    maxWatts: max(segmentWatts),
-    normalizedPower: np,
-    averageHr: avg(segmentHr),
-    maxHr: max(segmentHr),
-    averageCadence: avg(segmentCadence),
-    durationSec: time[endIdx]! - time[startIdx]!,
-    distanceMeters: distance[endIdx]! - distance[startIdx]!,
-    elevationGain: Math.round(elevationGain),
+    ...metrics,
     zoneDistribution: zoneResult
   }
 }

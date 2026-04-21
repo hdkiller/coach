@@ -1779,7 +1779,88 @@ export const generateStructuredWorkoutTask = task({
         updatedWorkout.externalId.startsWith('ai-gen-') ||
         updatedWorkout.externalId.startsWith('adhoc-')
 
-      if (!isLocal) {
+      if (isLocal) {
+        const intervalsIntegration = await prisma.integration.findFirst({
+          where: { userId: workout.userId, provider: 'intervals' },
+          select: { settings: true }
+        })
+        const intervalsSettings =
+          (intervalsIntegration?.settings as Record<string, any> | null) || {}
+        const shouldPublishToIntervals =
+          !!intervalsIntegration && intervalsSettings.importPlannedWorkouts !== false
+
+        if (shouldPublishToIntervals) {
+          logger.log('Publishing local structured workout to Intervals.icu', {
+            plannedWorkoutId: entityId
+          })
+          const workoutData = {
+            title: updatedWorkout.title,
+            description: updatedWorkout.description || '',
+            type: updatedWorkout.type || '',
+            steps: structure.steps || [],
+            exercises: structure.exercises,
+            messages: [],
+            ftp: workout.user.ftp || 250,
+            sportSettings: sportSettings || undefined,
+            generationSettingsSnapshot: settingsSnapshot
+          }
+          const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
+          const syncResult = await syncPlannedWorkoutToIntervals(
+            'CREATE',
+            {
+              id: updatedWorkout.id,
+              externalId: updatedWorkout.externalId,
+              date: updatedWorkout.date,
+              startTime: updatedWorkout.startTime,
+              title: updatedWorkout.title,
+              description: updatedWorkout.description,
+              type: updatedWorkout.type,
+              durationSec: updatedWorkout.durationSec,
+              tss: updatedWorkout.tss,
+              workout_doc: workoutDoc,
+              managedBy: updatedWorkout.managedBy
+            },
+            workout.userId
+          )
+          logStage('intervals-create-finished', {
+            synced: syncResult.synced,
+            syncError: syncResult.error || null
+          })
+
+          if (syncResult.synced) {
+            const syncedWorkout = await (prisma as any).plannedWorkout.update({
+              where: { id: entityId },
+              data: {
+                ...(syncResult.result?.id && { externalId: String(syncResult.result.id) }),
+                ...buildStructurePublishFields(structure),
+                syncStatus: 'SYNCED',
+                lastSyncedAt: new Date(),
+                syncError: null
+              }
+            })
+            await publishActivityEvent(syncedWorkout.userId, {
+              scope: 'calendar',
+              entityType: 'planned_workout',
+              entityId: syncedWorkout.id,
+              reason: 'updated'
+            })
+          } else {
+            const failedWorkout = await (prisma as any).plannedWorkout.update({
+              where: { id: entityId },
+              data: {
+                syncStatus: 'PENDING',
+                syncError: syncResult.error || 'Failed to publish structured workout'
+              }
+            })
+            await publishActivityEvent(failedWorkout.userId, {
+              scope: 'calendar',
+              entityType: 'planned_workout',
+              entityId: failedWorkout.id,
+              reason: 'updated'
+            })
+          }
+        }
+      } else {
         logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId: entityId })
         const workoutData = {
           title: updatedWorkout.title,

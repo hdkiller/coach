@@ -108,7 +108,7 @@
               :streams="workout.streams"
               :workout-id="workout.id"
               :highlight-index="hoverIndex"
-              :highlight-range="hoverSplitRange"
+              :highlight-range="activeHighlightRange"
               :highlight-ranges="zoneHoverRangesForDisplay"
               :interactive="true"
               class="!h-full !rounded-none !border-0"
@@ -130,6 +130,7 @@
                   :items="[
                     { label: 'Laps', value: 'laps', icon: 'i-heroicons-flag' },
                     { label: 'Intervals', value: 'intervals', icon: 'i-heroicons-bolt' },
+                    { label: 'Peaks', value: 'peaks', icon: 'i-heroicons-chart-bar-square' },
                     { label: 'Climbs', value: 'climbs', icon: 'i-heroicons-arrow-trending-up' },
                     { label: 'Zones', value: 'zones', icon: 'i-heroicons-heart' }
                   ]"
@@ -239,6 +240,70 @@
                       class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
                     >
                       No intervals detected
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- PEAKS TABLE -->
+              <table
+                v-else-if="segmentTab === 'peaks'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Window
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Power
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="peak in peakPowerWindows"
+                    :key="peak.duration"
+                    :class="[
+                      'hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer',
+                      selectedSegmentSource?.type === 'peak' &&
+                      selectedSegmentSource.duration === peak.duration
+                        ? 'bg-primary-50/80 dark:bg-primary-950/30'
+                        : ''
+                    ]"
+                    @click="selectPeakWindow(peak)"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      {{ peak.durationLabel }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ peak.power }}W
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatTime(peak.startTime) }}-{{ formatTime(peak.endTime) }}
+                    </td>
+                  </tr>
+                  <tr v-if="!peakPowerLoading && peakPowerWindows.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No peak power data available
+                    </td>
+                  </tr>
+                  <tr v-if="peakPowerLoading">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      Loading power peaks
                     </td>
                   </tr>
                 </tbody>
@@ -375,6 +440,16 @@
                   >
                     Reset Zoom
                   </UButton>
+                  <UButton
+                    v-if="selectedSegmentRange"
+                    icon="i-heroicons-x-mark"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                    @click="clearSelectedSegment"
+                  >
+                    Clear Selection
+                  </UButton>
                   <client-only>
                     <USelectMenu
                       v-model="selectedStreamValues"
@@ -405,6 +480,50 @@
                   | {{ Math.round(workout.streams.altitude[hoverIndex]) }}m</span
                 >
               </div>
+            </div>
+
+            <div
+              v-if="selectedSegmentRange"
+              class="border-b border-gray-100 bg-white px-3 py-3 dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Selected Segment
+                  </p>
+                  <p class="truncate text-sm font-black text-gray-900 dark:text-white">
+                    {{ selectedSegmentLabel }}
+                  </p>
+                </div>
+                <div
+                  class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-end"
+                >
+                  <div
+                    v-for="metric in selectedSegmentMetricItems"
+                    :key="metric.label"
+                    class="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950"
+                  >
+                    <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                      {{ metric.label }}
+                    </p>
+                    <p class="text-sm font-black tabular-nums text-gray-900 dark:text-white">
+                      {{ metric.value }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p
+                v-if="selectedSegmentLoading"
+                class="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary-500"
+              >
+                Calculating segment metrics...
+              </p>
+              <p
+                v-else-if="selectedSegmentError"
+                class="mt-2 text-[10px] font-bold uppercase tracking-widest text-red-500"
+              >
+                {{ selectedSegmentError }}
+              </p>
             </div>
 
             <div
@@ -440,11 +559,13 @@
                     :labels="zoomedStreams.time"
                     :height-class="'h-full'"
                     :highlight-index="zoomedHoverIndex"
-                    :highlight-range="zoomedHoverSplitRange"
+                    :highlight-range="zoomedActiveHighlightRange"
                     :highlight-ranges="zoomedZoneHoverRangesForDisplay"
+                    drag-mode="select"
                     @chart-hover="onChartHover"
                     @chart-leave="onChartLeave"
                     @chart-zoom="onChartZoom"
+                    @chart-select="onChartSelect"
                   />
                 </client-only>
               </div>
@@ -501,13 +622,15 @@
                           :y-axis-label="getStreamMetadata(streamObject.value).unit"
                           :height-class="'h-40'"
                           :highlight-index="zoomedHoverIndex"
-                          :highlight-range="zoomedHoverSplitRange"
+                          :highlight-range="zoomedActiveHighlightRange"
                           :highlight-ranges="zoomedZoneHoverRangesForDisplay"
                           :show-x-axis="idx === selectedStreamObjects.length - 1"
                           :fixed-y-axis-width="80"
+                          drag-mode="select"
                           @chart-hover="onChartHover"
                           @chart-leave="onChartLeave"
                           @chart-zoom="onChartZoom"
+                          @chart-select="onChartSelect"
                         />
                       </client-only>
                     </div>
@@ -540,6 +663,7 @@
   const lapSplits = ref<any[]>([])
   const detectedIntervals = ref<any[]>([])
   const detectedClimbs = ref<any[]>([])
+  const peakPowerWindows = ref<any[]>([])
   const hrZones = ref<any[]>([])
   const userHrZones = ref<any[]>([])
   const segmentTab = ref('laps')
@@ -549,6 +673,14 @@
   const isZoneHoverTemporarilyDisabled = true
   const zoomRange = ref<[number, number] | null>(null)
   const isExporting = ref(false)
+  const peakPowerLoading = ref(false)
+  const selectedSegmentRange = ref<[number, number] | null>(null)
+  const selectedSegmentSource = ref<
+    { type: 'peak'; duration: number; label: string } | { type: 'custom'; label: string } | null
+  >(null)
+  const selectedSegmentSummary = ref<any | null>(null)
+  const selectedSegmentLoading = ref(false)
+  const selectedSegmentError = ref<string | null>(null)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
   const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
@@ -596,6 +728,38 @@
     })
 
     return filtered
+  })
+
+  const activeHighlightRange = computed(() => hoverSplitRange.value || selectedSegmentRange.value)
+
+  const selectedSegmentLabel = computed(() => {
+    const summary = selectedSegmentSummary.value
+    const sourceLabel = selectedSegmentSource.value?.label || 'Custom selection'
+    if (!summary) return sourceLabel
+    return `${sourceLabel} | ${formatTime(summary.startTime || 0)}-${formatTime(summary.endTime || 0)}`
+  })
+
+  const selectedSegmentMetricItems = computed(() => {
+    const summary = selectedSegmentSummary.value
+    if (!summary) {
+      return [
+        { label: 'Duration', value: '-' },
+        { label: 'NP', value: '-' },
+        { label: 'Avg Power', value: '-' },
+        { label: 'Gradient', value: '-' },
+        { label: 'Elev Gain', value: '-' },
+        { label: 'VAM', value: '-' }
+      ]
+    }
+
+    return [
+      { label: 'Duration', value: formatTime(summary.durationSec || 0) },
+      { label: 'NP', value: formatNullableWatts(summary.normalizedPower) },
+      { label: 'Avg Power', value: formatNullableWatts(summary.averageWatts) },
+      { label: 'Gradient', value: formatNullablePercent(summary.gradientPercent) },
+      { label: 'Elev Gain', value: `${summary.elevationGain || 0}m` },
+      { label: 'VAM', value: summary.vam ? `${summary.vam} m/h` : '-' }
+    ]
   })
 
   // Save selection and order when changed
@@ -902,6 +1066,7 @@
         }
 
         loading.value = false
+        fetchPeakPowerWindows()
       }
     },
     { immediate: true }
@@ -924,6 +1089,94 @@
 
   function onChartLeave() {
     hoverIndex.value = null
+  }
+
+  function findDisplayIndexAtOrAfter(targetTime: number) {
+    const timeStream = workout.value?.streams?.time || []
+    const index = timeStream.findIndex((time: number) => time >= targetTime)
+    return index === -1 ? Math.max(0, timeStream.length - 1) : index
+  }
+
+  function findDisplayIndexAtOrBefore(targetTime: number) {
+    const timeStream = workout.value?.streams?.time || []
+    for (let index = timeStream.length - 1; index >= 0; index--) {
+      if (timeStream[index] <= targetTime) return index
+    }
+    return 0
+  }
+
+  async function fetchPeakPowerWindows() {
+    if (peakPowerLoading.value || peakPowerWindows.value.length > 0) return
+
+    try {
+      peakPowerLoading.value = true
+      const data = await ($fetch as any)(`/api/workouts/${workoutId}/power-curve`)
+      peakPowerWindows.value = Array.isArray(data?.powerCurve) ? data.powerCurve : []
+    } catch (e) {
+      console.error('Failed to load peak power windows:', e)
+      peakPowerWindows.value = []
+    } finally {
+      peakPowerLoading.value = false
+    }
+  }
+
+  async function loadSelectedSegmentSummary(startTime: number, endTime: number) {
+    selectedSegmentLoading.value = true
+    selectedSegmentError.value = null
+
+    try {
+      selectedSegmentSummary.value = await ($fetch as any)(
+        `/api/workouts/${workoutId}/segment-summary`,
+        {
+          method: 'POST',
+          body: { startTime, endTime }
+        }
+      )
+    } catch (e: any) {
+      console.error('Failed to calculate segment metrics:', e)
+      selectedSegmentSummary.value = null
+      selectedSegmentError.value = e?.data?.message || e?.message || 'Segment metrics unavailable'
+    } finally {
+      selectedSegmentLoading.value = false
+    }
+  }
+
+  function selectTimeRange(startTime: number, endTime: number) {
+    const startIndex = findDisplayIndexAtOrAfter(Math.min(startTime, endTime))
+    const endIndex = findDisplayIndexAtOrBefore(Math.max(startTime, endTime))
+    selectedSegmentRange.value = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)]
+    loadSelectedSegmentSummary(Math.min(startTime, endTime), Math.max(startTime, endTime))
+  }
+
+  function selectPeakWindow(peak: any) {
+    selectedSegmentSource.value = {
+      type: 'peak',
+      duration: peak.duration,
+      label: `${peak.durationLabel} peak (${peak.power}W)`
+    }
+    selectTimeRange(peak.startTime, peak.endTime)
+  }
+
+  function onChartSelect(range: [number, number]) {
+    const [relativeStart, relativeEnd] = range
+    const startIndex = zoomRange.value ? zoomRange.value[0] + relativeStart : relativeStart
+    const endIndex = zoomRange.value ? zoomRange.value[0] + relativeEnd : relativeEnd
+    const timeStream = workout.value?.streams?.time || []
+    const startTime = timeStream[Math.min(startIndex, endIndex)]
+    const endTime = timeStream[Math.max(startIndex, endIndex)]
+
+    if (typeof startTime !== 'number' || typeof endTime !== 'number') return
+
+    selectedSegmentSource.value = { type: 'custom', label: 'Custom selection' }
+    selectedSegmentRange.value = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)]
+    loadSelectedSegmentSummary(startTime, endTime)
+  }
+
+  function clearSelectedSegment() {
+    selectedSegmentRange.value = null
+    selectedSegmentSource.value = null
+    selectedSegmentSummary.value = null
+    selectedSegmentError.value = null
   }
 
   function onSplitHover(split: any) {
@@ -1054,12 +1307,12 @@
     return hoverIndex.value - zoomStart
   })
 
-  const zoomedHoverSplitRange = computed(() => {
-    if (!hoverSplitRange.value) return null
-    if (!zoomRange.value || !zoomedStreams.value?.time?.length) return hoverSplitRange.value
+  const zoomedActiveHighlightRange = computed(() => {
+    if (!activeHighlightRange.value) return null
+    if (!zoomRange.value || !zoomedStreams.value?.time?.length) return activeHighlightRange.value
 
     const [zoomStart, zoomEnd] = zoomRange.value
-    const [rangeStart, rangeEnd] = hoverSplitRange.value
+    const [rangeStart, rangeEnd] = activeHighlightRange.value
     const clippedStart = Math.max(rangeStart, zoomStart)
     const clippedEnd = Math.min(rangeEnd, zoomEnd)
 
@@ -1189,6 +1442,14 @@
 
   function formatDistance(meters: number) {
     return (meters / 1000).toFixed(2) + ' km'
+  }
+
+  function formatNullableWatts(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}W` : '-'
+  }
+
+  function formatNullablePercent(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)}%` : '-'
   }
 
   function formatPace(metersPerSecond: number) {

@@ -10,6 +10,7 @@ import {
   isIntervalsEventId
 } from './intervals'
 import { buildStructurePublishFields } from './planned-workout-structure-sync'
+import { plannedWorkoutPublishRepository } from './repositories/plannedWorkoutPublishRepository'
 
 function isIntervalsMissingEventError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
@@ -94,6 +95,15 @@ export async function syncPlannedWorkoutToIntervals(
         break
       default:
         throw new Error(`Unknown operation: ${operation}`)
+    }
+
+    if ((operation === 'CREATE' || operation === 'UPDATE') && workoutData.id && result?.id) {
+      await plannedWorkoutPublishRepository.upsert(workoutData.id, 'intervals', {
+        externalId: String(result.id),
+        status: 'SYNCED',
+        error: null,
+        lastSyncedAt: new Date()
+      })
     }
 
     return {

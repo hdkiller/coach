@@ -1,6 +1,7 @@
 import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { computePowerCurveWindows } from '../../../utils/power-curve'
 
 defineRouteMeta({
   openAPI: {
@@ -54,27 +55,6 @@ defineRouteMeta({
     }
   }
 })
-
-// Standard power curve durations in seconds
-const DURATIONS = [5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600]
-
-/**
- * Calculate best average power for a given duration from power stream
- */
-function calculateBestPowerForDuration(powerData: number[], duration: number): number {
-  if (!powerData || powerData.length === 0) return 0
-
-  let maxAvg = 0
-
-  // Use sliding window to find best average
-  for (let i = 0; i <= powerData.length - duration; i++) {
-    const window = powerData.slice(i, i + duration)
-    const avg = window.reduce((sum, p) => sum + p, 0) / duration
-    maxAvg = Math.max(maxAvg, avg)
-  }
-
-  return Math.round(maxAvg)
-}
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -131,8 +111,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Parse power data
   const powerData = workout.streams.watts as number[]
+  const timeData = workout.streams.time as number[] | undefined
 
   if (!Array.isArray(powerData) || powerData.length === 0) {
     return {
@@ -141,15 +121,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Calculate power curve for each duration
-  const powerCurve = DURATIONS.map((duration) => {
-    const power = calculateBestPowerForDuration(powerData, duration)
-    return {
-      duration,
-      durationLabel: formatDuration(duration),
-      power
-    }
-  }).filter((point) => point.power > 0)
+  const powerCurve = computePowerCurveWindows(powerData, timeData)
 
   // Calculate summary stats
   const peak5s = powerCurve.find((p) => p.duration === 5)?.power || 0
@@ -173,12 +145,3 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
-
-/**
- * Format duration in seconds to human-readable string
- */
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  return `${Math.floor(seconds / 3600)}h`
-}

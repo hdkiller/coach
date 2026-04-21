@@ -600,7 +600,8 @@ Return valid JSON matching the schema provided.`
                     workIntensity: getIntensityScore(workout.intensity),
                     externalId: `ai-gen-${createdWeek.id}-${workout.dayOfWeek}-${index}-${Date.now()}`,
                     category: 'WORKOUT',
-                    managedBy: 'COACH_WATTS'
+                    managedBy: 'COACH_WATTS',
+                    syncStatus: 'LOCAL_ONLY'
                   }
                 })
                 .filter((w: any) => w !== null)

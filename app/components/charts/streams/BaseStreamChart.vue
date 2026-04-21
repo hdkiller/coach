@@ -63,6 +63,7 @@
     showXAxis?: boolean
     fixedYAxisWidth?: number
     datasets?: ChartDataset[]
+    dragMode?: 'zoom' | 'select'
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -78,10 +79,11 @@
     highlightRange: null,
     highlightRanges: null,
     fixedYAxisWidth: undefined,
-    datasets: undefined
+    datasets: undefined,
+    dragMode: 'zoom'
   })
 
-  const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom'])
+  const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom', 'chart-select'])
 
   const chartRef = ref<any>(null)
   const isSelecting = ref(false)
@@ -383,9 +385,12 @@
       const start = Math.min(selectionStart.value, selectionEnd.value)
       const end = Math.max(selectionStart.value, selectionEnd.value)
 
-      if (end - start > 5) {
-        // Minimum threshold to trigger zoom
-        emit('chart-zoom', [start, end])
+      if (end - start > 1) {
+        if (props.dragMode === 'select') {
+          emit('chart-select', [start, end])
+        } else {
+          emit('chart-zoom', [start, end])
+        }
       }
     }
 
