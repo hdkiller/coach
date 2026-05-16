@@ -1,6 +1,7 @@
 import { NuxtAuthHandler } from '#auth'
 import GoogleProvider from 'next-auth/providers/google'
 import StravaProvider from 'next-auth/providers/strava'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
@@ -228,11 +229,58 @@ export default NuxtAuthHandler({
           image: profile.profile_medium || profile.profile
         }
       }
-    }
+    },
+    // Local credentials provider — only active when AUTH_BYPASS_USER is set.
+    // Useful for private/self-hosted instances without OAuth configured.
+    // Set AUTH_BYPASS_USER=you@example.com and AUTH_BYPASS_PASSWORD=yourpassword in .env.
+    // @ts-expect-error - Types mismatch between next-auth versions
+    ...(process.env.AUTH_BYPASS_USER && process.env.AUTH_BYPASS_PASSWORD
+      ? [
+          CredentialsProvider.default({
+            id: 'credentials',
+            name: 'Local Account',
+            credentials: {
+              email: { label: 'Email', type: 'email' },
+              password: { label: 'Password', type: 'password' }
+            },
+            async authorize(credentials: any) {
+              const bypassEmail = process.env.AUTH_BYPASS_USER!
+              const bypassPassword = process.env.AUTH_BYPASS_PASSWORD!
+
+              if (credentials?.email !== bypassEmail) return null
+              if (credentials?.password !== bypassPassword) return null
+
+              // Find or create the local user
+              let user = await prisma.user.findUnique({ where: { email: bypassEmail } })
+              if (!user) {
+                const farFuture = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+                user = await prisma.user.create({
+                  data: {
+                    email: bypassEmail,
+                    name: process.env.AUTH_BYPASS_NAME || 'Admin',
+                    isAdmin: true,
+                    trialEndsAt: farFuture
+                  }
+                })
+                console.log(`[Auth] Created local bypass user: ${user.id}`)
+              }
+
+              return { id: user.id, email: user.email, name: user.name }
+            }
+          })
+        ]
+      : [])
   ],
   secret: process.env.NUXT_AUTH_SECRET,
   callbacks: {
-    async signIn() {
+    async signIn({ user }: any) {
+      // Private instance mode: only users that already exist in the DB can sign in.
+      // This blocks new account creation from any OAuth provider.
+      // The bypass credentials provider creates the initial user, everyone else is rejected.
+      if (process.env.NUXT_PRIVATE_INSTANCE === 'true') {
+        const existing = await prisma.user.findUnique({ where: { email: user.email } })
+        return !!existing
+      }
       return true
     },
     async session({ session, user }: any) {
