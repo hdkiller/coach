@@ -51,6 +51,7 @@ jobs:
           push: true
           build-args: |
             COMMIT_SHA=${{ github.sha }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

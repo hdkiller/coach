@@ -356,6 +356,15 @@ export default defineNuxtConfig({
           isCustomElement: (tag) => ['rapi-doc'].includes(tag)
         }
       }
+    },
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // Tailwind v4 Vite plugin doesn't emit CSS sourcemaps — suppress the spurious warning
+          if (warning.message?.includes('Sourcemap is likely to be incorrect')) return
+          warn(warning)
+        }
+      }
     }
   },
 
