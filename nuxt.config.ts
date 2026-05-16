@@ -100,6 +100,7 @@ const buildCodename = getBuildCodename(buildCodenameSeed)
 const buildVersion = `v${pkg.version}+${buildDate}.${commitHash}.${buildCodename}`
 
 const sentryRelease = `${pkg.name}@${pkg.version}+${commitHash}`
+const isSentryEnabled = !!process.env.SENTRY_DSN
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -170,7 +171,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     'nuxt-gtag',
     'nuxt-api-shield',
-    '@sentry/nuxt/module',
+    ...(isSentryEnabled ? ['@sentry/nuxt/module' as const] : []),
     '@nuxt/eslint',
     '@vue-email/nuxt'
   ],
@@ -368,17 +369,20 @@ export default defineNuxtConfig({
     }
   },
 
-  sentry: {
-    org: 'newpush-y4',
-    project: 'coach-watts',
-    sourceMapsUploadOptions: {
-      telemetry: false
-    }
-  },
-
-  sourcemap: {
-    client: 'hidden'
-  },
+  ...(isSentryEnabled
+    ? {
+        sentry: {
+          org: 'newpush-y4',
+          project: 'coach-watts',
+          sourceMapsUploadOptions: {
+            telemetry: false
+          }
+        },
+        sourcemap: {
+          client: 'hidden'
+        }
+      }
+    : {}),
 
   nuxtApiShield: {
     limit: {

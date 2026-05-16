@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 
 Sentry.init({
-  // If set up, you can use your runtime config here
-  // dsn: useRuntimeConfig().public.sentry.dsn,
-  dsn: 'https://27c2bc691e512298040726bf5de7608a@o4508727277256704.ingest.de.sentry.io/4510667866243152',
+  dsn: process.env.SENTRY_DSN,
 
   release: useRuntimeConfig().public.sentryRelease as string,
 
