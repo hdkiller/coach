@@ -5,8 +5,8 @@ services:
     container_name: watts-app
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://watts:password@watts-postgres:5432/watts?connection_limit=20&pool_timeout=10&connect_timeout=10
-      REDIS_URL: redis://:dragonfly@watts-dragonfly:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-watts}:${POSTGRES_PASSWORD:-password}@watts-postgres:5432/${POSTGRES_DB:-watts}?connection_limit=20&pool_timeout=10&connect_timeout=10
+      REDIS_URL: redis://:${DRAGONFLY_PASSWORD:-dragonfly}@watts-dragonfly:6379
     ports:
       - '3000:3000'
     depends_on:
@@ -20,15 +20,15 @@ services:
     image: postgres:16-alpine
     container_name: watts-postgres
     environment:
-      POSTGRES_USER: watts
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: watts
+      POSTGRES_USER: ${POSTGRES_USER:-watts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-watts}
     ports:
       - '5439:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U watts']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-watts}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,14 +39,12 @@ services:
     ulimits:
       memlock: -1
     command:
-      [
-        '--default_lua_flags=allow-undeclared-keys',
-        '--requirepass=dragonfly',
-        '--admin_port=6380',
-        '--admin_nopass',
-        '--slowlog_log_slower_than=10000',
-        '--slowlog_max_len=128'
-      ]
+      - --default_lua_flags=allow-undeclared-keys
+      - --requirepass=${DRAGONFLY_PASSWORD:-dragonfly}
+      - --admin_port=6380
+      - --admin_nopass
+      - --slowlog_log_slower_than=10000
+      - --slowlog_max_len=128
     ports:
       - '6379:6379'
       - '6380:6380'
