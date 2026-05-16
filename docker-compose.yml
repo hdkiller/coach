@@ -1,6 +1,21 @@
-version: '3.8'
-
 services:
+  app:
+    build: .
+    image: ghcr.io/pnposch/coach:latest
+    container_name: watts-app
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://watts:password@watts-postgres:5432/watts?connection_limit=20&pool_timeout=10&connect_timeout=10
+      REDIS_URL: redis://:dragonfly@watts-dragonfly:6379
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_started
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     container_name: watts-postgres

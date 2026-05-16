@@ -5,7 +5,7 @@ set -e
 
 if [ -n "$DATABASE_URL" ] && [ "$DATABASE_URL" != "postgresql://dummy:dummy@localhost:5432/dummy" ]; then
   echo "🚀 Running database migrations..."
-  npx prisma migrate deploy
+  node_modules/.bin/prisma migrate deploy
 else
   echo "⚠️ Skipping migrations: DATABASE_URL is not set or is dummy."
 fi
