@@ -7,9 +7,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-watts}:${POSTGRES_PASSWORD:-password}@watts-postgres:5432/${POSTGRES_DB:-watts}?connection_limit=20&pool_timeout=10&connect_timeout=10
       REDIS_URL: redis://:${DRAGONFLY_PASSWORD:-dragonfly}@watts-dragonfly:6379
-      # Auth requires an explicit origin at startup — default to localhost:3000 for local Docker use.
-      # Set NUXT_AUTH_ORIGIN in .env to your public URL when deploying (e.g. https://coach.example.com/api/auth).
-      NUXT_AUTH_ORIGIN: ${NUXT_AUTH_ORIGIN:-http://localhost:3000/api/auth}
+      # nuxt-auth reads AUTH_ORIGIN (not NUXT_AUTH_ORIGIN) at runtime to resolve the callback URL.
+      # Falls back to localhost:3000 for local Docker use; override via NUXT_AUTH_ORIGIN in .env.
+      AUTH_ORIGIN: ${NUXT_AUTH_ORIGIN:-http://localhost:3000/api/auth}
       NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-http://localhost:3000/}
     ports:
       - '3000:3000'
