@@ -97,52 +97,66 @@ We use **Tolgee** for managing translations. If you'd like to help translate Coa
 
 ### Prerequisites
 
-- Node.js 22+ (LTS)
-- Docker (for PostgreSQL)
+- Docker & Docker Compose
 - Google Cloud Account (for Auth & Gemini API)
+- Node.js 22+ *(local development only)*
 
-### 1. Clone & Install
+### Option A — Docker (recommended for self-hosting)
+
+Run the full stack (app + PostgreSQL + DragonflyDB) with a single command:
 
 ```bash
-git clone git@github.com:hdkiller/coach.git
+git clone git@github.com:pnposch/coach.git
+cd coach
+cp .env.example .env
+```
+
+Edit `.env` — at minimum fill in:
+
+| Variable | Description |
+|---|---|
+| `POSTGRES_PASSWORD` | Postgres password (also used to build `DATABASE_URL` inside Docker) |
+| `DRAGONFLY_PASSWORD` | Redis/DragonflyDB password (also used to build `REDIS_URL` inside Docker) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
+| `GEMINI_API_KEY` | Google Gemini API key |
+| `NUXT_AUTH_SECRET` | Random secret for session signing (`openssl rand -hex 32`) |
+| `NUXT_AUTH_ORIGIN` | Full URL of your instance, e.g. `https://coach.example.com/api/auth` |
+
+> **Note:** `DATABASE_URL` and `REDIS_URL` are automatically constructed from the credentials above when running via docker-compose — you don't need to set them manually.
+
+```bash
+docker-compose up -d
+```
+
+The app will be available at `http://localhost:3000`. Database migrations run automatically on startup.
+
+### Option B — Local Development
+
+```bash
+git clone git@github.com:pnposch/coach.git
 cd coach
 cp .env.example .env
 pnpm install
 ```
 
-### 2. Start Database
+Start backing services (PostgreSQL + DragonflyDB):
 
 ```bash
-docker-compose up -d
-# Starts PostgreSQL on port 5439
+docker-compose up -d postgres dragonfly
+# PostgreSQL available on localhost:5439
+# DragonflyDB available on localhost:6379
 ```
 
-> **Note for MacOS users:** Ensure Docker Desktop is running (e.g. open Docker.app via Spotlight).
+Configure your `.env` (see table above), then set `DATABASE_URL` and `REDIS_URL` to point at `localhost`.
 
-### 3. Configure Environment
-
-Edit the `.env` file to fill in your own API keys (see below):
+Run migrations and start the dev server:
 
 ```bash
-vim .env # or on MacOS: open -a TextEdit .env
-```
-
-> **Note:** You will need API keys for Google (Auth & Gemini), and optionally Intervals.icu, Strava, etc. See [Getting Credentials](./docs/04-guides/implementation-guide.md#prerequisites).
-
-### 4. Run Migrations
-
-```bash
-pnpm prisma:generate
 npx prisma migrate dev
-```
-
-### 5. Launch Development Server
-
-```bash
 pnpm dev
 ```
 
-Visit `http://localhost:3099` and log in!
+Visit `http://localhost:3099`.
 
 ### 🛠️ CLI Tools
 
