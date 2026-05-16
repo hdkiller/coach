@@ -25,11 +25,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM base AS builder
 ARG COMMIT_SHA
 ARG SENTRY_AUTH_TOKEN
+# Tune heap for available RAM. GH free runners have ~7GB; 4GB heap leaves headroom.
+# Override locally if needed: docker build --build-arg NODE_MAX_HEAP=8192 ...
+ARG NODE_MAX_HEAP=4096
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN NODE_OPTIONS=--max-old-space-size=12288 pnpm build
+# prisma generate already ran via postinstall in the deps stage; call nuxt build directly
+RUN NODE_OPTIONS=--max-old-space-size=${NODE_MAX_HEAP} pnpm exec nuxt build
 
 # Stage 4: Production image
 FROM base AS runner
