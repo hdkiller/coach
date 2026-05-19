@@ -28,69 +28,6 @@ adapter.deleteSession = async (sessionToken: string) => {
   }
 }
 
-const syncIntervalsIntegration = async (user: any, account: any) => {
-  try {
-    await prisma.integration.upsert({
-      where: {
-        userId_provider: {
-          userId: user.id,
-          provider: 'intervals'
-        }
-      },
-      update: {
-        accessToken: account.access_token!,
-        refreshToken: account.refresh_token,
-        expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
-        externalUserId: account.providerAccountId,
-        scope: account.scope,
-        lastSyncAt: new Date(),
-        syncStatus: 'SUCCESS'
-      },
-      create: {
-        userId: user.id,
-        provider: 'intervals',
-        accessToken: account.access_token!,
-        refreshToken: account.refresh_token,
-        expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
-        externalUserId: account.providerAccountId,
-        scope: account.scope,
-        syncStatus: 'SUCCESS',
-        lastSyncAt: new Date(),
-        ingestWorkouts: true
-      }
-    })
-    console.log('Successfully synced Intervals.icu integration')
-
-    // Trigger initial sync (last 365 days)
-    const endDate = new Date().toISOString()
-    const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
-
-    await tasks.trigger(
-      'ingest-intervals',
-      {
-        userId: user.id,
-        startDate,
-        endDate
-      },
-      {
-        concurrencyKey: user.id,
-        tags: [`user:${user.id}`]
-      }
-    )
-    console.log('Triggered initial Intervals.icu sync')
-
-    // Trigger profile auto-detection
-    await tasks.trigger(
-      'autodetect-intervals-profile',
-      { userId: user.id },
-      { concurrencyKey: user.id, tags: [`user:${user.id}`] }
-    )
-    console.log('Triggered Intervals.icu profile auto-detection')
-  } catch (error) {
-    console.error('Failed to sync Intervals.icu integration:', error)
-  }
-}
-
 const syncStravaIntegration = async (user: any, account: any) => {
   try {
     await prisma.integration.upsert({
@@ -187,48 +124,7 @@ export default NuxtAuthHandler({
         }
       },
       allowDangerousEmailAccountLinking: true
-    }),
-    {
-      id: 'intervals',
-      name: 'Intervals.icu',
-      type: 'oauth',
-      authorization: {
-        url: 'https://intervals.icu/oauth/authorize',
-        params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
-      },
-      token: 'https://intervals.icu/api/oauth/token',
-      userinfo: 'https://intervals.icu/api/v1/athlete/0',
-      clientId: process.env.INTERVALS_CLIENT_ID,
-      clientSecret: process.env.INTERVALS_CLIENT_SECRET,
-      client: {
-        token_endpoint_auth_method: 'client_secret_post'
-      },
-      allowDangerousEmailAccountLinking: true,
-      async profile(profile: any) {
-        // Similar lookup for Intervals.icu
-        const existingIntegration = await prisma.integration.findFirst({
-          where: {
-            provider: 'intervals',
-            externalUserId: profile.id.toString()
-          },
-          include: { user: true }
-        })
-
-        const email =
-          existingIntegration?.user?.email ||
-          profile.email ||
-          `${profile.id}@intervals.coachwatts.com`
-
-        console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
-
-        return {
-          id: profile.id,
-          name: profile.name,
-          email,
-          image: profile.profile_medium || profile.profile
-        }
-      }
-    }
+    })
   ],
   secret: process.env.NUXT_AUTH_SECRET,
   callbacks: {
@@ -279,17 +175,11 @@ export default NuxtAuthHandler({
     },
     async linkAccount({ user, account }: any) {
       console.log(`[Auth] Linking account: ${account.provider} to user ${user.id} (${user.email})`)
-      if (account.provider === 'intervals') {
-        await syncIntervalsIntegration(user, account)
-      }
       if (account.provider === 'strava') {
         await syncStravaIntegration(user, account)
       }
     },
     async signIn({ user, account }: any) {
-      if (account?.provider === 'intervals') {
-        await syncIntervalsIntegration(user, account)
-      }
       if (account?.provider === 'strava') {
         await syncStravaIntegration(user, account)
       }

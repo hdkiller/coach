@@ -21,24 +21,10 @@
       <div
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
-        <div v-if="!intervalsConnected" class="flex flex-col items-end gap-2">
+        <div v-if="!intervalsConnected">
           <UButton
             color="neutral"
             variant="outline"
-            @click="
-              () => {
-                trackIntegrationConnectStart('intervals')
-                signIn('intervals')
-              }
-            "
-          >
-            Connect
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="link"
-            size="xs"
-            :padded="false"
             @click="
               () => {
                 trackIntegrationConnectStart('intervals')
@@ -46,7 +32,7 @@
               }
             "
           >
-            Connect manually (API Key)
+            Connect
           </UButton>
         </div>
         <div v-else class="flex items-center gap-2">

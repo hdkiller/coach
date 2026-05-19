@@ -252,26 +252,6 @@
                 </span>
               </UButton>
 
-              <!-- Intervals.icu Button -->
-              <UButton
-                block
-                size="xl"
-                color="neutral"
-                variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full"
-                :loading="loadingIntervals || isInitializing"
-                @click="handleIntervalsLogin"
-              >
-                <template #leading>
-                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />
-                </template>
-                <span
-                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
-                >
-                  {{ isInitializing ? 'CALIBRATING...' : joinIntervals }}
-                </span>
-              </UButton>
-
               <p
                 class="text-center lg:text-left text-[11px] font-black italic uppercase tracking-[0.18em] text-primary-500"
               >
@@ -440,7 +420,6 @@
 
   const loading = ref(false)
   const loadingStrava = ref(false)
-  const loadingIntervals = ref(false)
   const isInitializing = ref(false)
   const isTyping = ref(true)
   const starStyles = ref<any[]>([])
@@ -462,7 +441,6 @@
   )
   const joinGoogle = translateOrFallback('join.google', 'Create Account with Google')
   const joinStrava = translateOrFallback('join.strava', 'Create Account with Strava')
-  const joinIntervals = translateOrFallback('join.intervals', 'Create Account with Intervals.icu')
   const joinFreeForeverNote = translateOrFallback(
     'join.free_forever_note',
     'Free forever with optional upgrades when you need more.'
@@ -552,20 +530,6 @@
       console.error('Strava login error:', error)
       isInitializing.value = false
       loadingStrava.value = false
-    }
-  }
-
-  async function handleIntervalsLogin() {
-    isInitializing.value = true
-    loadingIntervals.value = true
-    try {
-      // Simulate technical delay for the animation
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      await signIn('intervals', { callbackUrl })
-    } catch (error: any) {
-      console.error('Intervals login error:', error)
-      isInitializing.value = false
-      loadingIntervals.value = false
     }
   }
 </script>

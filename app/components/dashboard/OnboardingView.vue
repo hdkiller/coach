@@ -54,7 +54,7 @@
                 color="primary"
                 class="font-bold px-8"
                 icon="i-heroicons-link"
-                @click="signIn('intervals')"
+                @click="navigateTo('/connect-intervals')"
               >
                 {{ t('connect_now') }}
               </UButton>
@@ -337,7 +337,6 @@
   import { useTranslate } from '@tolgee/vue'
 
   const { t } = useTranslate('onboarding')
-  const { signIn } = useAuth()
 
   const isStravaDisabled = computed(() => {
     const config = useRuntimeConfig()

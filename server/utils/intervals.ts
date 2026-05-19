@@ -12,21 +12,11 @@ import {
 } from './swim-structure'
 
 function getIntervalsHeaders(integration: Integration): Record<string, string> {
-  // If we have a scope or refresh token, it's an OAuth integration
-  if (integration.scope || integration.refreshToken) {
-    return { Authorization: `Bearer ${integration.accessToken}` }
-  }
-
-  // Otherwise, assume it's a legacy API Key integration
   const auth = Buffer.from(`API_KEY:${integration.accessToken}`).toString('base64')
   return { Authorization: `Basic ${auth}` }
 }
 
 function getIntervalsAthleteId(integration: Integration): string {
-  // Use '0' for OAuth integrations as recommended by Intervals.icu docs for Bearer tokens
-  if (integration.scope || integration.refreshToken) {
-    return '0'
-  }
   return integration.externalUserId || 'i0'
 }
 

@@ -179,35 +179,6 @@
                 />
               </UButton>
 
-              <!-- Intervals.icu Button -->
-              <UButton
-                block
-                size="xl"
-                color="neutral"
-                variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(0,220,130,0.1)] transition-all duration-300"
-                :loading="loadingIntervals || isInitializing"
-                @click="handleIntervalsLogin"
-                @mouseenter="isHovering = true"
-                @mouseleave="isHovering = false"
-              >
-                <template #leading>
-                  <img
-                    src="/images/logos/intervals.png"
-                    alt="Intervals.icu Logo"
-                    class="w-5 h-5 group-hover:scale-110 transition-transform"
-                  />
-                </template>
-                <span
-                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
-                >
-                  {{ isInitializing ? 'CONNECTING...' : t('login.intervals') }}
-                </span>
-                <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:2s] pointer-events-none"
-                />
-              </UButton>
-
               <div class="relative py-4">
                 <div class="absolute inset-0 flex items-center">
                   <span class="w-full border-t border-white/5" />
@@ -365,7 +336,6 @@
 
   const loading = ref(false)
   const loadingStrava = ref(false)
-  const loadingIntervals = ref(false)
   const isInitializing = ref(false)
   const isHovering = ref(false)
   const starStyles = ref<any[]>([])
@@ -490,24 +460,6 @@
       })
       isInitializing.value = false
       loadingStrava.value = false
-    }
-  }
-
-  async function handleIntervalsLogin() {
-    trackLogin('intervals')
-    isInitializing.value = true
-    loadingIntervals.value = true
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      await signIn('intervals', { callbackUrl })
-    } catch (error: any) {
-      toast.add({
-        title: 'Login Failed',
-        description: error.message || 'Could not initiate Intervals login.',
-        color: 'error'
-      })
-      isInitializing.value = false
-      loadingIntervals.value = false
     }
   }
 </script>

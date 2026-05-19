@@ -153,8 +153,7 @@ It has multiple lines.
 
       const integration = {
         accessToken: 'token',
-        scope: 'CALENDAR:WRITE',
-        refreshToken: null
+        externalUserId: 'i12345'
       } as any
 
       await createIntervalsPlannedWorkout(integration, {
