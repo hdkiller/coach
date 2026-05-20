@@ -11,7 +11,12 @@
 #        NUXT_AUTH_SECRET=<random-hex>   # openssl rand -hex 32
 #        GEMINI_API_KEY=<your-key>
 #
-#   2. Start with:
+#   2. Optionally set ACTIVITY_IMPORT_DIR in .env to enable bulk activity import:
+#        ACTIVITY_IMPORT_DIR=/path/to/your/fit-gpx-tcx-files
+#      Then import with:
+#        docker exec watts-app pnpm cw:cli import files you@example.com --dir /imports
+#
+#   3. Start with:
 #        docker compose -f docker-compose.yml -f docker-compose.single-user.yml up -d
 #
 # The local user is created automatically on the first successful login.

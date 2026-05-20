@@ -4,7 +4,7 @@ services:
       context: .
       shm_size: '2gb'
       args:
-        NODE_MAX_HEAP: ${NODE_MAX_HEAP:-4096}
+        NODE_MAX_HEAP: ${NODE_MAX_HEAP:-8192}
     image: ghcr.io/pnposch/coach:latest
     container_name: watts-app
     env_file: .env
@@ -19,6 +19,12 @@ services:
       # a local email/password login only. Also set AUTH_BYPASS_USER and AUTH_BYPASS_PASSWORD.
     ports:
       - '3000:3000'
+    volumes:
+      # Optional: mount a host directory for bulk activity file import.
+      # Set ACTIVITY_IMPORT_DIR in .env (or export it) to the local path containing
+      # your .fit / .gpx / .tcx files, then run:
+      #   docker exec watts-app pnpm cw:cli import files <email> --dir /imports
+      - ${ACTIVITY_IMPORT_DIR:-/dev/null}:/imports:ro
     depends_on:
       postgres:
         condition: service_healthy

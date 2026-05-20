@@ -195,6 +195,48 @@ pnpm cw:cli trigger list --prod
 pnpm cw:cli users location list-missing
 ```
 
+### 📂 Bulk Activity File Import
+
+You can import `.fit`, `.gpx`, and `.tcx` files (or `.zip` archives containing them) in two ways:
+
+#### Via the web UI
+
+Navigate to **Workouts → Upload** and drag-drop or select files. Supported formats: `.fit`, `.gpx`, `.tcx`, `.zip`.
+
+#### Via Docker (bulk import from a local directory)
+
+Mount a host directory into the container by setting `ACTIVITY_IMPORT_DIR` in your `.env`:
+
+```env
+ACTIVITY_IMPORT_DIR=/path/to/your/activity/files
+```
+
+Then restart the stack and run the CLI inside the container:
+
+```bash
+docker compose up -d
+
+# Import all files for a user (dry-run first to preview)
+docker exec watts-app pnpm cw:cli import files you@example.com --dir /imports --dry-run
+
+# Import for real
+docker exec watts-app pnpm cw:cli import files you@example.com --dir /imports
+
+# Recurse into subdirectories (e.g. Garmin exports with year folders)
+docker exec watts-app pnpm cw:cli import files you@example.com --dir /imports --recursive
+```
+
+The directory is mounted **read-only** at `/imports` inside the container. Files are deduplicated by SHA-256 hash — re-running the import on the same directory is safe. Workouts appear in the dashboard as the background queue processes each file.
+
+#### Via the CLI locally (without Docker)
+
+If you're running the app locally (`pnpm dev`), you can import directly:
+
+```bash
+pnpm cw:cli import files you@example.com --dir ~/Downloads/garmin-export/Activities
+pnpm cw:cli import files you@example.com --dir ~/exports --recursive --dry-run
+```
+
 ## 📚 Documentation
 
 We have extensive documentation available in the [`docs/`](./docs) directory:
