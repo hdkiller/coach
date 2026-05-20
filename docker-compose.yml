@@ -1,6 +1,10 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      shm_size: '2gb'
+      args:
+        NODE_MAX_HEAP: ${NODE_MAX_HEAP:-4096}
     image: ghcr.io/pnposch/coach:latest
     container_name: watts-app
     env_file: .env

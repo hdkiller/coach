@@ -45,6 +45,7 @@ Unlike static dashboards, Coach Watts understands context—analyzing not just y
 - **📈 Advanced Analytics:** Track Fitness (CTL), Fatigue (ATL), Form (TSB), and Power Curves with intuitive visualizations.
 - **🥗 Nutrition Tracking:** Metabolic fueling logic (Eco/Steady/Performance) based on training intensity.
 - **📅 Smart Planning:** Generate adaptive training plans that fit your schedule and goals.
+- **📂 Multi-format Activity Import:** Upload `.fit`, `.gpx`, `.tcx`, or `.zip` files directly via the web UI, or bulk-import a local directory using the CLI (`cw:cli import files`).
 - **🌍 Global Localization:** Fully localized platform supporting over 10 languages with smart timezone handling.
 - **📢 System Messages:** Stay informed with important updates and coaching alerts directly in your dashboard.
 
@@ -99,7 +100,7 @@ We use **Tolgee** for managing translations. If you'd like to help translate Coa
 
 - Docker & Docker Compose
 - Google Cloud Account (for Auth & Gemini API)
-- Node.js 22+ *(local development only)*
+- Node.js 22+ _(local development only)_
 
 ### Option A — Docker (recommended for self-hosting)
 
@@ -113,14 +114,14 @@ cp .env.example .env
 
 Edit `.env` — at minimum fill in:
 
-| Variable | Description |
-|---|---|
-| `POSTGRES_PASSWORD` | Postgres password (also used to build `DATABASE_URL` inside Docker) |
-| `DRAGONFLY_PASSWORD` | Redis/DragonflyDB password (also used to build `REDIS_URL` inside Docker) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
-| `GEMINI_API_KEY` | Google Gemini API key |
-| `NUXT_AUTH_SECRET` | Random secret for session signing (`openssl rand -hex 32`) |
-| `NUXT_AUTH_ORIGIN` | Full URL of your instance, e.g. `https://coach.example.com/api/auth` |
+| Variable                                    | Description                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`                         | Postgres password (also used to build `DATABASE_URL` inside Docker)       |
+| `DRAGONFLY_PASSWORD`                        | Redis/DragonflyDB password (also used to build `REDIS_URL` inside Docker) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials                                                  |
+| `GEMINI_API_KEY`                            | Google Gemini API key                                                     |
+| `NUXT_AUTH_SECRET`                          | Random secret for session signing (`openssl rand -hex 32`)                |
+| `NUXT_AUTH_ORIGIN`                          | Full URL of your instance, e.g. `https://coach.example.com/api/auth`      |
 
 > **Note:** `DATABASE_URL` and `REDIS_URL` are automatically constructed from the credentials above when running via docker-compose — you don't need to set them manually.
 

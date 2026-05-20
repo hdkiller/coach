@@ -826,15 +826,16 @@ model StrengthExerciseLibraryItem {
 }
 
 model FitFile {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   userId    String
   filename  String
   fileData  Bytes
   hash      String
-  workoutId String?  @unique
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workout   Workout? @relation(fields: [workoutId], references: [id])
+  fileType  ActivityFileType @default(FIT)
+  workoutId String?          @unique
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout   Workout?         @relation(fields: [workoutId], references: [id])
 
   @@index([userId])
   @@index([hash])
@@ -1830,6 +1831,12 @@ enum SubscriptionTier {
   FREE
   SUPPORTER
   PRO
+}
+
+enum ActivityFileType {
+  FIT
+  GPX
+  TCX
 }
 
 enum TeamVisibility {

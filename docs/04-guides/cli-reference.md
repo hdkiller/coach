@@ -113,6 +113,42 @@ cw:cli translations sync-all
 cw:cli translations sync-all      # push all English values, check registration, pull
 ```
 
+#### 9. Activity File Import (`import files`)
+
+Import FIT, GPX, or TCX activity files from a local directory directly into the database, queuing a Trigger.dev `ingest-activity-file` job for each file.
+
+```bash
+pnpm cw:cli import files <userIdentifier> --dir <path> [--recursive] [--dry-run] [--prod]
+```
+
+**Options:**
+
+| Option             | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `<userIdentifier>` | User's email address or UUID                      |
+| `--dir <path>`     | Path to the directory containing activity files   |
+| `--recursive`      | Scan subdirectories recursively                   |
+| `--dry-run`        | List found files without importing                |
+| `--prod`           | Use `DATABASE_URL_PROD` instead of `DATABASE_URL` |
+
+**Supported formats:** `.fit`, `.gpx`, `.tcx`  
+**Note:** `.zip` files must be unpacked before using this command — ZIP extraction is only supported via the web upload UI (`/workouts/upload`).
+
+**Examples:**
+
+```bash
+# Import all activities from a Garmin export folder
+pnpm cw:cli import files user@example.com --dir ~/Downloads/garmin-export/Activities
+
+# Dry run to preview files found in a directory tree
+pnpm cw:cli import files user@example.com --dir ~/exports --recursive --dry-run
+
+# Import to production
+pnpm cw:cli import files user@example.com --dir /mnt/backup/activities --prod
+```
+
+Each imported file is hash-checked for duplicates. Workouts appear in the dashboard as the Trigger.dev queue processes them.
+
 ---
 
 ## 🛠️ `cw:worker` - Webhook Worker

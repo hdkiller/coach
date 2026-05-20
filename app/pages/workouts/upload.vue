@@ -31,12 +31,12 @@
             <p
               class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic"
             >
-              Integrity Center • FIT File Upload
+              Integrity Center • Activity File Upload
             </p>
           </div>
           <p class="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
-            Directly upload .FIT files from your device. We'll analyze the biometric streams and
-            sync them to your performance history.
+            Upload .FIT, .GPX, or .TCX files — or drop a .ZIP archive containing multiple files.
+            We'll analyse the biometric streams and sync them to your performance history.
           </p>
         </div>
 
@@ -60,7 +60,7 @@
               ref="fileInput"
               type="file"
               class="hidden"
-              accept=".fit"
+              accept=".fit,.gpx,.tcx,.zip"
               multiple
               @change="handleFileSelect"
             />
@@ -253,13 +253,17 @@
     }
   }
 
+  const ALLOWED_EXTENSIONS = ['.fit', '.gpx', '.tcx', '.zip']
+
   function addFiles(files: File[]) {
-    const validFiles = files.filter((file) => file.name.toLowerCase().endsWith('.fit'))
+    const validFiles = files.filter((file) =>
+      ALLOWED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext))
+    )
 
     if (validFiles.length < files.length) {
       useToast().add({
         title: 'Invalid Files Skipped',
-        description: 'Only .fit files are allowed.',
+        description: 'Only .fit, .gpx, .tcx, and .zip files are supported.',
         color: 'warning'
       })
     }
@@ -296,11 +300,19 @@
   const { refresh: refreshRuns } = useUserRuns()
   const { onTaskCompleted } = useUserRunsState()
 
-  // Listen for completion
-  onTaskCompleted('ingest-fit-file', async (run) => {
+  // Listen for completion of either legacy or new task ID
+  onTaskCompleted('ingest-activity-file', async (_run) => {
     useToast().add({
       title: 'Processing Complete',
-      description: 'A workout file has been analyzed and added to your history.',
+      description: 'A workout file has been analysed and added to your history.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+  onTaskCompleted('ingest-fit-file', async (_run) => {
+    useToast().add({
+      title: 'Processing Complete',
+      description: 'A workout file has been analysed and added to your history.',
       color: 'success',
       icon: 'i-heroicons-check-circle'
     })
@@ -346,6 +358,11 @@
 
   useHead({
     title: 'Upload Workouts',
-    meta: [{ name: 'description', content: 'Manually upload FIT files to your training history.' }]
+    meta: [
+      {
+        name: 'description',
+        content: 'Upload FIT, GPX, TCX, or ZIP activity files to your training history.'
+      }
+    ]
   })
 </script>

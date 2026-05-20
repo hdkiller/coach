@@ -3,12 +3,14 @@ import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import crypto from 'crypto'
 import { tasks } from '@trigger.dev/sdk/v3'
+import AdmZip from 'adm-zip'
 
 defineRouteMeta({
   openAPI: {
     tags: ['Workouts'],
-    summary: 'Upload FIT file',
-    description: 'Uploads a .fit file for processing and ingestion.',
+    summary: 'Upload activity file',
+    description:
+      'Uploads one or more .fit, .gpx, .tcx files, or a .zip archive containing them, for processing and ingestion.',
     security: [{ bearerAuth: [] }],
     requestBody: {
       content: {
@@ -19,12 +21,12 @@ defineRouteMeta({
               file: {
                 type: 'string',
                 format: 'binary',
-                description: 'The .fit file to upload'
+                description: 'A .fit, .gpx, .tcx, or .zip file (multiple allowed)'
               },
               name: {
                 type: 'string',
                 description:
-                  'Optional activity name to use for the imported workout title. Falls back to the uploaded filename.'
+                  'Optional activity name for the imported workout title. Falls back to the filename.'
               },
               metadata: {
                 type: 'string',
@@ -67,37 +69,77 @@ defineRouteMeta({
   }
 })
 
-export default defineEventHandler(async (event) => {
-  // Check authentication (supports Session, API Key, and OAuth Token)
-  const user = await requireAuth(event, ['workout:write'])
+type ActivityFileType = 'FIT' | 'GPX' | 'TCX'
 
-  // Read multipart form data
-  const body = await readMultipartFormData(event)
-  if (!body || body.length === 0) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'No file uploaded'
-    })
+function detectFileType(filename: string): ActivityFileType | null {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  if (ext === 'fit') return 'FIT'
+  if (ext === 'gpx') return 'GPX'
+  if (ext === 'tcx') return 'TCX'
+  return null
+}
+
+interface ActivityFileEntry {
+  filename: string
+  data: Buffer
+  fileType: ActivityFileType
+}
+
+/**
+ * Extracts activity files from a buffer.
+ * For ZIP files, unpacks and returns all .fit/.gpx/.tcx entries.
+ * For other supported files, returns a single-entry array.
+ */
+function extractActivityFiles(filename: string, data: Buffer): ActivityFileEntry[] {
+  const ext = filename.split('.').pop()?.toLowerCase()
+
+  if (ext === 'zip') {
+    try {
+      const zip = new AdmZip(data)
+      const entries: ActivityFileEntry[] = []
+      for (const entry of zip.getEntries()) {
+        if (entry.isDirectory) continue
+        const entryName = entry.entryName.split('/').pop() ?? entry.entryName
+        const fileType = detectFileType(entryName)
+        if (!fileType) continue
+        entries.push({
+          filename: entryName,
+          data: zip.readFile(entry) ?? Buffer.alloc(0),
+          fileType
+        })
+      }
+      return entries
+    } catch {
+      return []
+    }
   }
 
-  // Find all file parts
+  const fileType = detectFileType(filename)
+  if (!fileType) return []
+  return [{ filename, data, fileType }]
+}
+
+export default defineEventHandler(async (event) => {
+  const user = await requireAuth(event, ['workout:write'])
+
+  const body = await readMultipartFormData(event)
+  if (!body || body.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })
+  }
+
   const fileParts = body.filter((part) => part.name === 'file')
   if (fileParts.length === 0) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'File field missing'
-    })
+    throw createError({ statusCode: 400, statusMessage: 'File field missing' })
   }
 
   const results = {
-    total: fileParts.length,
+    total: 0,
     processed: 0,
     duplicates: 0,
     failed: 0,
     errors: [] as string[]
   }
 
-  // Extract metadata if present
   const metadataPart = body.find((part) => part.name === 'metadata')
   const nameParts = body
     .filter((part) => part.name === 'name')
@@ -108,66 +150,63 @@ export default defineEventHandler(async (event) => {
   if (metadataPart) {
     try {
       rawJson = JSON.parse(metadataPart.data.toString())
-    } catch (e) {
-      console.warn('Failed to parse metadata JSON', e)
+    } catch {
+      // non-fatal
     }
   }
 
   const oauthAppId = event.context.authType === 'oauth' ? event.context.oauthAppId : undefined
 
-  // Process each file
   for (const [index, filePart] of fileParts.entries()) {
-    try {
-      const activityName = nameParts[index] || nameParts[0] || undefined
+    const uploadedFilename = filePart.filename || 'upload.fit'
+    const activityName = nameParts[index] || nameParts[0] || undefined
 
-      // Calculate hash to detect duplicates
-      const hash = crypto.createHash('sha256').update(filePart.data).digest('hex')
+    const entries = extractActivityFiles(uploadedFilename, Buffer.from(filePart.data))
+    results.total += entries.length
 
-      // Check if file already exists for this user
-      const existing = await prisma.fitFile.findFirst({
-        where: {
-          userId: user.id,
-          hash: hash
+    for (const entry of entries) {
+      try {
+        const hash = crypto.createHash('sha256').update(entry.data).digest('hex')
+
+        const existing = await prisma.fitFile.findFirst({
+          where: { userId: user.id, hash }
+        })
+
+        if (existing) {
+          results.duplicates++
+          continue
         }
-      })
 
-      if (existing) {
-        results.duplicates++
-        continue
+        const fitFile = await prisma.fitFile.create({
+          data: {
+            userId: user.id,
+            filename: entry.filename,
+            fileData: entry.data,
+            fileType: entry.fileType,
+            hash
+          }
+        })
+
+        await tasks.trigger(
+          'ingest-activity-file',
+          {
+            userId: user.id,
+            fitFileId: fitFile.id,
+            activityName,
+            rawJson,
+            oauthAppId
+          },
+          {
+            concurrencyKey: user.id,
+            tags: [`user:${user.id}`]
+          }
+        )
+
+        results.processed++
+      } catch (error: any) {
+        results.failed++
+        results.errors.push(`${entry.filename}: ${error.message}`)
       }
-
-      // Create fit file record
-      const fitFile = await prisma.fitFile.create({
-        data: {
-          userId: user.id,
-          filename: filePart.filename || 'upload.fit',
-          fileData: Buffer.from(filePart.data),
-          hash: hash
-        }
-      })
-
-      const fitFileId = fitFile.id
-
-      // Trigger ingestion task
-      await tasks.trigger(
-        'ingest-fit-file',
-        {
-          userId: user.id,
-          fitFileId: fitFileId,
-          activityName,
-          rawJson,
-          oauthAppId
-        },
-        {
-          concurrencyKey: user.id,
-          tags: [`user:${user.id}`]
-        }
-      )
-
-      results.processed++
-    } catch (error: any) {
-      results.failed++
-      results.errors.push(`${filePart.filename}: ${error.message}`)
     }
   }
 

@@ -2,7 +2,7 @@ FROM node:22-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm@9.13.0
 RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,15 +25,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM base AS builder
 ARG COMMIT_SHA
 ARG SENTRY_AUTH_TOKEN
-# Tune heap for available RAM. GH free runners have ~7GB; 4GB heap leaves headroom.
-# Override locally if needed: docker build --build-arg NODE_MAX_HEAP=8192 ...
+# Tune heap for available RAM. Default 4096 MB is safe on most Docker hosts.
+# Increase if build OOMs: docker build --build-arg NODE_MAX_HEAP=6144 ...
 ARG NODE_MAX_HEAP=4096
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # prisma generate already ran via postinstall in the deps stage; call nuxt build directly
-RUN NODE_OPTIONS=--max-old-space-size=${NODE_MAX_HEAP} pnpm exec nuxt build
+RUN NODE_OPTIONS="--max-old-space-size=${NODE_MAX_HEAP} --expose-gc" pnpm exec nuxt build
 
 # Stage 4: Production image
 FROM base AS runner

@@ -367,7 +367,9 @@ export default defineNuxtConfig({
           if (warning.message?.includes('Sourcemap is likely to be incorrect')) return
           warn(warning)
         }
-      }
+      },
+      // Limit parallel file I/O workers to reduce peak heap during Docker builds
+      maxParallelFileOps: 10
     }
   },
 
