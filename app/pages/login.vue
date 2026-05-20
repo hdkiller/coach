@@ -120,93 +120,136 @@
             </div>
 
             <div class="space-y-4">
-              <!-- Magnetic Google Button -->
-              <div
-                class="relative transition-transform duration-200"
-                :style="{ transform: `translate(${buttonX}px, ${buttonY}px)` }"
-                @mousemove="handleMouseMove"
-                @mouseleave="resetPosition"
-                @mouseenter="isHovering = true"
-                @mouseout="isHovering = false"
-              >
+              <!-- Single-User Mode: Local credentials form -->
+              <template v-if="singleUserMode">
+                <UFormField label="Email" name="email">
+                  <UInput
+                    v-model="localEmail"
+                    type="email"
+                    placeholder="your@email.com"
+                    size="xl"
+                    class="w-full"
+                    :disabled="isInitializing"
+                    autocomplete="email"
+                  />
+                </UFormField>
+                <UFormField label="Password" name="password">
+                  <UInput
+                    v-model="localPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    size="xl"
+                    class="w-full"
+                    :disabled="isInitializing"
+                    autocomplete="current-password"
+                    @keyup.enter="handleLocalLogin"
+                  />
+                </UFormField>
                 <UButton
                   block
                   size="xl"
-                  icon="i-simple-icons-google"
                   color="primary"
                   variant="solid"
                   class="relative overflow-hidden group shadow-[0_0_30px_rgba(0,220,130,0.1)] py-5 rounded-2xl h-14 min-w-full"
                   :loading="loading || isInitializing"
-                  @click="handleGoogleLogin"
+                  @click="handleLocalLogin"
                 >
                   <span class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px]">{{
-                    isInitializing ? 'CONNECTING...' : t('login.google')
+                    isInitializing ? 'CONNECTING...' : 'Sign In'
                   }}</span>
+                </UButton>
+              </template>
+
+              <!-- Standard OAuth Buttons -->
+              <template v-else>
+                <!-- Magnetic Google Button -->
+                <div
+                  class="relative transition-transform duration-200"
+                  :style="{ transform: `translate(${buttonX}px, ${buttonY}px)` }"
+                  @mousemove="handleMouseMove"
+                  @mouseleave="resetPosition"
+                  @mouseenter="isHovering = true"
+                  @mouseout="isHovering = false"
+                >
+                  <UButton
+                    block
+                    size="xl"
+                    icon="i-simple-icons-google"
+                    color="primary"
+                    variant="solid"
+                    class="relative overflow-hidden group shadow-[0_0_30px_rgba(0,220,130,0.1)] py-5 rounded-2xl h-14 min-w-full"
+                    :loading="loading || isInitializing"
+                    @click="handleGoogleLogin"
+                  >
+                    <span class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px]">{{
+                      isInitializing ? 'CONNECTING...' : t('login.google')
+                    }}</span>
+                    <div
+                      class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
+                    />
+                    <div
+                      class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine pointer-events-none"
+                    />
+                  </UButton>
+                </div>
+
+                <!-- Strava Button -->
+                <UButton
+                  block
+                  size="xl"
+                  color="neutral"
+                  variant="outline"
+                  class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(252,76,2,0.1)] transition-all duration-300"
+                  :loading="loadingStrava || isInitializing"
+                  @click="handleStravaLogin"
+                  @mouseenter="isHovering = true"
+                  @mouseleave="isHovering = false"
+                >
+                  <template #leading>
+                    <UIcon
+                      name="i-simple-icons-strava"
+                      class="w-5 h-5 text-[#FC4C02] group-hover:scale-110 transition-transform"
+                    />
+                  </template>
+                  <span
+                    class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                  >
+                    {{ isInitializing ? 'CONNECTING...' : t('login.strava') }}
+                  </span>
                   <div
-                    class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
-                  />
-                  <div
-                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine pointer-events-none"
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:1s] pointer-events-none"
                   />
                 </UButton>
-              </div>
 
-              <!-- Strava Button -->
-              <UButton
-                block
-                size="xl"
-                color="neutral"
-                variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(252,76,2,0.1)] transition-all duration-300"
-                :loading="loadingStrava || isInitializing"
-                @click="handleStravaLogin"
-                @mouseenter="isHovering = true"
-                @mouseleave="isHovering = false"
-              >
-                <template #leading>
-                  <UIcon
-                    name="i-simple-icons-strava"
-                    class="w-5 h-5 text-[#FC4C02] group-hover:scale-110 transition-transform"
-                  />
-                </template>
-                <span
-                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                <!-- Intervals.icu Button -->
+                <UButton
+                  block
+                  size="xl"
+                  color="neutral"
+                  variant="outline"
+                  class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(0,220,130,0.1)] transition-all duration-300"
+                  :loading="loadingIntervals || isInitializing"
+                  @click="handleIntervalsLogin"
+                  @mouseenter="isHovering = true"
+                  @mouseleave="isHovering = false"
                 >
-                  {{ isInitializing ? 'CONNECTING...' : t('login.strava') }}
-                </span>
-                <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:1s] pointer-events-none"
-                />
-              </UButton>
-
-              <!-- Intervals.icu Button -->
-              <UButton
-                block
-                size="xl"
-                color="neutral"
-                variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(0,220,130,0.1)] transition-all duration-300"
-                :loading="loadingIntervals || isInitializing"
-                @click="handleIntervalsLogin"
-                @mouseenter="isHovering = true"
-                @mouseleave="isHovering = false"
-              >
-                <template #leading>
-                  <img
-                    src="/images/logos/intervals.png"
-                    alt="Intervals.icu Logo"
-                    class="w-5 h-5 group-hover:scale-110 transition-transform"
+                  <template #leading>
+                    <img
+                      src="/images/logos/intervals.png"
+                      alt="Intervals.icu Logo"
+                      class="w-5 h-5 group-hover:scale-110 transition-transform"
+                    />
+                  </template>
+                  <span
+                    class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                  >
+                    {{ isInitializing ? 'CONNECTING...' : t('login.intervals') }}
+                  </span>
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:2s] pointer-events-none"
                   />
-                </template>
-                <span
-                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
-                >
-                  {{ isInitializing ? 'CONNECTING...' : t('login.intervals') }}
-                </span>
-                <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shine [animation-delay:2s] pointer-events-none"
-                />
-              </UButton>
+                </UButton>
+              </template>
 
               <div class="relative py-4">
                 <div class="absolute inset-0 flex items-center">
@@ -217,7 +260,7 @@
                     class="bg-black px-4 font-black uppercase tracking-[0.4em] text-zinc-600 flex items-center gap-2"
                   >
                     <UIcon name="i-heroicons-lock-closed-solid" class="w-3 h-3" />
-                    Secure OAuth Login
+                    {{ singleUserMode ? 'Local Instance' : 'Secure OAuth Login' }}
                   </span>
                 </div>
               </div>
@@ -363,12 +406,17 @@
     twitterImage: '/images/og-image.png'
   })
 
+  const config = useRuntimeConfig()
+  const singleUserMode = config.public.singleUserMode as boolean
+
   const loading = ref(false)
   const loadingStrava = ref(false)
   const loadingIntervals = ref(false)
   const isInitializing = ref(false)
   const isHovering = ref(false)
   const starStyles = ref<any[]>([])
+  const localEmail = ref('')
+  const localPassword = ref('')
 
   // Mesh Visualization Data
   const meshNodes = ref([
@@ -508,6 +556,43 @@
       })
       isInitializing.value = false
       loadingIntervals.value = false
+    }
+  }
+
+  async function handleLocalLogin() {
+    if (!localEmail.value || !localPassword.value) {
+      toast.add({ title: 'Please enter your email and password.', color: 'error' })
+      return
+    }
+    trackLogin('credentials')
+    loading.value = true
+    isInitializing.value = true
+    try {
+      const result = await signIn('credentials', {
+        email: localEmail.value,
+        password: localPassword.value,
+        callbackUrl,
+        redirect: false
+      })
+      if ((result as any)?.error) {
+        toast.add({
+          title: 'Login Failed',
+          description: 'Invalid email or password.',
+          color: 'error'
+        })
+        loading.value = false
+        isInitializing.value = false
+      } else {
+        await navigateTo(callbackUrl)
+      }
+    } catch (error: any) {
+      toast.add({
+        title: 'Login Failed',
+        description: error.message || 'Could not sign in.',
+        color: 'error'
+      })
+      loading.value = false
+      isInitializing.value = false
     }
   }
 </script>

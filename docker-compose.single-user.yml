@@ -1,0 +1,22 @@
+# Single-user / local-only override for docker-compose.
+#
+# Disables all OAuth providers and enables a simple email/password login.
+# No Google, Strava, or Intervals.icu OAuth apps required.
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in the required variables:
+#        AUTH_BYPASS_USER=you@example.com
+#        AUTH_BYPASS_PASSWORD=<strong-password>
+#        AUTH_BYPASS_NAME=Admin          # optional
+#        NUXT_AUTH_SECRET=<random-hex>   # openssl rand -hex 32
+#        GEMINI_API_KEY=<your-key>
+#
+#   2. Start with:
+#        docker compose -f docker-compose.yml -f docker-compose.single-user.yml up -d
+#
+# The local user is created automatically on the first successful login.
+
+services:
+  app:
+    environment:
+      NUXT_SINGLE_USER_MODE: 'true'

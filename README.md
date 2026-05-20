@@ -130,6 +130,27 @@ docker-compose up -d
 
 The app will be available at `http://localhost:3000`. Database migrations run automatically on startup.
 
+#### Single-user / local mode (no OAuth required)
+
+If you don't want to set up Google/Strava OAuth apps, you can run in **single-user mode**: all OAuth buttons are replaced with a simple email + password form, and the local user is created automatically on first login.
+
+Add to your `.env`:
+
+```env
+NUXT_SINGLE_USER_MODE=true
+AUTH_BYPASS_USER=you@example.com
+AUTH_BYPASS_PASSWORD=<strong-password>
+AUTH_BYPASS_NAME=Admin          # optional display name
+```
+
+Then start with the single-user compose override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.single-user.yml up -d
+```
+
+Or simply set `NUXT_SINGLE_USER_MODE=true` in `.env` and use the standard `docker-compose up -d`.
+
 ### Option B — Local Development
 
 ```bash

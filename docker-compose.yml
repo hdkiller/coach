@@ -11,6 +11,8 @@ services:
       # Falls back to localhost:3000 for local Docker use; override via NUXT_AUTH_ORIGIN in .env.
       AUTH_ORIGIN: ${NUXT_AUTH_ORIGIN:-http://localhost:3000/api/auth}
       NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-http://localhost:3000/}
+      # Single-user mode: set NUXT_SINGLE_USER_MODE=true in .env to disable OAuth and use
+      # a local email/password login only. Also set AUTH_BYPASS_USER and AUTH_BYPASS_PASSWORD.
     ports:
       - '3000:3000'
     depends_on:

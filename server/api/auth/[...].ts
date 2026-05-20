@@ -147,91 +147,104 @@ const syncStravaIntegration = async (user: any, account: any) => {
   }
 }
 
+const isSingleUserMode = process.env.NUXT_SINGLE_USER_MODE === 'true'
+
 export default NuxtAuthHandler({
   adapter,
   providers: [
-    // @ts-expect-error - Types mismatch between next-auth versions
-    GoogleProvider.default({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true
-    }),
-    // @ts-expect-error - Types mismatch between next-auth versions
-    StravaProvider.default({
-      clientId: process.env.STRAVA_CLIENT_ID!,
-      clientSecret: process.env.STRAVA_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: 'read,activity:read_all,profile:read_all'
-        }
-      },
-      async profile(profile: any) {
-        // Try to find if this athlete already exists in our system via Integration table
-        const existingIntegration = await prisma.integration.findFirst({
-          where: {
-            provider: 'strava',
-            externalUserId: profile.id.toString()
-          },
-          include: { user: true }
-        })
+    // OAuth providers are disabled in single-user mode
+    ...(!isSingleUserMode
+      ? [
+          // @ts-expect-error - Types mismatch between next-auth versions
+          GoogleProvider.default({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            allowDangerousEmailAccountLinking: true
+          })
+        ]
+      : []),
+    ...(!isSingleUserMode
+      ? [
+          // @ts-expect-error - Types mismatch between next-auth versions
+          StravaProvider.default({
+            clientId: process.env.STRAVA_CLIENT_ID!,
+            clientSecret: process.env.STRAVA_CLIENT_SECRET!,
+            authorization: {
+              params: {
+                scope: 'read,activity:read_all,profile:read_all'
+              }
+            },
+            async profile(profile: any) {
+              // Try to find if this athlete already exists in our system via Integration table
+              const existingIntegration = await prisma.integration.findFirst({
+                where: {
+                  provider: 'strava',
+                  externalUserId: profile.id.toString()
+                },
+                include: { user: true }
+              })
 
-        const email =
-          existingIntegration?.user?.email || profile.email || `${profile.id}@strava.coachwatts.com`
+              const email =
+                existingIntegration?.user?.email ||
+                profile.email ||
+                `${profile.id}@strava.coachwatts.com`
 
-        console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
+              console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
 
-        return {
-          id: profile.id.toString(),
-          name: `${profile.firstname} ${profile.lastname}`,
-          email,
-          image: profile.profile
-        }
-      },
-      allowDangerousEmailAccountLinking: true
-    }),
-    {
-      id: 'intervals',
-      name: 'Intervals.icu',
-      type: 'oauth',
-      authorization: {
-        url: 'https://intervals.icu/oauth/authorize',
-        params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
-      },
-      token: 'https://intervals.icu/api/oauth/token',
-      userinfo: 'https://intervals.icu/api/v1/athlete/0',
-      clientId: process.env.INTERVALS_CLIENT_ID,
-      clientSecret: process.env.INTERVALS_CLIENT_SECRET,
-      client: {
-        token_endpoint_auth_method: 'client_secret_post'
-      },
-      allowDangerousEmailAccountLinking: true,
-      async profile(profile: any) {
-        // Similar lookup for Intervals.icu
-        const existingIntegration = await prisma.integration.findFirst({
-          where: {
-            provider: 'intervals',
-            externalUserId: profile.id.toString()
-          },
-          include: { user: true }
-        })
+              return {
+                id: profile.id.toString(),
+                name: `${profile.firstname} ${profile.lastname}`,
+                email,
+                image: profile.profile
+              }
+            },
+            allowDangerousEmailAccountLinking: true
+          }),
+          {
+            id: 'intervals',
+            name: 'Intervals.icu',
+            type: 'oauth',
+            authorization: {
+              url: 'https://intervals.icu/oauth/authorize',
+              params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
+            },
+            token: 'https://intervals.icu/api/oauth/token',
+            userinfo: 'https://intervals.icu/api/v1/athlete/0',
+            clientId: process.env.INTERVALS_CLIENT_ID,
+            clientSecret: process.env.INTERVALS_CLIENT_SECRET,
+            client: {
+              token_endpoint_auth_method: 'client_secret_post'
+            },
+            allowDangerousEmailAccountLinking: true,
+            async profile(profile: any) {
+              // Similar lookup for Intervals.icu
+              const existingIntegration = await prisma.integration.findFirst({
+                where: {
+                  provider: 'intervals',
+                  externalUserId: profile.id.toString()
+                },
+                include: { user: true }
+              })
 
-        const email =
-          existingIntegration?.user?.email ||
-          profile.email ||
-          `${profile.id}@intervals.coachwatts.com`
+              const email =
+                existingIntegration?.user?.email ||
+                profile.email ||
+                `${profile.id}@intervals.coachwatts.com`
 
-        console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
+              console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
 
-        return {
-          id: profile.id,
-          name: profile.name,
-          email,
-          image: profile.profile_medium || profile.profile
-        }
-      }
-    },
-    // Local credentials provider — only active when AUTH_BYPASS_USER is set.
-    // Useful for private/self-hosted instances without OAuth configured.
+              return {
+                id: profile.id,
+                name: profile.name,
+                email,
+                image: profile.profile_medium || profile.profile
+              }
+            }
+          }
+        ]
+      : []),
+    // Local credentials provider — active when AUTH_BYPASS_USER + AUTH_BYPASS_PASSWORD are set,
+    // or when NUXT_SINGLE_USER_MODE=true (which also requires these vars).
     // Set AUTH_BYPASS_USER=you@example.com and AUTH_BYPASS_PASSWORD=yourpassword in .env.
     // @ts-expect-error - Types mismatch between next-auth versions
     ...(process.env.AUTH_BYPASS_USER && process.env.AUTH_BYPASS_PASSWORD
@@ -262,7 +275,7 @@ export default NuxtAuthHandler({
                     trialEndsAt: farFuture
                   }
                 })
-                console.log(`[Auth] Created local bypass user: ${user.id}`)
+                console.log(`[Auth] Created local single-user: ${user.id}`)
               }
 
               return { id: user.id, email: user.email, name: user.name }

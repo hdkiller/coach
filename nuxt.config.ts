@@ -285,6 +285,7 @@ export default defineNuxtConfig({
       authBypassEnabled: !!process.env.AUTH_BYPASS_USER,
       authBypassUser: process.env.AUTH_BYPASS_USER || '',
       authBypassName: process.env.AUTH_BYPASS_NAME || '',
+      singleUserMode: process.env.NUXT_SINGLE_USER_MODE === 'true',
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
       stripeSupporterMonthlyPriceId: process.env.STRIPE_SUPPORTER_MONTHLY_PRICE_ID || '',
       stripeSupporterAnnualPriceId: process.env.STRIPE_SUPPORTER_ANNUAL_PRICE_ID || '',
