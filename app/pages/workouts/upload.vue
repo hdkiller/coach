@@ -36,7 +36,7 @@
           </div>
           <p class="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
             Upload .FIT, .GPX, or .TCX files — or drop a .ZIP archive containing multiple files.
-            We'll analyse the biometric streams and sync them to your performance history.
+            We'll analyze the biometric streams and sync them to your performance history.
           </p>
         </div>
 
