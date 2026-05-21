@@ -6,10 +6,10 @@ import path from 'node:path'
 
 const filesImportCommand = new Command('files')
   .description(
-    'Import FIT, GPX, TCX, or ZIP activity files from a local directory for a given user'
+    'Import FIT, GPX, or TCX activity files from a local directory for a given user'
   )
   .argument('<userIdentifier>', 'User ID or email')
-  .requiredOption('--dir <path>', 'Directory to scan for activity files (.fit, .gpx, .tcx, .zip)')
+  .requiredOption('--dir <path>', 'Directory to scan for activity files (.fit, .gpx, .tcx)')
   .option('--prod', 'Use production database')
   .option('--recursive', 'Recursively scan subdirectories', false)
   .option('--dry-run', 'List found files without importing', false)
