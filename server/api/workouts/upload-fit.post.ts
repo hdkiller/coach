@@ -71,6 +71,10 @@ defineRouteMeta({
 
 type ActivityFileType = 'FIT' | 'GPX' | 'TCX'
 
+const ZIP_MAX_ENTRIES = 100
+const ZIP_MAX_ENTRY_BYTES = 50 * 1024 * 1024 // 50 MB per entry
+const ZIP_MAX_TOTAL_BYTES = 200 * 1024 * 1024 // 200 MB total uncompressed
+
 function detectFileType(filename: string): ActivityFileType | null {
   const ext = filename.split('.').pop()?.toLowerCase()
   if (ext === 'fit') return 'FIT'
@@ -94,24 +98,48 @@ function extractActivityFiles(filename: string, data: Buffer): ActivityFileEntry
   const ext = filename.split('.').pop()?.toLowerCase()
 
   if (ext === 'zip') {
+    let zip: AdmZip
     try {
-      const zip = new AdmZip(data)
-      const entries: ActivityFileEntry[] = []
-      for (const entry of zip.getEntries()) {
-        if (entry.isDirectory) continue
-        const entryName = entry.entryName.split('/').pop() ?? entry.entryName
-        const fileType = detectFileType(entryName)
-        if (!fileType) continue
-        entries.push({
-          filename: entryName,
-          data: zip.readFile(entry) ?? Buffer.alloc(0),
-          fileType
-        })
-      }
-      return entries
+      zip = new AdmZip(data)
     } catch {
       return []
     }
+
+    const allEntries = zip.getEntries()
+    if (allEntries.length > ZIP_MAX_ENTRIES) {
+      throw new Error(`ZIP archive exceeds maximum of ${ZIP_MAX_ENTRIES} entries`)
+    }
+
+    const entries: ActivityFileEntry[] = []
+    let totalUncompressedBytes = 0
+
+    for (const entry of allEntries) {
+      if (entry.isDirectory) continue
+      if (entry.header.encripted) {
+        throw new Error('Encrypted ZIP archives are not supported')
+      }
+      const uncompressedSize = entry.header.size
+      if (uncompressedSize > ZIP_MAX_ENTRY_BYTES) {
+        throw new Error(
+          `ZIP entry "${entry.entryName}" exceeds maximum size of ${Math.round(ZIP_MAX_ENTRY_BYTES / 1024 / 1024)} MB`
+        )
+      }
+      totalUncompressedBytes += uncompressedSize
+      if (totalUncompressedBytes > ZIP_MAX_TOTAL_BYTES) {
+        throw new Error(
+          `ZIP archive total uncompressed size exceeds maximum of ${Math.round(ZIP_MAX_TOTAL_BYTES / 1024 / 1024)} MB`
+        )
+      }
+      const entryName = entry.entryName.split('/').pop() ?? entry.entryName
+      const fileType = detectFileType(entryName)
+      if (!fileType) continue
+      entries.push({
+        filename: entryName,
+        data: zip.readFile(entry) ?? Buffer.alloc(0),
+        fileType
+      })
+    }
+    return entries
   }
 
   const fileType = detectFileType(filename)
@@ -161,7 +189,14 @@ export default defineEventHandler(async (event) => {
     const uploadedFilename = filePart.filename || 'upload.fit'
     const activityName = nameParts[index] || nameParts[0] || undefined
 
-    const entries = extractActivityFiles(uploadedFilename, Buffer.from(filePart.data))
+    let entries: ActivityFileEntry[]
+    try {
+      entries = extractActivityFiles(uploadedFilename, Buffer.from(filePart.data))
+    } catch (error: any) {
+      results.failed++
+      results.errors.push(`${uploadedFilename}: ${error.message}`)
+      continue
+    }
     results.total += entries.length
 
     for (const entry of entries) {
