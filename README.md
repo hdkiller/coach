@@ -197,7 +197,7 @@ pnpm cw:cli users location list-missing
 
 ### 📂 Bulk Activity File Import
 
-You can import `.fit`, `.gpx`, and `.tcx` files (or `.zip` archives containing them) in two ways:
+You can import `.fit`, `.gpx`, and `.tcx` files in two ways:
 
 #### Via the web UI
 
