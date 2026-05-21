@@ -366,10 +366,10 @@ export default defineNuxtConfig({
           // Tailwind v4 Vite plugin doesn't emit CSS sourcemaps — suppress the spurious warning
           if (warning.message?.includes('Sourcemap is likely to be incorrect')) return
           warn(warning)
-        }
-      },
-      // Limit parallel file I/O workers to reduce peak heap during Docker builds
-      maxParallelFileOps: 10
+        },
+        // Limit parallel file I/O workers to reduce peak heap during Docker builds
+        maxParallelFileOps: 10
+      }
     }
   },
 
