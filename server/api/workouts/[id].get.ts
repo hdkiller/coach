@@ -1,5 +1,6 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
+import { workoutStreamRepository } from '../../utils/repositories/workoutStreamRepository'
 import {
   buildWorkoutAnalysisFacts,
   buildWorkoutAnalysisFactsV2
@@ -248,8 +249,11 @@ export default defineEventHandler(async (event) => {
     userProfile: userProfile || undefined
   })
 
+  const streams = await workoutStreamRepository.findByWorkoutId(workout.id)
+
   return {
     ...workout,
+    streams,
     analysisFacts,
     analysisFactsV2,
     llmUsageId: llmUsage?.id,
