@@ -916,6 +916,18 @@ function parseFiniteNumber(value: unknown): number | null {
   return null
 }
 
+const MIN_VALID_ALTITUDE_METERS = -500
+const MAX_VALID_ALTITUDE_METERS = 9000
+
+function isPlausibleAltitudeSample(sample: number): boolean {
+  return (
+    Number.isFinite(sample) &&
+    sample !== -500 &&
+    sample >= MIN_VALID_ALTITUDE_METERS &&
+    sample <= MAX_VALID_ALTITUDE_METERS
+  )
+}
+
 export function hasInvalidIntervalsElevationMetadata(
   activity: Record<string, any> | null
 ): boolean {
@@ -925,6 +937,8 @@ export function hasInvalidIntervalsElevationMetadata(
 
   // Intervals/Garmin uses -500 as an invalid altitude sentinel.
   if (minAltitude === -500 || maxAltitude === -500) return true
+  if (minAltitude !== null && !isPlausibleAltitudeSample(minAltitude)) return true
+  if (maxAltitude !== null && !isPlausibleAltitudeSample(maxAltitude)) return true
   if (minAltitude !== null && maxAltitude !== null && maxAltitude < minAltitude) return true
   return false
 }
@@ -936,7 +950,7 @@ export function computeElevationGainFromAltitudeStream(
 
   const cleaned: number[] = []
   for (const sample of altitude) {
-    if (typeof sample !== 'number' || !Number.isFinite(sample) || sample === -500) continue
+    if (typeof sample !== 'number' || !isPlausibleAltitudeSample(sample)) continue
     cleaned.push(sample)
   }
 

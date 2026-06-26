@@ -4,7 +4,9 @@ import {
   normalizeIntervalsPlannedWorkout,
   normalizeIntervalsWorkout,
   cleanIntervalsDescription,
-  normalizeIntervalsWellness
+  normalizeIntervalsWellness,
+  hasInvalidIntervalsElevationMetadata,
+  computeElevationGainFromAltitudeStream
 } from './intervals'
 
 describe('Intervals.icu Data Normalization', () => {
@@ -449,5 +451,43 @@ It has multiple lines.
         expect(result.readiness).toBe(9) // 85 -> 8.5 -> 9
       })
     })
+  })
+})
+
+describe('Intervals elevation validation', () => {
+  it('treats absurd altitude metadata as invalid', () => {
+    expect(
+      hasInvalidIntervalsElevationMetadata({
+        min_altitude: 19963.8,
+        max_altitude: 20019.2,
+        total_elevation_gain: 245
+      })
+    ).toBe(true)
+  })
+
+  it('ignores elevation gain metadata when altitude bounds are invalid', () => {
+    const result = normalizeIntervalsWorkout(
+      {
+        id: 'activity-1',
+        start_date: '2026-06-08T10:09:42Z',
+        name: 'Flat Run',
+        type: 'Run',
+        moving_time: 3600,
+        total_elevation_gain: 245,
+        min_altitude: 19963.8,
+        max_altitude: 20019.2
+      } as any,
+      'user-1'
+    )
+
+    expect(result.elevationGain).toBeNull()
+  })
+
+  it('returns null stream gain when altitude samples are outside plausible bounds', () => {
+    expect(computeElevationGainFromAltitudeStream([19963.8, 19980.1, 20019.2, 19990.4])).toBeNull()
+  })
+
+  it('computes gain from plausible altitude samples only', () => {
+    expect(computeElevationGainFromAltitudeStream([100, 105, 103, 110])).toBe(12)
   })
 })

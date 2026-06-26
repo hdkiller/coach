@@ -89,6 +89,10 @@ backfillElevationGainCommand
           AND (
             COALESCE(w."rawJson"->>'min_altitude','') = '-500'
             OR COALESCE(w."rawJson"->>'max_altitude','') = '-500'
+            OR COALESCE((w."rawJson"->>'min_altitude')::double precision, 0) > 9000
+            OR COALESCE((w."rawJson"->>'max_altitude')::double precision, 0) > 9000
+            OR COALESCE((w."rawJson"->>'min_altitude')::double precision, 0) < -500
+            OR COALESCE((w."rawJson"->>'max_altitude')::double precision, 0) < -500
           )
           ${userFilterSql}
         ORDER BY w.date DESC
