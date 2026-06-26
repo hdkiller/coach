@@ -197,7 +197,7 @@ Important implication:
 
 ## Recommended Next Moves In A Fresh Context
 
-1. Deploy the local commits for sedentary rest-day calories and extended Intervals altitude validation, then refresh affected nutrition rows and close `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` and `c5e9c90d-195e-4cad-aa8e-49f9148bfe57`.
-2. Resume the activity/rendering cluster, including `65aa4f0a-9f0d-450d-ac81-83dcd14cea4c` visibility follow-up folded under `d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34`.
+1. Deploy the local commits for calendar fetch bounds, sedentary rest-day calories, and extended Intervals altitude validation; then close `65aa4f0a-9f0d-450d-ac81-83dcd14cea4c`, `605032e8-4bfc-4b2d-bc4f-fdfd6515638d`, and `c5e9c90d-195e-4cad-aa8e-49f9148bfe57`.
+2. Resume the activity/rendering cluster (`d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34`) for zero-step structured-workout resilience after the calendar-range fix ships.
 3. Keep `221c609f-ae1c-4020-b4cc-d61d059d39e9` out of scope until workout-generation and publish-trigger work is back in scope.
 4. Keep all new feature requests out of the engineering bug queue and record them in [support-feature-request-tracker-2026-06-25.md](./support-feature-request-tracker-2026-06-25.md).

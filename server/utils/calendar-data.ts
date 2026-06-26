@@ -1,5 +1,11 @@
 import { prisma } from './db'
-import { getUserLocalDate, getTimestampDateKey, getStartOfDayUTC, getEndOfDayUTC } from './date'
+import {
+  getUserLocalDate,
+  getTimestampDateKey,
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC,
+  formatDateUTC
+} from './date'
 import { nutritionRepository } from './repositories/nutritionRepository'
 import { wellnessRepository } from './repositories/wellnessRepository'
 import { calendarNoteRepository } from './repositories/calendarNoteRepository'
@@ -41,8 +47,10 @@ export async function getCalendarDataForUser(
   const nutritionEnabled = includeNutrition && (user?.nutritionTrackingEnabled ?? true)
   const today = getUserLocalDate(timezone)
 
-  const rangeStart = getStartOfDayUTC(timezone, startDate)
-  const rangeEnd = getEndOfDayUTC(timezone, endDate)
+  // Calendar grid dates are UTC calendar labels; interpret them as viewer-local days
+  // so late-day workouts on the last visible grid date are not dropped from the fetch range.
+  const rangeStart = getStartOfLocalDateUTC(timezone, formatDateUTC(calendarStart, 'yyyy-MM-dd'))
+  const rangeEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(calendarEnd, 'yyyy-MM-dd'))
   const calendarStart = new Date(
     Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())
   )

@@ -4,7 +4,11 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { getStartOfDayUTC, getEndOfDayUTC, formatDateUTC } from '../../server/utils/date'
+import {
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC,
+  formatDateUTC
+} from '../../server/utils/date'
 
 const calendarCommand = new Command('calendar')
   .description('Debug Calendar API logic for a user/date')
@@ -85,9 +89,8 @@ const calendarCommand = new Command('calendar')
       const startDate = new Date(startDateStr)
       const endDate = new Date(endDateStr)
 
-      // Replicate API logic
-      const rangeStart = getStartOfDayUTC(timezone, startDate)
-      const rangeEnd = getEndOfDayUTC(timezone, endDate)
+      const rangeStart = getStartOfLocalDateUTC(timezone, formatDateUTC(startDate, 'yyyy-MM-dd'))
+      const rangeEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(endDate, 'yyyy-MM-dd'))
 
       console.log(chalk.cyan('\n=== Calendar Range ==='))
       console.log(`Input: ${startDateStr} to ${endDateStr}`)

@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   buildZonedDateTimeFromUtcDate,
   getTimestampDateKey,
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC,
+  formatDateUTC,
   parseDateTimeInTimezone
 } from '../../../../server/utils/date'
 
@@ -75,6 +78,28 @@ describe('Date Utilities', () => {
       const result = getTimestampDateKey(new Date('2026-02-16T18:55:11.000Z'), 'Australia/Sydney')
 
       expect(result).toBe('2026-02-17')
+    })
+  })
+
+  describe('calendar grid local date bounds', () => {
+    it('includes late-morning Pacific workouts on the last visible May grid day', () => {
+      const timezone = 'America/Los_Angeles'
+      const calendarEnd = new Date(Date.UTC(2026, 4, 31))
+      const rangeEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(calendarEnd, 'yyyy-MM-dd'))
+      const workoutDate = new Date('2026-05-31T14:06:27.000Z')
+
+      expect(workoutDate.getTime()).toBeLessThanOrEqual(rangeEnd.getTime())
+    })
+
+    it('starts the fetch range at the local start of the first visible grid day', () => {
+      const timezone = 'America/Los_Angeles'
+      const calendarStart = new Date(Date.UTC(2026, 3, 27))
+      const rangeStart = getStartOfLocalDateUTC(
+        timezone,
+        formatDateUTC(calendarStart, 'yyyy-MM-dd')
+      )
+
+      expect(rangeStart.toISOString()).toBe('2026-04-27T07:00:00.000Z')
     })
   })
 
