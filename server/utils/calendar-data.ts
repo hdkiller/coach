@@ -49,14 +49,14 @@ export async function getCalendarDataForUser(
 
   // Calendar grid dates are UTC calendar labels; interpret them as viewer-local days
   // so late-day workouts on the last visible grid date are not dropped from the fetch range.
-  const rangeStart = getStartOfLocalDateUTC(timezone, formatDateUTC(calendarStart, 'yyyy-MM-dd'))
-  const rangeEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(calendarEnd, 'yyyy-MM-dd'))
   const calendarStart = new Date(
     Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())
   )
   const calendarEnd = new Date(
     Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
   )
+  const rangeStart = getStartOfLocalDateUTC(timezone, formatDateUTC(calendarStart, 'yyyy-MM-dd'))
+  const rangeEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(calendarEnd, 'yyyy-MM-dd'))
 
   const nutritionByDate = new Map<string, any>()
   if (nutritionEnabled) {
