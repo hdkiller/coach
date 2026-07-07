@@ -1,16 +1,13 @@
 import { ref, computed, watch, getCurrentScope, onScopeDispose } from 'vue'
+import {
+  ACTIVE_STATUSES,
+  mergeActiveRunsFromApi,
+  pruneRunsForCurrentUser,
+  type TriggerRun
+} from '../utils/user-runs-client'
 
-export interface TriggerRun {
-  id: string
-  taskIdentifier: string
-  status: string
-  startedAt: string
-  finishedAt?: string
-  output?: any
-  error?: any
-  isTest?: boolean
-  tags?: string[]
-}
+export type { TriggerRun } from '../utils/user-runs-client'
+export { ACTIVE_STATUSES } from '../utils/user-runs-client'
 
 export interface RealtimeDomainEvent {
   type: 'domain_event'
@@ -36,18 +33,21 @@ let pingInterval: NodeJS.Timeout | null = null
 const realtimeListeners = new Set<(event: RealtimeDomainEvent) => void>()
 let lastPollAt = 0
 
-export const ACTIVE_STATUSES = [
-  'EXECUTING',
-  'QUEUED',
-  'WAITING_FOR_DEPLOY',
-  'REATTEMPTING',
-  'FROZEN',
-  'PENDING_VERSION',
-  'DELAYED'
-]
-
 const FAST_POLL_INTERVAL_MS = 5000
 const IDLE_POLL_INTERVAL_MS = 15000
+
+let trackedUserId: string | null = null
+
+function getSessionUserId(session: { user?: { id?: string } } | null | undefined): string | null {
+  const id = session?.user?.id
+  return typeof id === 'string' && id.length > 0 ? id : null
+}
+
+function resetRunsForIdentityChange() {
+  runs.value = []
+  initPromise = null
+  cleanupUserRunsConnection()
+}
 
 function cleanupUserRunsConnection() {
   if (ws) {
@@ -86,41 +86,9 @@ export function useUserRuns() {
     lastPollAt = Date.now()
     try {
       const data = (await ($fetch as any)('/api/runs/active')) as TriggerRun[]
-
-      // Start with a map of existing runs to facilitate merging
-      const mergedRunsMap = new Map<string, TriggerRun>()
-      runs.value.forEach((r) => mergedRunsMap.set(r.id, r))
-
-      // Update/Add with new data from API
-      data.forEach((run: any) => {
-        const existing = mergedRunsMap.get(run.id)
-
-        if (existing) {
-          // Check existing runs for any local final states we want to preserve
-          // (e.g. if API is slightly behind and says EXECUTING but we know it's COMPLETED via WS)
-          const isLocalFinal = ['COMPLETED', 'FAILED', 'CANCELED', 'TIMED_OUT'].includes(
-            existing.status
-          )
-          const isApiFinal = ['COMPLETED', 'FAILED', 'CANCELED', 'TIMED_OUT'].includes(run.status)
-
-          if (isLocalFinal && !isApiFinal) {
-            // Overwrite API run status with local final status
-            mergedRunsMap.set(run.id, { ...run, ...existing, status: existing.status })
-          } else {
-            // Regular update
-            mergedRunsMap.set(run.id, { ...existing, ...run })
-          }
-        } else {
-          // New run found in API
-          mergedRunsMap.set(run.id, run)
-        }
-      })
-
-      const finalRuns = Array.from(mergedRunsMap.values())
-      finalRuns.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-
-      // Keep only the last 50 runs to avoid memory bloat
-      runs.value = finalRuns.slice(0, 50)
+      const userId = getSessionUserId(session.value)
+      const mergedRuns = mergeActiveRunsFromApi(runs.value, data)
+      runs.value = pruneRunsForCurrentUser(mergedRuns, userId)
     } catch (e) {
       // Failed to fetch active runs
     } finally {
@@ -241,6 +209,12 @@ export function useUserRuns() {
   }
 
   const handleRunUpdate = (update: any) => {
+    const userId = getSessionUserId(session.value)
+    const updateTags = Array.isArray(update.tags) ? update.tags : undefined
+    if (updateTags && updateTags.length > 0 && userId && !updateTags.includes(`user:${userId}`)) {
+      return
+    }
+
     const existingIndex = runs.value.findIndex((r) => r.id === update.runId)
     const existing = existingIndex !== -1 ? runs.value[existingIndex] : null
 
@@ -268,10 +242,9 @@ export function useUserRuns() {
       newRuns[existingIndex] = updatedRun
     } else {
       newRuns.unshift(updatedRun)
-      // Re-sort if it's a new run to ensure correct order
-      newRuns.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
     }
-    runs.value = newRuns.slice(0, 50)
+
+    runs.value = pruneRunsForCurrentUser(newRuns, userId)
   }
 
   const cancelRun = async (runId: string) => {
@@ -294,20 +267,17 @@ export function useUserRuns() {
 
   if (import.meta.client) {
     watch(
-      () => (session.value?.user as any)?.id,
+      () => getSessionUserId(session.value),
       (newId) => {
         if (newId) {
-          init()
-        } else {
-          if (ws) {
-            ws.close()
-            ws = null
+          if (trackedUserId !== newId) {
+            trackedUserId = newId
+            resetRunsForIdentityChange()
+            void init()
           }
-          isConnected.value = false
-          initPromise = null
-          stopPolling()
-          stopPing()
-          runs.value = []
+        } else {
+          trackedUserId = null
+          resetRunsForIdentityChange()
         }
       }
     )
