@@ -1,6 +1,6 @@
 # Workout Details Generation — Issue Tracker
 
-Last reviewed: 2026-07-07 (implementation in progress — see PRs #214–#220)
+Last reviewed: 2026-07-07 (implementation in progress — see PRs #214–#221)
 
 This tracker documents bugs, UX gaps, and architectural concerns found during a code review of **planned workout structure generation** (the AI pipeline that produces interval steps, strength blocks, coach instructions, and related metadata for the Planned Workout Details page).
 
@@ -81,10 +81,10 @@ Anchor support tickets: `0d62fa04-884d-4fcd-a328-2226f2eb4ad5`, `a232e0ab-245e-4
 | [012](./012-ai-in-triggers-architecture-rethink.md)          | Rethink AI-in-triggers pattern and timeout strategy             | High     | Architecture | Open                                                                |
 | [013](./013-chat-duplicate-structure-generation-triggers.md) | Chat creates multiple structure generation jobs for one workout | High     | Bug          | In Progress ([PR #218](https://github.com/hdkiller/coach/pull/218)) |
 | [014](./014-idempotent-create-skips-structure-retrigger.md)  | Idempotent create replay never re-enqueues structure            | High     | Bug          | In Progress ([PR #219](https://github.com/hdkiller/coach/pull/219)) |
-| [015](./015-approval-turn-duplicate-workouts.md)             | Approval turns / double-submit create duplicate workouts        | Critical | Bug          | Open                                                                |
+| [015](./015-approval-turn-duplicate-workouts.md)             | Approval turns / double-submit create duplicate workouts        | Critical | Bug          | In Progress ([PR #221](https://github.com/hdkiller/coach/pull/221)) |
 | [016](./016-chat-card-infinite-poll-without-run-id.md)       | Chat card polls forever when enqueue fails without run_id       | Medium   | Bug          | In Progress ([PR #219](https://github.com/hdkiller/coach/pull/219)) |
 | [017](./017-modify-plan-structure-planservice-crash.md)      | `modify_training_plan_structure` crashes (missing import)       | Critical | Bug          | In Progress ([PR #216](https://github.com/hdkiller/coach/pull/216)) |
-| [018](./018-structure-tools-bypass-approval.md)              | `adjust` / `generate_planned_workout_structure` bypass approval | High     | Bug          | Open                                                                |
+| [018](./018-structure-tools-bypass-approval.md)              | `adjust` / `generate_planned_workout_structure` bypass approval | High     | Bug          | In Progress ([PR #221](https://github.com/hdkiller/coach/pull/221)) |
 | [019](./019-chat-ui-ignores-strength-blocks.md)              | Chat UI ignores blocks-only strength structures                 | Medium   | Bug          | Open                                                                |
 | [020](./020-intervals-publish-before-structure-ready.md)     | Intervals shell published before structure exists               | Medium   | Bug          | Open                                                                |
 | [021](./021-recommend-workout-stub-data.md)                  | `recommend_workout` returns hardcoded stub data                 | Medium   | Bug          | Open                                                                |
