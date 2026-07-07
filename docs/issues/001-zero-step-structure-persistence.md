@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Critical  
 **Area:** `ai`, `workouts`, `backend`  
-**Status:** Open
+**Status:** In Progress — [PR #214](https://github.com/hdkiller/coach/pull/214) (+ `assertRenderableStructure` for [001](./001-zero-step-structure-persistence.md))
 
 ## Description
 

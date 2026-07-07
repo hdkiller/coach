@@ -65,46 +65,46 @@ Anchor support tickets: `0d62fa04-884d-4fcd-a328-2226f2eb4ad5`, `a232e0ab-245e-4
 
 ## Issues
 
-| ID | Title | Priority | Type | Status |
-|----|-------|----------|------|--------|
-| [001](./001-zero-step-structure-persistence.md) | Empty structures can persist as successful generation | Critical | Bug | Open |
-| [002](./002-missing-planned-workout-run-tags.md) | Manual/API triggers missing `planned-workout:` run tags | High | Bug | Open |
-| [003](./003-free-tier-skip-reports-success.md) | Free-tier skip returns `success: true` → misleading toast | Medium | Bug | Open |
-| [004](./004-no-task-failure-handling.md) | No `onTaskFailed` handler — stuck "Generating..." state | High | Bug | Open |
-| [005](./005-page-reload-loses-generation-state.md) | Page reload does not restore in-progress generation UI | Medium | Bug | Open |
-| [006](./006-ui-timeout-messaging-mismatch.md) | UI says "30 seconds" but task can take up to ~180s | Low | Bug | Open |
-| [007](./007-workout-messages-no-ai-timeout.md) | `generate-workout-messages` has no explicit AI timeout | Medium | Bug | Open |
-| [008](./008-chat-silent-trigger-failures.md) | Chat tools swallow structure trigger failures | High | Bug | Open |
-| [009](./009-double-quota-consumption.md) | Quota checked at API and again inside trigger | Medium | Maintenance | Open |
-| [010](./010-batch-generation-loading-state.md) | Batch week generation clears loading before jobs finish | Medium | Bug | Open |
-| [011](./011-strength-blocks-validation-gap.md) | Final validation ignores `blocks`-only strength structures | Medium | Bug | Open |
-| [012](./012-ai-in-triggers-architecture-rethink.md) | Rethink AI-in-triggers pattern and timeout strategy | High | Architecture | Open |
-| [013](./013-chat-duplicate-structure-generation-triggers.md) | Chat creates multiple structure generation jobs for one workout | High | Bug | Open |
-| [014](./014-idempotent-create-skips-structure-retrigger.md) | Idempotent create replay never re-enqueues structure | High | Bug | Open |
-| [015](./015-approval-turn-duplicate-workouts.md) | Approval turns / double-submit create duplicate workouts | Critical | Bug | Open |
-| [016](./016-chat-card-infinite-poll-without-run-id.md) | Chat card polls forever when enqueue fails without run_id | Medium | Bug | Open |
-| [017](./017-modify-plan-structure-planservice-crash.md) | `modify_training_plan_structure` crashes (missing import) | Critical | Bug | Open |
-| [018](./018-structure-tools-bypass-approval.md) | `adjust` / `generate_planned_workout_structure` bypass approval | High | Bug | Open |
-| [019](./019-chat-ui-ignores-strength-blocks.md) | Chat UI ignores blocks-only strength structures | Medium | Bug | Open |
-| [020](./020-intervals-publish-before-structure-ready.md) | Intervals shell published before structure exists | Medium | Bug | Open |
-| [021](./021-recommend-workout-stub-data.md) | `recommend_workout` returns hardcoded stub data | Medium | Bug | Open |
-| [022](./022-patch-vs-async-generation-race.md) | Patch/set vs async generate race (last writer wins) | Medium | Bug | Open |
-| [023](./023-structure-tools-idempotency-gaps.md) | `generate_` / `adjust_` / `set_` tools skip chat idempotency | Medium | Bug | Open |
-| [024](./024-chat-card-wrong-workout-fallback.md) | Chat card fuzzy ID fallback attaches wrong workout | Medium | Bug | Open |
-| [025](./025-planned-workout-details-context-bloat.md) | `get_planned_workout_details` bloats LLM context | Low | Bug | Open |
-| [026](./026-structure-tools-missing-preflight.md) | Generate/adjust tools skip sync workout existence check | Medium | Bug | Open |
-| [027](./027-cross-user-runs-on-identity-switch.md) | Monitor shows other user's runs after act-as / impersonation | Critical | Bug | Open |
-| [028](./028-trigger-monitor-stale-run-merge.md) | Client merge never evicts stale completed runs | Medium | Bug | Open |
-| [029](./029-triggers-missing-user-tags.md) | Some triggers omit required `user:{userId}` tag | High | Bug | Open |
-| [030](./030-library-run-tags-template-owner.md) | Library jobs tag template owner, not session actor | Medium | Bug | Open |
-| [031](./031-websocket-not-reauth-on-identity-switch.md) | WebSocket not re-authenticated on identity switch | Medium | Bug | Open |
-| [032](./032-trigger-tag-taxonomy-inconsistent.md) | Inconsistent secondary tags for structure jobs | Medium | Maintenance | Open |
-| [033](./033-retire-legacy-structure-generator.md) | Retire `legacy_json` generator for ride/run/swim | Medium | Performance | Open |
-| [034](./034-deduplicate-structure-prompt-targeting.md) | Deduplicate targeting instructions in structure prompts | Medium | Performance | Open |
-| [035](./035-remove-unused-streams-from-structure-context.md) | Remove unused stream fetch from structure context | Low | Performance | Open |
-| [036](./036-bound-aicontext-in-structure-generation.md) | Bound `aiContext` in structure-generation prompts | Medium | Performance | Open |
-| [037](./037-structure-generation-lightweight-retries.md) | Lightweight corrective retries for structure generation | High | Performance | Open |
-| [038](./038-disable-thinking-flash-structure-generation.md) | Disable/minimize Flash thinking for structure generation | Medium | Performance | Open |
+| ID                                                           | Title                                                           | Priority | Type         | Status                                                              |
+| ------------------------------------------------------------ | --------------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------- |
+| [001](./001-zero-step-structure-persistence.md)              | Empty structures can persist as successful generation           | Critical | Bug          | Open                                                                |
+| [002](./002-missing-planned-workout-run-tags.md)             | Manual/API triggers missing `planned-workout:` run tags         | High     | Bug          | Open                                                                |
+| [003](./003-free-tier-skip-reports-success.md)               | Free-tier skip returns `success: true` → misleading toast       | Medium   | Bug          | Open                                                                |
+| [004](./004-no-task-failure-handling.md)                     | No `onTaskFailed` handler — stuck "Generating..." state         | High     | Bug          | Open                                                                |
+| [005](./005-page-reload-loses-generation-state.md)           | Page reload does not restore in-progress generation UI          | Medium   | Bug          | Open                                                                |
+| [006](./006-ui-timeout-messaging-mismatch.md)                | UI says "30 seconds" but task can take up to ~180s              | Low      | Bug          | Open                                                                |
+| [007](./007-workout-messages-no-ai-timeout.md)               | `generate-workout-messages` has no explicit AI timeout          | Medium   | Bug          | Open                                                                |
+| [008](./008-chat-silent-trigger-failures.md)                 | Chat tools swallow structure trigger failures                   | High     | Bug          | Open                                                                |
+| [009](./009-double-quota-consumption.md)                     | Quota checked at API and again inside trigger                   | Medium   | Maintenance  | Open                                                                |
+| [010](./010-batch-generation-loading-state.md)               | Batch week generation clears loading before jobs finish         | Medium   | Bug          | Open                                                                |
+| [011](./011-strength-blocks-validation-gap.md)               | Final validation ignores `blocks`-only strength structures      | Medium   | Bug          | Open                                                                |
+| [012](./012-ai-in-triggers-architecture-rethink.md)          | Rethink AI-in-triggers pattern and timeout strategy             | High     | Architecture | Open                                                                |
+| [013](./013-chat-duplicate-structure-generation-triggers.md) | Chat creates multiple structure generation jobs for one workout | High     | Bug          | Open                                                                |
+| [014](./014-idempotent-create-skips-structure-retrigger.md)  | Idempotent create replay never re-enqueues structure            | High     | Bug          | Open                                                                |
+| [015](./015-approval-turn-duplicate-workouts.md)             | Approval turns / double-submit create duplicate workouts        | Critical | Bug          | Open                                                                |
+| [016](./016-chat-card-infinite-poll-without-run-id.md)       | Chat card polls forever when enqueue fails without run_id       | Medium   | Bug          | Open                                                                |
+| [017](./017-modify-plan-structure-planservice-crash.md)      | `modify_training_plan_structure` crashes (missing import)       | Critical | Bug          | Open                                                                |
+| [018](./018-structure-tools-bypass-approval.md)              | `adjust` / `generate_planned_workout_structure` bypass approval | High     | Bug          | Open                                                                |
+| [019](./019-chat-ui-ignores-strength-blocks.md)              | Chat UI ignores blocks-only strength structures                 | Medium   | Bug          | Open                                                                |
+| [020](./020-intervals-publish-before-structure-ready.md)     | Intervals shell published before structure exists               | Medium   | Bug          | Open                                                                |
+| [021](./021-recommend-workout-stub-data.md)                  | `recommend_workout` returns hardcoded stub data                 | Medium   | Bug          | Open                                                                |
+| [022](./022-patch-vs-async-generation-race.md)               | Patch/set vs async generate race (last writer wins)             | Medium   | Bug          | Open                                                                |
+| [023](./023-structure-tools-idempotency-gaps.md)             | `generate_` / `adjust_` / `set_` tools skip chat idempotency    | Medium   | Bug          | Open                                                                |
+| [024](./024-chat-card-wrong-workout-fallback.md)             | Chat card fuzzy ID fallback attaches wrong workout              | Medium   | Bug          | Open                                                                |
+| [025](./025-planned-workout-details-context-bloat.md)        | `get_planned_workout_details` bloats LLM context                | Low      | Bug          | Open                                                                |
+| [026](./026-structure-tools-missing-preflight.md)            | Generate/adjust tools skip sync workout existence check         | Medium   | Bug          | Open                                                                |
+| [027](./027-cross-user-runs-on-identity-switch.md)           | Monitor shows other user's runs after act-as / impersonation    | Critical | Bug          | Open                                                                |
+| [028](./028-trigger-monitor-stale-run-merge.md)              | Client merge never evicts stale completed runs                  | Medium   | Bug          | Open                                                                |
+| [029](./029-triggers-missing-user-tags.md)                   | Some triggers omit required `user:{userId}` tag                 | High     | Bug          | Open                                                                |
+| [030](./030-library-run-tags-template-owner.md)              | Library jobs tag template owner, not session actor              | Medium   | Bug          | Open                                                                |
+| [031](./031-websocket-not-reauth-on-identity-switch.md)      | WebSocket not re-authenticated on identity switch               | Medium   | Bug          | Open                                                                |
+| [032](./032-trigger-tag-taxonomy-inconsistent.md)            | Inconsistent secondary tags for structure jobs                  | Medium   | Maintenance  | Open                                                                |
+| [033](./033-retire-legacy-structure-generator.md)            | Retire `legacy_json` generator for ride/run/swim                | Medium   | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
+| [034](./034-deduplicate-structure-prompt-targeting.md)       | Deduplicate targeting instructions in structure prompts         | Medium   | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
+| [035](./035-remove-unused-streams-from-structure-context.md) | Remove unused stream fetch from structure context               | Low      | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
+| [036](./036-bound-aicontext-in-structure-generation.md)      | Bound `aiContext` in structure-generation prompts               | Medium   | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
+| [037](./037-structure-generation-lightweight-retries.md)     | Lightweight corrective retries for structure generation         | High     | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
+| [038](./038-disable-thinking-flash-structure-generation.md)  | Disable/minimize Flash thinking for structure generation        | Medium   | Performance  | In Progress ([PR #214](https://github.com/hdkiller/coach/pull/214)) |
 
 ## Structure Generation Speed & Prompt — Issue Clusters
 
@@ -153,12 +153,12 @@ Reports of “seeing other users' triggers” in the in-app monitor are **usuall
 
 ### How ownership is enforced (today)
 
-| Layer | Behavior |
-|-------|----------|
-| `/api/runs/active` | Lists runs filtered by `tags: [user:{sessionUserId}]` |
-| `/api/runs/[id]` GET/DELETE | 404 unless run.tags includes `user:{sessionUserId}` |
-| WebSocket `run_update` | Routed via `sendToUser(userId, …)` per peer auth |
-| **Client `useUserRuns`** | **Does not re-check tags** on merge/WS update ([027](./027-cross-user-runs-on-identity-switch.md)) |
+| Layer                       | Behavior                                                                                           |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| `/api/runs/active`          | Lists runs filtered by `tags: [user:{sessionUserId}]`                                              |
+| `/api/runs/[id]` GET/DELETE | 404 unless run.tags includes `user:{sessionUserId}`                                                |
+| WebSocket `run_update`      | Routed via `sendToUser(userId, …)` per peer auth                                                   |
+| **Client `useUserRuns`**    | **Does not re-check tags** on merge/WS update ([027](./027-cross-user-runs-on-identity-switch.md)) |
 
 ## Chat + Structure Generation — Issue Clusters
 
@@ -205,19 +205,19 @@ These groups help explain user-reported symptoms like “multiple workout detail
 
 ## Key Files
 
-| Area | Path |
-|------|------|
-| Main generation task | `trigger/generate-structured-workout.ts` |
-| Adjustment task | `trigger/adjust-structured-workout.ts` |
-| AI wrapper | `server/utils/gemini.ts` |
-| Manual trigger API | `server/api/workouts/planned/[id]/generate-structure.post.ts` |
-| Chat planning tools | `server/utils/ai-tools/planning.ts` |
-| Details page UI | `app/pages/workouts/planned/[id]/index.vue` |
-| Run monitoring | `app/composables/useUserRuns.ts`, `app/components/dashboard/TriggerMonitor.vue` |
-| Run API / ownership | `server/api/runs/active.get.ts`, `server/api/runs/[id].get.ts` |
-| Run WS publish | `server/utils/task-run-events.ts`, `server/utils/ws-state.ts` |
-| Session / act-as | `server/utils/session.ts` |
-| Chat turn timeouts | `server/utils/chat/turns.ts`, `server/utils/chat/turn-executor.ts` |
+| Area                 | Path                                                                            |
+| -------------------- | ------------------------------------------------------------------------------- |
+| Main generation task | `trigger/generate-structured-workout.ts`                                        |
+| Adjustment task      | `trigger/adjust-structured-workout.ts`                                          |
+| AI wrapper           | `server/utils/gemini.ts`                                                        |
+| Manual trigger API   | `server/api/workouts/planned/[id]/generate-structure.post.ts`                   |
+| Chat planning tools  | `server/utils/ai-tools/planning.ts`                                             |
+| Details page UI      | `app/pages/workouts/planned/[id]/index.vue`                                     |
+| Run monitoring       | `app/composables/useUserRuns.ts`, `app/components/dashboard/TriggerMonitor.vue` |
+| Run API / ownership  | `server/api/runs/active.get.ts`, `server/api/runs/[id].get.ts`                  |
+| Run WS publish       | `server/utils/task-run-events.ts`, `server/utils/ws-state.ts`                   |
+| Session / act-as     | `server/utils/session.ts`                                                       |
+| Chat turn timeouts   | `server/utils/chat/turns.ts`, `server/utils/chat/turn-executor.ts`              |
 
 ## Chat / Trigger Timeout Notes
 
