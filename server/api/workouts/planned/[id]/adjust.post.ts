@@ -3,6 +3,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { z } from 'zod'
 import { getServerSession } from '../../../../utils/session'
 import { publishTaskRunStartedEvent } from '../../../../utils/task-run-events'
+import { structureGenerationRunTags } from '../../../../utils/trigger-run-tags'
 
 const adjustSchema = z.object({
   durationMinutes: z.number().optional(),
@@ -31,6 +32,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
+  const userId = (session.user as any).id
+  const tags = structureGenerationRunTags({
+    userId,
+    plannedWorkoutId: workout.id,
+    source: 'api'
+  })
   const handle = await tasks.trigger(
     'adjust-structured-workout',
     {
@@ -38,12 +45,12 @@ export default defineEventHandler(async (event) => {
       adjustments
     },
     {
-      concurrencyKey: (session.user as any).id,
-      tags: [`user:${(session.user as any).id}`]
+      concurrencyKey: userId,
+      tags
     }
   )
 
-  await publishTaskRunStartedEvent((session.user as any).id, 'adjust-structured-workout', handle)
+  await publishTaskRunStartedEvent(userId, 'adjust-structured-workout', handle, { tags })
 
   return { success: true, jobId: handle.id }
 })

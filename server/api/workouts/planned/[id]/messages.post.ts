@@ -3,6 +3,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { z } from 'zod'
 import { getServerSession } from '../../../../utils/session'
 import { publishTaskRunStartedEvent } from '../../../../utils/task-run-events'
+import { structureGenerationRunTags } from '../../../../utils/trigger-run-tags'
 
 const messageRequestSchema = z.object({
   tone: z.string().optional(),
@@ -30,6 +31,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
+  const userId = (session.user as any).id
+  const tags = structureGenerationRunTags({
+    userId,
+    plannedWorkoutId: workout.id,
+    source: 'api'
+  })
   const handle = await tasks.trigger(
     'generate-workout-messages',
     {
@@ -38,11 +45,11 @@ export default defineEventHandler(async (event) => {
       context
     },
     {
-      tags: [`user:${(session.user as any).id}`]
+      tags
     }
   )
 
-  await publishTaskRunStartedEvent((session.user as any).id, 'generate-workout-messages', handle)
+  await publishTaskRunStartedEvent(userId, 'generate-workout-messages', handle, { tags })
 
   return { success: true, jobId: handle.id }
 })

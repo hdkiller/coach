@@ -114,6 +114,19 @@ Cross-instance task monitor updates depend on `REDIS_URL`.
 - With `REDIS_URL`, task-start and other bus messages can reach browser sockets connected to other app instances.
 - Without `REDIS_URL`, the monitor still works through local delivery and polling, but you should not expect full cross-instance realtime behavior.
 
+### Run Tags
+
+Every user-scoped Trigger.dev run should include a `user:{userId}` tag so `/api/runs/active`, ownership checks, and the trigger monitor can filter correctly.
+
+Use the shared helpers in `server/utils/trigger-run-tags.ts`:
+
+- `buildUserRunTags(userId, extraTags?)` — base tag for any user-initiated job
+- `structureGenerationRunTags({ userId, plannedWorkoutId?, workoutTemplateId?, source? })` — structure generation and related tasks
+
+Structure jobs should always include either `planned-workout:{id}` or `workout-template:{id}` so the Planned Workout Details page and Trigger Monitor can correlate runs to a specific entity.
+
+Pass the same tags to both `tasks.trigger(...)` and `publishTaskRunStartedEvent(...)` when the route publishes a run-start event.
+
 ### Troubleshooting
 
 - **Task not appearing immediately?** Confirm the route publishes a task-start event after `tasks.trigger(...)`. If not, add `publishTaskRunStartedEvent(...)`.

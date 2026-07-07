@@ -16,6 +16,7 @@ import { getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { TRAINING_BLOCK_TYPES, TRAINING_BLOCK_FOCUSES } from '../app/utils/training-constants'
 import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
+import { structureGenerationRunTags } from '../server/utils/trigger-run-tags'
 
 const trainingBlockSchema = {
   type: 'object',
@@ -636,10 +637,15 @@ Return valid JSON matching the schema provided.`
           }
         )
         for (const workoutId of workoutIdsToStructure) {
+          const tags = structureGenerationRunTags({
+            userId,
+            plannedWorkoutId: workoutId,
+            source: 'block'
+          })
           await tasks.trigger(
             'generate-structured-workout',
             { plannedWorkoutId: workoutId },
-            { tags: [`user:${userId}`], concurrencyKey: userId }
+            { tags, concurrencyKey: userId }
           )
         }
       }

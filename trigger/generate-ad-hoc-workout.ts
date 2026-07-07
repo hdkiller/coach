@@ -7,6 +7,7 @@ import { wellnessRepository } from '../server/utils/repositories/wellnessReposit
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server/utils/date'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { structureGenerationRunTags } from '../server/utils/trigger-run-tags'
 import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
 
 const adHocWorkoutSchema = {
@@ -221,6 +222,11 @@ export const generateAdHocWorkoutTask = task({
     })
 
     // Trigger Structure Generation
+    const tags = structureGenerationRunTags({
+      userId,
+      plannedWorkoutId: plannedWorkout.id,
+      source: 'ad-hoc'
+    })
     await tasks.trigger(
       'generate-structured-workout',
       {
@@ -228,7 +234,7 @@ export const generateAdHocWorkoutTask = task({
       },
       {
         concurrencyKey: userId,
-        tags: [`user:${userId}`]
+        tags
       }
     )
 

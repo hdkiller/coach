@@ -7,6 +7,7 @@ import {
 } from '../../../utils/intervals-sync'
 import { isIntervalsEventId } from '../../../utils/intervals'
 import { validateRecommendationAcceptanceTarget } from '../../../utils/recommendation-guardrails'
+import { structureGenerationRunTags } from '../../../utils/trigger-run-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -182,6 +183,11 @@ export default defineEventHandler(async (event) => {
   // Trigger regeneration of structured workout based on the new description/title/params.
   // The generation task is responsible for syncing the final structure to Intervals.
   if (requiresStructure) {
+    const tags = structureGenerationRunTags({
+      userId,
+      plannedWorkoutId: targetPlannedWorkoutId,
+      source: 'recommendation'
+    })
     await tasks.trigger(
       'generate-structured-workout',
       {
@@ -189,7 +195,7 @@ export default defineEventHandler(async (event) => {
       },
       {
         concurrencyKey: userId,
-        tags: [`user:${userId}`]
+        tags
       }
     )
   } else if (!isLocal) {

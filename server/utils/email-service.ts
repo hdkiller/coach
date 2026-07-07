@@ -1,6 +1,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { EmailAudience } from '@prisma/client'
 import { getEmailTemplateDefinition } from './email-template-registry'
+import { buildUserRunTags } from './trigger-run-tags'
 
 /**
  * Triggers the background email task through a single service-layer entrypoint.
@@ -32,13 +33,19 @@ export async function queueEmail(options: {
     throw new Error(`Unknown template '${templateKey}'. Provide explicit audience and subject.`)
   }
 
-  return await tasks.trigger('send-email', {
-    userId,
-    templateKey,
-    eventKey,
-    audience: audience || template!.audience,
-    subject: subject || template!.defaultSubject,
-    props,
-    idempotencyKey
-  })
+  return await tasks.trigger(
+    'send-email',
+    {
+      userId,
+      templateKey,
+      eventKey,
+      audience: audience || template!.audience,
+      subject: subject || template!.defaultSubject,
+      props,
+      idempotencyKey
+    },
+    {
+      tags: buildUserRunTags(userId)
+    }
+  )
 }

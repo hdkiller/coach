@@ -7,6 +7,7 @@ import {
   getReadableLibraryOwnerIds,
   parseLibraryScope
 } from '../../../../utils/library-access'
+import { structureGenerationRunTags } from '../../../../utils/trigger-run-tags'
 
 const adjustSchema = z.object({
   durationMinutes: z.number().optional(),
@@ -41,6 +42,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout template not found' })
   }
 
+  const tags = structureGenerationRunTags({
+    userId: template.userId,
+    workoutTemplateId: template.id,
+    source: 'library'
+  })
   const handle = await tasks.trigger(
     'adjust-structured-workout',
     {
@@ -49,7 +55,7 @@ export default defineEventHandler(async (event) => {
     },
     {
       concurrencyKey: template.userId,
-      tags: [`user:${template.userId}`, `workout-template:${template.id}`]
+      tags
     }
   )
 

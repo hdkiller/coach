@@ -14,7 +14,6 @@ import {
   updateIntervalsPlannedWorkout,
   isIntervalsEventId
 } from '../../utils/intervals'
-import { tags } from '@trigger.dev/sdk/v3'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
@@ -45,6 +44,7 @@ import {
   getPendingSyncStatus
 } from '../structured-workout-persistence'
 import { publishTaskRunStartedEvent } from '../task-run-events'
+import { structureGenerationRunTags } from '../trigger-run-tags'
 
 const STEP_INTENT_VALUES = [
   'warmup',
@@ -908,18 +908,23 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       let runId: string | undefined
       if (args.generate_structure !== false) {
         try {
+          const tags = structureGenerationRunTags({
+            userId,
+            plannedWorkoutId: workout.id,
+            source: 'chat'
+          })
           const handle = await generateStructuredWorkoutTask.trigger(
             {
               plannedWorkoutId: workout.id, // Pass plannedWorkoutId
               targetingOverride: args.targeting_override || null
             },
             {
-              tags: [`user:${userId}`, `planned-workout:${workout.id}`],
+              tags,
               concurrencyKey: userId
             }
           )
           await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
-            tags: [`user:${userId}`, `planned-workout:${workout.id}`]
+            tags
           })
           runId = handle.id
         } catch (e) {
@@ -998,18 +1003,23 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       let runId: string | undefined
       if (args.generate_structure !== false) {
         try {
+          const tags = structureGenerationRunTags({
+            userId,
+            plannedWorkoutId: workout.id,
+            source: 'chat'
+          })
           const handle = await generateStructuredWorkoutTask.trigger(
             {
               plannedWorkoutId: workout.id,
               targetingOverride: args.targeting_override || null
             },
             {
-              tags: [`user:${userId}`, `planned-workout:${workout.id}`],
+              tags,
               concurrencyKey: userId
             }
           )
           await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
-            tags: [`user:${userId}`, `planned-workout:${workout.id}`]
+            tags
           })
           runId = handle.id
         } catch (e) {
@@ -1168,6 +1178,11 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       // Trigger adjustment task
       try {
+        const tags = structureGenerationRunTags({
+          userId,
+          plannedWorkoutId: workout_id,
+          source: 'chat'
+        })
         const handle = await adjustStructuredWorkoutTask.trigger(
           {
             plannedWorkoutId: workout_id,
@@ -1179,12 +1194,12 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             targetingOverride: targeting_override || null
           },
           {
-            tags: [`user:${userId}`, `planned-workout:${workout_id}`],
+            tags,
             concurrencyKey: userId
           }
         )
         await publishTaskRunStartedEvent(userId, 'adjust-structured-workout', handle, {
-          tags: [`user:${userId}`, `planned-workout:${workout_id}`]
+          tags
         })
         return {
           success: true,
@@ -1213,15 +1228,20 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       await checkQuota(userId, 'generate_structured_workout')
 
       try {
+        const tags = structureGenerationRunTags({
+          userId,
+          plannedWorkoutId: workout_id,
+          source: 'chat'
+        })
         const handle = await generateStructuredWorkoutTask.trigger(
           { plannedWorkoutId: workout_id, targetingOverride: targeting_override || null },
           {
-            tags: [`user:${userId}`, `planned-workout:${workout_id}`],
+            tags,
             concurrencyKey: userId
           }
         )
         await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
-          tags: [`user:${userId}`, `planned-workout:${workout_id}`]
+          tags
         })
         return {
           success: true,
@@ -1434,7 +1454,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           const existingWorkout = await workoutRepository.getById(args.workout_id, userId, {
             select: { id: true, date: true }
           })
-          if (!existingWorkout) throw new Error('Workout not found')
+          if (!existingWorkout) throw new Error('Workout not found', { cause: e })
 
           await workoutRepository.delete(args.workout_id, userId)
 

@@ -2,6 +2,7 @@ import { requireAuth } from '../../utils/auth-guard'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
+import { buildUserRunTags } from '../../utils/trigger-run-tags'
 
 const MAX_MANUAL_NUTRITION_ANALYSES = 10
 
@@ -77,7 +78,8 @@ export default defineEventHandler(async (event) => {
             nutritionId: nutrition.id
           },
           {
-            concurrencyKey: userId
+            concurrencyKey: userId,
+            tags: buildUserRunTags(userId)
           }
         )
         return { success: true, nutritionId: nutrition.id, jobId: handle.id }
