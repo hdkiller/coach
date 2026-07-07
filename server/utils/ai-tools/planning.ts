@@ -1156,6 +1156,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         'Optional per-workout targeting override for this adjustment only (does not change profile defaults).'
       )
     }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({
       workout_id,
       instructions,
@@ -1208,6 +1209,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         'Optional per-workout targeting override for this generation only (does not change profile defaults).'
       )
     }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({ workout_id, targeting_override }) => {
       // 0. Quota Check
       await checkQuota(userId, 'generate_structured_workout')
@@ -1434,7 +1436,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           const existingWorkout = await workoutRepository.getById(args.workout_id, userId, {
             select: { id: true, date: true }
           })
-          if (!existingWorkout) throw new Error('Workout not found')
+          if (!existingWorkout) throw new Error('Workout not found', { cause: e })
 
           await workoutRepository.delete(args.workout_id, userId)
 

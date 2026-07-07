@@ -189,6 +189,8 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
       'create_planned_workout',
       'update_planned_workout',
       'reschedule_planned_workout',
+      'adjust_planned_workout',
+      'generate_planned_workout_structure',
       'publish_planned_workout',
       'delete_planned_workout',
       'delete_workout'

@@ -65,6 +65,7 @@
   )
 
   const handleApprove = async () => {
+    if (submitting.value || resultText.value) return
     submitting.value = true
     emit('approve', { approvalId: props.approvalId, result: 'User confirmed action.' })
   }
@@ -79,6 +80,7 @@
   }
 
   const handleDeny = async () => {
+    if (submitting.value || resultText.value) return
     submitting.value = true
     const trimmedReason = denyReason.value.trim()
     const result = isSupportTicketTool.value
@@ -195,6 +197,7 @@
             variant="solid"
             icon="i-heroicons-check"
             :loading="submitting"
+            :disabled="submitting || Boolean(resultText)"
             @click="handleApprove"
           >
             Approve
