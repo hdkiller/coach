@@ -79,14 +79,16 @@ Anchor support tickets: `0d62fa04-884d-4fcd-a328-2226f2eb4ad5`, `a232e0ab-245e-4
 | [010](./010-batch-generation-loading-state.md) | Batch week generation clears loading before jobs finish | Medium | Bug | Open |
 | [011](./011-strength-blocks-validation-gap.md) | Final validation ignores `blocks`-only strength structures | Medium | Bug | Open |
 | [012](./012-ai-in-triggers-architecture-rethink.md) | Rethink AI-in-triggers pattern and timeout strategy | High | Architecture | Open |
+| [013](./013-chat-duplicate-structure-generation-triggers.md) | Chat creates multiple structure generation jobs for one workout | High | Bug | Open |
 
 ## Recommended Fix Order
 
 1. **001** — Add a hard pre-persist guard rejecting empty/non-renderable structures (blocks the production zero-step pattern).
-2. **002 + 004 + 005** — Fix run tagging and failure/state recovery on the Planned Workout Details page (one cohesive UX fix).
-3. **008** — Surface trigger failures in chat tool responses.
-4. **012** — Align timeout policy across all trigger AI calls; consider async status model on `PlannedWorkout`.
-5. Remaining medium/low items.
+2. **013** — Stop duplicate structure triggers from chat tool chains (create + generate/update).
+3. **002 + 004 + 005** — Fix run tagging and failure/state recovery on the Planned Workout Details page (one cohesive UX fix).
+4. **008** — Surface trigger failures in chat tool responses.
+5. **012** — Align timeout policy across all trigger AI calls; consider async status model on `PlannedWorkout`.
+6. Remaining medium/low items.
 
 ## Key Files
 
