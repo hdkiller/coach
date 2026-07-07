@@ -13,8 +13,7 @@ import { enforceCyclingCadenceVariation, resolveCyclingCadence } from './utils/c
 import {
   resolveWorkoutTargeting,
   type WorkoutTargetingOverride,
-  formatTargetPolicyPrompt,
-  formatTargetFormatPolicyPrompt,
+  formatCompactTargetingBlock,
   STEP_INTENTS,
   applyTargetPolicyToStep,
   applyTargetFormatPolicyToStep,
@@ -34,15 +33,19 @@ import {
   applyStrengthLibraryDefaultsToWorkout,
   validateStrengthStructuredWorkout
 } from '../server/utils/strength-exercise-matching'
-import {
-  resolveStructuredWorkoutGeneratorMode,
-  type StructuredWorkoutGeneratorMode
-} from '../server/utils/structured-workout-generator'
+import { resolveStructureGeneratorModeForWorkout } from '../server/utils/structured-workout-generator'
 import {
   compileWorkoutPlanDraftToStructure,
-  isDraftStructuredWorkoutSupported,
   workoutPlanDraftSchema
 } from '../server/utils/structured-workout-draft'
+import {
+  buildCompactZoneDefinitions,
+  buildCorrectiveStructureRetryPrompt,
+  buildDraftOutputRules,
+  buildSportSpecificInstructions,
+  buildStructureAiCallOptions,
+  formatAiContextForStructureGen
+} from './utils/structure-generation-prompt'
 import {
   estimateStepDistanceMeters,
   estimateStepDurationSeconds,
@@ -748,76 +751,6 @@ function summarizeStructuredWorkoutForPrompt(structuredWorkout: any): string {
   return lines.join('\n') || 'None.'
 }
 
-function buildCompactZoneDefinitions(params: {
-  workoutType: string
-  sportSettings: any
-  primaryMetric: string
-  loadPreference: string
-  ftp: number
-  lthr: number
-}) {
-  const { workoutType, sportSettings, primaryMetric, loadPreference, ftp, lthr } = params
-  const parts: string[] = []
-  const addZones = (label: string, zones: any[], unit: string, limit = 5) => {
-    if (!Array.isArray(zones) || zones.length === 0) return
-    const compact = zones
-      .slice(0, limit)
-      .map((z: any) => `${z.name}: ${z.min}-${z.max}${unit}`)
-      .join(' | ')
-    if (compact) parts.push(`${label}: ${compact}`)
-  }
-
-  if (primaryMetric === 'heartRate')
-    addZones(`${workoutType} HR Zones`, sportSettings?.hrZones, ' bpm')
-  if (primaryMetric === 'power')
-    addZones(`${workoutType} Power Zones`, sportSettings?.powerZones, ' W')
-  if (primaryMetric === 'pace')
-    addZones(`${workoutType} Pace Zones`, sportSettings?.paceZones, ' m/s')
-
-  if (
-    primaryMetric !== 'heartRate' &&
-    Array.isArray(sportSettings?.hrZones) &&
-    sportSettings.hrZones.length > 0
-  ) {
-    addZones(`${workoutType} HR Zones`, sportSettings.hrZones, ' bpm', 3)
-  }
-  if (
-    primaryMetric !== 'power' &&
-    Array.isArray(sportSettings?.powerZones) &&
-    sportSettings.powerZones.length > 0
-  ) {
-    addZones(`${workoutType} Power Zones`, sportSettings.powerZones, ' W', 3)
-  }
-  if (
-    primaryMetric !== 'pace' &&
-    Array.isArray(sportSettings?.paceZones) &&
-    sportSettings.paceZones.length > 0
-  ) {
-    addZones(`${workoutType} Pace Zones`, sportSettings.paceZones, ' m/s', 3)
-  }
-
-  if (lthr) parts.push(`Reference LTHR: ${lthr} bpm`)
-  if (ftp) parts.push(`Reference FTP: ${ftp} W`)
-  if (sportSettings?.thresholdPace) {
-    const metersPerSecond = Number(sportSettings.thresholdPace)
-    if (metersPerSecond > 0) {
-      const secondsPerKm = 1000 / metersPerSecond
-      const minutes = Math.floor(secondsPerKm / 60)
-      const seconds = Math.round(secondsPerKm % 60)
-      parts.push(
-        `Reference Threshold Pace: ${metersPerSecond} m/s (${minutes}:${seconds
-          .toString()
-          .padStart(2, '0')}/km)`
-      )
-    }
-  }
-  parts.push(`Preferred Load Metric: ${loadPreference}`)
-  if (sportSettings?.warmupTime) parts.push(`Default Warmup: ${sportSettings.warmupTime} min`)
-  if (sportSettings?.cooldownTime) parts.push(`Default Cooldown: ${sportSettings.cooldownTime} min`)
-
-  return parts.join('\n')
-}
-
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -826,7 +759,6 @@ export const generateStructuredWorkoutTask = task({
     plannedWorkoutId?: string
     workoutTemplateId?: string
     targetingOverride?: WorkoutTargetingOverride | null
-    generatorOverride?: StructuredWorkoutGeneratorMode | null
   }) => {
     const { plannedWorkoutId, workoutTemplateId } = payload
     const entityId = plannedWorkoutId || workoutTemplateId
@@ -913,41 +845,18 @@ export const generateStructuredWorkoutTask = task({
       isTemplate: entityType === 'WorkoutTemplate'
     })
 
-    const requestedGeneratorMode = await resolveStructuredWorkoutGeneratorMode(
-      workout.userId,
-      payload?.generatorOverride || null
-    )
-    const generatorMode =
-      requestedGeneratorMode === 'draft_json_v1' &&
-      isDraftStructuredWorkoutSupported(workout.type || '')
-        ? requestedGeneratorMode
-        : 'legacy_json'
+    const requestedGeneratorMode = resolveStructureGeneratorModeForWorkout(workout.type || '')
+    const generatorMode = requestedGeneratorMode
     console.log('[GenerateStructuredWorkout] Generator mode resolved', {
       entityId,
       entityType,
       workoutType: workout.type,
-      requestedGeneratorMode,
-      generatorMode,
-      explicitOverride: payload?.generatorOverride || null
+      generatorMode
     })
     logStage('resolved-generator-mode', {
-      generatorMode,
-      requestedGeneratorMode,
-      explicitOverride: payload?.generatorOverride || null
+      generatorMode
     })
-    if (requestedGeneratorMode === 'draft_json_v1' && generatorMode !== requestedGeneratorMode) {
-      console.log('[GenerateStructuredWorkout] Falling back to legacy generator', {
-        entityId,
-        workoutType: workout.type,
-        requestedGeneratorMode,
-        fallbackMode: generatorMode
-      })
-      logStage('generator-mode-fallback', {
-        requestedGeneratorMode,
-        fallbackMode: generatorMode,
-        workoutType: workout.type
-      })
-    } else if (generatorMode === 'draft_json_v1') {
+    if (generatorMode === 'draft_json_v1') {
       console.log('[GenerateStructuredWorkout] Using compact draft generator', {
         entityId,
         workoutType: workout.type
@@ -955,6 +864,11 @@ export const generateStructuredWorkoutTask = task({
       logStage('generator-mode-branch', {
         generatorMode,
         implementation: 'compact_draft_v1'
+      })
+    } else {
+      logStage('generator-mode-branch', {
+        generatorMode,
+        implementation: 'legacy_json'
       })
     }
 
@@ -1002,18 +916,10 @@ export const generateStructuredWorkoutTask = task({
     const timezone = await getUserTimezone(workout.userId)
     logStage('resolved-timezone', { timezone })
 
-    // Fetch recent workouts for context (Limit to 7 with concise summary to balance context vs speed)
+    // Fetch recent workouts for context (concise summary only — no stream data needed)
     const recentWorkouts = await workoutRepository.getForUser(workout.userId, {
       limit: 4,
-      orderBy: { date: 'desc' },
-      include: {
-        streams: {
-          select: {
-            hrZoneTimes: true,
-            powerZoneTimes: true
-          }
-        }
-      }
+      orderBy: { date: 'desc' }
     })
     logStage('loaded-recent-workouts', { count: recentWorkouts.length })
 
@@ -1022,7 +928,10 @@ export const generateStructuredWorkoutTask = task({
     const lthr = sportSettings?.lthr || workout.user.lthr || 160
     const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
     const thresholdPace = sportSettings?.thresholdPace || 0
-    const aiContext = workout.user.aiContext || ''
+    const aiContextBlock = formatAiContextForStructureGen({
+      aiContext: workout.user.aiContext,
+      workoutDescription: workout.description
+    })
 
     // Subscription Limit Check
     // Free users cannot generate structured workouts more than 4 weeks (28 days) in the future
@@ -1061,210 +970,106 @@ export const generateStructuredWorkoutTask = task({
       ftp,
       lthr
     })
-    const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
-    const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
+    const targetingBlock = formatCompactTargetingBlock(
+      targetPolicy,
+      targetFormatPolicy,
+      priorityText
+    )
     const steadyTargetStyleRule =
       targetPolicy.defaultTargetStyle === 'value'
-        ? "Prefer 'heartRate.value', 'pace.value', or 'power.value' for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp."
-        : "Prefer 'heartRate.range', 'pace.range', or 'power.range' for steady aerobic/endurance/tempo blocks."
-    const workoutType = String(workout.type || '').toLowerCase()
-    const isCycling = workoutType.includes('ride')
-    const isRun = workoutType.includes('run')
-    const isSwim = workoutType.includes('swim')
-    const isStrength = workoutType.includes('gym') || workoutType.includes('weight')
-    const runPaceUnitInstruction =
-      targetFormatPolicy.pace.mode === 'absolutePace'
-        ? `- CRITICAL: If the workout request calls for absolute pace or includes examples like "5:20-5:40 min/km", encode those as explicit pace targets. Use 'pace.units' = "/km" with decimal minute values (for example 5.33-5.67 for 5:20-5:40/km), set 'primaryTarget' to 'pace' for those steps, and do NOT fall back to unlabeled percentages or power targets.`
-        : `- Use 'heartRate.units' = "LTHR" for percentage HR targets and 'pace.units' = "Pace" for percentage pace targets.`
-    const sportSpecificInstructions = isCycling
-      ? `FOR CYCLING (Ride/VirtualRide):
-    - MANDATORY: Use % of FTP for power targets (e.g. 0.95 = 95%) for EVERY step.
-    - Set 'power.units' to "%" unless there is an explicit reason to use "w".
-    - For ramps (Warmup/Cooldown), use "range" with "start" and "end" values (e.g. start: 0.50, end: 0.75 for warmup).
-    - MANDATORY: Include target "cadence" (RPM) for EVERY step (including Warmup/Rest). 
-      * Use 85-95 for active, 80 for rest UNLESS specific user preferences are provided in the CONTEXT above (e.g. "70-85rpm").
-    - For cadence-focus steps, cadence MUST differ from surrounding steady steps (e.g. steady 85-90, focus 95-100) and power should be adjusted if needed.
-    - For aerobic rides, avoid repeated identical 20+ minute blocks unless deliberate repeats are requested.
-    - If HR zones are available, include at least one HR guardrail in coachInstructions (e.g. cap near top of aerobic zone).
-    - For interval sets, include realistic recovery between hard repetitions and maintain repeatability of quality efforts.`
-      : isRun
-        ? `FOR RUNNING (Run):
-    - Steps should have 'type', 'durationSeconds', 'name'.
-    - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
-    - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
-    - ${runPaceUnitInstruction}
-    - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but the policy primary metric must still be explicit as primaryTarget.' : 'Use one intensity metric per step unless the workout request explicitly asks for mixed cues.'}
-    - ${steadyTargetStyleRule}
-    - DO NOT rely solely on description for intensity. Provide an estimated target object for every step.
-    - Steps must represent runnable in-session segments only (jog, run, walk recoveries, drills performed during the run).
-    - Do NOT add static stretching or off-feet recovery blocks to the structured plan.
-    - Respect quality spacing: avoid stacking maximal efforts without enough recovery.`
-        : isSwim
-          ? `FOR SWIMMING (Swim):
-    - Prefer 'distanceMeters' for pool reps and lengths. Use 'durationSeconds' only when time-based structure is genuinely better.
-    - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
-    - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
-    - Use 'sendoffSeconds' when the set is written on a send-off and 'restSeconds' when explicit rest matters.
-    - Use 'targetSplit' (e.g. "1:40/100m") or 'cssPercent' when swim pacing is central to the set.
-    - Use one intensity cue per step when possible. Do NOT force heart-rate targets for every swim step.
-    - Technical/drill steps can omit target intensity if stroke, distance, send-off, or rest already defines the task clearly.
-    - CRITICAL: The full pool session must realistically land near the planned duration once swim pace, send-offs, and rests are considered.
-    - For sessions 45 minutes or longer, include enough total volume and explicit recoveries/send-offs to fill the assigned time.
-    - Prefer explicit 'sendoffSeconds' or 'restSeconds' on repeated sets instead of leaving recovery implied.
-    - Before returning, sanity-check the total session time yourself and expand or trim the set so it stays close to the planned duration.`
-          : isStrength
-            ? `FOR STRENGTH (Gym/WeightTraining):
-    - Prefer the canonical strength schema: provide 'blocks' instead of a flat 'exercises' list.
-    - Each block should have: 'type', 'title', optional 'notes', and 'steps'.
-    - Use block types like 'warmup', 'single_exercise', 'superset', 'circuit', 'cooldown'.
-    - Each step should have 'name', optional 'notes', optional 'intent'/'movementPattern', and 'setRows'.
-    - Each step should also set a shared 'prescriptionMode' (default 'reps'), optional 'loadMode', and optional 'defaultRest'.
-    - Each entry in 'setRows' represents one set and may contain:
-      * 'value' for reps, reps/side, duration, or distance depending on prescriptionMode
-      * 'loadValue' for load/weight when relevant
-      * 'restOverride' only when a specific set differs from defaultRest
-    - Example: a 3x8 squat with ramping load should use one step with 3 setRows, not 3 separate exercises.
-    - CRITICAL: Return native 'blocks' for strength. Do NOT return interval-style top-level 'steps' for WeightTraining.
-    - CRITICAL: Loaded lifts must use real per-set prescription. Do NOT prescribe main lifts as one long duration row such as 1 x 900 seconds.
-    - Time-based mobility like foam rolling should use prescriptionMode='duration' with setRows.value in seconds.
-    - Structure the session as Warmup -> Main Lifts -> Accessories -> Cooldown when appropriate.
-    - Only fall back to a flat 'exercises' list if you truly cannot express the workout as blocks.`
-            : `FOR THIS SPORT TYPE:
-    - Use only sport-relevant fields and targets.
-    - Keep steps explicit, measurable, and safe with clear work/recovery structure.`
+        ? 'Prefer single-value targets for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp.'
+        : 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.'
+    const workoutTypeLower = String(workout.type || '').toLowerCase()
+    const isStrength = workoutTypeLower.includes('gym') || workoutTypeLower.includes('weight')
+    const sportSpecificInstructions = buildSportSpecificInstructions({
+      workoutType: workout.type || '',
+      targetFormatPolicy,
+      steadyTargetStyleRule
+    })
+    const durationMinutes = Math.round((workout.durationSec || 3600) / 60)
+    const language = workout.user.language || 'English'
+    const recentWorkoutsSummary = buildConciseWorkoutSummary(recentWorkouts, timezone)
+    const sharedWorkoutHeader = `TITLE: ${workout.title}
+DURATION: ${durationMinutes} minutes
+INTENSITY: ${workout.workIntensity || 'Moderate'}
+DESCRIPTION: ${workout.description || 'No specific description'}
+USER FTP: ${ftp}W
+USER LTHR: ${lthr} bpm
+TYPE: ${workout.type}
+PREFERRED LANGUAGE: ${language} (all text fields must use this language)
 
-    const prompt = `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
-    
-    TITLE: ${workout.title}
-    DURATION: ${Math.round((workout.durationSec || 3600) / 60)} minutes
-    INTENSITY: ${workout.workIntensity || 'Moderate'}
-    DESCRIPTION: ${workout.description || 'No specific description'}
-    USER FTP: ${ftp}W
-    USER LTHR: ${lthr} bpm
-    TYPE: ${workout.type}
-    PREFERRED INTENSITY METRIC: ${loadPreference}
-    METRIC PRIORITY ORDER: ${priorityText}
-    PREFERRED LANGUAGE: ${workout.user.language || 'English'} (CRITICAL: ALL text fields like "description" and "coachInstructions" MUST be written in this language)
-    
-    CONTEXT:
-    - Goal: ${goal}
-    - Phase: ${phase}
-    - Focus: ${focus}
-    - Coach Persona: ${persona}
-    ${aiContext ? `- User Preferences/Context: ${aiContext}` : ''}
-    
-    RECENT WORKOUTS (brief):
-    ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
+CONTEXT:
+- Goal: ${goal}
+- Phase: ${phase}
+- Focus: ${focus}
+- Coach Persona: ${persona}
+${aiContextBlock}
 
-    ${preserveExistingStructure ? `EXISTING STRUCTURE TO PRESERVE:\n${existingStructureSummary}` : ''}
+RECENT WORKOUTS (brief):
+${recentWorkoutsSummary}
 
-    Use the user's specific zones and references below for this activity type.
+${preserveExistingStructure ? `EXISTING STRUCTURE TO PRESERVE:\n${existingStructureSummary}\n` : ''}
+${zoneDefinitions}
 
-    ${zoneDefinitions}
+${targetingBlock}
 
-    ${targetPolicyPrompt}
+For Zone 2 workouts, target the user's defined Z2 range for this sport before generic percentages.`
 
-    ${targetFormatPolicyPrompt}
+    const draftPrompt =
+      generatorMode === 'draft_json_v1'
+        ? `Design a structured ${workout.type} workout plan for ${workout.user.name || 'Athlete'} using a compact planning format.
 
-    When generating "[Zone 2]" workouts, target ONLY the user's defined Z2 range for this specific sport. Never use generic percentages - always reference the provided zones first.
-    
-    JSON RULES:
-    - Omit null/empty properties.
-    - Every step must have non-zero durationSeconds.
-    - Output valid JSON only.
-    - No placeholder values.
-    - Include only sport-relevant keys.
+${sharedWorkoutHeader}
 
-    INSTRUCTIONS:
-    - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
-    - Ensure total duration matches the target duration exactly.
-    - ${preserveExistingStructure ? 'This is a REGENERATION of an existing workout structure. Preserve the same session identity: keep the overall objective, block order, repeat/set pattern, and approximate work/recovery distribution unless the workout title or description clearly requires a different design.' : 'If no prior structure exists, build the session from scratch.'}
-    - ${preserveExistingStructure ? 'Improve clarity, targeting, and coach cues without inventing a materially different workout.' : 'Build a complete structure that fits the planned session.'}
-    - Use repeat blocks with "reps" for repetitive interval sets.
-    - Every workout must have a clear physiological objective (e.g. aerobic endurance, threshold, VO2, neuromuscular, recovery) and each block should support that objective.
-    - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
-    - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
-    - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
-    - Include only in-session workout steps the athlete performs as part of the session itself.
-    - Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as structured steps.
-    - Put post-workout recovery guidance in coachInstructions, not in steps.
-    - **METRIC PRIORITY**: Respect the user's TARGET POLICY and preferred order (${loadPreference}).
-      - Priority Order: ${priorityText}.
-      - Primary metric for each step should be: ${targetPolicy.primaryMetric}.
-      - ${targetPolicy.strictPrimary ? 'Strict primary is enabled: avoid fallback metrics unless absolutely necessary.' : 'Fallback metrics are allowed when the primary metric is not usable for a specific step.'}
-      - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed targets in one step are allowed when they add useful execution context.' : 'Do not include multiple intensity targets in a single step unless explicitly requested.'}
-      - NEVER duplicate a workout step just to provide a different intensity metric. One step = one time block.
-    - **steps**: All rules below (targets, etc.) apply to BOTH top-level steps AND nested steps inside repeats.
-    - MANDATORY: Every step MUST include an \`intent\` enum value (warmup/recovery/easy/endurance/tempo/threshold/vo2/anaerobic/sprint/cooldown/drills/strides).
-    - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
-    - **coachInstructions**: Provide a personalized 2-3 sentence message explaining why this workout matters and the key execution cue. Use the "${persona}" persona tone.
-    - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
-    - For aerobic/endurance workouts, create at least 2 distinct main-set sub-blocks with clear purpose (settle, sustain, technique/cadence or control), not one repeated generic block.
-    - For Zone 2 workouts, keep primary targets inside the user's provided endurance/aerobic zones whenever available.
+${buildDraftOutputRules({ preserveExistingStructure })}
 
-    ${sportSpecificInstructions}
+INSTRUCTIONS:
+- Create steps (Warmup, Active, Rest, Cooldown) matching the target duration.
+- Use repeat blocks with reps for interval sets.
+- Every step needs an intent and a valid target.
+- description: complete sentences only (no bullet lists of steps).
+- coachInstructions: 2-3 sentences in the "${persona}" persona tone.
+- Warmup/Cooldown defaults: ${warmupTime}m / ${cooldownTime}m unless title/description specify otherwise.
 
-    Final check: stay within target duration, avoid redundant adjacent steps, give every step a clear purpose and valid primary target.
+SPORT RULES:
+${sportSpecificInstructions}
 
-    OUTPUT JSON matching the schema.`
-    const draftPrompt = `Design a structured ${workout.type} workout plan for ${workout.user.name || 'Athlete'} using a compact planning format.
+OUTPUT JSON matching the compact draft schema.`
+        : ''
 
-    TITLE: ${workout.title}
-    DURATION: ${Math.round((workout.durationSec || 3600) / 60)} minutes
-    INTENSITY: ${workout.workIntensity || 'Moderate'}
-    DESCRIPTION: ${workout.description || 'No specific description'}
-    USER FTP: ${ftp}W
-    USER LTHR: ${lthr} bpm
-    TYPE: ${workout.type}
-    PREFERRED INTENSITY METRIC: ${loadPreference}
-    METRIC PRIORITY ORDER: ${priorityText}
-    PREFERRED LANGUAGE: ${workout.user.language || 'English'} (CRITICAL: All text fields must use this language)
+    const legacyPrompt =
+      generatorMode === 'legacy_json'
+        ? `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
 
-    CONTEXT:
-    - Goal: ${goal}
-    - Phase: ${phase}
-    - Focus: ${focus}
-    - Coach Persona: ${persona}
-    ${aiContext ? `- User Preferences/Context: ${aiContext}` : ''}
+${sharedWorkoutHeader}
 
-    RECENT WORKOUTS (brief):
-    ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
+JSON RULES:
+- Omit null/empty properties.
+- Every step must have non-zero durationSeconds.
+- Output valid JSON only.
 
-    ${preserveExistingStructure ? `EXISTING STRUCTURE TO PRESERVE:\n${existingStructureSummary}` : ''}
+INSTRUCTIONS:
+- Create steps (Warmup, Intervals, Rest, Cooldown) matching ${durationMinutes} minutes.
+- ${preserveExistingStructure ? 'Regenerate while preserving session identity unless title/description require change.' : 'Build the session from scratch.'}
+- Every step needs an intent and valid primary target.
+- description: complete sentences only. coachInstructions: 2-3 sentences in "${persona}" tone.
+- In-session steps only; no stretching/mobility as steps.
 
-    ${zoneDefinitions}
+SPORT RULES:
+${sportSpecificInstructions}
 
-    ${targetPolicyPrompt}
+OUTPUT JSON matching the schema.`
+        : ''
 
-    ${targetFormatPolicyPrompt}
-
-    OUTPUT RULES:
-    - Return compact JSON only.
-    - Use ONE \`target\` object per step, never multiple metric objects.
-    - \`target.metric\` must be one of: power, heartRate, pace, rpe.
-    - Use \`target.units\` from this set only: %, w, bpm, LTHR, Pace, /km.
-    - CRITICAL: For percentage targets, use decimal fractions, not whole percents. Example: 80% LTHR must be \`0.80\` with \`units: "LTHR"\`; 95% FTP must be \`0.95\` with \`units: "%"\`.
-    - Use \`durationSeconds\` for timed steps.
-    - Use \`distanceMeters\` only when distance is central to the prescription.
-    - Use nested \`steps\` plus \`reps\` for repeats.
-    - Every step must have a clear purpose and an \`intent\`.
-    - Include only in-session workout steps. Do NOT include stretching, foam rolling, mobility, breathing exercises, or post-workout recovery as steps.
-    - Put post-workout recovery guidance in \`coachInstructions\`, not in \`steps\`.
-    - Keep total duration within the planned target.
-    - Keep the plan compact and avoid redundant adjacent steps.
-    - ${preserveExistingStructure ? 'Preserve the session identity and structure unless the workout clearly requires change.' : 'Build the full session from scratch.'}
-
-    SPORT RULES:
-    ${sportSpecificInstructions}
-
-    OUTPUT JSON matching the compact draft schema.`
+    let promptForAttempt = generatorMode === 'draft_json_v1' ? draftPrompt : legacyPrompt
     logStage('prompt-built', {
-      promptChars: generatorMode === 'draft_json_v1' ? draftPrompt.length : prompt.length,
-      targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
+      promptChars: promptForAttempt.length,
+      generatorMode,
+      targetDurationMinutes: durationMinutes
     })
 
     let structure: any
-    let promptToUse = prompt
+    let lastAiOutputForRetry: any = null
     let totals: { distance: number; duration: number; tss: number } | null = null
     let actualModelUsed = 'flash'
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -1272,24 +1077,22 @@ export const generateStructuredWorkoutTask = task({
         const aiStartedAt = Date.now()
         const isRetry = attempt > 1
         if (isRetry) actualModelUsed = 'pro'
+        const aiOptions = buildStructureAiCallOptions({
+          attempt,
+          userId: workout.userId,
+          operation: 'generate_structured_workout',
+          entityType,
+          entityId: entityId!,
+          timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS
+        })
         if (generatorMode === 'draft_json_v1') {
           const draft = await generateStructuredAnalysis(
-            isRetry
-              ? `${draftPrompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous draft was rejected or incomplete.\n- Keep the same compact schema.\n- Stay inside duration tolerance and include a complete main set.`
-              : draftPrompt,
+            promptForAttempt,
             workoutPlanDraftSchema,
             'flash',
-            {
-              userId: workout.userId,
-              operation: 'generate_structured_workout',
-              entityType,
-              entityId: entityId!,
-              maxRetries: 0,
-              timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS,
-              modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
-              thinkingLevelOverride: isRetry ? 'high' : undefined
-            }
+            aiOptions
           )
+          lastAiOutputForRetry = draft
           console.log('[GenerateStructuredWorkout] Compact draft generated', {
             entityId,
             attempt,
@@ -1305,25 +1108,18 @@ export const generateStructuredWorkoutTask = task({
           })
         } else {
           structure = await generateStructuredAnalysis(
-            promptToUse,
+            promptForAttempt,
             workoutStructureSchema,
             'flash',
-            {
-              userId: workout.userId,
-              operation: 'generate_structured_workout',
-              entityType,
-              entityId: entityId!,
-              maxRetries: 0, // We handle retries manually here to change models
-              timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS,
-              modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
-              thinkingLevelOverride: isRetry ? 'high' : undefined
-            }
+            aiOptions
           )
+          lastAiOutputForRetry = structure
         }
         const aiDurationMs = Date.now() - aiStartedAt
         logStage('ai-structure-generated', {
           aiDurationMs,
           attempt,
+          promptChars: promptForAttempt.length,
           model: isRetry ? 'gemini-3-pro-preview' : 'default',
           hasSteps: Array.isArray(structure?.steps),
           stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
@@ -1335,7 +1131,12 @@ export const generateStructuredWorkoutTask = task({
           attempt
         })
         if (attempt === 1) {
-          promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous generation attempt failed (possibly due to complexity or timeout).\n- I am retrying with a more capable model and more thinking budget.\n- Please ensure a complete and valid structure now.`
+          promptForAttempt = buildCorrectiveStructureRetryPrompt({
+            workout,
+            reason: aiError.message,
+            previousDraft: lastAiOutputForRetry,
+            generatorMode
+          })
           continue
         }
         throw aiError
@@ -1384,7 +1185,14 @@ export const generateStructuredWorkoutTask = task({
             )
           }
 
-          promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous strength structure was rejected because ${strengthValidation.reason}.\n- Return native strength 'blocks' with exercise 'steps' and per-set 'setRows'.\n- Loaded lifts must use real sets/reps/load, not one long duration block.\n- Retry with a complete and realistic strength prescription now.`
+          promptForAttempt = buildCorrectiveStructureRetryPrompt({
+            workout,
+            reason: strengthValidation.reason,
+            previousDraft: lastAiOutputForRetry,
+            generatorMode,
+            extraInstructions:
+              "Return native strength 'blocks' with exercise 'steps' and per-set 'setRows'. Loaded lifts must use real sets/reps/load."
+          })
           logStage('strength-validation-retry-requested', {
             attempt,
             reason: strengthValidation.reason
@@ -1439,9 +1247,15 @@ export const generateStructuredWorkoutTask = task({
 
       const swimCoverageFeedback =
         workout.type === 'Swim'
-          ? '\n- For swim workouts, explicitly account for pool time using total volume plus sendoffSeconds/restSeconds and targetSplit when appropriate.\n- If the previous swim plan was too short, add enough distance, repeats, or explicit recovery to reach the planned session time.\n- Do not leave repeated swim set recovery implied if it affects total duration.'
-          : ''
-      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.${swimCoverageFeedback}\n- I am retrying with a more capable model and more thinking budget.\n- Retry with a complete structure now.`
+          ? 'For swim workouts, account for sendoffSeconds/restSeconds and targetSplit so total pool time matches the planned duration.'
+          : undefined
+      promptForAttempt = buildCorrectiveStructureRetryPrompt({
+        workout,
+        reason: coverageValidation.reason,
+        previousDraft: lastAiOutputForRetry,
+        generatorMode,
+        extraInstructions: swimCoverageFeedback
+      })
       logStage('ai-structure-retry-requested', {
         attempt,
         reason: coverageValidation.reason
@@ -1582,9 +1396,9 @@ export const generateStructuredWorkoutTask = task({
         normalizeCooldownRampDirection(step)
 
         // 4. Recurse and Calculate
-        let stepDistance = 0
-        let stepDuration = 0
-        let stepTSS = 0
+        let stepDistance: number
+        let stepDuration: number
+        let stepTSS: number
 
         if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
           const nested = normalizeAndCalculate(step.steps, depth + 1, step)
@@ -1667,7 +1481,7 @@ export const generateStructuredWorkoutTask = task({
     if (structure.exercises && Array.isArray(structure.exercises)) {
       let gymDuration = 0
       structure.exercises.forEach((ex: any) => {
-        let exDuration = 0
+        let exDuration: number
         if (ex.duration) exDuration = ex.duration
         else {
           const sets = ex.sets || 1

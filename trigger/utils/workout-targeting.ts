@@ -418,6 +418,29 @@ export function resolveWorkoutTargeting(
   return { targetPolicy, targetFormatPolicy, loadPreference, loadOrderTokens, priorityText }
 }
 
+export function formatCompactTargetingBlock(
+  targetPolicy: TargetPolicy,
+  targetFormatPolicy: TargetFormatPolicy,
+  priorityText: string
+): string {
+  const primaryMetric = metricLabel(targetPolicy.primaryMetric)
+  const fallbackOrder = targetPolicy.fallbackOrder.map(metricLabel).join(' > ')
+  const steadyRangeRule = formatSteadyTargetStyleInstruction(targetPolicy)
+  const hrFormat = targetFormatPolicy.heartRate.preferRange ? 'prefer range' : 'single value'
+  const powerFormat = targetFormatPolicy.power.preferRange ? 'prefer range' : 'single value'
+  const paceFormat =
+    targetFormatPolicy.pace.mode === 'absolutePace'
+      ? 'absolute /km'
+      : targetFormatPolicy.pace.preferRange
+        ? 'prefer range'
+        : 'single value'
+
+  return `- **TARGETING**: primary=${primaryMetric}, order=${priorityText}, fallback=${fallbackOrder}, strict=${targetPolicy.strictPrimary ? 'yes' : 'no'}, mixed=${targetPolicy.allowMixedTargetsPerStep ? 'allowed' : 'not allowed'}.
+- **FORMAT**: HR=${targetFormatPolicy.heartRate.mode} (${hrFormat}), power=${targetFormatPolicy.power.mode} (${powerFormat}), pace=${paceFormat}.
+- **UNITS**: HR=LTHR fractions (0.80), power=% FTP (0.95), pace per format above. ${steadyRangeRule}
+- Use one primary metric per step unless mixed targets are allowed.`
+}
+
 export function formatTargetPolicyPrompt(targetPolicy: TargetPolicy, loadPreference: string) {
   const fallbackOrder = targetPolicy.fallbackOrder.map(metricLabel).join(' > ')
   const primaryMetric = metricLabel(targetPolicy.primaryMetric)

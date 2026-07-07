@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../../../server/utils/db'
 import {
   readStructuredWorkoutGeneratorModeFromFeatureFlags,
-  resolveStructuredWorkoutGeneratorMode
+  resolveStructuredWorkoutGeneratorMode,
+  resolveStructureGeneratorModeForWorkout
 } from '../../../../server/utils/structured-workout-generator'
 
 vi.mock('../../../../server/utils/db', () => ({
@@ -50,5 +51,10 @@ describe('structured workout generator resolver', () => {
         structuredWorkout: { generator: 'something_else' }
       })
     ).toBe('draft_json_v1')
+  })
+
+  it('resolves workout-type-specific generator mode', () => {
+    expect(resolveStructureGeneratorModeForWorkout('Run')).toBe('draft_json_v1')
+    expect(resolveStructureGeneratorModeForWorkout('WeightTraining')).toBe('legacy_json')
   })
 })

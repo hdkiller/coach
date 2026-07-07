@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { isDraftStructuredWorkoutSupported } from './structured-workout-draft'
 
 export const STRUCTURED_WORKOUT_GENERATOR_MODES = ['legacy_json', 'draft_json_v1'] as const
 
@@ -45,4 +46,14 @@ export async function resolveStructuredWorkoutGeneratorMode(
   })
 
   return readStructuredWorkoutGeneratorModeFromFeatureFlags(user?.featureFlags)
+}
+
+/**
+ * Resolve the generator mode for a specific workout type.
+ * Endurance sports (ride/run/swim) always use the compact draft path.
+ */
+export function resolveStructureGeneratorModeForWorkout(
+  workoutType: unknown
+): StructuredWorkoutGeneratorMode {
+  return isDraftStructuredWorkoutSupported(workoutType) ? 'draft_json_v1' : 'legacy_json'
 }
