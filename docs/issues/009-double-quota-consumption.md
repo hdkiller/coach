@@ -28,9 +28,10 @@ Chat tools also check quota before triggering (`planning.ts`).
 
 ## Concerns
 
-1. **Double charge?** — Depends on whether `checkQuota` increments on check vs on success. Needs verification in `server/utils/quotas/engine`.
+1. **Double check, not double charge** — `checkQuota` in `server/utils/quotas/engine.ts` is read-only (throws if over limit; does not increment usage). Actual LLM cost comes from successful generations recorded separately. Duplicate **triggers** from chat ([013](./013-chat-duplicate-structure-generation-triggers.md)) are the main quota/cost multiplier.
 2. **API passes, trigger fails quota** — User gets 200 from API but task returns `QUOTA_EXCEEDED` asynchronously.
 3. **Nested triggers** (training block, chat) may skip API check but hit trigger check.
+4. **Chat multi-tool turns** — Each tool call may invoke `checkQuota` before enqueue even when only one generation should run.
 
 ## Suggested Fix
 
