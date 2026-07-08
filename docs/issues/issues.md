@@ -1,6 +1,6 @@
 # Workout Details Generation — Issue Tracker
 
-> **Broader app review (039–170):** see [app-review-issues.md](./app-review-issues.md) and [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~75% complete).
+> **Broader app review (039–218):** see [app-review-issues.md](./app-review-issues.md) and [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~90% complete).
 
 Last reviewed: 2026-07-07 (implementation in progress — see PRs #214–#222)
 

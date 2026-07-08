@@ -1,19 +1,19 @@
 # App Review — Issue Tracker
 
-Last reviewed: 2026-07-08 (systematic review session 2)
+Last reviewed: 2026-07-08 (systematic review session 3)
 
-Documents **132 app-wide issues** (039–170) from systematic codebase review. Complements structure-generation tracker [issues.md](./issues.md) (001–038).
+Documents **180 app-wide issues** (039–218) from systematic codebase review. Complements structure-generation tracker [issues.md](./issues.md) (001–038).
 
-**Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~75% complete)
+**Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~90% complete)
 
 ## Summary by priority
 
-| Priority | Count (039–170) |
+| Priority | Count (039–218) |
 | -------- | --------------- |
 | Critical | 3 |
-| High | 38 |
-| Medium | 78 |
-| Low | 13 |
+| High | 52 |
+| Medium | 108 |
+| Low | 37 |
 
 ## Top clusters (fix these first)
 
@@ -36,6 +36,11 @@ Documents **132 app-wide issues** (039–170) from systematic codebase review. C
 | [145](./145-logout-no-pinia-store-reset.md) | Logout doesn't reset stores |
 | [147](./147-user-store-cache-blocks-refetch.md) | User store cache blocks refetch after switch |
 | [152](./152-onboarding-blocks-join-callback.md) | Onboarding blocks post-signup join |
+| [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md) | Ingest date window bugs |
+| [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | AI quota / stuck PROCESSING |
+| [187](./187-profile-tab-unmount-popper-crash.md) | Profile settings popper crash (Sentry 18A) |
+| [190](./190-autodetect-drops-ftp-hr-thresholds.md) | Autodetect drops FTP/HR thresholds |
+| [197](./197-connected-apps-hides-failed-status.md) | Connected apps hides FAILED integrations |
 
 ### P2 — Recurring pattern: stuck loading spinners
 039, 049–051, 064–065, 073–074, 080–082, 119, 138 — all need `onTaskFailed` handlers.
@@ -207,19 +212,84 @@ Documents **132 app-wide issues** (039–170) from systematic codebase review. C
 | [169](./169-admin-webhook-stats-wrong-progress-max.md) | Admin webhook stats wrong max | Low |
 | [170](./170-deduplicate-auto-analyzes-all-recent.md) | Dedup auto-analyzes all recent | Medium |
 
+## Issues 171–185 (trigger tasks deep pass)
+
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [171](./171-ingest-hevy-no-date-window.md) | Hevy ingest no date window | High |
+| [172](./172-garmin-ingest-clamps-24h-window.md) | Garmin ingest clamps to 24h | High |
+| [173](./173-wahoo-ingest-capped-100-workouts.md) | Wahoo capped at 100 workouts | Medium |
+| [174](./174-garmin-ingest-silent-noop-missing-integration.md) | Garmin silent noop | Medium |
+| [175](./175-wellness-analysis-no-quota-check.md) | Wellness analysis no quota | High |
+| [176](./176-recommend-today-inline-wellness-no-quota.md) | Recommend-today inline wellness no quota | High |
+| [177](./177-recommend-today-processing-stuck-on-failure.md) | Recommend-today PROCESSING stuck | High |
+| [178](./178-ingest-all-auto-readiness-no-idempotency.md) | Ingest-all auto-readiness no idempotency | Medium |
+| [179](./179-generate-recommendations-no-quota.md) | Generate-recommendations no quota | Medium |
+| [180](./180-generate-recommendations-double-ai-call.md) | Generate-recommendations double AI call | Medium |
+| [181](./181-analyze-plan-adherence-no-quota-timeout.md) | Plan adherence no quota/timeout | Medium |
+| [182](./182-analyze-wellness-no-ownership-check.md) | Analyze-wellness no ownership check | Medium |
+| [183](./183-send-email-dispatch-failure-no-retry.md) | Send-email dispatch no retry | Medium |
+| [184](./184-send-email-no-max-duration.md) | Send-email no maxDuration | Low |
+| [185](./185-ingest-all-sync-queue-fire-and-forget.md) | Ingest-all sync queue fire-and-forget | Medium |
+
+## Issues 186–198 (profile/settings + Sentry)
+
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [186](./186-profile-tab-url-not-synced.md) | Profile tab URL not synced | Medium |
+| [187](./187-profile-tab-unmount-popper-crash.md) | Profile tab popper crash (18A) | High |
+| [188](./188-sport-settings-warning-no-revert.md) | Sport settings warning no revert | Medium |
+| [189](./189-profile-watcheffect-clobbers-edits.md) | Profile watchEffect clobbers edits | Medium |
+| [190](./190-autodetect-drops-ftp-hr-thresholds.md) | Autodetect drops FTP/HR | High |
+| [191](./191-profile-autodetect-no-rollback.md) | Autodetect no rollback | Medium |
+| [192](./192-nutrition-toggle-no-revert-on-fail.md) | Nutrition toggle no revert | Medium |
+| [193](./193-measurements-preferred-source-no-rollback.md) | Measurements optimistic no rollback | Medium |
+| [194](./194-availability-tab-loses-unsaved-edits.md) | Availability tab loses edits | Medium |
+| [195](./195-public-presence-watcheffect-overwrites.md) | Public presence overwrites edits | Medium |
+| [196](./196-sentry-no-cefsharp-scanner-filter.md) | Sentry CefSharp filter missing | Low |
+| [197](./197-connected-apps-hides-failed-status.md) | Connected apps hides FAILED | High |
+| [198](./198-measurements-load-error-wrong-toast.md) | Measurements load wrong toast | Low |
+
+## Issues 199–218 (i18n, a11y, misc)
+
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [199](./199-data-page-no-i18n.md) | data.vue no i18n | Low |
+| [200](./200-connect-pages-no-i18n.md) | connect-* pages no i18n | Low |
+| [201](./201-coaching-pages-no-i18n.md) | coaching pages no i18n | Low |
+| [202](./202-issues-pages-no-i18n.md) | issues pages no i18n | Low |
+| [203](./203-report-detail-no-i18n.md) | report detail no i18n | Low |
+| [204](./204-help-center-partial-i18n.md) | help-center partial i18n | Low |
+| [205](./205-support-partial-i18n.md) | support partial i18n | Low |
+| [206](./206-daily-checkin-modal-no-i18n.md) | daily checkin modal no i18n | Low |
+| [207](./207-admin-stats-no-i18n.md) | admin stats no i18n | Low |
+| [208](./208-report-detail-back-button-a11y.md) | report back button a11y | Low |
+| [209](./209-issue-detail-icon-buttons-a11y.md) | issue detail icon buttons a11y | Low |
+| [210](./210-issues-index-search-a11y.md) | issues search a11y | Low |
+| [211](./211-admin-stats-icon-buttons-a11y.md) | admin stats icon buttons a11y | Low |
+| [212](./212-help-center-clickable-cards-a11y.md) | help center cards keyboard a11y | Medium |
+| [213](./213-data-page-table-a11y.md) | data page table a11y | Medium |
+| [214](./214-daily-checkin-remove-button-a11y.md) | checkin remove button a11y | Low |
+| [215](./215-admin-stats-charts-a11y.md) | admin stats charts a11y | Medium |
+| [216](./216-daily-checkin-modal-no-ontaskfailed.md) | daily checkin no onTaskFailed | Medium |
+| [217](./217-developer-webhook-url-hardcoded.md) | developer webhook URL hardcoded | Low |
+| [218](./218-danger-zone-export-false-success-toast.md) | danger zone export false success | Low |
+
 ---
 
 ## Recommended fix order (app review)
 
 1. **062, 069, 058** — Critical crash + webhook auth + OAuth refresh
-2. **064–065, 141** — Route param refetch pattern (shared fix)
-3. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
-4. **039, 049–051, 064–065, 073–074, 080–082, 119, 138** — `onTaskFailed` sweep
-5. **066, 155–160, 157, 158** — Share/privacy hardening
-6. **069–072, 099–101** — Webhook verification
-7. **152–154** — Join/onboarding flow
-8. **067, 068, 076, 131, 134** — High-impact UX correctness
-9. Remaining medium/low
+2. **187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)
+3. **064–065, 141, 186** — Route param / tab navigation refetch pattern
+4. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
+5. **039, 049–051, 064–065, 073–074, 080–082, 119, 138, 216** — `onTaskFailed` sweep
+6. **171–172, 175–177** — Trigger ingest/quota/stuck PROCESSING
+7. **066, 155–160, 157, 158** — Share/privacy hardening
+8. **069–072, 099–101** — Webhook verification
+9. **152–154** — Join/onboarding flow
+10. **199–215** — i18n/a11y (incremental, low risk)
+11. Remaining medium/low
 
 ## How issues are managed
 
