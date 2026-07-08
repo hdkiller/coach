@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { prisma } from '../../utils/db'
 import { calculateLlmCost } from '../../utils/ai-config'
+import { assertQuotaAllowed } from '../../utils/quotas/http'
 
 const VALID_AUDIO_TYPES = new Set([
   'audio/webm',
@@ -34,6 +35,12 @@ export default defineEventHandler(async (event) => {
   if (!userId) {
     throw createError({ statusCode: 401, message: 'User ID not found' })
   }
+
+  await assertQuotaAllowed(
+    userId,
+    'chat',
+    'Chat quota exceeded. Voice transcription is unavailable until your limit resets.'
+  )
 
   const formData = await readMultipartFormData(event)
   if (!formData?.length) {

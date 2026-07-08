@@ -10,6 +10,7 @@ import { nutritionRepository } from '../server/utils/repositories/nutritionRepos
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { checkQuota } from '../server/utils/quotas/engine'
 
 interface RecommendationHistoryItem {
   date: string
@@ -50,6 +51,16 @@ export const generateRecommendationsTask = task({
     logger.log('🚀 GENERATING RECOMMENDATIONS')
     logger.log('='.repeat(60))
     logger.log(`User ID: ${userId}`)
+
+    try {
+      await checkQuota(userId, 'unified_report_generation')
+    } catch (quotaError: any) {
+      if (quotaError.statusCode === 429) {
+        logger.warn('Recommendation generation quota exceeded', { userId })
+        return { success: false, reason: 'QUOTA_EXCEEDED' }
+      }
+      throw quotaError
+    }
 
     const timezone = await getUserTimezone(userId)
     const aiSettings = await getUserAiSettings(userId)
@@ -423,8 +434,9 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
 
     // Fetch fresh active recommendations (including newly created ones)
     const freshActiveRecs = await recommendationRepository.getActive(userId)
+    const createdNewRecommendations = (new_recommendations?.length || 0) > 0
 
-    if (freshActiveRecs.length > 1) {
+    if (freshActiveRecs.length > 1 && createdNewRecommendations) {
       const dedupPrompt = `You are a data cleaner. Review the following list of active recommendations and identify DUPLICATES or CONFLICTING items.
 
 ACTIVE RECOMMENDATIONS:
@@ -477,6 +489,8 @@ JSON object with 'ids_to_dismiss' array (string IDs). If no duplicates or only p
       } else {
         logger.log('✨ No redundant items found (or all kept due to focus)')
       }
+    } else {
+      logger.log('Skipping deduplication sweep (no new recommendations created this run)')
     }
 
     return {

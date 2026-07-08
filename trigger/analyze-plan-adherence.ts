@@ -6,6 +6,7 @@ import { userReportsQueue } from './queues'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
+import { checkQuota } from '../server/utils/quotas/engine'
 import {
   buildWorkoutAnalysisFactsV2,
   formatActualIntervalsForPrompt,
@@ -58,6 +59,8 @@ const adherenceSchema = {
   },
   required: ['overallScore', 'summary', 'deviations']
 }
+
+const PLAN_ADHERENCE_AI_TIMEOUT_MS = 60_000
 
 export function buildPlanAdherencePrompt(workout: any, plan: any, sportSettings?: any): string {
   const structuredPlan = formatStructuredPlanForPrompt(plan.structuredWorkout, {
@@ -198,6 +201,26 @@ export const analyzePlanAdherenceTask = task({
     })
 
     try {
+      try {
+        await checkQuota(workout.userId, 'workout_analysis')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Plan adherence analysis quota exceeded', {
+            userId: workout.userId,
+            workoutId
+          })
+          await prisma.planAdherence.update({
+            where: { workoutId },
+            data: {
+              analysisStatus: 'QUOTA_EXCEEDED',
+              summary: 'Workout analysis quota exceeded.'
+            }
+          })
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
+
       const prompt = buildPlanAdherencePrompt(workout, plan, sportSettings)
 
       const analysis = await generateStructuredAnalysis<AdherenceAnalysis>(
@@ -208,7 +231,8 @@ export const analyzePlanAdherenceTask = task({
           userId: workout.userId,
           operation: 'analyze_plan_adherence',
           entityType: 'PlanAdherence',
-          entityId: workoutId
+          entityId: workoutId,
+          timeoutMs: PLAN_ADHERENCE_AI_TIMEOUT_MS
         }
       )
 

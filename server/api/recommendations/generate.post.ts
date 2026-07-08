@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { assertQuotaAllowed } from '../../utils/quotas/http'
 
 defineRouteMeta({
   openAPI: {
@@ -50,6 +51,12 @@ export default defineEventHandler(async (event) => {
       message: 'User not found'
     })
   }
+
+  await assertQuotaAllowed(
+    user.id,
+    'unified_report_generation',
+    'Recommendation update quota exceeded. Please wait or upgrade your plan.'
+  )
 
   try {
     // Trigger the recommendation generation job

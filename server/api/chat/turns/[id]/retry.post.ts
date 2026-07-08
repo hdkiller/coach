@@ -3,6 +3,7 @@ import { prisma } from '../../../../utils/db'
 import { CHAT_TURN_STATUS } from '../../../../utils/chat/turns'
 import { chatService } from '../../../../utils/services/chatService'
 import { chatTurnService } from '../../../../utils/services/chatTurnService'
+import { assertQuotaAllowed } from '../../../../utils/quotas/http'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -26,6 +27,12 @@ export default defineEventHandler(async (event) => {
   }
 
   await chatService.validateRoomAccess(userId, turn.roomId)
+
+  await assertQuotaAllowed(
+    userId,
+    'chat',
+    'Chat quota exceeded. Turn retry is unavailable until your limit resets.'
+  )
 
   const originalMessage = await prisma.chatMessage.findUnique({
     where: { id: turn.userMessageId }

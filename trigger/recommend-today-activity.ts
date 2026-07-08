@@ -459,6 +459,7 @@ export const recommendTodayActivityTask = task({
         wellnessId: todayMetric.id
       })
       try {
+        await checkQuota(userId, 'wellness_analysis')
         const result = await analyzeWellness(todayMetric.id, userId)
         if (result.success && result.analysis) {
           // Update our local object so the prompt gets the new data
@@ -469,8 +470,15 @@ export const recommendTodayActivityTask = task({
           }
           logger.log('Inline wellness analysis completed successfully')
         }
-      } catch (err) {
-        logger.error('Failed to run inline wellness analysis', { err })
+      } catch (err: any) {
+        if (err?.statusCode === 429) {
+          logger.warn('Inline wellness analysis skipped due to quota', {
+            userId,
+            wellnessId: todayMetric.id
+          })
+        } else {
+          logger.error('Failed to run inline wellness analysis', { err })
+        }
         // We continue without the analysis rather than failing the whole recommendation
       }
     }

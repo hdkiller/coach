@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ai, planning`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 

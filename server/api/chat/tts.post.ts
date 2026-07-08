@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { calculateLlmCost } from '../../utils/ai-config'
+import { assertQuotaAllowed } from '../../utils/quotas/http'
 
 const MODEL_NAME = 'gemini-2.5-flash-preview-tts'
 const SAMPLE_RATE = 24000
@@ -161,6 +162,12 @@ export default defineEventHandler(async (event) => {
   if (!userId) {
     throw createError({ statusCode: 401, message: 'User ID not found' })
   }
+
+  await assertQuotaAllowed(
+    userId,
+    'chat',
+    'Chat quota exceeded. Text-to-speech is unavailable until your limit resets.'
+  )
 
   if (!process.env.GEMINI_API_KEY) {
     throw createError({ statusCode: 500, message: 'Missing GEMINI_API_KEY' })
