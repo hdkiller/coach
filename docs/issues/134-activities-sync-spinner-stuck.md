@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `activities, integrations`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -20,4 +20,4 @@ Sync from /activities; button stays loading after success.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

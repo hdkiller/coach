@@ -179,6 +179,8 @@ export const useUserStore = defineStore('user', () => {
       if (!(import.meta.server && error.statusCode === 401)) {
         console.error('Error fetching profile:', error)
       }
+      profile.value = null
+      dataSyncStatus.value = null
     } finally {
       loading.value = false
     }

@@ -27,6 +27,23 @@ export const useIntegrationStore = defineStore('integration', () => {
   const dataSyncStatus = ref<DataSyncStatus | null>(null)
   const syncingData = ref(false)
   const toast = useToast()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
+
+  onTaskCompleted('ingest-all', async () => {
+    syncingData.value = false
+    await fetchStatus()
+  })
+
+  onTaskFailed('ingest-all', async (run) => {
+    syncingData.value = false
+    await fetchStatus()
+    toast.add({
+      title: 'Sync Failed',
+      description: run.error?.message || 'Data sync failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
 
   const intervalsConnected = computed(
     () => integrationStatus.value?.integrations?.some((i) => i.provider === 'intervals') ?? false

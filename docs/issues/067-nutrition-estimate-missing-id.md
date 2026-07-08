@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `nutrition`, `backend`, `ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -48,5 +48,5 @@ Persist stub row on first access, or gate UI actions when `isEstimate` / no `id`
 
 ## Acceptance Criteria
 
-- [ ] Notes/food/analyze work on estimate days or are clearly disabled
-- [ ] No `/api/nutrition/undefined/*` requests
+- [x] Notes/food/analyze work on estimate days or are clearly disabled
+- [x] No `/api/nutrition/undefined/*` requests

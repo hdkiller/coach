@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `ui/ux, analytics`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -31,5 +31,5 @@ Toast on save failure; optional rollback of local state.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

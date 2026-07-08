@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `coaching, ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -31,5 +31,5 @@ Link to `/api/coaching/athletes/{id}/workouts/{workoutId}` or athlete-context ro
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

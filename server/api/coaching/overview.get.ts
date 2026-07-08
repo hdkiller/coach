@@ -149,7 +149,7 @@ export default defineEventHandler(async (event) => {
     activityType: w.type,
     icon: getWorkoutIcon(w.type || ''),
     description: `${Math.round(w.durationSec / 60)} min • ${w.type}`,
-    link: `/workouts/${w.id}`
+    link: `/coaching/athletes/${w.userId}`
   }))
 
   return {

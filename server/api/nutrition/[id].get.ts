@@ -105,10 +105,15 @@ export default defineEventHandler(async (event) => {
 
     // Use unified service for fueling plan if missing or needs refresh
     if (!nutrition || !nutrition.fuelingPlan) {
+      const shouldPersist = !nutrition
       const planResult = await metabolicService.calculateFuelingPlanForDate(userId, dateObj, {
-        persist: false
+        persist: shouldPersist
       })
       const estimate = planResult.plan as any
+
+      if (shouldPersist) {
+        nutrition = await nutritionRepository.getByDate(userId, dateObj)
+      }
 
       if (!nutrition) {
         nutrition = {
@@ -126,7 +131,7 @@ export default defineEventHandler(async (event) => {
           isEstimate: true
         }
       } else {
-        nutrition.fuelingPlan = estimate
+        nutrition.fuelingPlan = nutrition.fuelingPlan || estimate
         nutrition.caloriesGoal = estimate.dailyTotals.calories
         nutrition.proteinGoal = estimate.dailyTotals.protein
         nutrition.carbsGoal = estimate.dailyTotals.carbs

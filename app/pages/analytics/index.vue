@@ -304,6 +304,12 @@
       analyticsLog('refreshDashboards completed after save')
     } catch (e) {
       console.error('Failed to save dashboard:', e)
+      toast.add({
+        title: 'Failed to save dashboard',
+        description:
+          (e as any)?.data?.message || 'Your changes could not be saved. Please try again.',
+        color: 'error'
+      })
     } finally {
       setTimeout(() => {
         saving.value = false

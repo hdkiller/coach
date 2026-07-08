@@ -11,7 +11,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
   const currentRecommendationId = ref<string | null>(null)
   const toast = useToast()
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // We need to know if intervals is connected to fetch
   const integrationStore = useIntegrationStore()
@@ -47,10 +47,11 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     loading.value = true
     try {
       const data = await $fetch('/api/recommendations/today')
-      todayRecommendation.value = data
+      todayRecommendation.value = data ?? null
     } catch (error: any) {
-      // 404 is expected if no recommendation exists
-      if (error?.statusCode !== 404) {
+      if (error?.statusCode === 404) {
+        todayRecommendation.value = null
+      } else {
         console.error('Error fetching recommendation:', error)
       }
     } finally {
@@ -126,6 +127,13 @@ export const useRecommendationStore = defineStore('recommendation', () => {
           description: 'AI is designing your workout...',
           color: 'success'
         })
+      } else {
+        generatingAdHoc.value = false
+        toast.add({
+          title: 'Generation Failed',
+          description: 'Workout generation could not be started.',
+          color: 'error'
+        })
       }
     } catch (error: any) {
       generatingAdHoc.value = false
@@ -171,6 +179,15 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     toast.add({ title: 'Workout Ready', color: 'success' })
     // Auto-generate recommendation for the new workout
     await generateTodayRecommendation()
+  })
+
+  onTaskFailed('generate-ad-hoc-workout', async (run) => {
+    generatingAdHoc.value = false
+    toast.add({
+      title: 'Workout generation failed',
+      description: run.error?.message || 'Failed to generate workout',
+      color: 'error'
+    })
   })
 
   async function acceptRecommendation(id: string) {
