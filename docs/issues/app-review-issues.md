@@ -1,141 +1,234 @@
 # App Review — Issue Tracker
 
-Last reviewed: 2026-07-08
+Last reviewed: 2026-07-08 (systematic review session 2)
 
-This tracker documents bugs, UX gaps, and security concerns found during a **broad app review** (dashboard, billing, notifications, wellness, integrations, OAuth, and background-task UI lifecycle). It complements the structure-generation tracker in [issues.md](./issues.md) (issues 001–038).
+Documents **132 app-wide issues** (039–170) from systematic codebase review. Complements structure-generation tracker [issues.md](./issues.md) (001–038).
 
-No code changes were made in this review — documentation only.
+**Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~75% complete)
 
-## Scope
+## Summary by priority
 
-**In scope**
+| Priority | Count (039–170) |
+| -------- | --------------- |
+| Critical | 3 |
+| High | 38 |
+| Medium | 78 |
+| Low | 13 |
 
-- Dashboard sync and training recommendation cards
-- Billing/checkout UX
-- Notifications, recovery, reports, performance insights
-- Wellness modal and profile settings
-- Workout comparison and FIT upload flows
-- Background task UI state (`onTaskCompleted` without `onTaskFailed`)
-- OAuth token endpoint security
-- Integration webhooks and sync status
-- Debug endpoint exposure
-- i18n coverage gaps
+## Top clusters (fix these first)
 
-**Out of scope**
+### P0 — Critical runtime & security
+| ID | Title |
+| -- | ----- |
+| [062](./062-chat-planned-workout-pollstartedat-crash.md) | Chat planned-workout card `pollStartedAt` crash |
+| [069](./069-garmin-webhook-unauthenticated.md) | Garmin webhook unauthenticated (+ deregistration risk) |
+| [058](./058-oauth-refresh-weak-client-binding.md) | OAuth refresh token weak client binding |
 
-- Workout structure generation pipeline (see [issues.md](./issues.md) 001–038)
-- Large refactors or architecture rewrites
+### P1 — High-impact user flows
+| ID | Title |
+| -- | ----- |
+| [064](./064-workout-detail-stale-on-nav.md) / [065](./065-planned-workout-stale-on-nav.md) | Workout pages stale on neighbor navigation |
+| [067](./067-nutrition-estimate-missing-id.md) | Nutrition estimate days break mutations |
+| [068](./068-coaching-overview-wrong-workout-links.md) | Coaching feed links wrong workout route |
+| [076](./076-analytics-dashboard-autosave-silent-fail.md) | Analytics dashboard save fails silently |
+| [131](./131-feed-load-more-never-refetches.md) | Feed pagination broken |
+| [134](./134-activities-sync-spinner-stuck.md) | Activities sync spinner stuck |
+| [145](./145-logout-no-pinia-store-reset.md) | Logout doesn't reset stores |
+| [147](./147-user-store-cache-blocks-refetch.md) | User store cache blocks refetch after switch |
+| [152](./152-onboarding-blocks-join-callback.md) | Onboarding blocks post-signup join |
 
-## Issue Clusters
+### P2 — Recurring pattern: stuck loading spinners
+039, 049–051, 064–065, 073–074, 080–082, 119, 138 — all need `onTaskFailed` handlers.
 
-### Background task UI lifecycle (most common pattern)
+### P3 — Webhook & integration security
+059, 069–072, 099–101, 105–108, 161–162
 
-Several pages set a loading flag when a Trigger.dev job is enqueued and only clear it on `onTaskCompleted`. Failed tasks leave buttons stuck until reload.
+### P4 — Share/privacy over-exposure
+066, 094–096, 135–137, 155–160, 157, 158
 
-- [039](./039-dashboard-sync-stuck-loading.md) — Dashboard sync (`ingest-all`)
-- [049](./049-performance-insights-stuck-loading.md) — Performance Generate Insights
-- [050](./050-reports-generating-stuck-on-failure.md) — Reports New Report
-- [051](./051-recommendations-update-stuck-loading.md) — Recommendations Update
+---
 
-Related (structure generation): [004](./004-no-task-failure-handling.md), [010](./010-batch-generation-loading-state.md)
+## Issues 039–061 (session 1)
 
-### Silent error states (looks empty, actually failed)
+| ID | Title | Priority | Type |
+| -- | ----- | -------- | ---- |
+| [039](./039-dashboard-sync-stuck-loading.md) | Dashboard sync stuck loading | High | Bug |
+| [040](./040-billing-success-without-activation.md) | Billing success without activation | High | Bug |
+| [041](./041-workout-comparison-cross-user-leak.md) | Comparison basket cross-user leak | High | Bug |
+| [042](./042-non-intervals-today-workouts-skipped.md) | Non-Intervals today workouts skipped | Medium | Bug |
+| [043](./043-fit-upload-spurious-toasts.md) | FIT upload spurious toasts | Medium | Bug |
+| [044](./044-wellness-modal-error-as-empty.md) | Wellness modal error as empty | Medium | UI |
+| [045](./045-wellness-modal-dialog-title-a11y.md) | Wellness modal a11y title | Low | UI |
+| [046](./046-profile-settings-stale-on-fail.md) | Profile stale on failed save | Medium | Bug |
+| [047](./047-support-email-html-injection.md) | Support email HTML injection | Medium | Bug |
+| [048](./048-recovery-history-no-error-ui.md) | Recovery history no error UI | Medium | UI |
+| [049](./049-performance-insights-stuck-loading.md) | Performance insights stuck | Medium | Bug |
+| [050](./050-reports-generating-stuck-on-failure.md) | Reports generating stuck | Medium | Bug |
+| [051](./051-recommendations-update-stuck-loading.md) | Recommendations update stuck | Medium | Bug |
+| [052](./052-notification-errors-swallowed.md) | Notification errors swallowed | Medium | UI |
+| [053](./053-notification-mark-read-race.md) | Notification mark-read race | Low | Bug |
+| [054](./054-use-polling-aborts-on-error.md) | usePolling aborts on error | Medium | Bug |
+| [055](./055-communication-prefs-misleading-defaults.md) | Communication prefs defaults | Medium | UI |
+| [056](./056-orchestrate-progress-key-mismatch.md) | Orchestrate SSE key mismatch | High | Bug |
+| [057](./057-unauthenticated-debug-endpoints.md) | Unauthenticated debug endpoints | High | Bug |
+| [058](./058-oauth-refresh-weak-client-binding.md) | OAuth refresh weak binding | Critical | Bug |
+| [059](./059-withings-webhook-unauthenticated.md) | Withings webhook unauthenticated | High | Bug |
+| [060](./060-integration-syncstatus-stuck.md) | syncStatus stuck SYNCING | Medium | Bug |
+| [061](./061-i18n-gaps-secondary-pages.md) | i18n gaps secondary pages | Low | Maintenance |
 
-- [044](./044-wellness-modal-error-as-empty.md) — Wellness modal
-- [048](./048-recovery-history-no-error-ui.md) — Recovery History
-- [052](./052-notification-errors-swallowed.md) — Notifications
-- [055](./055-communication-prefs-misleading-defaults.md) — Email preferences
+---
 
-### Data integrity / cross-user
+## Issues 062–090 (workouts, chat, nutrition, coaching)
 
-- [041](./041-workout-comparison-cross-user-leak.md) — Comparison basket in localStorage
-- [042](./042-non-intervals-today-workouts-skipped.md) — Dashboard skips non-Intervals users
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [062](./062-chat-planned-workout-pollstartedat-crash.md) | Chat pollStartedAt crash | Critical |
+| [063](./063-admin-queue-api-unauthenticated.md) | Admin queue API unauthenticated | High |
+| [064](./064-workout-detail-stale-on-nav.md) | Workout detail stale on nav | High |
+| [065](./065-planned-workout-stale-on-nav.md) | Planned workout stale on nav | High |
+| [066](./066-public-workout-share-raw-id-fallback.md) | Share raw workout ID fallback | High |
+| [067](./067-nutrition-estimate-missing-id.md) | Nutrition estimate missing id | High |
+| [068](./068-coaching-overview-wrong-workout-links.md) | Coaching feed wrong links | High |
+| [069](./069-garmin-webhook-unauthenticated.md) | Garmin webhook unauthenticated | Critical |
+| [070](./070-yazio-password-plaintext-storage.md) | Yazio password plaintext | High |
+| [071](./071-oauth-auth-code-ignores-redirect-uri.md) | OAuth ignores redirect_uri | High |
+| [072](./072-whoop-async-webhook-auth-bypass.md) | Whoop async webhook bypass | High |
+| [073](./073-workouts-index-analyze-stuck-loading.md) | Workouts index analyze stuck | High |
+| [074](./074-workout-detail-analysis-stuck-loading.md) | Workout detail analysis stuck | High |
+| [075](./075-nutrition-hydration-advice-inverted.md) | Hydration advice inverted | Medium |
+| [076](./076-analytics-dashboard-autosave-silent-fail.md) | Analytics autosave silent fail | High |
+| [077](./077-chat-load-errors-empty-state.md) | Chat load errors empty | Medium |
+| [078](./078-library-chat-deeplink-istemplate-ignored.md) | Library chat isTemplate ignored | Medium |
+| [079](./079-chat-tool-approval-stuck-on-failure.md) | Tool approval stuck | Medium |
+| [080](./080-plan-dashboard-tasks-no-ontaskfailed.md) | Plan dashboard no onTaskFailed | Medium |
+| [081](./081-nutrition-history-analyze-stuck-loading.md) | Nutrition history analyze stuck | Medium |
+| [082](./082-meal-recommendation-modal-stuck-loading.md) | Meal modal stuck loading | Medium |
+| [083](./083-nutrition-detail-analyze-no-ui-refresh.md) | Nutrition analyze no UI refresh | Medium |
+| [084](./084-nutrition-detail-back-wrong-route.md) | Nutrition back wrong route | Medium |
+| [085](./085-coaching-team-delete-stub.md) | Team delete stub | Medium |
+| [086](./086-library-plan-delete-stub.md) | Library plan delete stub | Medium |
+| [087](./087-library-workout-use-session-stub.md) | Library use session stub | Medium |
+| [088](./088-workout-matcher-silent-link-errors.md) | WorkoutMatcher silent errors | Medium |
+| [089](./089-planned-workout-error-as-not-found.md) | Planned error as not found | Medium |
+| [090](./090-workouts-mobile-analyze-labeled-sync.md) | Mobile analyze labeled Sync | Medium |
 
-### Billing & checkout
+## Issues 091–120 (workouts, oauth, webhooks, plans, library)
 
-- [040](./040-billing-success-without-activation.md) — Success UI without confirmed activation
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [091](./091-workouts-overall-quality-wrong-metric-key.md) | Overall quality wrong metric | Medium |
+| [092](./092-workout-analysis-toast-no-run-correlation.md) | Analysis toast no correlation | Medium |
+| [093](./093-oauth-userinfo-email-ignores-scopes.md) | userinfo email ignores scopes | Medium |
+| [094](./094-share-generate-workout-read-all-types.md) | Share generate scope escalation | Medium |
+| [095](./095-plan-share-auto-creates-permanent-tokens.md) | Plan share auto-creates tokens | Medium |
+| [096](./096-join-invite-preview-exposes-pii.md) | Join preview exposes PII | Medium |
+| [097](./097-onboarding-consent-api-bypass.md) | Onboarding consent bypass | Medium |
+| [098](./098-polar-webhook-missing-userid.md) | Polar webhook missing userId | High |
+| [099](./099-oauth-generic-webhook-ignores-secret.md) | OAuth webhook ignores secret | High |
+| [100](./100-strava-webhook-post-unauthenticated.md) | Strava POST unauthenticated | High |
+| [101](./101-wahoo-webhook-auth-optional.md) | Wahoo auth optional | High |
+| [102](./102-monitoring-trigger-public-without-secret.md) | Monitoring public without secret | High |
+| [103](./103-health-endpoint-leaks-db-errors.md) | Health leaks DB errors | Medium |
+| [104](./104-stripe-webhook-echoes-errors.md) | Stripe webhook echoes errors | Medium |
+| [105](./105-withings-webhook-no-idempotency.md) | Withings no idempotency | Medium |
+| [106](./106-sync-queue-duplicate-processing.md) | Sync queue duplicates | Medium |
+| [107](./107-webhook-poller-double-enqueue.md) | Webhook poller double enqueue | Medium |
+| [108](./108-integration-sync-no-inflight-guard.md) | Sync no in-flight guard | Medium |
+| [109](./109-deactivated-users-pass-client-middleware.md) | Deactivated users pass middleware | Medium |
+| [110](./110-oauth-login-open-redirect.md) | OAuth login open redirect | Medium |
+| [111](./111-oauth-consent-csrf.md) | OAuth consent CSRF | Medium |
+| [112](./112-map-gpx-download-silent-failure.md) | Map GPX silent failure | Medium |
+| [113](./113-workout-export-apis-require-email.md) | Export APIs require email | Medium |
+| [114](./114-nutrition-history-trends-silent-fail.md) | Nutrition trends silent fail | Medium |
+| [115](./115-coaching-calendar-fetch-unhandled.md) | Coaching calendar unhandled | Medium |
+| [116](./116-coaching-message-athlete-no-context.md) | Message athlete no context | Medium |
+| [117](./117-plan-wizard-after-failed-abandon.md) | Plan wizard after failed abandon | Medium |
+| [118](./118-plan-creation-polling-no-failure-feedback.md) | Plan polling no failure feedback | Medium |
+| [119](./119-library-workout-structure-no-ontaskfailed.md) | Library structure no onTaskFailed | Medium |
+| [120](./120-library-workout-fetch-error-as-not-found.md) | Library fetch as not found | Medium |
 
-### Security & integrations
+## Issues 121–150 (library, feed, fitness, stores)
 
-- [057](./057-unauthenticated-debug-endpoints.md) — Public debug routes
-- [058](./058-oauth-refresh-weak-client-binding.md) — OAuth refresh token binding
-- [059](./059-withings-webhook-unauthenticated.md) — Withings webhook verification
-- [047](./047-support-email-html-injection.md) — Support email HTML injection
-- [056](./056-orchestrate-progress-key-mismatch.md) — Orchestrate SSE key bug
-- [060](./060-integration-syncstatus-stuck.md) — Stuck SYNCING status
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [121](./121-library-plan-folder-errors-swallowed.md) | Library folder errors swallowed | Medium |
+| [122](./122-workout-comparison-fetch-failure-hidden.md) | Comparison fetch failure hidden | Medium |
+| [123](./123-chat-deeplink-bypasses-turn-queue.md) | Chat deeplink bypasses queue | Medium |
+| [124](./124-onboarding-consent-save-silent-fail.md) | Onboarding consent silent fail | Medium |
+| [125](./125-oauth-dangerous-email-account-linking.md) | Dangerous email linking | High |
+| [126](./126-oauth-authorize-no-scope-validation.md) | OAuth no scope validation | Medium |
+| [127](./127-polar-ingest-skips-syncstatus.md) | Polar skips syncStatus | Medium |
+| [128](./128-trigger-is-task-running-fails-open.md) | isTaskRunning fails open | Medium |
+| [129](./129-oauth-revoke-no-client-auth.md) | OAuth revoke no client auth | Medium |
+| [130](./130-planned-charts-error-as-not-found.md) | Planned charts not found | Medium |
+| [131](./131-feed-load-more-never-refetches.md) | Feed load more broken | High |
+| [132](./132-feed-sport-filter-wrong-type.md) | Feed sport filter wrong type | Medium |
+| [133](./133-feed-errors-empty-state.md) | Feed errors empty state | Medium |
+| [134](./134-activities-sync-spinner-stuck.md) | Activities sync spinner stuck | High |
+| [135](./135-activities-modal-fetch-silent-fail.md) | Activities modal silent fail | Medium |
+| [136](./136-activities-columns-cross-user.md) | Activities columns cross-user | Medium |
+| [137](./137-activities-workout-matcher-unreachable.md) | WorkoutMatcher unreachable | Medium |
+| [138](./138-fitness-detail-analyze-stuck.md) | Fitness analyze stuck | High |
+| [139](./139-fitness-index-90-day-api-cap.md) | Fitness 90-day API cap | High |
+| [140](./140-fitness-filter-empty-page.md) | Fitness filter empty page | Low |
+| [141](./141-events-detail-stale-on-nav.md) | Events stale on nav | Medium |
+| [142](./142-event-priority-none-invalid.md) | Event priority NONE invalid | Medium |
+| [143](./143-admin-subscriptions-missing-admin-middleware.md) | Admin subscriptions no middleware | Medium |
+| [144](./144-admin-issue-reactions-no-admin-check.md) | Admin reactions no admin check | High |
+| [145](./145-logout-no-pinia-store-reset.md) | Logout no store reset | High |
+| [146](./146-logout-library-folders-not-cleared.md) | Logout folders not cleared | Medium |
+| [147](./147-user-store-cache-blocks-refetch.md) | User store cache blocks refetch | High |
+| [148](./148-recommendations-adhoc-spinner-stuck.md) | Ad-hoc workout spinner stuck | Medium |
+| [149](./149-folder-refresh-silent-stale.md) | Folder refresh silent stale | Medium |
+| [150](./150-recommendations-stale-on-404.md) | Recommendations stale on 404 | Medium |
 
-### UI polish & accessibility
+## Issues 151–170 (join, share, developer, triggers)
 
-- [045](./045-wellness-modal-dialog-title-a11y.md) — Wellness modal a11y title
-- [046](./046-profile-settings-stale-on-fail.md) — Profile form stale on failed save
-- [053](./053-notification-mark-read-race.md) — Notification read race
-- [043](./043-fit-upload-spurious-toasts.md) — FIT upload spurious toasts
-- [054](./054-use-polling-aborts-on-error.md) — Polling stops on first error
-- [061](./061-i18n-gaps-secondary-pages.md) — i18n gaps
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| [151](./151-user-profile-stale-on-error.md) | User profile stale on error | Medium |
+| [152](./152-onboarding-blocks-join-callback.md) | Onboarding blocks join | High |
+| [153](./153-join-auto-accept-branded-only.md) | Join auto-accept branded only | Medium |
+| [154](./154-join-accept-errors-return-500.md) | Join accept returns 500 | Medium |
+| [155](./155-workout-share-leaks-zone-profiles.md) | Share leaks zone profiles | High |
+| [156](./156-nutrition-share-url-404.md) | Nutrition share URL 404 | Medium |
+| [157](./157-nutrition-share-unsanitized-payload.md) | Nutrition share unsanitized | High |
+| [158](./158-developer-get-leaks-webhook-secret.md) | Developer GET leaks secret | High |
+| [159](./159-planned-workout-share-ignores-preview.md) | Planned share ignores preview | Medium |
+| [160](./160-wellness-share-og-leaks-biometrics.md) | Wellness OG leaks biometrics | Medium |
+| [161](./161-connect-yazio-no-auth-middleware.md) | Connect Yazio no auth | High |
+| [162](./162-fit-ingest-no-file-ownership-check.md) | FIT ingest no ownership check | High |
+| [163](./163-chat-tts-transcribe-no-quota.md) | Chat TTS/transcribe no quota | Medium |
+| [164](./164-chat-turn-retry-no-quota.md) | Chat retry no quota | Medium |
+| [165](./165-chat-queued-messages-lost-on-error.md) | Queued messages lost on error | Medium |
+| [166](./166-chat-message-queue-in-memory-only.md) | Chat queue in-memory only | Medium |
+| [167](./167-admin-impersonate-self-allowed.md) | Admin impersonate self | Medium |
+| [168](./168-admin-user-detail-no-error-state.md) | Admin user detail no error | Medium |
+| [169](./169-admin-webhook-stats-wrong-progress-max.md) | Admin webhook stats wrong max | Low |
+| [170](./170-deduplicate-auto-analyzes-all-recent.md) | Dedup auto-analyzes all recent | Medium |
 
-## Issues
+---
 
-| ID | Title | Priority | Type | Status |
-| --- | --- | --- | --- | --- |
-| [039](./039-dashboard-sync-stuck-loading.md) | Dashboard sync button stuck in “Syncing…” | High | Bug | Open |
-| [040](./040-billing-success-without-activation.md) | Billing success UI without subscription activation | High | Bug | Open |
-| [041](./041-workout-comparison-cross-user-leak.md) | Workout comparison basket persists across logins | High | Bug | Open |
-| [042](./042-non-intervals-today-workouts-skipped.md) | Today’s workouts skipped for non-Intervals users | Medium | Bug | Open |
-| [043](./043-fit-upload-spurious-toasts.md) | FIT upload toasts on unrelated ingest jobs | Medium | Bug | Open |
-| [044](./044-wellness-modal-error-as-empty.md) | Wellness modal mislabels API failures as “no data” | Medium | UI | Open |
-| [045](./045-wellness-modal-dialog-title-a11y.md) | Wellness modal incorrect dialog title (a11y) | Low | UI | Open |
-| [046](./046-profile-settings-stale-on-fail.md) | Profile settings stale after failed save | Medium | Bug | Open |
-| [047](./047-support-email-html-injection.md) | Support API HTML injection in email | Medium | Bug | Open |
-| [048](./048-recovery-history-no-error-ui.md) | Recovery History ignores fetch errors | Medium | UI | Open |
-| [049](./049-performance-insights-stuck-loading.md) | Performance insights stuck loading on failure | Medium | Bug | Open |
-| [050](./050-reports-generating-stuck-on-failure.md) | Reports generating stuck on task failure | Medium | Bug | Open |
-| [051](./051-recommendations-update-stuck-loading.md) | Recommendations Update stuck on failure | Medium | Bug | Open |
-| [052](./052-notification-errors-swallowed.md) | Notification errors swallowed | Medium | UI | Open |
-| [053](./053-notification-mark-read-race.md) | Notification navigate-before-read race | Low | Bug | Open |
-| [054](./054-use-polling-aborts-on-error.md) | `usePolling` aborts on first error | Medium | Bug | Open |
-| [055](./055-communication-prefs-misleading-defaults.md) | Communication prefs misleading defaults | Medium | UI | Open |
-| [056](./056-orchestrate-progress-key-mismatch.md) | Orchestrate progress SSE wrong user key | High | Bug | Open |
-| [057](./057-unauthenticated-debug-endpoints.md) | Unauthenticated debug endpoints | High | Bug | Open |
-| [058](./058-oauth-refresh-weak-client-binding.md) | OAuth refresh token weak client binding | Critical | Bug | Open |
-| [059](./059-withings-webhook-unauthenticated.md) | Withings webhook no authenticity check | High | Bug | Open |
-| [060](./060-integration-syncstatus-stuck.md) | Integration syncStatus stuck SYNCING | Medium | Bug | Open |
-| [061](./061-i18n-gaps-secondary-pages.md) | i18n gaps on secondary pages | Low | Maintenance | Open |
+## Recommended fix order (app review)
 
-## Recommended Fix Order
+1. **062, 069, 058** — Critical crash + webhook auth + OAuth refresh
+2. **064–065, 141** — Route param refetch pattern (shared fix)
+3. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
+4. **039, 049–051, 064–065, 073–074, 080–082, 119, 138** — `onTaskFailed` sweep
+5. **066, 155–160, 157, 158** — Share/privacy hardening
+6. **069–072, 099–101** — Webhook verification
+7. **152–154** — Join/onboarding flow
+8. **067, 068, 076, 131, 134** — High-impact UX correctness
+9. Remaining medium/low
 
-1. **058** — OAuth refresh token security (critical auth gap).
-2. **057 + 059** — Lock down debug endpoints and Withings webhook verification.
-3. **039 + 049 + 050 + 051** — Add `onTaskFailed` handlers for common background-task UI (shared pattern).
-4. **040 + 041** — Billing success correctness and cross-user localStorage leak.
-5. **056 + 060** — Orchestrate progress and stuck sync status.
-6. **044 + 048 + 052 + 055** — Silent error states (wellness, recovery, notifications, prefs).
-7. Remaining medium/low UI items.
+## How issues are managed
 
-## How Issues Are Managed
+- Flat files: `docs/issues/NNN-slug.md`
+- Progress: [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md)
+- GitHub: [issue-management.md](../04-guides/issue-management.md)
+- Sentry: [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md)
 
-- **Flat files**: Each issue is a numbered markdown file in `docs/issues/` (same format as 001–038).
-- **GitHub Issues**: Use [issue-management.md](../04-guides/issue-management.md) templates and labels when promoting to GitHub.
-- **Sentry**: Production runtime errors tracked separately in [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md).
-- **Bug report skill**: `.claude/skills/report-bug/` can auto-create GitHub issues from confirmed bugs.
+## Related trackers
 
-## Key Files Reviewed
-
-| Area | Path |
-| ---- | ---- |
-| Dashboard sync | `app/pages/dashboard.vue`, `app/stores/integrations.ts` |
-| Billing | `app/pages/settings/billing.vue` |
-| Recommendations | `app/stores/recommendations.ts`, `app/pages/recommendations/index.vue` |
-| Background task UI | `app/composables/useUserRuns.ts`, `app/stores/reports.ts` |
-| Wellness | `app/components/WellnessModal.vue` |
-| Notifications | `app/stores/notifications.ts`, `app/pages/notifications.vue` |
-| OAuth | `server/api/oauth/token.post.ts`, `server/utils/repositories/oauthRepository.ts` |
-| Webhooks | `server/api/integrations/withings/webhook.post.ts` |
-| Debug | `server/api/debug/*.ts` |
-| Orchestration | `server/api/orchestrate/full-sync.post.ts`, `progress.get.ts` |
-
-## Related Trackers
-
-- [issues.md](./issues.md) — Workout structure generation (001–038)
-- [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md) — Production Sentry errors
-- [TODO_MISSING_FUNCTIONALITY.md](../../TODO_MISSING_FUNCTIONALITY.md) — Missing features
-- [issue-management.md](../04-guides/issue-management.md) — GitHub issue standards
+- [issues.md](./issues.md) — Structure generation (001–038)
+- [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) — Systematic review progress

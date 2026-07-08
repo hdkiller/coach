@@ -1,0 +1,35 @@
+# 082 — Meal Recommendation Modal Stuck Loading
+
+**Type:** Bug  
+**Priority:** Medium  
+**Area:** `nutrition, ui/ux`  
+**Status:** Open
+
+## Description
+
+app/components/nutrition/MealRecommendationModal.vue
+
+## Steps to Reproduce
+
+Fail recommend-nutrition-meal task; modal spinner never stops.
+
+## Expected Behavior
+
+- Issue is resolved per suggested fix below.
+
+## Actual Behavior
+
+- See description.
+
+## Affected Files
+
+- See description
+
+## Suggested Fix
+
+Add onTaskFailed and terminal error state.
+
+## Acceptance Criteria
+
+- [ ] Bug no longer reproducible via steps above
+- [ ] Appropriate error handling or auth in place
