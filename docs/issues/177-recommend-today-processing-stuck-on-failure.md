@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `planning, ai`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `recommend-today-activity` wraps generation in try/catch and sets `ActivityRecommendation.status = FAILED` on any uncaught error.
 
 ## Description
 
@@ -20,5 +22,5 @@ Fail recommend-today task; recommendation row stuck PROCESSING.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

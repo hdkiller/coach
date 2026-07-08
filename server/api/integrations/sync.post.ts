@@ -207,6 +207,28 @@ export default defineEventHandler(async (event) => {
         message: `${provider} integration not found. Please connect your account first.`
       })
     }
+
+    if (integration.syncStatus === 'SYNCING') {
+      throw createError({
+        statusCode: 409,
+        message: `${provider} sync is already in progress. Please wait for it to finish.`
+      })
+    }
+  } else {
+    const syncingIntegration = await prisma.integration.findFirst({
+      where: {
+        userId,
+        syncStatus: 'SYNCING'
+      },
+      select: { provider: true }
+    })
+
+    if (syncingIntegration) {
+      throw createError({
+        statusCode: 409,
+        message: `Sync already in progress for ${syncingIntegration.provider}. Please wait for it to finish.`
+      })
+    }
   }
 
   // Trigger the appropriate job

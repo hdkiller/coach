@@ -6,7 +6,8 @@ import { shouldIngestActivities } from '../server/utils/integration-settings'
 import {
   fetchHevyWorkouts,
   fetchHevyExerciseTemplate,
-  normalizeHevyWorkout
+  normalizeHevyWorkout,
+  isHevyWorkoutInDateWindow
 } from '../server/utils/hevy'
 import { roundToTwoDecimals } from '../server/utils/number'
 import type { IngestionResult } from './types'
@@ -15,8 +16,13 @@ export const ingestHevyTask = task({
   id: 'ingest-hevy',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; fullSync?: boolean }): Promise<IngestionResult> => {
-    const { userId, fullSync } = payload
+  run: async (payload: {
+    userId: string
+    startDate?: string
+    endDate?: string
+    fullSync?: boolean
+  }): Promise<IngestionResult> => {
+    const { userId, startDate, endDate, fullSync } = payload
 
     // 1. Get Integration
     const integration = await prisma.integration.findUnique({
@@ -80,6 +86,21 @@ export const ingestHevyTask = task({
         }
 
         for (const hevyWorkout of workouts) {
+          const { inWindow, beforeWindow } = isHevyWorkoutInDateWindow(
+            hevyWorkout,
+            startDate,
+            endDate
+          )
+
+          if (beforeWindow) {
+            keepFetching = false
+            break
+          }
+
+          if (!inWindow) {
+            continue
+          }
+
           // Check if workout exists to optimize "incremental" sync
           const existingWorkout = await prisma.workout.findUnique({
             where: {

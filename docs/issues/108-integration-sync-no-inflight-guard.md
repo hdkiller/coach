@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `integrations, ui/ux`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `POST /api/integrations/sync` returns 409 when the target integration (or any integration for `all`) has `syncStatus === 'SYNCING'`.
 
 ## Description
 
@@ -31,5 +33,5 @@ Check running ingest tasks; return 409 if sync in progress.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

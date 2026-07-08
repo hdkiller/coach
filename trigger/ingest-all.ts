@@ -131,7 +131,7 @@ export const ingestAllTask = task({
         case 'hevy':
           tasksTrigger.push({
             task: ingestHevyTask,
-            payload: { userId, fullSync: false }
+            payload: { userId, startDate, endDate, fullSync: false }
           })
           break
         case 'polar':

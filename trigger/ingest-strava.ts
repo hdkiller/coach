@@ -73,18 +73,14 @@ export const ingestStravaTask = task({
       data: { syncStatus: 'SYNCING' }
     })
 
+    let syncSucceeded = false
+    let syncErrorMessage: string | null = null
+
     try {
       const settings = (integration.settings as Record<string, any> | null) || {}
       if (!shouldIngestActivities('strava', integration.ingestWorkouts, settings)) {
         logger.log('Strava activity ingestion disabled - skipping')
-        await prisma.integration.update({
-          where: { id: integration.id },
-          data: {
-            syncStatus: 'SUCCESS',
-            lastSyncAt: new Date(),
-            errorMessage: null
-          }
-        })
+        syncSucceeded = true
 
         return {
           success: true,
@@ -287,14 +283,7 @@ export const ingestStravaTask = task({
 
       logger.log(`Upserted ${workoutsUpserted} workouts from Strava`)
 
-      await prisma.integration.update({
-        where: { id: integration.id },
-        data: {
-          syncStatus: 'SUCCESS',
-          lastSyncAt: new Date(),
-          errorMessage: null
-        }
-      })
+      syncSucceeded = true
 
       return {
         success: true,
@@ -309,15 +298,18 @@ export const ingestStravaTask = task({
     } catch (error) {
       logger.error('Error ingesting Strava data', { error })
 
+      syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      throw error
+    } finally {
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
-          syncStatus: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
+          lastSyncAt: syncSucceeded ? new Date() : undefined,
+          errorMessage: syncSucceeded ? null : syncErrorMessage
         }
       })
-
-      throw error
     }
   }
 })

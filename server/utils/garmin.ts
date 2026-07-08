@@ -28,6 +28,23 @@ export function parseGarminScope(scope: string | null | undefined): Set<string> 
   )
 }
 
+export function buildGarminTimeSlices(
+  startTimestamp: number,
+  endTimestamp: number,
+  maxSliceSeconds = 86400
+): Array<{ startTimestamp: number; endTimestamp: number }> {
+  const slices: Array<{ startTimestamp: number; endTimestamp: number }> = []
+  let sliceStart = startTimestamp
+
+  while (sliceStart < endTimestamp) {
+    const sliceEnd = Math.min(sliceStart + maxSliceSeconds, endTimestamp)
+    slices.push({ startTimestamp: sliceStart, endTimestamp: sliceEnd })
+    sliceStart = sliceEnd
+  }
+
+  return slices
+}
+
 export function mergeGarminScopes(
   ...sources: Array<string | string[] | Set<string> | null | undefined>
 ): Set<string> {

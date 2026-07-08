@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `integrations, data`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `process-sync-queue` atomically claims `PENDING` items with `updateMany` (`PENDING` → `PROCESSING`) before processing.
 
 ## Description
 
@@ -31,5 +33,5 @@ Add claim step or SELECT FOR UPDATE.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `integrations`, `backend`, `data`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `ingest-strava` and `ingest-intervals` use `finally` blocks to always clear `SYNCING` to a terminal `SUCCESS` or `FAILED` status.
 
 ## Description
 
@@ -48,5 +50,5 @@ Use `finally` block to set terminal status; add stale-SYNCING recovery job or ti
 
 ## Acceptance Criteria
 
-- [ ] Normal and abnormal task exit clears SYNCING state
-- [ ] UI reflects accurate sync status after task ends
+- [x] Normal and abnormal task exit clears SYNCING state
+- [x] UI reflects accurate sync status after task ends

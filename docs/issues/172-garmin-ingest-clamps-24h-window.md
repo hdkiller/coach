@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `integrations, data`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `ingest-garmin` chunks multi-day windows into consecutive 24-hour slices via `buildGarminTimeSlices` instead of clamping to the last day.
 
 ## Description
 
@@ -20,5 +22,5 @@ Sync all with Garmin; only last day ingested despite 7-day batch window.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

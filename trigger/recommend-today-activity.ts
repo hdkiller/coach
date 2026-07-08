@@ -162,385 +162,388 @@ export const recommendTodayActivityTask = task({
 
     logger.log("Starting today's activity recommendation", { userId, payloadDate, source })
 
-    const aiSettings = await getUserAiSettings(userId)
-
-    // Check Quota
     try {
-      await checkQuota(userId, 'activity_recommendation')
-    } catch (quotaError: any) {
-      if (quotaError.statusCode === 429) {
-        logger.warn('Activity recommendation quota exceeded', { userId, recommendationId })
-        if (recommendationId) {
-          await activityRecommendationRepository.update(recommendationId, userId, {
-            status: 'FAILED',
-            reasoning: 'Quota exceeded. Upgrade your plan for higher limits.'
-          })
-        }
-        return { success: false, reason: 'QUOTA_EXCEEDED' }
-      }
-      throw quotaError
-    }
+      const aiSettings = await getUserAiSettings(userId)
 
-    // 1. Fetch User Profile & Timezone FIRST to establish "Today" correctly
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        ftp: true,
-        weight: true,
-        weightUnits: true,
-        weightSourceMode: true,
-        height: true,
-        heightUnits: true,
-        maxHr: true,
-        timezone: true,
-        lthr: true,
-        dob: true,
-        sex: true,
-        language: true,
-        nutritionTrackingEnabled: true,
-        aiAutoAnalyzeReadiness: true
-      }
-    })
-
-    const userTimezone = user?.timezone || 'UTC'
-    const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
-    const userAge = calculateAge(user?.dob)
-    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
-      weight: user?.weight,
-      weightSourceMode: user?.weightSourceMode,
-      weightUnits: user?.weightUnits
-    })
-
-    // Fetch Email Preferences
-    const emailPrefs = await prisma.emailPreference.findUnique({
-      where: { userId_channel: { userId, channel: 'EMAIL' } }
-    })
-
-    logger.log('Proceeding with recommendation using latest available context.')
-
-    // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeReadiness is enabled
-    if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeReadiness) {
-      logger.log('EXIT: Auto-analyze readiness disabled for user.')
-      return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
-    }
-
-    // 3. Calculate Effective Today based on User's Timezone
-    // This fixes issues where server time (UTC) might be ahead/behind user's local "Today"
-    const effectiveDate = getUserLocalDate(userTimezone)
-    const payloadDateObj = new Date(payloadDate)
-
-    logger.log('Timezone Context', {
-      userTimezone,
-      effectiveDate: effectiveDate.toISOString(),
-      payloadDate: payloadDateObj.toISOString()
-    })
-
-    // 3. Update Recommendation Date if needed
-    // If the payload date (likely server UTC) differs from user's local date, sync them.
-    if (recommendationId && effectiveDate.getTime() !== payloadDateObj.getTime()) {
-      logger.log('Date mismatch detected. Updating recommendation date to match user local date.', {
-        oldDate: payloadDateObj,
-        newDate: effectiveDate
-      })
-      await prisma.activityRecommendation.update({
-        where: { id: recommendationId },
-        data: { date: effectiveDate }
-      })
-    }
-
-    // Use effectiveDate for all subsequent queries
-    const today = effectiveDate
-
-    const recentWorkoutsStartDate = getStartOfDaysAgoUTC(userTimezone, 6, today)
-    const recentWorkoutsEndDate = getEndOfDayUTC(userTimezone, today)
-
-    // Fetch remaining data
-    const [
-      plannedWorkouts,
-      todayMetric,
-      recentWorkouts,
-      athleteProfile,
-      rawActiveGoals,
-      futureWorkouts,
-      currentPlan,
-      upcomingEvents,
-      currentFitness,
-      focusedRecommendations,
-      sportSettings,
-      todayAvailability,
-      weeklyAvailability,
-      recentWellness,
-      mealTargetContext,
-      wellnessEvents
-    ] = await Promise.all([
-      // Today's planned workouts (Fetch ALL to handle multi-session days)
-      prisma.plannedWorkout.findMany({
-        where: {
-          userId,
-          date: today,
-          completed: {
-            not: true
-          },
-          completedWorkouts: {
-            none: {}
+      // Check Quota
+      try {
+        await checkQuota(userId, 'activity_recommendation')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Activity recommendation quota exceeded', { userId, recommendationId })
+          if (recommendationId) {
+            await activityRecommendationRepository.update(recommendationId, userId, {
+              status: 'FAILED',
+              reasoning: 'Quota exceeded. Upgrade your plan for higher limits.'
+            })
           }
-        },
-        orderBy: { tss: 'desc' } // Prioritize hardest workout
-      }),
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
 
-      // Today's recovery metrics from Wellness table (WHOOP, Intervals.icu, etc.)
-      wellnessRepository.getByDate(userId, today),
+      // 1. Fetch User Profile & Timezone FIRST to establish "Today" correctly
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          weightSourceMode: true,
+          height: true,
+          heightUnits: true,
+          maxHr: true,
+          timezone: true,
+          lthr: true,
+          dob: true,
+          sex: true,
+          language: true,
+          nutritionTrackingEnabled: true,
+          aiAutoAnalyzeReadiness: true
+        }
+      })
 
-      // Last 7 days of workouts for context
-      workoutRepository.getForUser(userId, {
-        startDate: recentWorkoutsStartDate,
-        endDate: recentWorkoutsEndDate,
-        orderBy: { date: 'desc' },
-        includeDuplicates: false,
-        include: {
-          streams: {
-            select: {
-              hrZoneTimes: true,
-              powerZoneTimes: true
+      const userTimezone = user?.timezone || 'UTC'
+      const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
+      const userAge = calculateAge(user?.dob)
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode,
+        weightUnits: user?.weightUnits
+      })
+
+      // Fetch Email Preferences
+      const emailPrefs = await prisma.emailPreference.findUnique({
+        where: { userId_channel: { userId, channel: 'EMAIL' } }
+      })
+
+      logger.log('Proceeding with recommendation using latest available context.')
+
+      // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeReadiness is enabled
+      if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeReadiness) {
+        logger.log('EXIT: Auto-analyze readiness disabled for user.')
+        return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
+      }
+
+      // 3. Calculate Effective Today based on User's Timezone
+      // This fixes issues where server time (UTC) might be ahead/behind user's local "Today"
+      const effectiveDate = getUserLocalDate(userTimezone)
+      const payloadDateObj = new Date(payloadDate)
+
+      logger.log('Timezone Context', {
+        userTimezone,
+        effectiveDate: effectiveDate.toISOString(),
+        payloadDate: payloadDateObj.toISOString()
+      })
+
+      // 3. Update Recommendation Date if needed
+      // If the payload date (likely server UTC) differs from user's local date, sync them.
+      if (recommendationId && effectiveDate.getTime() !== payloadDateObj.getTime()) {
+        logger.log(
+          'Date mismatch detected. Updating recommendation date to match user local date.',
+          {
+            oldDate: payloadDateObj,
+            newDate: effectiveDate
+          }
+        )
+        await prisma.activityRecommendation.update({
+          where: { id: recommendationId },
+          data: { date: effectiveDate }
+        })
+      }
+
+      // Use effectiveDate for all subsequent queries
+      const today = effectiveDate
+
+      const recentWorkoutsStartDate = getStartOfDaysAgoUTC(userTimezone, 6, today)
+      const recentWorkoutsEndDate = getEndOfDayUTC(userTimezone, today)
+
+      // Fetch remaining data
+      const [
+        plannedWorkouts,
+        todayMetric,
+        recentWorkouts,
+        athleteProfile,
+        rawActiveGoals,
+        futureWorkouts,
+        currentPlan,
+        upcomingEvents,
+        currentFitness,
+        focusedRecommendations,
+        sportSettings,
+        todayAvailability,
+        weeklyAvailability,
+        recentWellness,
+        mealTargetContext,
+        wellnessEvents
+      ] = await Promise.all([
+        // Today's planned workouts (Fetch ALL to handle multi-session days)
+        prisma.plannedWorkout.findMany({
+          where: {
+            userId,
+            date: today,
+            completed: {
+              not: true
+            },
+            completedWorkouts: {
+              none: {}
             }
           },
-          plannedWorkout: true
-        }
-      }),
+          orderBy: { tss: 'desc' } // Prioritize hardest workout
+        }),
 
-      // Latest athlete profile
-      prisma.report.findFirst({
-        where: {
-          userId,
-          type: 'ATHLETE_PROFILE',
-          status: 'COMPLETED'
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { analysisJson: true, createdAt: true }
-      }),
+        // Today's recovery metrics from Wellness table (WHOOP, Intervals.icu, etc.)
+        wellnessRepository.getByDate(userId, today),
 
-      // Active goals
-      prisma.goal.findMany({
-        where: {
-          userId,
-          status: 'ACTIVE'
-        },
-        orderBy: { priority: 'desc' },
-        select: {
-          title: true,
-          type: true,
-          eventType: true,
-          description: true,
-          targetDate: true,
-          eventDate: true,
-          priority: true
-        }
-      }),
-
-      // Future planned workouts (next 14 days)
-      prisma.plannedWorkout.findMany({
-        where: {
-          userId,
-          completed: {
-            not: true
-          },
-          completedWorkouts: {
-            none: {}
-          },
-          date: {
-            gt: today,
-            lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
+        // Last 7 days of workouts for context
+        workoutRepository.getForUser(userId, {
+          startDate: recentWorkoutsStartDate,
+          endDate: recentWorkoutsEndDate,
+          orderBy: { date: 'desc' },
+          includeDuplicates: false,
+          include: {
+            streams: {
+              select: {
+                hrZoneTimes: true,
+                powerZoneTimes: true
+              }
+            },
+            plannedWorkout: true
           }
-        },
-        orderBy: { date: 'asc' },
-        select: {
-          date: true,
-          title: true,
-          type: true,
-          tss: true,
-          description: true
-        }
-      }),
+        }),
 
-      // Current active training plan
-      prisma.weeklyTrainingPlan.findFirst({
-        where: {
-          userId,
-          status: 'ACTIVE',
-          weekStartDate: {
-            lte: today
-          },
-          weekEndDate: {
-            gte: today
-          }
-        },
-        select: {
-          planJson: true
-        }
-      }),
-
-      // Upcoming Events (next 14 days)
-      prisma.event.findMany({
-        where: {
-          userId,
-          date: {
-            gte: today,
-            lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
-          }
-        },
-        orderBy: { date: 'asc' }
-      }),
-
-      // Keep prompt metrics aligned with the dashboard/source-of-truth widget values.
-      getCurrentFitnessSummary(userId, undefined, {
-        adjustForTodayUncompletedPlannedTSS: true,
-        timezone: userTimezone
-      }),
-
-      // Pinned/Focused recommendations
-      recommendationRepository.list(userId, { isPinned: true, status: 'ACTIVE' }),
-
-      // Sport Settings (New centralized system)
-      sportSettingsRepository.getByUserId(userId),
-
-      // Today's Training Availability
-      availabilityRepository.getForDay(userId, today.getDay()),
-
-      // Full weekly training availability (for forward-looking guidance)
-      availabilityRepository.getFullSchedule(userId),
-
-      wellnessRepository.getForUser(userId, {
-        startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
-        endDate: today,
-        where: {
-          lastSource: 'fitbit'
-        },
-        select: {
-          date: true,
-          hrv: true
-        },
-        orderBy: { date: 'desc' }
-      }),
-
-      // Canonical metabolic meal target context (same engine as nutrition charts)
-      nutritionEnabled
-        ? metabolicService.getMealTargetContext(userId, today, new Date())
-        : Promise.resolve(null),
-
-      getWellnessEventOverlaysForUser(userId, {
-        startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
-        endDate: today
-      })
-    ])
-    const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
-
-    // Identify primary workout for linking (DB only allows 1:1) and logic fallback
-    const primaryPlannedWorkout = plannedWorkouts[0] || null
-
-    // Build today's availability summary
-    const availabilityContext = todayAvailability
-      ? `\nTODAY'S TRAINING AVAILABILITY:\n${availabilityRepository.formatForPrompt(todayAvailability)}\n`
-      : ''
-    const weeklyAvailabilityContext =
-      weeklyAvailability.length > 0
-        ? `\nWEEKLY TRAINING AVAILABILITY:\n${availabilityRepository.formatForPrompt(weeklyAvailability)}\n`
-        : ''
-
-    // --- CHECK FOR AND RUN WELLNESS ANALYSIS IF MISSING ---
-    // If we have a wellness record (todayMetric) but no AI analysis, run it now.
-    // This ensures we always have the AI context for the recommendation.
-    let enrichedTodayMetric = todayMetric
-
-    if (
-      todayMetric &&
-      (!todayMetric.aiAnalysisJson || todayMetric.aiAnalysisStatus !== 'COMPLETED')
-    ) {
-      logger.log('Wellness analysis missing for today, running inline...', {
-        wellnessId: todayMetric.id
-      })
-      try {
-        await checkQuota(userId, 'wellness_analysis')
-        const result = await analyzeWellness(todayMetric.id, userId)
-        if (result.success && result.analysis) {
-          // Update our local object so the prompt gets the new data
-          enrichedTodayMetric = {
-            ...todayMetric,
-            aiAnalysisJson: result.analysis as any,
-            aiAnalysisStatus: 'COMPLETED'
-          }
-          logger.log('Inline wellness analysis completed successfully')
-        }
-      } catch (err: any) {
-        if (err?.statusCode === 429) {
-          logger.warn('Inline wellness analysis skipped due to quota', {
+        // Latest athlete profile
+        prisma.report.findFirst({
+          where: {
             userId,
-            wellnessId: todayMetric.id
-          })
-        } else {
-          logger.error('Failed to run inline wellness analysis', { err })
+            type: 'ATHLETE_PROFILE',
+            status: 'COMPLETED'
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { analysisJson: true, createdAt: true }
+        }),
+
+        // Active goals
+        prisma.goal.findMany({
+          where: {
+            userId,
+            status: 'ACTIVE'
+          },
+          orderBy: { priority: 'desc' },
+          select: {
+            title: true,
+            type: true,
+            eventType: true,
+            description: true,
+            targetDate: true,
+            eventDate: true,
+            priority: true
+          }
+        }),
+
+        // Future planned workouts (next 14 days)
+        prisma.plannedWorkout.findMany({
+          where: {
+            userId,
+            completed: {
+              not: true
+            },
+            completedWorkouts: {
+              none: {}
+            },
+            date: {
+              gt: today,
+              lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
+            }
+          },
+          orderBy: { date: 'asc' },
+          select: {
+            date: true,
+            title: true,
+            type: true,
+            tss: true,
+            description: true
+          }
+        }),
+
+        // Current active training plan
+        prisma.weeklyTrainingPlan.findFirst({
+          where: {
+            userId,
+            status: 'ACTIVE',
+            weekStartDate: {
+              lte: today
+            },
+            weekEndDate: {
+              gte: today
+            }
+          },
+          select: {
+            planJson: true
+          }
+        }),
+
+        // Upcoming Events (next 14 days)
+        prisma.event.findMany({
+          where: {
+            userId,
+            date: {
+              gte: today,
+              lte: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
+            }
+          },
+          orderBy: { date: 'asc' }
+        }),
+
+        // Keep prompt metrics aligned with the dashboard/source-of-truth widget values.
+        getCurrentFitnessSummary(userId, undefined, {
+          adjustForTodayUncompletedPlannedTSS: true,
+          timezone: userTimezone
+        }),
+
+        // Pinned/Focused recommendations
+        recommendationRepository.list(userId, { isPinned: true, status: 'ACTIVE' }),
+
+        // Sport Settings (New centralized system)
+        sportSettingsRepository.getByUserId(userId),
+
+        // Today's Training Availability
+        availabilityRepository.getForDay(userId, today.getDay()),
+
+        // Full weekly training availability (for forward-looking guidance)
+        availabilityRepository.getFullSchedule(userId),
+
+        wellnessRepository.getForUser(userId, {
+          startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
+          endDate: today,
+          where: {
+            lastSource: 'fitbit'
+          },
+          select: {
+            date: true,
+            hrv: true
+          },
+          orderBy: { date: 'desc' }
+        }),
+
+        // Canonical metabolic meal target context (same engine as nutrition charts)
+        nutritionEnabled
+          ? metabolicService.getMealTargetContext(userId, today, new Date())
+          : Promise.resolve(null),
+
+        getWellnessEventOverlaysForUser(userId, {
+          startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
+          endDate: today
+        })
+      ])
+      const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
+
+      // Identify primary workout for linking (DB only allows 1:1) and logic fallback
+      const primaryPlannedWorkout = plannedWorkouts[0] || null
+
+      // Build today's availability summary
+      const availabilityContext = todayAvailability
+        ? `\nTODAY'S TRAINING AVAILABILITY:\n${availabilityRepository.formatForPrompt(todayAvailability)}\n`
+        : ''
+      const weeklyAvailabilityContext =
+        weeklyAvailability.length > 0
+          ? `\nWEEKLY TRAINING AVAILABILITY:\n${availabilityRepository.formatForPrompt(weeklyAvailability)}\n`
+          : ''
+
+      // --- CHECK FOR AND RUN WELLNESS ANALYSIS IF MISSING ---
+      // If we have a wellness record (todayMetric) but no AI analysis, run it now.
+      // This ensures we always have the AI context for the recommendation.
+      let enrichedTodayMetric = todayMetric
+
+      if (
+        todayMetric &&
+        (!todayMetric.aiAnalysisJson || todayMetric.aiAnalysisStatus !== 'COMPLETED')
+      ) {
+        logger.log('Wellness analysis missing for today, running inline...', {
+          wellnessId: todayMetric.id
+        })
+        try {
+          await checkQuota(userId, 'wellness_analysis')
+          const result = await analyzeWellness(todayMetric.id, userId)
+          if (result.success && result.analysis) {
+            enrichedTodayMetric = {
+              ...todayMetric,
+              aiAnalysisJson: result.analysis as any,
+              aiAnalysisStatus: 'COMPLETED'
+            }
+            logger.log('Inline wellness analysis completed successfully')
+          }
+        } catch (err: any) {
+          if (err?.statusCode === 429) {
+            logger.warn('Inline wellness analysis skipped due to quota', {
+              userId,
+              wellnessId: todayMetric.id
+            })
+          } else {
+            logger.error('Failed to run inline wellness analysis', { err })
+          }
+          // We continue without the analysis rather than failing the whole recommendation
         }
-        // We continue without the analysis rather than failing the whole recommendation
       }
-    }
 
-    if (enrichedTodayMetric) {
-      enrichedTodayMetric = {
-        ...enrichedTodayMetric,
-        stress: getCanonicalWellnessStress(enrichedTodayMetric)
+      if (enrichedTodayMetric) {
+        enrichedTodayMetric = {
+          ...enrichedTodayMetric,
+          stress: getCanonicalWellnessStress(enrichedTodayMetric)
+        }
       }
-    }
 
-    logger.log('Data fetched', {
-      plannedWorkoutsCount: plannedWorkouts.length,
-      hasTodayMetric: !!enrichedTodayMetric,
-      recentWorkoutsCount: recentWorkouts.length,
-      hasAthleteProfile: !!athleteProfile,
-      activeGoalsCount: activeGoals.length,
-      futureWorkoutsCount: futureWorkouts.length,
-      upcomingEventsCount: upcomingEvents.length,
-      currentFitness
-    })
+      logger.log('Data fetched', {
+        plannedWorkoutsCount: plannedWorkouts.length,
+        hasTodayMetric: !!enrichedTodayMetric,
+        recentWorkoutsCount: recentWorkouts.length,
+        hasAthleteProfile: !!athleteProfile,
+        activeGoalsCount: activeGoals.length,
+        futureWorkoutsCount: futureWorkouts.length,
+        upcomingEventsCount: upcomingEvents.length,
+        currentFitness
+      })
 
-    // Calculate Projected PMC Trends
-    const projectedMetrics = calculateProjectedPMC(
-      today,
-      new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000),
-      currentFitness.ctl,
-      currentFitness.atl,
-      futureWorkouts
-    )
+      // Calculate Projected PMC Trends
+      const projectedMetrics = calculateProjectedPMC(
+        today,
+        new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000),
+        currentFitness.ctl,
+        currentFitness.atl,
+        futureWorkouts
+      )
 
-    // Calculate local time context
-    const now = new Date()
-    const localTime = now.toLocaleTimeString('en-US', {
-      timeZone: userTimezone,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    })
+      // Calculate local time context
+      const now = new Date()
+      const localTime = now.toLocaleTimeString('en-US', {
+        timeZone: userTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
 
-    // Use target date string for the prompt to ensure alignment with "Today"
-    // Since 'today' is now strictly User Local Date @ UTC Midnight,
-    // toISOString().split('T')[0] will give the correct YYYY-MM-DD
-    const targetDateStr = formatDateUTC(today, 'yyyy-MM-dd')
+      // Use target date string for the prompt to ensure alignment with "Today"
+      // Since 'today' is now strictly User Local Date @ UTC Midnight,
+      // toISOString().split('T')[0] will give the correct YYYY-MM-DD
+      const targetDateStr = formatDateUTC(today, 'yyyy-MM-dd')
 
-    // `today` is a date-only value stored at UTC midnight, so keep display formatting
-    // anchored to its calendar date instead of re-zoning it like a timestamp.
-    const localDate = formatDateUTC(today, 'EEEE, MMMM d, yyyy')
+      // `today` is a date-only value stored at UTC midnight, so keep display formatting
+      // anchored to its calendar date instead of re-zoning it like a timestamp.
+      const localDate = formatDateUTC(today, 'EEEE, MMMM d, yyyy')
 
-    // Split workouts into "Today's" and "Past"
-    const todaysWorkouts = recentWorkouts.filter(
-      (w) => getTimestampDateKey(w.date, userTimezone) === targetDateStr
-    )
-    const pastWorkouts = recentWorkouts.filter(
-      (w) => getTimestampDateKey(w.date, userTimezone) !== targetDateStr
-    )
+      // Split workouts into "Today's" and "Past"
+      const todaysWorkouts = recentWorkouts.filter(
+        (w) => getTimestampDateKey(w.date, userTimezone) === targetDateStr
+      )
+      const pastWorkouts = recentWorkouts.filter(
+        (w) => getTimestampDateKey(w.date, userTimezone) !== targetDateStr
+      )
 
-    // Build athlete profile context
-    let athleteContext = ''
-    if (athleteProfile?.analysisJson) {
-      const profile = athleteProfile.analysisJson as any
-      athleteContext = `
+      // Build athlete profile context
+      let athleteContext = ''
+      if (athleteProfile?.analysisJson) {
+        const profile = athleteProfile.analysisJson as any
+        athleteContext = `
 ATHLETE PROFILE (Generated ${formatUserDate(athleteProfile.createdAt, userTimezone)}):
 ${profile.executive_summary ? `Summary: ${profile.executive_summary}` : ''}
 
@@ -562,8 +565,8 @@ ${profile.planning_context?.current_focus ? `Current Focus: ${profile.planning_c
 ${profile.planning_context?.limitations?.length ? `Limitations: ${profile.planning_context.limitations.join(', ')}` : ''}
 ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.planning_context.opportunities.join(', ')}` : ''}
 `
-    } else {
-      athleteContext = `
+      } else {
+        athleteContext = `
 ATHLETE BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
@@ -575,20 +578,20 @@ ATHLETE BASIC INFO:
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Generate one for better recommendations.
 `
-    }
-
-    // Add Sport Specific Profiles to context
-    if (sportSettings.length > 0) {
-      athleteContext += `\nSPORT SPECIFIC SETTINGS:\n`
-      for (const s of sportSettings) {
-        const types = s.isDefault ? 'Fallback/Generic' : s.types.join(', ')
-        athleteContext += `- **${s.name || (s.isDefault ? 'Default' : 'Profile')}** (${types}): FTP=${s.ftp || 'N/A'}W, LTHR=${s.lthr || 'N/A'}bpm, MaxHR=${s.maxHr || 'N/A'}bpm\n`
       }
-    }
 
-    // Add goals context
-    if (activeGoals.length > 0) {
-      athleteContext += `
+      // Add Sport Specific Profiles to context
+      if (sportSettings.length > 0) {
+        athleteContext += `\nSPORT SPECIFIC SETTINGS:\n`
+        for (const s of sportSettings) {
+          const types = s.isDefault ? 'Fallback/Generic' : s.types.join(', ')
+          athleteContext += `- **${s.name || (s.isDefault ? 'Default' : 'Profile')}** (${types}): FTP=${s.ftp || 'N/A'}W, LTHR=${s.lthr || 'N/A'}bpm, MaxHR=${s.maxHr || 'N/A'}bpm\n`
+        }
+      }
+
+      // Add goals context
+      if (activeGoals.length > 0) {
+        athleteContext += `
       
 CURRENT GOALS:
 ${activeGoals
@@ -609,23 +612,23 @@ ${activeGoals
   })
   .join('\n')}
 `
-    }
+      }
 
-    // Build plan context
-    let planContext = ''
-    if (currentPlan) {
-      const plan = currentPlan.planJson as any
-      planContext = `
+      // Build plan context
+      let planContext = ''
+      if (currentPlan) {
+        const plan = currentPlan.planJson as any
+        planContext = `
 CURRENT TRAINING PLAN:
 - Weekly Focus: ${plan.weekSummary || 'Not specified'}
 - Planned TSS: ${plan.totalTSS || 'Unknown'}
 `
-    }
+      }
 
-    // Build upcoming events summary
-    let eventsContext = ''
-    if (upcomingEvents.length > 0) {
-      eventsContext = `
+      // Build upcoming events summary
+      let eventsContext = ''
+      if (upcomingEvents.length > 0) {
+        eventsContext = `
 UPCOMING EVENTS (Next 14 Days):
 ${upcomingEvents
   .map(
@@ -634,23 +637,23 @@ ${upcomingEvents
   )
   .join('\n')}
 `
-    }
+      }
 
-    // Build upcoming workouts summary (Next 14 Days)
-    let upcomingContext = ''
-    if (futureWorkouts.length > 0) {
-      upcomingContext = `
+      // Build upcoming workouts summary (Next 14 Days)
+      let upcomingContext = ''
+      if (futureWorkouts.length > 0) {
+        upcomingContext = `
 UPCOMING PLANNED WORKOUTS (Next 14 Days):
 ${futureWorkouts
   .map((w) => `- ${formatDateUTC(w.date, 'EEE dd')}: ${w.title} (TSS: ${w.tss || 'N/A'})`)
   .join('\n')}
 `
-    }
+      }
 
-    // Build Projected Metrics Context
-    let metricsContext = ''
-    if (projectedMetrics.length > 0) {
-      metricsContext = `
+      // Build Projected Metrics Context
+      let metricsContext = ''
+      if (projectedMetrics.length > 0) {
+        metricsContext = `
 PROJECTED FITNESS TRENDS (Next 14 Days based on plan):
 ${projectedMetrics
   .map(
@@ -659,112 +662,112 @@ ${projectedMetrics
   )
   .join('\n')}
 `
-    }
-
-    // Build zone definitions based on today's activity type
-    let zoneDefinitions = ''
-    let activeProfile = sportSettings.find((s: any) => s.isDefault)
-    if (primaryPlannedWorkout?.type) {
-      const match = sportSettings.find(
-        (s: any) => !s.isDefault && s.types.includes(primaryPlannedWorkout.type!)
-      )
-      if (match) activeProfile = match
-    }
-
-    if (activeProfile) {
-      zoneDefinitions += `**Applicable Zones for ${primaryPlannedWorkout?.type || 'Today'} (Profile: ${activeProfile.name}):**\n`
-
-      if (activeProfile.hrZones && Array.isArray(activeProfile.hrZones)) {
-        zoneDefinitions += '*Heart Rate Zones:*\n'
-        activeProfile.hrZones.forEach((z: any) => {
-          zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} bpm\n`
-        })
       }
 
-      if (activeProfile.powerZones && Array.isArray(activeProfile.powerZones)) {
-        zoneDefinitions += '*Power Zones:*\n'
-        activeProfile.powerZones.forEach((z: any) => {
-          zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} Watts\n`
-        })
+      // Build zone definitions based on today's activity type
+      let zoneDefinitions = ''
+      let activeProfile = sportSettings.find((s: any) => s.isDefault)
+      if (primaryPlannedWorkout?.type) {
+        const match = sportSettings.find(
+          (s: any) => !s.isDefault && s.types.includes(primaryPlannedWorkout.type!)
+        )
+        if (match) activeProfile = match
       }
 
-      if (activeProfile.lthr) {
-        zoneDefinitions += `\n**Reference LTHR:** ${activeProfile.lthr} bpm\n`
-      }
-      if (activeProfile.ftp) {
-        zoneDefinitions += `**Reference FTP:** ${activeProfile.ftp} Watts\n`
-      }
-    }
+      if (activeProfile) {
+        zoneDefinitions += `**Applicable Zones for ${primaryPlannedWorkout?.type || 'Today'} (Profile: ${activeProfile.name}):**\n`
 
-    // Build Wellness Analysis Context
-    let wellnessAnalysisContext = ''
-    if (enrichedTodayMetric?.aiAnalysisJson) {
-      const analysis = enrichedTodayMetric.aiAnalysisJson as any
-      wellnessAnalysisContext = `
+        if (activeProfile.hrZones && Array.isArray(activeProfile.hrZones)) {
+          zoneDefinitions += '*Heart Rate Zones:*\n'
+          activeProfile.hrZones.forEach((z: any) => {
+            zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} bpm\n`
+          })
+        }
+
+        if (activeProfile.powerZones && Array.isArray(activeProfile.powerZones)) {
+          zoneDefinitions += '*Power Zones:*\n'
+          activeProfile.powerZones.forEach((z: any) => {
+            zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} Watts\n`
+          })
+        }
+
+        if (activeProfile.lthr) {
+          zoneDefinitions += `\n**Reference LTHR:** ${activeProfile.lthr} bpm\n`
+        }
+        if (activeProfile.ftp) {
+          zoneDefinitions += `**Reference FTP:** ${activeProfile.ftp} Watts\n`
+        }
+      }
+
+      // Build Wellness Analysis Context
+      let wellnessAnalysisContext = ''
+      if (enrichedTodayMetric?.aiAnalysisJson) {
+        const analysis = enrichedTodayMetric.aiAnalysisJson as any
+        wellnessAnalysisContext = `
 TODAY'S WELLNESS ANALYSIS (AI Generated):
 - Status: ${analysis.status ? analysis.status.toUpperCase() : 'Unknown'}
 - Summary: ${analysis.executive_summary || 'N/A'}
 ${analysis.recommendations ? 'Recommendations:\n' + analysis.recommendations.map((r: any) => `  * ${r.title}: ${r.description} (${r.priority})`).join('\n') : ''}
 `
-    }
+      }
 
-    const priorHrvValues = recentWellness
-      .filter((metric) => metric.date.getTime() < today.getTime())
-      .map((metric) => metric.hrv)
+      const priorHrvValues = recentWellness
+        .filter((metric) => metric.date.getTime() < today.getTime())
+        .map((metric) => metric.hrv)
 
-    const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
-      lastSource: enrichedTodayMetric?.lastSource,
-      hrv: enrichedTodayMetric?.hrv,
-      sleepHours: enrichedTodayMetric?.sleepHours,
-      sleepQuality: enrichedTodayMetric?.sleepQuality,
-      sleepScore: enrichedTodayMetric?.sleepScore,
-      atl: currentFitness?.atl,
-      recentHrvValues: priorHrvValues
-    })
+      const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
+        lastSource: enrichedTodayMetric?.lastSource,
+        hrv: enrichedTodayMetric?.hrv,
+        sleepHours: enrichedTodayMetric?.sleepHours,
+        sleepQuality: enrichedTodayMetric?.sleepQuality,
+        sleepScore: enrichedTodayMetric?.sleepScore,
+        atl: currentFitness?.atl,
+        recentHrvValues: priorHrvValues
+      })
 
-    const fitbitRecoveryAlertContext = `
+      const fitbitRecoveryAlertContext = `
 FITBIT RECOVERY ALERT CHECK:
 - ${fitbitRecoveryAlert.summary}
 `
 
-    const activeWellnessEvents = getActiveWellnessEventsForDate(wellnessEvents, today)
-    const activeWellnessEventsContext =
-      activeWellnessEvents.length > 0
-        ? activeWellnessEvents
-            .map((event) => `${event.label}${event.description ? ` (${event.description})` : ''}`)
-            .join(', ')
-        : 'None'
-    const wellnessEventsContext = formatWellnessEventsForPrompt(
-      wellnessEvents,
-      userTimezone,
-      'WELLNESS EVENT CONTEXT (Last 14 Days)'
-    )
+      const activeWellnessEvents = getActiveWellnessEventsForDate(wellnessEvents, today)
+      const activeWellnessEventsContext =
+        activeWellnessEvents.length > 0
+          ? activeWellnessEvents
+              .map((event) => `${event.label}${event.description ? ` (${event.description})` : ''}`)
+              .join(', ')
+          : 'None'
+      const wellnessEventsContext = formatWellnessEventsForPrompt(
+        wellnessEvents,
+        userTimezone,
+        'WELLNESS EVENT CONTEXT (Last 14 Days)'
+      )
 
-    const missingSubjectiveMetrics = enrichedTodayMetric
-      ? [
-          enrichedTodayMetric.stress == null ? 'stress' : null,
-          enrichedTodayMetric.fatigue == null ? 'fatigue' : null,
-          enrichedTodayMetric.soreness == null ? 'soreness' : null,
-          enrichedTodayMetric.mood == null ? 'mood' : null,
-          enrichedTodayMetric.motivation == null ? 'motivation' : null
-        ].filter((metric): metric is string => Boolean(metric))
-      : ['stress', 'fatigue', 'soreness', 'mood', 'motivation']
+      const missingSubjectiveMetrics = enrichedTodayMetric
+        ? [
+            enrichedTodayMetric.stress == null ? 'stress' : null,
+            enrichedTodayMetric.fatigue == null ? 'fatigue' : null,
+            enrichedTodayMetric.soreness == null ? 'soreness' : null,
+            enrichedTodayMetric.mood == null ? 'mood' : null,
+            enrichedTodayMetric.motivation == null ? 'motivation' : null
+          ].filter((metric): metric is string => Boolean(metric))
+        : ['stress', 'fatigue', 'soreness', 'mood', 'motivation']
 
-    const subjectiveDataIntegrityContext = missingSubjectiveMetrics.length
-      ? `
+      const subjectiveDataIntegrityContext = missingSubjectiveMetrics.length
+        ? `
 SUBJECTIVE DATA INTEGRITY:
 - Missing subjective metrics today: ${missingSubjectiveMetrics.join(', ')}.
 - Treat missing subjective metrics as "not reported today".
 - Do NOT infer, estimate, or mention a numeric value for any missing subjective metric.
 `
-      : `
+        : `
 SUBJECTIVE DATA INTEGRITY:
 - All core subjective metrics are present today.
 `
 
-    // Build canonical metabolic meal-target context
-    const mealTargetContextText = mealTargetContext
-      ? `
+      // Build canonical metabolic meal-target context
+      const mealTargetContextText = mealTargetContext
+        ? `
 CANONICAL METABOLIC MEAL TARGET CONTEXT (Use this as nutrition source of truth):
 - Tank Now: ${mealTargetContext.currentTank.percentage}% (State ${mealTargetContext.currentTank.state})
 - Tank Advice: ${mealTargetContext.currentTank.advice}
@@ -779,35 +782,35 @@ ${
     : '- Suggested Intake Now: none needed'
 }
 `
-      : ''
+        : ''
 
-    // Build focused recommendations context
-    let focusedRecsContext = ''
-    if (focusedRecommendations && focusedRecommendations.length > 0) {
-      focusedRecsContext = `
+      // Build focused recommendations context
+      let focusedRecsContext = ''
+      if (focusedRecommendations && focusedRecommendations.length > 0) {
+        focusedRecsContext = `
 CURRENT FOCUS AREAS (Pinned Recommendations):
 ${focusedRecommendations.map((r) => `- [${r.priority.toUpperCase()}] ${r.title}: ${r.description}`).join('\n')}
 `
-    }
+      }
 
-    // Build Daily Check-in Summary
-    const checkinHistory = await getCheckinHistoryContext(
-      userId,
-      new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-      today,
-      userTimezone
-    )
+      // Build Daily Check-in Summary
+      const checkinHistory = await getCheckinHistoryContext(
+        userId,
+        new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+        today,
+        userTimezone
+      )
 
-    const checkinsSummary = checkinHistory
-      ? `\nDAILY CHECK-INS (Subjective Feedback - Last 7 Days):\n${checkinHistory}`
-      : ''
+      const checkinsSummary = checkinHistory
+        ? `\nDAILY CHECK-INS (Subjective Feedback - Last 7 Days):\n${checkinHistory}`
+        : ''
 
-    if (checkinHistory) {
-      logger.log('Check-ins Summary for Prompt', { checkinHistory })
-    }
+      if (checkinHistory) {
+        logger.log('Check-ins Summary for Prompt', { checkinHistory })
+      }
 
-    // Build current fitness context
-    const currentStatusContext = `
+      // Build current fitness context
+      const currentStatusContext = `
 CURRENT ATHLETE STATUS (Source of Truth):
 - Chronic Training Load (CTL/Fitness): ${currentFitness.ctl.toFixed(1)}
 - Acute Training Load (ATL/Fatigue): ${currentFitness.atl.toFixed(1)}
@@ -816,8 +819,8 @@ CURRENT ATHLETE STATUS (Source of Truth):
 - Metrics Last Updated: ${currentFitness.lastUpdated ? formatUserDate(currentFitness.lastUpdated, userTimezone, 'MMM dd, HH:mm') : 'Unknown'}
 `
 
-    // Build comprehensive prompt
-    const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach analyzing today's training for your athlete.
+      // Build comprehensive prompt
+      const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach analyzing today's training for your athlete.
 Adapt your analysis tone and recommendation style to match your **${aiSettings.aiPersona}** persona.
 
 CURRENT CONTEXT:
@@ -971,184 +974,209 @@ Absorption Profile Matrix for your guidance:
 - HYPER_LOAD: Large Meal, Start 60m, Peak 180m.
 
 Include this advice in your reasoning.${
-      upcomingEvents.some((e) => e.subType === 'Social Ride') ||
-      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('social ride')) ||
-      activeGoals.some((g) => g.eventType === 'Social Ride')
-        ? '\n\n**Social Ride**: Prioritize "Mental Freshness" and "Aerobic Base" over "Intensity". Recommend low-intensity, community-focused rides.'
-        : ''
-    }${
-      upcomingEvents.some((e) => e.subType === 'Cyclotour') ||
-      plannedWorkouts.some(
-        (w) =>
-          w.title?.toLowerCase().includes('cyclotour') ||
-          w.title?.toLowerCase().includes('toertocht')
-      ) ||
-      activeGoals.some((g) => g.eventType === 'Cyclotour')
-        ? '\n\n**Cyclotour (Toertocht)**: Treat these as "Priority B or C" events. They require a mini-taper (2-3 days leading up) and a focused fueling plan due to their long duration, even if they aren\'t competitive races.'
-        : ''
-    }${
-      upcomingEvents.some((e) => e.subType === 'Criterium') ||
-      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('criterium')) ||
-      activeGoals.some((g) => g.eventType === 'Criterium')
-        ? '\n\n**Criterium**: Prioritize anaerobic capacity, high-intensity intervals (VO2 Max), and repeated sprint efforts. Focus on repeatability.'
-        : ''
-    }${
-      upcomingEvents.some((e) => e.subType === 'Time Trial') ||
-      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('time trial')) ||
-      activeGoals.some((g) => g.eventType === 'Time Trial')
-        ? '\n\n**Time Trial**: Focus on sustained threshold power (FTP), steady-state intervals, and pacing discipline.'
-        : ''
-    }${
-      upcomingEvents.some((e) => e.subType === 'Road Race') ||
-      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('road race')) ||
-      activeGoals.some((g) => g.eventType === 'Road Race')
-        ? '\n\n**Road Race**: Emphasize aerobic volume, sweet spot endurance, and the ability to handle repeatable surges.'
-        : ''
-    }${
-      upcomingEvents.some((e) => e.subType === 'Gran Fondo') ||
-      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('gran fondo')) ||
-      activeGoals.some((g) => g.eventType === 'Gran Fondo')
-        ? '\n\n**Gran Fondo**: Prioritize muscular endurance (low cadence work), long climbs, and overall aerobic durability.'
-        : ''
-    }
+        upcomingEvents.some((e) => e.subType === 'Social Ride') ||
+        plannedWorkouts.some((w) => w.title?.toLowerCase().includes('social ride')) ||
+        activeGoals.some((g) => g.eventType === 'Social Ride')
+          ? '\n\n**Social Ride**: Prioritize "Mental Freshness" and "Aerobic Base" over "Intensity". Recommend low-intensity, community-focused rides.'
+          : ''
+      }${
+        upcomingEvents.some((e) => e.subType === 'Cyclotour') ||
+        plannedWorkouts.some(
+          (w) =>
+            w.title?.toLowerCase().includes('cyclotour') ||
+            w.title?.toLowerCase().includes('toertocht')
+        ) ||
+        activeGoals.some((g) => g.eventType === 'Cyclotour')
+          ? '\n\n**Cyclotour (Toertocht)**: Treat these as "Priority B or C" events. They require a mini-taper (2-3 days leading up) and a focused fueling plan due to their long duration, even if they aren\'t competitive races.'
+          : ''
+      }${
+        upcomingEvents.some((e) => e.subType === 'Criterium') ||
+        plannedWorkouts.some((w) => w.title?.toLowerCase().includes('criterium')) ||
+        activeGoals.some((g) => g.eventType === 'Criterium')
+          ? '\n\n**Criterium**: Prioritize anaerobic capacity, high-intensity intervals (VO2 Max), and repeated sprint efforts. Focus on repeatability.'
+          : ''
+      }${
+        upcomingEvents.some((e) => e.subType === 'Time Trial') ||
+        plannedWorkouts.some((w) => w.title?.toLowerCase().includes('time trial')) ||
+        activeGoals.some((g) => g.eventType === 'Time Trial')
+          ? '\n\n**Time Trial**: Focus on sustained threshold power (FTP), steady-state intervals, and pacing discipline.'
+          : ''
+      }${
+        upcomingEvents.some((e) => e.subType === 'Road Race') ||
+        plannedWorkouts.some((w) => w.title?.toLowerCase().includes('road race')) ||
+        activeGoals.some((g) => g.eventType === 'Road Race')
+          ? '\n\n**Road Race**: Emphasize aerobic volume, sweet spot endurance, and the ability to handle repeatable surges.'
+          : ''
+      }${
+        upcomingEvents.some((e) => e.subType === 'Gran Fondo') ||
+        plannedWorkouts.some((w) => w.title?.toLowerCase().includes('gran fondo')) ||
+        activeGoals.some((g) => g.eventType === 'Gran Fondo')
+          ? '\n\n**Gran Fondo**: Prioritize muscular endurance (low cadence work), long climbs, and overall aerobic durability.'
+          : ''
+      }
 
 Provide specific, actionable recommendations with clear reasoning.
 Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
-    logger.log(`Generating recommendation with Gemini (${aiSettings.aiModelPreference})`)
+      logger.log(`Generating recommendation with Gemini (${aiSettings.aiModelPreference})`)
 
-    // Generate recommendation
-    const analysis = await generateStructuredAnalysis<RecommendationAnalysis>(
-      prompt,
-      recommendationSchema,
-      aiSettings.aiModelPreference, // Use user preference
-      {
-        userId,
-        operation: 'activity_recommendation',
-        entityType: 'ActivityRecommendation',
-        entityId: recommendationId
-      }
-    )
+      // Generate recommendation
+      const analysis = await generateStructuredAnalysis<RecommendationAnalysis>(
+        prompt,
+        recommendationSchema,
+        aiSettings.aiModelPreference, // Use user preference
+        {
+          userId,
+          operation: 'activity_recommendation',
+          entityType: 'ActivityRecommendation',
+          entityId: recommendationId
+        }
+      )
 
-    logger.log('Analysis generated', { recommendation: analysis.recommendation })
+      logger.log('Analysis generated', { recommendation: analysis.recommendation })
 
-    // Update or create the recommendation
-    let recommendation
-    if (recommendationId) {
-      // Check if recommendation still exists
-      const exists = await activityRecommendationRepository.findById(recommendationId, userId)
-      if (!exists) {
-        logger.warn('Recommendation was deleted during generation, skipping update', {
-          recommendationId
-        })
-        return { success: true, skipped: true, reason: 'RECOMMENDATION_DELETED' }
-      }
-
-      // Update the existing pending recommendation
-      recommendation = await activityRecommendationRepository.update(recommendationId, userId, {
-        recommendation: analysis.recommendation,
-        confidence: analysis.confidence,
-        reasoning: analysis.reasoning,
-        analysisJson: attachRecommendationGuardrails(
-          analysis as any,
-          primaryPlannedWorkout,
-          plannedWorkouts
-        ) as any,
-        plannedWorkout: primaryPlannedWorkout?.id
-          ? { connect: { id: primaryPlannedWorkout.id } }
-          : undefined,
-        status: 'COMPLETED',
-        modelVersion: 'gemini-2.0-flash-exp'
-      })
-    } else {
-      // Fallback: create new recommendation if no ID provided
-      recommendation = await activityRecommendationRepository.create({
-        user: { connect: { id: userId } },
-        date: today,
-        recommendation: analysis.recommendation,
-        confidence: analysis.confidence,
-        reasoning: analysis.reasoning,
-        analysisJson: attachRecommendationGuardrails(
-          analysis as any,
-          primaryPlannedWorkout,
-          plannedWorkouts
-        ) as any,
-        plannedWorkout: primaryPlannedWorkout?.id
-          ? { connect: { id: primaryPlannedWorkout.id } }
-          : undefined,
-        status: 'COMPLETED',
-        modelVersion: 'gemini-2.0-flash-exp'
-      })
-    }
-
-    logger.log('Recommendation saved', {
-      recommendationId: recommendation.id,
-      decision: analysis.recommendation
-    })
-
-    // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
-    if (
-      source === 'AUTOMATIC' &&
-      emailPrefs &&
-      emailPrefs.dailyCoach &&
-      !emailPrefs.globalUnsubscribe
-    ) {
-      const todayDayName = formatUserDate(today, userTimezone, 'EEEE').toUpperCase()
-      const isScheduledDay = emailPrefs.dailyCoachDays.includes(todayDayName)
-      const isWithinPreferredTime = isWithinPreferredEmailTime({
-        timezone: userTimezone,
-        preferredTime: emailPrefs.dailyCoachTime
-      })
-
-      if (isScheduledDay && isWithinPreferredTime) {
-        logger.log(`Triggering daily recommendation email for ${todayDayName}`)
-        try {
-          const fullUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { name: true, email: true }
+      // Update or create the recommendation
+      let recommendation
+      if (recommendationId) {
+        // Check if recommendation still exists
+        const exists = await activityRecommendationRepository.findById(recommendationId, userId)
+        if (!exists) {
+          logger.warn('Recommendation was deleted during generation, skipping update', {
+            recommendationId
           })
-          if (fullUser) {
-            const recommendationDateKey = today.toISOString().slice(0, 10)
-            await tasks.trigger('send-email', {
-              userId,
-              templateKey: 'DailyRecommendation',
-              eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
-              idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
-              audience: 'ENGAGEMENT',
-              subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
-              props: {
-                name: fullUser.name || 'Athlete',
-                date: formatUserDate(today, userTimezone, 'EEEE, MMM d'),
-                recommendation: analysis.recommendation.toUpperCase().replace('_', ' '),
-                reasoning: analysis.reasoning,
-                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
-              }
+          return { success: true, skipped: true, reason: 'RECOMMENDATION_DELETED' }
+        }
+
+        // Update the existing pending recommendation
+        recommendation = await activityRecommendationRepository.update(recommendationId, userId, {
+          recommendation: analysis.recommendation,
+          confidence: analysis.confidence,
+          reasoning: analysis.reasoning,
+          analysisJson: attachRecommendationGuardrails(
+            analysis as any,
+            primaryPlannedWorkout,
+            plannedWorkouts
+          ) as any,
+          plannedWorkout: primaryPlannedWorkout?.id
+            ? { connect: { id: primaryPlannedWorkout.id } }
+            : undefined,
+          status: 'COMPLETED',
+          modelVersion: 'gemini-2.0-flash-exp'
+        })
+      } else {
+        // Fallback: create new recommendation if no ID provided
+        recommendation = await activityRecommendationRepository.create({
+          user: { connect: { id: userId } },
+          date: today,
+          recommendation: analysis.recommendation,
+          confidence: analysis.confidence,
+          reasoning: analysis.reasoning,
+          analysisJson: attachRecommendationGuardrails(
+            analysis as any,
+            primaryPlannedWorkout,
+            plannedWorkouts
+          ) as any,
+          plannedWorkout: primaryPlannedWorkout?.id
+            ? { connect: { id: primaryPlannedWorkout.id } }
+            : undefined,
+          status: 'COMPLETED',
+          modelVersion: 'gemini-2.0-flash-exp'
+        })
+      }
+
+      logger.log('Recommendation saved', {
+        recommendationId: recommendation.id,
+        decision: analysis.recommendation
+      })
+
+      // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
+      if (
+        source === 'AUTOMATIC' &&
+        emailPrefs &&
+        emailPrefs.dailyCoach &&
+        !emailPrefs.globalUnsubscribe
+      ) {
+        const todayDayName = formatUserDate(today, userTimezone, 'EEEE').toUpperCase()
+        const isScheduledDay = emailPrefs.dailyCoachDays.includes(todayDayName)
+        const isWithinPreferredTime = isWithinPreferredEmailTime({
+          timezone: userTimezone,
+          preferredTime: emailPrefs.dailyCoachTime
+        })
+
+        if (isScheduledDay && isWithinPreferredTime) {
+          logger.log(`Triggering daily recommendation email for ${todayDayName}`)
+          try {
+            const fullUser = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { name: true, email: true }
+            })
+            if (fullUser) {
+              const recommendationDateKey = today.toISOString().slice(0, 10)
+              await tasks.trigger('send-email', {
+                userId,
+                templateKey: 'DailyRecommendation',
+                eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
+                idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
+                audience: 'ENGAGEMENT',
+                subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
+                props: {
+                  name: fullUser.name || 'Athlete',
+                  date: formatUserDate(today, userTimezone, 'EEEE, MMM d'),
+                  recommendation: analysis.recommendation.toUpperCase().replace('_', ' '),
+                  reasoning: analysis.reasoning,
+                  unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+                }
+              })
+            }
+          } catch (emailError) {
+            logger.warn('Failed to trigger daily recommendation email', {
+              recommendationId: recommendation.id,
+              error: emailError
             })
           }
-        } catch (emailError) {
-          logger.warn('Failed to trigger daily recommendation email', {
-            recommendationId: recommendation.id,
-            error: emailError
+        } else {
+          logger.log('Skipping email: not in scheduled day/time window.', {
+            todayDayName,
+            scheduledDays: emailPrefs.dailyCoachDays,
+            preferredTime: emailPrefs.dailyCoachTime
           })
         }
       } else {
-        logger.log('Skipping email: not in scheduled day/time window.', {
-          todayDayName,
-          scheduledDays: emailPrefs.dailyCoachDays,
-          preferredTime: emailPrefs.dailyCoachTime
+        logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
+          source,
+          dailyCoachEnabled: emailPrefs?.dailyCoach
         })
       }
-    } else {
-      logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
-        source,
-        dailyCoachEnabled: emailPrefs?.dailyCoach
-      })
-    }
 
-    return {
-      success: true,
-      recommendationId: recommendation.id,
-      recommendation: analysis.recommendation
+      return {
+        success: true,
+        recommendationId: recommendation.id,
+        recommendation: analysis.recommendation
+      }
+    } catch (error: any) {
+      logger.error("Today's activity recommendation failed", {
+        userId,
+        recommendationId,
+        error
+      })
+
+      if (recommendationId) {
+        const failureMessage =
+          error instanceof Error ? error.message : 'Recommendation generation failed'
+        try {
+          await activityRecommendationRepository.update(recommendationId, userId, {
+            status: 'FAILED',
+            reasoning: failureMessage
+          })
+        } catch (updateError) {
+          logger.error('Failed to mark recommendation as FAILED', {
+            recommendationId,
+            updateError
+          })
+        }
+      }
+
+      throw error
     }
   }
 })

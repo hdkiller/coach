@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `ai, wellness`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `analyzeWellness` calls `checkQuota(userId, 'wellness_analysis')` before `generateStructuredAnalysis` and marks records `QUOTA_EXCEEDED` on 429.
 
 ## Description
 
@@ -20,5 +22,5 @@ Trigger analyze-wellness directly beyond free-tier wellness quota.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

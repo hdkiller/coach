@@ -43,6 +43,9 @@ export const ingestIntervalsTask = task({
       data: { syncStatus: 'SYNCING' }
     })
 
+    let syncSucceeded = false
+    let syncErrorMessage: string | null = null
+
     try {
       const timezone = await getUserTimezone(userId)
       const start = new Date(startDate)
@@ -105,16 +108,7 @@ export const ingestIntervalsTask = task({
         logger.log('Wellness ingestion disabled for Intervals.icu, skipping')
       }
 
-      // Update sync status
-      await prisma.integration.update({
-        where: { id: integration.id },
-        data: {
-          syncStatus: 'SUCCESS',
-          lastSyncAt: new Date(),
-          errorMessage: null,
-          initialSyncCompleted: true // Mark initial sync as done
-        }
-      })
+      syncSucceeded = true
 
       // REACTIVE: Trigger fueling plan update for today
       // This ensures that newly synced workouts/events are immediately reflected.
@@ -142,16 +136,19 @@ export const ingestIntervalsTask = task({
     } catch (error) {
       logger.error('Error ingesting Intervals data', { error })
 
-      // Update error status
+      syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      throw error
+    } finally {
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
-          syncStatus: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
+          lastSyncAt: syncSucceeded ? new Date() : undefined,
+          errorMessage: syncSucceeded ? null : syncErrorMessage,
+          ...(syncSucceeded ? { initialSyncCompleted: true } : {})
         }
       })
-
-      throw error
     }
   }
 })

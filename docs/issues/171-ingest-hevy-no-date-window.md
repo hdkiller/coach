@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `integrations, data`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `ingest-hevy` accepts `startDate`/`endDate` from ingest-all and stops pagination once workouts fall outside the requested window.
 
 ## Description
 
@@ -20,5 +22,5 @@ Run ingest-all with Hevy connected; entire history pulled not 7-day window.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

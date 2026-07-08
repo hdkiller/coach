@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchGarminActivityFile,
   fetchGarminData,
+  buildGarminTimeSlices,
   hasGarminPermission,
   mergeGarminScopes,
   parseGarminScope
@@ -28,6 +29,22 @@ beforeEach(() => {
   vi.restoreAllMocks()
   process.env.GARMIN_CLIENT_ID = 'test-client-id'
   process.env.GARMIN_CLIENT_SECRET = 'test-client-secret'
+})
+
+describe('buildGarminTimeSlices', () => {
+  it('returns a single slice for ranges within 24 hours', () => {
+    expect(buildGarminTimeSlices(1_000, 10_000)).toEqual([
+      { startTimestamp: 1_000, endTimestamp: 10_000 }
+    ])
+  })
+
+  it('chunks multi-day ranges into consecutive 24-hour slices', () => {
+    expect(buildGarminTimeSlices(0, 200_000)).toEqual([
+      { startTimestamp: 0, endTimestamp: 86_400 },
+      { startTimestamp: 86_400, endTimestamp: 172_800 },
+      { startTimestamp: 172_800, endTimestamp: 200_000 }
+    ])
+  })
 })
 
 describe('Garmin permission helpers', () => {

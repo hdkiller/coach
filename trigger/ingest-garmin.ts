@@ -6,7 +6,8 @@ import {
   fetchGarminDailies,
   fetchGarminSleeps,
   fetchGarminHRV,
-  fetchGarminActivities
+  fetchGarminActivities,
+  buildGarminTimeSlices
 } from '../server/utils/garmin'
 import { userIngestionQueue } from './queues'
 
@@ -67,18 +68,12 @@ export const ingestGarminTask = task({
       isEndNan: isNaN(endTimestamp!)
     })
 
-    // Garmin Pull API enforces a strict 24-hour (86400s) maximum range.
-    // If the requested range is larger, we clamp it to the last 24 hours of the range.
-    if (endTimestamp - startTimestamp > 86400) {
-      logger.warn(
-        `Garmin requested range too large (${endTimestamp - startTimestamp}s). Clamping to 24 hours.`,
-        {
-          originalStart: startTimestamp,
-          clampedStart: endTimestamp - 86400,
-          end: endTimestamp
-        }
+    const timeSlices = buildGarminTimeSlices(startTimestamp!, endTimestamp)
+    if (timeSlices.length > 1) {
+      logger.log(
+        `Garmin requested range spans ${endTimestamp - startTimestamp!}s. Processing ${timeSlices.length} 24h slices.`,
+        { sliceCount: timeSlices.length, startTimestamp, endTimestamp }
       )
-      startTimestamp = endTimestamp - 86400
     }
 
     logger.log(`Starting Garmin ingestion for user ${userId}`, { startTimestamp, endTimestamp })
@@ -93,23 +88,40 @@ export const ingestGarminTask = task({
       const wellnessEnabled = shouldIngestWellness(settings)
       const workoutsEnabled = shouldIngestActivities('garmin', integration.ingestWorkouts, settings)
 
-      const results = await Promise.allSettled([
-        wellnessEnabled ? fetchGarminDailies(integration, startTimestamp, endTimestamp) : [],
-        wellnessEnabled ? fetchGarminSleeps(integration, startTimestamp, endTimestamp) : [],
-        wellnessEnabled ? fetchGarminHRV(integration, startTimestamp, endTimestamp) : [],
-        workoutsEnabled ? fetchGarminActivities(integration, startTimestamp, endTimestamp) : []
-      ])
+      const dailies: Awaited<ReturnType<typeof fetchGarminDailies>> = []
+      const sleeps: Awaited<ReturnType<typeof fetchGarminSleeps>> = []
+      const hrv: Awaited<ReturnType<typeof fetchGarminHRV>> = []
+      const activities: Awaited<ReturnType<typeof fetchGarminActivities>> = []
+      const results: PromiseSettledResult<unknown>[] = []
 
-      const dailies = results[0].status === 'fulfilled' ? results[0].value : []
-      const sleeps = results[1].status === 'fulfilled' ? results[1].value : []
-      const hrv = results[2].status === 'fulfilled' ? results[2].value : []
-      const activities = results[3].status === 'fulfilled' ? results[3].value : []
+      for (const slice of timeSlices) {
+        const sliceResults = await Promise.allSettled([
+          wellnessEnabled
+            ? fetchGarminDailies(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminSleeps(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminHRV(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          workoutsEnabled
+            ? fetchGarminActivities(integration, slice.startTimestamp, slice.endTimestamp)
+            : []
+        ])
 
-      // Log errors for failed requests
+        results.push(...sliceResults)
+
+        if (sliceResults[0].status === 'fulfilled') dailies.push(...sliceResults[0].value)
+        if (sliceResults[1].status === 'fulfilled') sleeps.push(...sliceResults[1].value)
+        if (sliceResults[2].status === 'fulfilled') hrv.push(...sliceResults[2].value)
+        if (sliceResults[3].status === 'fulfilled') activities.push(...sliceResults[3].value)
+      }
+
+      const types = ['dailies', 'sleeps', 'hrv', 'activities']
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          const types = ['dailies', 'sleeps', 'hrv', 'activities']
-          const type = types[index]
+          const type = types[index % types.length]
           const error = result.reason
 
           console.error(`[DEBUG] Garmin fetch failed for ${type}:`, error)

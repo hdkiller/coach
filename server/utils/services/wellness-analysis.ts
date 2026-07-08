@@ -5,6 +5,7 @@ import { getUserAiSettings } from '../ai-user-settings'
 import { auditLogRepository } from '../repositories/auditLogRepository'
 import { getUserLocalDate, getUserTimezone } from '../date'
 import { triggerDailyCheckinIfNeeded } from './checkin-service'
+import { checkQuota } from '../quotas/engine'
 import {
   getMoodLabel,
   getStressLabel,
@@ -147,6 +148,20 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
         endDate
       })
     ])
+
+    try {
+      await checkQuota(userId, 'wellness_analysis')
+    } catch (quotaError: any) {
+      if (quotaError.statusCode === 429) {
+        console.log(`[WellnessAnalysis] Quota exceeded for user ${userId}`)
+        await prisma.wellness.update({
+          where: { id: wellnessId },
+          data: { aiAnalysisStatus: 'QUOTA_EXCEEDED' }
+        })
+        return { success: false, reason: 'QUOTA_EXCEEDED' }
+      }
+      throw quotaError
+    }
 
     const activeWellnessEvents = getActiveWellnessEventsForDate(wellnessEvents, wellness.date)
     const activeWellnessEventsContext =

@@ -43,6 +43,30 @@ export interface HevyWorkoutsResponse {
   workouts: HevyWorkout[]
 }
 
+export function isHevyWorkoutInDateWindow(
+  workout: HevyWorkout,
+  startDate?: string,
+  endDate?: string
+): { inWindow: boolean; beforeWindow: boolean } {
+  if (!startDate && !endDate) {
+    return { inWindow: true, beforeWindow: false }
+  }
+
+  const workoutDate = new Date(workout.start_time)
+  const start = startDate ? new Date(startDate) : null
+  const end = endDate ? new Date(endDate) : null
+
+  if (start && workoutDate < start) {
+    return { inWindow: false, beforeWindow: true }
+  }
+
+  if (end && workoutDate > end) {
+    return { inWindow: false, beforeWindow: false }
+  }
+
+  return { inWindow: true, beforeWindow: false }
+}
+
 /**
  * Fetch workouts from Hevy API
  */

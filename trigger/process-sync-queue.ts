@@ -51,6 +51,22 @@ export const processSyncQueueTask = task({
 
       // Process each item
       for (const item of pendingItems) {
+        const claimed = await prisma.syncQueue.updateMany({
+          where: {
+            id: item.id,
+            status: 'PENDING'
+          },
+          data: {
+            status: 'PROCESSING',
+            lastAttempt: new Date()
+          }
+        })
+
+        if (claimed.count === 0) {
+          logger.log(`Skipping sync item ${item.id} - already claimed by another worker`)
+          continue
+        }
+
         logger.log(`Processing sync item`, {
           id: item.id,
           entityType: item.entityType,
