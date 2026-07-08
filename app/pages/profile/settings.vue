@@ -15,7 +15,7 @@
             :variant="activeTab === tab.id ? 'solid' : 'ghost'"
             :color="activeTab === tab.id ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="activeTab = tab.id"
+            @click="setActiveTab(tab.id)"
           >
             <UIcon :name="tab.icon" class="w-4 h-4 mr-2" />
             {{ tab.label }}
@@ -34,7 +34,7 @@
             :loading="savingProfile"
             @update:model-value="handleProfileUpdate"
             @autodetect="handleAutodetect"
-            @navigate="(tab) => (activeTab = tab)"
+            @navigate="(tab) => setActiveTab(tab)"
           />
 
           <template v-if="activeTab === 'availability'">
@@ -103,7 +103,7 @@
             :settings="nutritionSettings"
             :profile="profile"
             @update:settings="(val) => (nutritionSettings = val)"
-            @navigate="(tab) => (activeTab = tab)"
+            @navigate="(tab) => setActiveTab(tab)"
             @saved="handleNutritionSaved"
           />
 
@@ -231,6 +231,7 @@
   ])
 
   const route = useRoute()
+  const router = useRouter()
   const activeTab = ref((route.query.tab as string) || 'basic')
 
   watch(
@@ -249,6 +250,17 @@
       activeElement.blur()
     }
   })
+
+  function setActiveTab(tabId: string) {
+    if (!tabs.value.some((tab) => tab.id === tabId)) return
+    activeTab.value = tabId
+    router.replace({
+      query: {
+        ...route.query,
+        tab: tabId === 'basic' ? undefined : tabId
+      }
+    })
+  }
 
   // Profile Data
   const profile = ref<any>({

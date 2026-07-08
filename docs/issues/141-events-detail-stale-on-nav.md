@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `wellness, ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,4 +19,4 @@ Navigate A to B; stale data.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible
