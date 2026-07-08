@@ -8,10 +8,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { termsVersion, privacyPolicyVersion } = body
+  const { termsVersion, privacyPolicyVersion, healthConsentAccepted } = body
 
   if (!termsVersion || !privacyPolicyVersion) {
     throw createError({ statusCode: 400, message: 'Missing version information' })
+  }
+
+  if (healthConsentAccepted !== true) {
+    throw createError({ statusCode: 400, message: 'Health consent is required' })
   }
 
   const user = await prisma.user.update({

@@ -75,8 +75,9 @@
     if (
       import.meta.client &&
       session.value &&
+      invite.value &&
+      !loading.value &&
       route.query.accept === '1' &&
-      brandedJoin.value &&
       !joining.value &&
       !autoAccepting.value
     ) {

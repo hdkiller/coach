@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux, backend`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** `POST /api/user/consent` requires `healthConsentAccepted: true` in the request body; onboarding sends the flag explicitly.
 
 ## Description
 
@@ -31,5 +33,5 @@ Require explicit healthConsentAccepted in request body.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

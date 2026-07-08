@@ -3,6 +3,22 @@ import { teamRepository } from '../../utils/repositories/teamRepository'
 import { coachingRepository } from '../../utils/repositories/coachingRepository'
 import { prisma } from '../../utils/db'
 
+function mapJoinAcceptError(error: unknown): never {
+  const message = error instanceof Error ? error.message : 'Failed to accept invitation'
+
+  const statusByMessage: Record<string, number> = {
+    'Invalid or expired invite code': 404,
+    'Athlete account not found': 404,
+    'This invite is restricted to another email address': 403,
+    'You cannot invite yourself': 400,
+    'You cannot coach yourself': 400
+  }
+
+  const statusCode = statusByMessage[message] ?? 500
+
+  throw createError({ statusCode, message })
+}
+
 defineRouteMeta({
   openAPI: {
     tags: ['Coaching', 'Invites'],
@@ -37,11 +53,15 @@ export default defineEventHandler(async (event) => {
   })
 
   if (teamInvite && teamInvite.status === 'PENDING' && teamInvite.expiresAt > new Date()) {
-    const membership = await teamRepository.acceptInvite(user.id, code)
-    return {
-      success: true,
-      type: 'TEAM',
-      teamId: membership.teamId
+    try {
+      const membership = await teamRepository.acceptInvite(user.id, code)
+      return {
+        success: true,
+        type: 'TEAM',
+        teamId: membership.teamId
+      }
+    } catch (error) {
+      mapJoinAcceptError(error)
     }
   }
 
@@ -55,10 +75,14 @@ export default defineEventHandler(async (event) => {
     coachingInvite.status === 'PENDING' &&
     coachingInvite.expiresAt > new Date()
   ) {
-    await coachingRepository.connectAthleteWithCode(user.id, code)
-    return {
-      success: true,
-      type: 'COACHING'
+    try {
+      await coachingRepository.connectAthleteWithCode(user.id, code)
+      return {
+        success: true,
+        type: 'COACHING'
+      }
+    } catch (error) {
+      mapJoinAcceptError(error)
     }
   }
 
@@ -70,11 +94,15 @@ export default defineEventHandler(async (event) => {
     coachAthleteInvite.status === 'PENDING' &&
     coachAthleteInvite.expiresAt > new Date()
   ) {
-    const relationship = await coachingRepository.acceptAthleteInviteForCoach(user.id, code)
-    return {
-      success: true,
-      type: 'ATHLETE_INVITE',
-      coachId: relationship.coachId
+    try {
+      const relationship = await coachingRepository.acceptAthleteInviteForCoach(user.id, code)
+      return {
+        success: true,
+        type: 'ATHLETE_INVITE',
+        coachId: relationship.coachId
+      }
+    } catch (error) {
+      mapJoinAcceptError(error)
     }
   }
 

@@ -115,6 +115,7 @@
   })
 
   const { data: session, refresh } = useAuth()
+  const toast = useToast()
   const acceptedTerms = ref(false)
   const acceptedHealth = ref(false)
   const loading = ref(false)
@@ -134,7 +135,8 @@
         method: 'POST',
         body: {
           termsVersion: TOS_VERSION,
-          privacyPolicyVersion: PRIVACY_VERSION
+          privacyPolicyVersion: PRIVACY_VERSION,
+          healthConsentAccepted: true
         }
       })
 
@@ -149,9 +151,13 @@
       await refresh()
 
       navigateTo('/dashboard')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save consent:', error)
-      // You might want to show a toast notification here
+      toast.add({
+        title: 'Failed to save consent',
+        description: error?.data?.message || 'Please try again.',
+        color: 'error'
+      })
     } finally {
       loading.value = false
     }

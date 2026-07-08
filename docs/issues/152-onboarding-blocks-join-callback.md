@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `onboarding, coaching`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Whitelisted `/join` and `/join/*` routes in onboarding middleware so OAuth signup callbacks can complete invite acceptance.
 
 ## Description
 
@@ -19,4 +21,4 @@ Invite lost after OAuth signup.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

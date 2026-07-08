@@ -3,7 +3,9 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `ui/ux, backend`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Onboarding consent submit shows an error toast on API failure and keeps the user on the consent step.
 
 ## Description
 
@@ -31,5 +33,5 @@ Show error toast; keep user on consent step.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

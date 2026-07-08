@@ -21,6 +21,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     // Allow access to public legal pages
     if (to.path === '/terms' || to.path === '/privacy') return
 
+    // Allow join invite flow (OAuth callback after signup)
+    if (to.path === '/join' || to.path.startsWith('/join/')) return
+
     // Allow sign out flow (if it uses a specific route, though usually it's a function call)
     // We'll allow anything under /auth just in case
     if (to.path.startsWith('/api/auth')) return

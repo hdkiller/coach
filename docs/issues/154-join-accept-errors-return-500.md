@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `coaching, backend`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Join accept handler maps repository validation errors (wrong email, self-invite, expired code) to 4xx responses instead of HTTP 500.
 
 ## Description
 
@@ -19,4 +21,4 @@ Wrong email gives 500.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

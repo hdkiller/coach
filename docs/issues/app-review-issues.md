@@ -163,7 +163,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 | [094](./094-share-generate-workout-read-all-types.md)     | Share generate scope escalation   | Medium   |
 | [095](./095-plan-share-auto-creates-permanent-tokens.md)  | Plan share auto-creates tokens    | Medium   |
 | [096](./096-join-invite-preview-exposes-pii.md)           | Join preview exposes PII          | Medium   |
-| [097](./097-onboarding-consent-api-bypass.md)             | Onboarding consent bypass         | Medium   |
+| ~~[097](./097-onboarding-consent-api-bypass.md)~~         | Onboarding consent bypass (fixed) | Medium   |
 | [098](./098-polar-webhook-missing-userid.md)              | Polar webhook missing userId      | High     |
 | [099](./099-oauth-generic-webhook-ignores-secret.md)      | OAuth webhook ignores secret      | High     |
 | [100](./100-strava-webhook-post-unauthenticated.md)       | Strava POST unauthenticated       | High     |
@@ -225,28 +225,28 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ## Issues 151–170 (join, share, developer, triggers)
 
-| ID                                                     | Title                          | Priority |
-| ------------------------------------------------------ | ------------------------------ | -------- |
-| [151](./151-user-profile-stale-on-error.md)            | User profile stale on error    | Medium   |
-| [152](./152-onboarding-blocks-join-callback.md)        | Onboarding blocks join         | High     |
-| [153](./153-join-auto-accept-branded-only.md)          | Join auto-accept branded only  | Medium   |
-| [154](./154-join-accept-errors-return-500.md)          | Join accept returns 500        | Medium   |
-| [155](./155-workout-share-leaks-zone-profiles.md)      | Share leaks zone profiles      | High     |
-| [156](./156-nutrition-share-url-404.md)                | Nutrition share URL 404        | Medium   |
-| [157](./157-nutrition-share-unsanitized-payload.md)    | Nutrition share unsanitized    | High     |
-| [158](./158-developer-get-leaks-webhook-secret.md)     | Developer GET leaks secret     | High     |
-| [159](./159-planned-workout-share-ignores-preview.md)  | Planned share ignores preview  | Medium   |
-| [160](./160-wellness-share-og-leaks-biometrics.md)     | Wellness OG leaks biometrics   | Medium   |
-| [161](./161-connect-yazio-no-auth-middleware.md)       | Connect Yazio no auth          | High     |
-| [162](./162-fit-ingest-no-file-ownership-check.md)     | FIT ingest no ownership check  | High     |
-| [163](./163-chat-tts-transcribe-no-quota.md)           | Chat TTS/transcribe no quota   | Medium   |
-| [164](./164-chat-turn-retry-no-quota.md)               | Chat retry no quota            | Medium   |
-| [165](./165-chat-queued-messages-lost-on-error.md)     | Queued messages lost on error  | Medium   |
-| [166](./166-chat-message-queue-in-memory-only.md)      | Chat queue in-memory only      | Medium   |
-| [167](./167-admin-impersonate-self-allowed.md)         | Admin impersonate self         | Medium   |
-| [168](./168-admin-user-detail-no-error-state.md)       | Admin user detail no error     | Medium   |
-| [169](./169-admin-webhook-stats-wrong-progress-max.md) | Admin webhook stats wrong max  | Low      |
-| [170](./170-deduplicate-auto-analyzes-all-recent.md)   | Dedup auto-analyzes all recent | Medium   |
+| ID                                                     | Title                                 | Priority |
+| ------------------------------------------------------ | ------------------------------------- | -------- |
+| [151](./151-user-profile-stale-on-error.md)            | User profile stale on error           | Medium   |
+| ~~[152](./152-onboarding-blocks-join-callback.md)~~    | Onboarding blocks join (fixed)        | High     |
+| ~~[153](./153-join-auto-accept-branded-only.md)~~      | Join auto-accept branded only (fixed) | Medium   |
+| ~~[154](./154-join-accept-errors-return-500.md)~~      | Join accept returns 500 (fixed)       | Medium   |
+| [155](./155-workout-share-leaks-zone-profiles.md)      | Share leaks zone profiles             | High     |
+| [156](./156-nutrition-share-url-404.md)                | Nutrition share URL 404               | Medium   |
+| [157](./157-nutrition-share-unsanitized-payload.md)    | Nutrition share unsanitized           | High     |
+| [158](./158-developer-get-leaks-webhook-secret.md)     | Developer GET leaks secret            | High     |
+| [159](./159-planned-workout-share-ignores-preview.md)  | Planned share ignores preview         | Medium   |
+| [160](./160-wellness-share-og-leaks-biometrics.md)     | Wellness OG leaks biometrics          | Medium   |
+| [161](./161-connect-yazio-no-auth-middleware.md)       | Connect Yazio no auth                 | High     |
+| [162](./162-fit-ingest-no-file-ownership-check.md)     | FIT ingest no ownership check         | High     |
+| [163](./163-chat-tts-transcribe-no-quota.md)           | Chat TTS/transcribe no quota          | Medium   |
+| [164](./164-chat-turn-retry-no-quota.md)               | Chat retry no quota                   | Medium   |
+| [165](./165-chat-queued-messages-lost-on-error.md)     | Queued messages lost on error         | Medium   |
+| [166](./166-chat-message-queue-in-memory-only.md)      | Chat queue in-memory only             | Medium   |
+| [167](./167-admin-impersonate-self-allowed.md)         | Admin impersonate self                | Medium   |
+| [168](./168-admin-user-detail-no-error-state.md)       | Admin user detail no error            | Medium   |
+| [169](./169-admin-webhook-stats-wrong-progress-max.md) | Admin webhook stats wrong max         | Low      |
+| [170](./170-deduplicate-auto-analyzes-all-recent.md)   | Dedup auto-analyzes all recent        | Medium   |
 
 ## Issues 171–185 (trigger tasks deep pass)
 
@@ -323,7 +323,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 6. ~~**171–172, 175–177**~~ — Trigger ingest/quota/stuck PROCESSING **Fixed** (PR 6)
 7. ~~**066, 155–160, 157**~~ — Share/privacy hardening **Fixed** (PR 7; 158 postponed — OAuth developer)
 8. ~~Webhook/OAuth auth (057–129 subset)~~ — **Postponed** until third-party coordination
-9. **152–154** — Join/onboarding flow
+9. ~~**152–154** — Join/onboarding flow~~ **Fixed** (PR 8)
 10. **199–215** — i18n/a11y (incremental, low risk)
 11. Remaining active medium/low
 

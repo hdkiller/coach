@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `coaching, ui/ux`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Auto-accept with `?accept=1` now runs for all invite types once the invite is loaded, not only branded athlete invites.
 
 ## Description
 
@@ -19,4 +21,4 @@ Team invite needs manual accept.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible
