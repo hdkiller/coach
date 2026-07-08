@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `integrations, backend`  
-**Status:** Open
+**Status:** Postponed
+
+> **Postponed (2026-07-08):** OAuth developer portal secret handling deferred with other OAuth hardening. Changing retrieval behavior may break developer app webhook setup flows.
 
 ## Description
 

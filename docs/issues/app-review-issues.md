@@ -6,14 +6,14 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 **Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~90% complete)
 
-**Postponed:** 20 issues deferred (auth gaps + third-party webhook/OAuth coordination) — do not implement until provider systems are adjusted. See [Postponed cluster](#postponed-auth--third-party-deferred).
+**Postponed:** 22 issues deferred (auth, webhooks, OAuth, Yazio credential storage) — ingest/integration flows unchanged until coordinated.
 
 ## Summary by priority
 
 | Priority | Count (039–218) | Active (excl. postponed) |
 | -------- | --------------- | ------------------------ |
 | Critical | 3 | 2 |
-| High | 52 | 44 |
+| High | 52 | 42 |
 | Medium | 108 | 100 |
 | Low | 37 | 36 |
 
@@ -77,6 +77,8 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 | [125](./125-oauth-dangerous-email-account-linking.md) | Dangerous email linking |
 | [126](./126-oauth-authorize-no-scope-validation.md) | OAuth no scope validation |
 | [129](./129-oauth-revoke-no-client-auth.md) | OAuth revoke no client auth |
+| [070](./070-yazio-password-plaintext-storage.md) | Yazio password plaintext (accepted for now) |
+| [158](./158-developer-get-leaks-webhook-secret.md) | Developer GET leaks webhook secret |
 
 ---
 ### P4 — Share/privacy over-exposure (active)

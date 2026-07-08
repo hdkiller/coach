@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `integrations, data`  
-**Status:** Open
+**Status:** Postponed
+
+> **Postponed (2026-07-08):** Current Yazio credential storage in integration token fields is accepted for now. Revisit when a vault/encryption approach is planned without disrupting Yazio ingest.
 
 ## Description
 

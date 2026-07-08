@@ -10,8 +10,8 @@
 | ------ | ----- |
 | Structure-generation issues | 001–038 ([issues.md](./issues.md)) |
 | App-review issues filed | 039–218 |
-| **Postponed** (auth / third-party) | **20** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
-| **Active (Open)** | **198** |
+| **Postponed** (auth / third-party / OAuth / Yazio) | **22** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
+| **Active (Open)** | **197** |
 | **Total documented issues** | **218** |
 | Review phases complete | 5 / 5 (core) |
 | **Overall review progress** | **~90%** |
@@ -90,7 +90,7 @@
 | 2026-07-08 | 1 | Initial broad review | 039–061 |
 | 2026-07-08 | 2 | Multi-area review (workouts, nutrition, coaching, auth, share, admin, stores, feed, events, triggers) | 062–170 |
 | 2026-07-08 | 3 | Triggers deep pass, profile/settings, i18n/a11y, Sentry cross-ref | 171–218 |
-| 2026-07-08 | 3b | Postponed 20 auth/webhook/OAuth issues (ingest-safe deferral) | — |
+| 2026-07-08 | 3c | Postpone 070 Yazio + 158 OAuth developer; confirm OAuth batch deferred | — |
 
 ## Postponed: auth & third-party (deferred 2026-07-08)
 
@@ -117,6 +117,8 @@ Skipped for now — auth/integration hardening may break ingest or requires prov
 | 125 | Dangerous email account linking | Provider login behavior |
 | 126 | OAuth authorize no scope validation | Registered app scopes |
 | 129 | OAuth revoke no client auth | Public OAuth clients |
+| 070 | Yazio password plaintext storage | Accepted for now; Yazio ingest works |
+| 158 | Developer GET leaks webhook secret | OAuth developer portal batch |
 
 ## Next issue ID: 219
 
