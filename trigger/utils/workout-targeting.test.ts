@@ -4,6 +4,7 @@ import {
   applyStepIntentGuard,
   applyTargetFormatPolicyToStep,
   normalizeCooldownRampDirection,
+  normalizeWarmupRampDirection,
   resolveWorkoutTargeting
 } from './workout-targeting'
 
@@ -164,6 +165,82 @@ describe('normalizeCooldownRampDirection', () => {
     normalizeCooldownRampDirection(step)
 
     expect(step.power.range).toEqual({ start: 0.59, end: 0.5 })
+  })
+})
+
+describe('normalizeWarmupRampDirection', () => {
+  it('reverses decreasing warmup ramp ranges', () => {
+    const step: any = {
+      type: 'Warmup',
+      pace: {
+        ramp: true,
+        range: { start: 0.78, end: 0.6 }
+      }
+    }
+
+    normalizeWarmupRampDirection(step)
+
+    expect(step.pace.range).toEqual({ start: 0.6, end: 0.78 })
+  })
+})
+
+describe('applyTargetFormatPolicyToStep pace warmup normalization', () => {
+  const paceZones = [
+    { min: 1.25, max: 1.62, name: 'Z1 Easy' },
+    { min: 1.62, max: 1.83, name: 'Z2 Endurance' }
+  ]
+  const refs = {
+    ftp: 229,
+    lthr: 168,
+    maxHr: 185,
+    thresholdPace: 2.083,
+    hrZones: [],
+    powerZones: [],
+    paceZones
+  }
+  const targetFormatPolicy = {
+    heartRate: { mode: 'percentLthr' as const, preferRange: true },
+    power: { mode: 'percentFtp' as const, preferRange: true },
+    pace: { mode: 'percentPace' as const, preferRange: true },
+    cadence: { mode: 'rpm' as const }
+  }
+
+  it('converts mixed m/s and relative warmup pace values into a flat percent range', () => {
+    const warmup: any = {
+      type: 'Warmup',
+      intent: 'warmup',
+      primaryTarget: 'pace',
+      pace: {
+        ramp: true,
+        range: { start: 1.25, end: 0.7777244359097455 },
+        units: 'Pace'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(warmup, targetFormatPolicy, refs)
+
+    expect(warmup.pace.ramp).toBe(false)
+    expect(warmup.pace.range.start).toBeCloseTo(0.6, 2)
+    expect(warmup.pace.range.end).toBeCloseTo(0.778, 2)
+  })
+
+  it('flattens cooldown pace ramps when preferRange is enabled', () => {
+    const cooldown: any = {
+      type: 'Cooldown',
+      intent: 'cooldown',
+      primaryTarget: 'pace',
+      pace: {
+        ramp: true,
+        range: { start: 1.25, end: 0.7777244359097455 },
+        units: 'Pace'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(cooldown, targetFormatPolicy, refs)
+
+    expect(cooldown.pace.ramp).toBe(false)
+    expect(cooldown.pace.range.start).toBeCloseTo(0.6, 2)
+    expect(cooldown.pace.range.end).toBeCloseTo(0.778, 2)
   })
 })
 

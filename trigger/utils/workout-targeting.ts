@@ -135,6 +135,39 @@ export function normalizeCooldownRampDirection(step: any) {
   }
 }
 
+export function normalizeWarmupRampDirection(step: any) {
+  if (step?.type !== 'Warmup') return
+
+  for (const metric of ['power', 'heartRate', 'pace'] as const) {
+    const target = step?.[metric]
+    if (!target?.range || target.ramp !== true) continue
+    const start = Number(target.range.start)
+    const end = Number(target.range.end)
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start <= end) continue
+    target.range = { start: end, end: start }
+  }
+}
+
+function flattenWarmupCooldownPaceWhenPreferRange(
+  step: any,
+  targetFormatPolicy: TargetFormatPolicy
+) {
+  const stepType = String(step?.type || '')
+  if (stepType !== 'Warmup' && stepType !== 'Cooldown') return
+  if (step?.primaryTarget !== 'pace') return
+  if (targetFormatPolicy.pace.mode !== 'percentPace' || !targetFormatPolicy.pace.preferRange) return
+
+  const target = step?.pace
+  if (!target?.range) return
+
+  const start = Number(target.range.start)
+  const end = Number(target.range.end)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return
+
+  target.range = { start: Math.min(start, end), end: Math.max(start, end) }
+  target.ramp = false
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
@@ -540,7 +573,7 @@ function paceValueToMps(
   if (normalizedUnits === 'm/s') return value
 
   // Some model outputs carry absolute running speed while still labeling units as "Pace".
-  if (value > 1.5 && value < 8) return value
+  if (looksLikeAbsolutePaceMps(value, thresholdPace)) return value
 
   if (thresholdPace > 0) {
     if (value > 3) return value / thresholdPace
@@ -548,6 +581,30 @@ function paceValueToMps(
   }
 
   return null
+}
+
+function looksLikeAbsolutePaceMps(value: number, thresholdPace: number, paceZones: any[] = []) {
+  if (!Number.isFinite(value) || value <= 0) return false
+  if (value > 1.5 && value < 8) return true
+
+  if (Array.isArray(paceZones) && paceZones.length > 0) {
+    const zoneValues = paceZones.flatMap((zone: any) => [Number(zone?.min), Number(zone?.max)])
+    const finiteZoneValues = zoneValues.filter(
+      (zoneValue) => Number.isFinite(zoneValue) && zoneValue > 0
+    )
+    if (finiteZoneValues.length > 0) {
+      const zoneMin = Math.min(...finiteZoneValues)
+      const zoneMax = Math.max(...finiteZoneValues)
+      if (value >= zoneMin * 0.95 && value <= zoneMax * 1.05) return true
+    }
+  }
+
+  if (thresholdPace > 0 && value > 0.95 && value <= 1.5) {
+    const relativeFromMps = value / thresholdPace
+    if (relativeFromMps >= 0.4 && relativeFromMps <= 0.95) return true
+  }
+
+  return false
 }
 
 function normalizeHeartRateTarget(
@@ -755,6 +812,9 @@ function normalizePaceTarget(
   // percentPace
   if (thresholdPace > 0) {
     const toRelative = (value: number) => {
+      if (looksLikeAbsolutePaceMps(value, thresholdPace, refs.paceZones)) {
+        return value / thresholdPace
+      }
       const metersPerSecond = paceValueToMps(value, target.units, thresholdPace)
       if (metersPerSecond !== null) return metersPerSecond / thresholdPace
       return value
@@ -892,6 +952,7 @@ export function applyTargetFormatPolicyToStep(
     thresholdPace: refs.thresholdPace,
     paceZones: refs.paceZones
   })
+  flattenWarmupCooldownPaceWhenPreferRange(step, targetFormatPolicy)
   normalizeCadenceTarget(step, targetFormatPolicy)
 }
 

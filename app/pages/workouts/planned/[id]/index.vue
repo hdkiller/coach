@@ -625,7 +625,8 @@
           <pre
             v-else
             class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-            >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre>
+            >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre
+          >
           <div class="flex justify-end">
             <UButton
               size="xs"
@@ -643,7 +644,8 @@
         <div v-else class="space-y-3">
           <pre
             class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-            >{{ plannedWorkoutRawJson }}</pre>
+            >{{ plannedWorkoutRawJson }}</pre
+          >
           <div class="flex justify-end">
             <UButton
               size="xs"
@@ -1107,7 +1109,7 @@
   import SwimView from '~/components/workouts/planned/SwimView.vue'
   import StrengthView from '~/components/workouts/planned/StrengthView.vue'
   import TriggerMonitorButton from '~/components/dashboard/TriggerMonitorButton.vue'
-  import { ACTIVE_STATUSES } from '~/composables/useUserRuns'
+  import { ACTIVE_STATUSES } from '~/utils/user-runs-client'
 
   definePageMeta({
     middleware: 'auth'

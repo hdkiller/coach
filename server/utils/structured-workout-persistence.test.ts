@@ -427,6 +427,48 @@ describe('structured workout persistence', () => {
     expect(normalized.steps[1].power.ramp).toBe(true)
   })
 
+  it('keeps warmup and cooldown pace ranges flat when preferRange is enabled', () => {
+    const normalized = normalizeStructuredWorkoutForPersistence(
+      {
+        steps: [
+          {
+            type: 'Warmup',
+            durationSeconds: 300,
+            primaryTarget: 'pace',
+            pace: { range: { start: 0.6, end: 0.78 }, units: 'Pace' }
+          },
+          {
+            type: 'Cooldown',
+            durationSeconds: 300,
+            primaryTarget: 'pace',
+            pace: { range: { start: 0.78, end: 0.6 }, units: 'Pace' }
+          }
+        ]
+      },
+      {
+        refs,
+        workoutType: 'Run',
+        targetPolicy: {
+          primaryMetric: 'pace',
+          fallbackOrder: ['pace', 'heartRate', 'power', 'rpe'],
+          strictPrimary: true,
+          allowMixedTargetsPerStep: false,
+          defaultTargetStyle: 'range',
+          preferRangesForSteady: true
+        },
+        targetFormatPolicy: {
+          heartRate: { mode: 'percentLthr', preferRange: true },
+          power: { mode: 'percentFtp', preferRange: true },
+          pace: { mode: 'percentPace', preferRange: true },
+          cadence: { mode: 'rpm' }
+        }
+      }
+    )
+
+    expect(normalized.steps[0].pace.ramp).toBe(false)
+    expect(normalized.steps[1].pace.ramp).toBe(false)
+  })
+
   it('keeps recovery ranges flat instead of inferring ramps', () => {
     const normalized = normalizeStructuredWorkoutForPersistence(
       {

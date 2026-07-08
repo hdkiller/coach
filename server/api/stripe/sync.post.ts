@@ -4,6 +4,7 @@ import { stripe } from '../../utils/stripe'
 import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
 import type Stripe from 'stripe'
 import { getPriceProductId, resolveSubscriptionTier } from '../../utils/subscription-tier'
+import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
 
 function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus {
   if (subscription.cancel_at_period_end) {
@@ -34,7 +35,13 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { stripeCustomerId: true, subscriptionStatus: true }
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      stripeCustomerId: true,
+      subscriptionStatus: true
+    }
   })
 
   // Skip sync for contributors (Manual Override)
@@ -42,13 +49,26 @@ export default defineEventHandler(async (event) => {
     return { status: 'skipped_contributor' }
   }
 
-  if (!user?.stripeCustomerId) {
-    return { status: 'no_customer_id' }
+  if (!user) {
+    throw createError({ statusCode: 404, message: 'User not found' })
+  }
+
+  let customerId: string
+  let source: 'existing' | 'reattached' | 'created'
+
+  try {
+    ;({ customerId, source } = await ensureStripeCustomerForUser(user, { createIfMissing: false }))
+  } catch (error: any) {
+    if (error?.statusCode === 404) {
+      return { status: 'no_customer_id' }
+    }
+
+    throw error
   }
 
   // Fetch subscriptions from Stripe
   const subscriptions = await stripe.subscriptions.list({
-    customer: user.stripeCustomerId,
+    customer: customerId,
     status: 'all',
     expand: ['data.items.data.price'],
     limit: 20
@@ -56,7 +76,7 @@ export default defineEventHandler(async (event) => {
 
   // Check for Subscription Schedules (Pending Changes)
   const schedules = await stripe.subscriptionSchedules.list({
-    customer: user.stripeCustomerId,
+    customer: customerId,
     limit: 1
   })
 
@@ -115,7 +135,11 @@ export default defineEventHandler(async (event) => {
         ...(currentUser?.subscriptionStartedAt ? {} : { subscriptionStartedAt: startedAt })
       }
     })
-    return { status: 'synced', tier, subscriptionStatus: status }
+    return {
+      status: source === 'reattached' ? 'reattached_and_synced' : 'synced',
+      tier,
+      subscriptionStatus: status
+    }
   } else {
     // If no active subscription found, ensure we downgrade if needed (or keep cancelled state)
     // But be careful not to overwrite if they have a non-renewing one that is still valid?
@@ -131,6 +155,6 @@ export default defineEventHandler(async (event) => {
         subscriptionPeriodEnd: null // Or keep it if we want history?
       }
     })
-    return { status: 'synced_empty' }
+    return { status: source === 'reattached' ? 'reattached_but_empty' : 'synced_empty' }
   }
 })

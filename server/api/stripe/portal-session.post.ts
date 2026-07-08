@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
+import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
 
 const portalSessionSchema = z.object({
   returnUrl: z.string().optional()
@@ -25,15 +26,33 @@ export default defineEventHandler(async (event) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      id: true,
+      email: true,
+      name: true,
       stripeCustomerId: true
     }
   })
 
-  if (!user || !user.stripeCustomerId) {
+  if (!user) {
     throw createError({
-      statusCode: 400,
-      message: 'No Stripe customer found. Please subscribe first.'
+      statusCode: 404,
+      message: 'User not found'
     })
+  }
+
+  let customerId: string
+
+  try {
+    ;({ customerId } = await ensureStripeCustomerForUser(user, { createIfMissing: false }))
+  } catch (error: any) {
+    if (error?.statusCode === 404) {
+      throw createError({
+        statusCode: 400,
+        message: 'No Stripe customer found. Please subscribe first.'
+      })
+    }
+
+    throw error
   }
 
   const config = useRuntimeConfig()
@@ -42,7 +61,7 @@ export default defineEventHandler(async (event) => {
   let portalSession
   try {
     portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: customerId,
       return_url: returnUrl || `${baseUrl}/settings/billing`
     })
   } catch (error: any) {

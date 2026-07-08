@@ -144,8 +144,8 @@
 <script setup lang="ts">
   import { useTranslate } from '@tolgee/vue'
   import { useNow } from '@vueuse/core'
-  import type { TriggerRun } from '~/composables/useUserRuns'
-  import { ACTIVE_STATUSES } from '~/composables/useUserRuns'
+  import type { TriggerRun } from '~/utils/user-runs-client'
+  import { ACTIVE_STATUSES } from '~/utils/user-runs-client'
 
   const { t } = useTranslate('dashboard')
   const STALE_ACTIVE_RUN_MS = 60 * 60 * 1000

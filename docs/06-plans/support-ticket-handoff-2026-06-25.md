@@ -1,6 +1,6 @@
 # Support Ticket Handoff - 2026-06-25
 
-Last updated: 2026-06-26 (third pass)
+Last updated: 2026-06-30 (fourth pass)
 
 ## Purpose
 
@@ -70,20 +70,44 @@ Closed as support or operational items:
 - `05613804-5306-49c4-b0f4-73573eecb3db`
 - `fec5b9ae-5a3b-46af-af24-507efdcb0abd`
 
+## Open Ticket Queue (2026-06-30)
+
+Eight tickets remain open in production:
+
+| Status           | ID                                     | Title                                               | User                       |
+| ---------------- | -------------------------------------- | --------------------------------------------------- | -------------------------- |
+| `IN_PROGRESS`    | `399586e0-4619-45d7-9c0c-c04b69800709` | Workouts not syncing to Garmin Connect              | xavier.cottereau@gmail.com |
+| `IN_PROGRESS`    | `68718e9e-2a21-41f2-9096-ff7afa7f7cdb` | Wahoo Upload Failed for Tuesday Workout             | nikoplaas@googlemail.com   |
+| `NEED_MORE_INFO` | `05c440b8-416c-4352-b750-1eb77061a90a` | Bridge Sync Failure (Intervals -> AI)               | ralf.gieske@googlemail.com |
+| `NEED_MORE_INFO` | `0d62fa04-884d-4fcd-a328-2226f2eb4ad5` | Structure rendering in Activity/Calendar            | dzmitrysuravets@gmail.com  |
+| `IN_PROGRESS`    | `a232e0ab-245e-4e95-ac37-e03fa7db6e37` | Workout steps missing (Philippe anchor)             | philippe@delodder.be       |
+| `IN_PROGRESS`    | `10565730-46cd-4422-bef3-edf8b16d7df7` | Manual exercise structure not saving (Billy anchor) | warusk2nd@gmail.com        |
+| `IN_PROGRESS`    | `094c9607-f15f-49ff-b713-11f66cfcde15` | Structure generation (Benoit anchor)                | benoit.naturel@mailo.com   |
+| `IN_PROGRESS`    | `5b04e4cb-04f7-4fdf-999f-a94f049b9340` | Missing workout structure (Joe anchor)              | jost.kastanavius@posteo.eu |
+
+Recently resolved since the 2026-06-26 pass:
+
+- `d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34` — activity tab rendering; deploy verified 2026-06-29
+- `65aa4f0a-9f0d-450d-ac81-83dcd14cea4c` — calendar late-day fetch bounds; deploy verified 2026-06-29
+- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57` — corrupt Intervals altitude ingestion; deploy verified 2026-06-29
+- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` — sedentary rest-day calories; deploy verified 2026-06-29
+- `221c609f-ae1c-4020-b4cc-d61d059d39e9` — closed (out-of-scope Intervals publish)
+
 ## What Remains Actively Relevant
 
 Highest-value remaining non-chat, non-workout-generation items:
 
 ### 1. Sync Reliability And Ingestion
 
-Remaining out-of-scope sync item for now:
+New operational tickets (2026-06-30 pass):
 
-- `221c609f-ae1c-4020-b4cc-d61d059d39e9`
+- `399586e0-4619-45d7-9c0c-c04b69800709` — Garmin OAuth token expired (`invalid_grant`); zero `PlannedWorkoutPublishTarget` rows for `garmin`. User must reconnect Garmin in Settings, then publish planned workouts manually. Not a publish-code defect.
+- `68718e9e-2a21-41f2-9096-ff7afa7f7cdb` — user has Intervals only (no Wahoo integration). June 23 strength workout synced to Intervals but has no structure. "Wahoo upload failed" likely head-unit/Intervals bridge; awaiting user clarification.
+- `05c440b8-416c-4352-b750-1eb77061a90a` — moved to `NEED_MORE_INFO` after 2026-06-30 validation: Intervals sync SUCCESS, wellness current through 2026-06-30, latest workout 2026-06-29. Awaiting athlete confirmation sync is stable.
 
-Reason:
+Out-of-scope sync item (closed):
 
-- it affects planned-workout publishing to Intervals
-- user explicitly asked to avoid workout-generation or trigger-related work for now
+- `221c609f-ae1c-4020-b4cc-d61d059d39e9` — affects planned-workout publishing to Intervals; workout-generation/publish-trigger work deferred
 
 Most relevant sync note from the 2026-06-26 pass:
 
@@ -94,7 +118,6 @@ Most relevant sync note from the 2026-06-26 pass:
 
 Current anchor tickets:
 
-- `d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34`
 - `0d62fa04-884d-4fcd-a328-2226f2eb4ad5`
 - `a232e0ab-245e-4e95-ac37-e03fa7db6e37`
 - `10565730-46cd-4422-bef3-edf8b16d7df7`
@@ -110,30 +133,32 @@ Why this is still a good workstream:
 - `99e9b58a-ac01-44f2-bd61-11b22a3876fc` was closed on 2026-06-26 after current production data showed recent activities present again
 - `fcc8048a-e902-4d8f-a99a-902c0cb08442` was closed on 2026-06-26 after fresh production validation showed recent activities present again for that user
 - `2963ef72-0fe5-4439-8984-3fe2647f1034` was closed on 2026-06-26 after fresh production validation showed current workouts present again and no evidence of a broad ongoing display outage
-- `0d62fa04-884d-4fcd-a328-2226f2eb4ad5` remains open because the exact June examples are now structured correctly, but the same account still has other zero-step structured workouts in production
+- `d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34` was resolved on 2026-06-29 after activity rendering deploy (run 28376183395)
+- `0d62fa04-884d-4fcd-a328-2226f2eb4ad5` moved to `NEED_MORE_INFO` on 2026-06-30; cited June workouts have steps (9/2/13), rendering deploy live, 7 zero-step records remain as historical data
 - `a232e0ab-245e-4e95-ac37-e03fa7db6e37` remains open as the Philippe-side canonical anchor because that account still shows a large active pattern of zero-step structured workouts across multiple types
 - `d3512b30-86a2-493d-beff-ab6fdb66378d` was closed on 2026-06-26 because the exact cited workout no longer exists and the remaining nearby structure issue is better tracked under `0d62fa04-884d-4fcd-a328-2226f2eb4ad5`
-- `10565730-46cd-4422-bef3-edf8b16d7df7` remains open as the Billy-side canonical anchor; root cause found 2026-06-26 — `structure.patch.ts` threw on strength-only saves (undefined `normalized.steps`) before DB write; fix + regression test landed locally, pending deploy
+- `10565730-46cd-4422-bef3-edf8b16d7df7` remains open as the Billy-side canonical anchor; root cause fixed and deployed in `e3ef5c22` via [CI #28385768486](https://github.com/hdkiller/coach/actions/runs/28385768486); production still has 27 zero-step + 102 no-structure planned workouts since April (legacy data); pending Billy verification of new saves
 - `17ee0ba8-5355-46b0-a67a-875c6d015036` was closed on 2026-06-26 after the cited workout showed structure again, with the broader Billy-side issue folded into `10565730-46cd-4422-bef3-edf8b16d7df7`
 - `094c9607-f15f-49ff-b713-11f66cfcde15` remains open as the Benoit-side anchor because many recent planned workouts on that account still have missing structure data, including repeated `has_structure = false` and `step_count = 0` cases from mid-June onward
 - `5b04e4cb-04f7-4fdf-999f-a94f049b9340` remains open as the Joe-side anchor because the exact cited workout now has structure again, but the same account still shows a broad active pattern of missing structure across many later records from early May through late June
 
 ### 3. Data Quality And Deduplication
 
-Current anchor tickets:
+Resolved since 2026-06-29 deploy (run 28376183395):
 
-- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57`
-- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d`
+- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57` — corrupt Intervals altitude ingestion guard live; cited workout elevationGain nulled
+- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` — sedentary rest-day calorie fix live; stored rows refresh on fueling-plan recalc
+
+Remaining dedup anchors (if still open elsewhere):
+
 - `61d438f4-2d8a-430e-ab24-8d2c57fa7b07`
 - `6f933f13-4d8e-426c-8eb9-b4239a95346c`
 
 Most relevant notes from the 2026-06-26 pass:
 
-- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57` was moved to `IN_PROGRESS` after production validation confirmed a real bad-metrics issue: the stored workout has `elevationGain = 318`, while the raw Intervals payload contains obviously corrupted altitude values around `19963-20019` and inconsistent elevation totals for what the user described as a flat run
-- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` was moved to `IN_PROGRESS` after production validation confirmed the user's sedentary nutrition setting is stored correctly, but rest-day nutrition plans can still resolve to inflated calorie totals because the rest-day fueling path falls back to macro-calorie totals instead of preserving the lower sedentary energy target
+- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57` confirmed real bad-metrics issue: stored workout had `elevationGain = 318` with corrupted Intervals altitude metadata
+- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` confirmed sedentary setting stored correctly but rest-day `caloriesGoal` inflated by macro totals
 - `e94d9003-69f5-454f-b35b-9b296100e797` was resolved on 2026-06-26 after production revalidation showed the duplicate cluster normalized to canonical Intervals workout `d33a5771-b2b9-4aa9-94b6-5cd09661dcda` with correct power/energy metrics
-- `c5e9c90d-195e-4cad-aa8e-49f9148bfe57` remains open pending code deploy; production data for the cited workout was corrected by nulling corrupt elevation gain and extending invalid-altitude guards beyond the `-500` sentinel
-- `605032e8-4bfc-4b2d-bc4f-fdfd6515638d` remains open pending code deploy; production revalidation still shows rest-day `caloriesGoal` inflated by macro totals instead of sedentary energy breakdown
 - `539f2504-dc14-45f8-9f06-126738060117` was closed on 2026-06-26 and moved to the feature-request tracker because it asks for a product-level change in how future running targets are prescribed, not a current data-quality or deduplication defect
 - `d2563a93-06a7-4477-87de-18f462c3dca7` was closed on 2026-06-26 as stale after production validation could no longer reproduce the cited weekly plan state; the named workouts no longer exist in that week and matching titles only appear on unrelated legacy/template-like dates or later plan dates
 - `2e217b37-abeb-4b92-bc82-b8b7f01e7637` was closed on 2026-06-26 as a duplicate-style Intervals planned-workout publish/update report and folded into the deferred out-of-scope publish-trigger family alongside `221c609f-ae1c-4020-b4cc-d61d059d39e9`
@@ -188,7 +213,7 @@ What was verified:
 - targeted Vitest execution works
 - `tests/unit/server/utils/analyticsScope.test.ts` passes
 - `tests/unit/server/utils/intervals-sync.test.ts` partially fails because the mock setup is outdated, not because the environment is broken
-- `server/utils/intervals.test.ts` and `tests/unit/server/utils/nutrition-domain/fueling-plan.test.ts` pass for the 2026-06-26 data-quality fixes (local commits, not deployed)
+- `server/utils/intervals.test.ts` and `tests/unit/server/utils/nutrition-domain/fueling-plan.test.ts` pass for the 2026-06-26 data-quality fixes (now deployed 2026-06-29)
 
 Important implication:
 
@@ -197,7 +222,9 @@ Important implication:
 
 ## Recommended Next Moves In A Fresh Context
 
-1. Deploy the local commits for calendar fetch bounds, sedentary rest-day calories, extended Intervals altitude validation, and activity rendering hardening (`CalendarDayCell` preview guard); then close `65aa4f0a-9f0d-450d-ac81-83dcd14cea4c`, `605032e8-4bfc-4b2d-bc4f-fdfd6515638d`, and `c5e9c90d-195e-4cad-aa8e-49f9148bfe57`.
-2. After deploy, verify `d1f6ddbd-90b6-4bc6-aac7-7b87771bfa34` with Dzmitry's account (8 description-only planned workouts remain in production; tab should load without attempting zero-step mini charts).
-3. Keep `221c609f-ae1c-4020-b4cc-d61d059d39e9` out of scope until workout-generation and publish-trigger work is back in scope.
-4. Keep all new feature requests out of the engineering bug queue and record them in [support-feature-request-tracker-2026-06-25.md](./support-feature-request-tracker-2026-06-25.md).
+1. Follow up on `NEED_MORE_INFO` tickets (`05c440b8`, `0d62fa04`) — close as `RESOLVED` if users confirm sync/rendering is fixed.
+2. Close `10565730` after Billy confirms manual Gym structure saves work post-`e3ef5c22` deploy.
+3. Operational: guide Xavier (`399586e0`) through Garmin reconnect + manual publish; no code fix needed unless reconnect fails.
+4. Clarify Niko Wahoo ticket (`68718e9e`) — connect Wahoo integration vs Intervals→head-unit bridge failure.
+5. Structure cluster (`a232e0ab`, `094c9607`, `5b04e4cb`) — historical zero-step repair needs workout-generation scope; empty-content guard prevents new bad writes.
+6. Keep all new feature requests out of the engineering bug queue and record them in [support-feature-request-tracker-2026-06-25.md](./support-feature-request-tracker-2026-06-25.md).

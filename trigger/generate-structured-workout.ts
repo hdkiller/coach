@@ -31,6 +31,7 @@ import {
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard,
   normalizeCooldownRampDirection,
+  normalizeWarmupRampDirection,
   buildPlannedWorkoutSettingsSnapshot,
   buildPlannedWorkoutGenerationContext
 } from './utils/workout-targeting'
@@ -50,6 +51,17 @@ import {
   compileWorkoutPlanDraftToStructure,
   workoutPlanDraftSchema
 } from '../server/utils/structured-workout-draft'
+import {
+  resolveStructureContextProfile,
+  formatAiContextForStructureGen,
+  buildDraftOutputRules,
+  buildSportSpecificInstructions,
+  buildStructureAiCallOptions,
+  buildCompactZoneDefinitions,
+  buildCorrectiveStructureRetryPrompt,
+  buildStructureGoalContextBlock,
+  looksLikeIntervalWorkout
+} from './utils/structure-generation-prompt'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -1404,6 +1416,7 @@ OUTPUT JSON matching the schema.`
         if (step.durationSeconds === undefined && step.duration !== undefined) {
           step.durationSeconds = step.duration
         }
+        normalizeWarmupRampDirection(step)
         normalizeCooldownRampDirection(step)
 
         // 4. Recurse and Calculate

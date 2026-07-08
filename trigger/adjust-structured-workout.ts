@@ -19,6 +19,7 @@ import {
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard,
   normalizeCooldownRampDirection,
+  normalizeWarmupRampDirection,
   buildPlannedWorkoutSettingsSnapshot,
   buildPlannedWorkoutGenerationContext
 } from './utils/workout-targeting'
@@ -1243,6 +1244,7 @@ OUTPUT JSON matching the schema.`
         if (step.durationSeconds === undefined && step.duration !== undefined) {
           step.durationSeconds = step.duration
         }
+        normalizeWarmupRampDirection(step)
         normalizeCooldownRampDirection(step)
 
         let stepDistance: number

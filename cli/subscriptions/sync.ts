@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import Stripe from 'stripe'
+import { resolveSubscriptionTier } from '../../server/utils/subscription-tier'
 
 const syncCommand = new Command('sync')
   .description('Audit and sync user subscription statuses with Stripe')
@@ -42,20 +43,17 @@ const syncCommand = new Command('sync')
         ? process.env[`STRIPE_PROD_${key}`] || process.env[`STRIPE_${key}`]
         : process.env[`STRIPE_${key}`]
 
-    // Load price IDs from env
-    const priceIds = {
-      supporter: [
-        envPrice('SUPPORTER_MONTHLY_PRICE_ID'),
-        envPrice('SUPPORTER_ANNUAL_PRICE_ID'),
-        envPrice('SUPPORTER_MONTHLY_EUR_PRICE_ID'),
-        envPrice('SUPPORTER_ANNUAL_EUR_PRICE_ID')
-      ].filter(Boolean) as string[],
-      pro: [
-        envPrice('PRO_MONTHLY_PRICE_ID'),
-        envPrice('PRO_ANNUAL_PRICE_ID'),
-        envPrice('PRO_MONTHLY_EUR_PRICE_ID'),
-        envPrice('PRO_ANNUAL_EUR_PRICE_ID')
-      ].filter(Boolean) as string[]
+    const tierConfig = {
+      stripeSupporterProductId: envPrice('SUPPORTER_PRODUCT_ID'),
+      stripeSupporterMonthlyPriceId: envPrice('SUPPORTER_MONTHLY_PRICE_ID'),
+      stripeSupporterAnnualPriceId: envPrice('SUPPORTER_ANNUAL_PRICE_ID'),
+      stripeSupporterMonthlyEurPriceId: envPrice('SUPPORTER_MONTHLY_EUR_PRICE_ID'),
+      stripeSupporterAnnualEurPriceId: envPrice('SUPPORTER_ANNUAL_EUR_PRICE_ID'),
+      stripeProProductId: envPrice('PRO_PRODUCT_ID'),
+      stripeProMonthlyPriceId: envPrice('PRO_MONTHLY_PRICE_ID'),
+      stripeProAnnualPriceId: envPrice('PRO_ANNUAL_PRICE_ID'),
+      stripeProMonthlyEurPriceId: envPrice('PRO_MONTHLY_EUR_PRICE_ID'),
+      stripeProAnnualEurPriceId: envPrice('PRO_ANNUAL_EUR_PRICE_ID')
     }
 
     const stripe = new Stripe(stripeSecretKey, {
@@ -103,7 +101,7 @@ const syncCommand = new Command('sync')
           const subscriptions = await stripe.subscriptions.list({
             customer: u.stripeCustomerId!,
             status: 'all',
-            expand: ['data.default_payment_method']
+            expand: ['data.default_payment_method', 'data.items.data.price']
           })
 
           // Find active or trialing subscription
@@ -120,14 +118,7 @@ const syncCommand = new Command('sync')
             stripeSubId = activeSub.id
             stripeStatus = activeSub.status.toUpperCase()
             stripePeriodEnd = new Date(activeSub.current_period_end * 1000)
-
-            // Determine tier from items
-            const priceId = activeSub.items.data[0]?.price.id
-            if (priceIds.pro.includes(priceId)) {
-              stripeTier = 'PRO'
-            } else if (priceIds.supporter.includes(priceId)) {
-              stripeTier = 'SUPPORTER'
-            }
+            stripeTier = await resolveSubscriptionTier(activeSub.items.data[0], tierConfig, stripe)
           }
 
           const hasMismatch =

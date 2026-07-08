@@ -6,9 +6,6 @@ import {
   type TriggerRun
 } from '../utils/user-runs-client'
 
-export type { TriggerRun } from '../utils/user-runs-client'
-export { ACTIVE_STATUSES } from '../utils/user-runs-client'
-
 export interface RealtimeDomainEvent {
   type: 'domain_event'
   channel?: string
@@ -36,7 +33,7 @@ let lastPollAt = 0
 const FAST_POLL_INTERVAL_MS = 5000
 const IDLE_POLL_INTERVAL_MS = 15000
 
-let trackedUserId: string | null = null
+const trackedUserId: string | null = null
 
 function getSessionUserId(session: { user?: { id?: string } } | null | undefined): string | null {
   const id = session?.user?.id

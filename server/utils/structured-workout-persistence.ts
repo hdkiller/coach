@@ -490,7 +490,11 @@ export function normalizeStructuredWorkoutForPersistence(
       const target = step?.[metric]
       if (!target?.range) continue
       if (step?.type === 'Warmup' || step?.type === 'Cooldown') {
-        target.ramp = true
+        if (metric === 'pace' && context.targetFormatPolicy.pace.preferRange) {
+          target.ramp = false
+        } else {
+          target.ramp = true
+        }
       } else if (step?.type === 'Rest' && target.ramp === undefined) {
         target.ramp = false
       }

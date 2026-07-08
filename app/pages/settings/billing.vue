@@ -72,6 +72,12 @@
         showSuccessMessage.value = true
       }
     } else {
+      try {
+        await $fetch('/api/stripe/sync', { method: 'POST' })
+      } catch (error) {
+        console.warn('Initial billing sync failed:', error)
+      }
+
       await userStore.fetchUser(true)
     }
   })

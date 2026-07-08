@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
+import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
 
 const checkoutSessionSchema = z.object({
   priceId: z.string(),
@@ -41,52 +42,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  let customerId = user.stripeCustomerId
-
-  // Recreate the customer if the stored ID belongs to another Stripe instance
-  // or has otherwise gone missing from the current account.
-  if (customerId) {
-    try {
-      await stripe.customers.retrieve(customerId)
-    } catch (error: any) {
-      if (error?.type === 'StripeInvalidRequestError' || error?.code === 'resource_missing') {
-        customerId = null
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            stripeCustomerId: null,
-            stripeSubscriptionId: null,
-            subscriptionTier: 'FREE',
-            subscriptionStatus: 'NONE',
-            subscriptionPeriodEnd: null,
-            pendingSubscriptionTier: null,
-            pendingSubscriptionPeriodEnd: null
-          }
-        })
-      } else {
-        throw error
-      }
-    }
-  }
-
-  // Create Stripe customer if doesn't exist
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: user.name || undefined,
-      metadata: {
-        userId: user.id
-      }
-    })
-
-    customerId = customer.id
-
-    // Update user with Stripe customer ID
-    await prisma.user.update({
-      where: { id: userId },
-      data: { stripeCustomerId: customerId }
-    })
-  }
+  const { customerId } = await ensureStripeCustomerForUser(user)
 
   const config = useRuntimeConfig()
   const baseUrl = config.public.siteUrl || 'http://localhost:3099'

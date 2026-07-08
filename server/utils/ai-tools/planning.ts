@@ -985,6 +985,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       const shouldGenerate = args.generate_structure !== false
       const structureStatus: StructureGenerationStatus = 'skipped'
       let runId: string | undefined
+      let structureError: string | undefined
       if (args.generate_structure !== false) {
         try {
           const handle = await generateStructuredWorkoutTask.trigger(
@@ -1004,6 +1005,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           runId = handle.id
         } catch (e) {
           console.error('Failed to trigger structured workout generation:', e)
+          structureError = e instanceof Error ? e.message : String(e)
         }
       }
 
