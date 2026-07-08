@@ -4,6 +4,12 @@ import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
 import { chatService } from '../../utils/services/chatService'
 import { chatTurnService } from '../../utils/services/chatTurnService'
+import {
+  extractApprovalIdFromToolMessage,
+  findExistingApprovalResponseMessage,
+  findTurnForApprovalResponseMessage,
+  resolveApprovalOriginLineageId
+} from '../../utils/chat/approval-continuation'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['chat:write'])
@@ -141,7 +147,37 @@ export default defineEventHandler(async (event) => {
   const shouldPersistIncomingMessage =
     !!lastMessage &&
     (lastMessage.role === 'user' || (lastMessage.role === 'tool' && isLastToolApprovalResponse))
+  const approvalIdForContinuation = isLastToolApprovalResponse
+    ? extractApprovalIdFromToolMessage(lastMessage)
+    : null
   let persistedMessage = existingMessage
+
+  if (approvalIdForContinuation) {
+    const existingApprovalResponse = await findExistingApprovalResponseMessage(
+      roomId,
+      approvalIdForContinuation
+    )
+
+    if (existingApprovalResponse && existingApprovalResponse.id !== incomingMessageId) {
+      const existingTurn = await findTurnForApprovalResponseMessage(existingApprovalResponse)
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          if (existingTurn) {
+            writer.write({
+              type: 'data-chat-turn',
+              data: {
+                turnId: existingTurn.id,
+                status: existingTurn.status
+              },
+              transient: true
+            } as any)
+          }
+        }
+      })
+
+      return createUIMessageStreamResponse({ stream })
+    }
+  }
 
   if (shouldPersistIncomingMessage && !existingMessage) {
     const metadata: any = {}
@@ -180,10 +216,15 @@ export default defineEventHandler(async (event) => {
   let turn = await chatTurnService.findLatestTurnForMessage(triggerMessageId)
 
   if (!turn) {
+    const approvalLineageId = isToolContinuationTurn
+      ? await resolveApprovalOriginLineageId(roomId, truncatedMessages)
+      : null
+
     turn = await chatTurnService.createTurn({
       roomId,
       userId,
       userMessageId: triggerMessageId,
+      ...(approvalLineageId ? { lineageId: approvalLineageId } : {}),
       request: {
         messages: await chatTurnService.buildStableRequestMessages(roomId, triggerMessageId, 25),
         files: attachedFiles,

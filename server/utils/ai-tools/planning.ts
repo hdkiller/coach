@@ -1202,6 +1202,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         'Optional per-workout targeting override for this adjustment only (does not change profile defaults).'
       )
     }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({
       workout_id,
       instructions,
@@ -1259,6 +1260,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         'Optional per-workout targeting override for this generation only (does not change profile defaults).'
       )
     }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({ workout_id, targeting_override }) => {
       // 0. Quota Check
       await checkQuota(userId, 'generate_structured_workout')

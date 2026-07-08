@@ -773,11 +773,16 @@
     input.value = ''
   }
 
+  const pendingApprovalSubmissions = new Set<string>()
+
   const onToolApproval = async (approval: {
     approvalId: string
     approved: boolean
     result?: string
   }) => {
+    if (pendingApprovalSubmissions.has(approval.approvalId)) return
+    pendingApprovalSubmissions.add(approval.approvalId)
+
     // Append a tool message with a tool-approval-response part directly to chat.messages.
     // addToolApprovalResponse only works with messages that came through the SDK's own
     // streaming transport, not with messages synthesized from WebSocket-delivered state.
@@ -800,7 +805,12 @@
       createdAt: new Date()
     }
     chat.messages = [...(chat.messages as any[]), approvalToolMsg] as any
-    await (chat as any).sendMessage()
+    try {
+      await (chat as any).sendMessage()
+    } catch (error) {
+      pendingApprovalSubmissions.delete(approval.approvalId)
+      throw error
+    }
     awaitingTurnStart.value = true
     restartTurnPolling({ forceForMs: 15000 })
     if (currentRoomId.value) {
