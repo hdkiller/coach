@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `wellness, fitness`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,4 +19,4 @@ Fail task; perpetual processing.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

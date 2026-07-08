@@ -477,7 +477,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   async function handleSync() {
     await integrationStore.syncAllData()
@@ -508,6 +508,18 @@
       },
       'dashboard.sync.complete'
     )
+  })
+
+  onTaskFailed('ingest-all', async (run) => {
+    integrationStore.syncingData = false
+    await integrationStore.fetchStatus()
+    toast.add({
+      title: t.value('sync_toast_failed_title') || 'Sync Failed',
+      description:
+        run.error?.message || t.value('sync_toast_failed_description') || 'Data sync failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   const showWelcome = useLocalStorage('dashboard-welcome-banner', true)

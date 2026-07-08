@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux`, `planning`, `recommendations`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -45,5 +45,5 @@ Add `onTaskFailed('generate-recommendations')` handler to reset `refreshingAdvic
 
 ## Acceptance Criteria
 
-- [ ] Update button resets on task failure
-- [ ] User receives actionable error feedback
+- [x] Update button resets on task failure
+- [x] User receives actionable error feedback

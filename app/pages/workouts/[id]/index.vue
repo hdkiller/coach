@@ -5029,7 +5029,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Analyze workout function
   async function analyzeWorkout() {
@@ -5217,6 +5217,26 @@
       title: 'Adherence Analysis Complete',
       color: 'success',
       icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskFailed('analyze-workout', async (run) => {
+    analyzingWorkout.value = false
+    toast.add({
+      title: 'Analysis Failed',
+      description: run.error?.message || 'AI workout analysis failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('analyze-plan-adherence', async (run) => {
+    analyzingAdherence.value = false
+    toast.add({
+      title: 'Adherence Analysis Failed',
+      description: run.error?.message || 'Plan adherence analysis failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
     })
   })
 

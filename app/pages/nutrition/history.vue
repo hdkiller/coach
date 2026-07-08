@@ -736,7 +736,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Period selection for nutrition scores
   const selectedPeriod = ref<number | string>(30)
@@ -771,6 +771,26 @@
       description: 'Nutrition insights have been generated.',
       color: 'success',
       icon: 'i-heroicons-sparkles'
+    })
+  })
+
+  onTaskFailed('analyze-nutrition', async (run) => {
+    analyzingNutrition.value = false
+    toast.add({
+      title: 'Analysis Failed',
+      description: run.error?.message || 'Nutrition analysis failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('generate-score-explanations', async (run) => {
+    generatingExplanations.value = false
+    toast.add({
+      title: 'Insights Failed',
+      description: run.error?.message || 'Failed to generate nutrition insights',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
     })
   })
 

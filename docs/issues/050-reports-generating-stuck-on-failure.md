@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux`, `reports`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -39,5 +39,5 @@ Register `onTaskFailed` for each report task ID to reset `generating` and surfac
 
 ## Acceptance Criteria
 
-- [ ] `generating` resets on task failure
-- [ ] User can create another report without reload
+- [x] `generating` resets on task failure
+- [x] User can create another report without reload

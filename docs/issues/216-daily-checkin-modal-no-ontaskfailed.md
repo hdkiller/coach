@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `wellness, dashboard`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,5 +19,5 @@ Fail check-in generation; modal stuck loading.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

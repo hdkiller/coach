@@ -1242,6 +1242,46 @@
 
     generatingStructureForWorkoutId.value = null
     finishBatchStructureWorkout(plannedWorkoutIdFromRun(run))
+    toast.add({
+      title: 'Structure Generation Failed',
+      description: run.error?.message || 'Failed to generate workout structure',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('generate-training-block', async () => {
+    emit('refresh')
+    generatingWorkouts.value = false
+    generatingBlockId.value = null
+    toast.add({
+      title: 'Block Generation Failed',
+      description: 'Failed to generate training block',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('adapt-training-plan', async (run) => {
+    emit('refresh')
+    adapting.value = null
+    toast.add({
+      title: 'Adaptation Failed',
+      description: run.error?.message || 'Failed to adapt training plan',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('generate-weekly-plan', async (run) => {
+    emit('refresh')
+    generatingWorkouts.value = false
+    toast.add({
+      title: 'Plan Generation Failed',
+      description: run.error?.message || 'Failed to generate weekly plan',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   onTaskCompleted('adapt-training-plan', async (run) => {

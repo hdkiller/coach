@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux`, `performance`, `dashboard`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -44,5 +44,5 @@ Add `onTaskFailed('generate-score-explanations')` to reset state and toast error
 
 ## Acceptance Criteria
 
-- [ ] `generatingExplanations` resets on task failure
-- [ ] User sees error toast on failure
+- [x] `generatingExplanations` resets on task failure
+- [x] User sees error toast on failure

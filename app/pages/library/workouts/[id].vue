@@ -236,7 +236,7 @@
     }
   })
 
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
   const { runs, refresh: refreshRuns } = useUserRuns()
 
   async function fetchTemplate() {
@@ -436,6 +436,28 @@
         color: 'success'
       })
     }
+  })
+
+  onTaskFailed('generate-structured-workout', async (run) => {
+    if (!Array.isArray(run.tags) || !run.tags.includes(`workout-template:${route.params.id}`))
+      return
+    generating.value = false
+    toast.add({
+      title: 'Generation Failed',
+      description: run.error?.message || 'Failed to generate workout structure',
+      color: 'error'
+    })
+  })
+
+  onTaskFailed('adjust-structured-workout', async (run) => {
+    if (!Array.isArray(run.tags) || !run.tags.includes(`workout-template:${route.params.id}`))
+      return
+    adjusting.value = false
+    toast.add({
+      title: 'Adjustment Failed',
+      description: run.error?.message || 'Failed to adjust workout structure',
+      color: 'error'
+    })
   })
 
   function openViewModal() {
