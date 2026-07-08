@@ -1,6 +1,9 @@
 import os from 'node:os'
+import { requireAdmin } from '../../utils/auth-guard'
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
+
   const now = new Date()
 
   return {

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+  definePageMeta({
+    middleware: ['auth', 'admin']
+  })
+
   const messages = ref<string[]>([])
   const status = ref('Disconnected')
   const inputMessage = ref('')

@@ -2,7 +2,7 @@
   import * as Sentry from '@sentry/nuxt'
 
   definePageMeta({
-    middleware: 'auth'
+    middleware: ['auth', 'admin']
   })
 
   const triggerSentryLogger = () => {

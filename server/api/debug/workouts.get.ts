@@ -1,9 +1,7 @@
-export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+import { requireAdmin } from '../../utils/auth-guard'
 
+export default defineEventHandler(async (event) => {
+  const session = await requireAdmin(event)
   const userId = session.user.id
 
   const [recentWorkouts, plannedWorkouts] = await Promise.all([

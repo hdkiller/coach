@@ -1,6 +1,9 @@
 import { defineEventHandler } from 'h3'
+import { requireAdmin } from '../../utils/auth-guard'
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
+
   const configWithEvent = useRuntimeConfig(event)
   const configWithoutEvent = useRuntimeConfig()
 

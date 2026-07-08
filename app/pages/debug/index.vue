@@ -234,6 +234,10 @@
 <script setup lang="ts">
   import { format, getISOWeek } from 'date-fns'
 
+  definePageMeta({
+    middleware: ['auth', 'admin']
+  })
+
   useHead({
     title: 'System Debugger',
     meta: [{ name: 'robots', content: 'noindex' }]

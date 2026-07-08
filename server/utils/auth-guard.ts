@@ -109,3 +109,21 @@ export async function requireAuth(event: H3Event, requiredScopes?: string[]) {
     message: 'Unauthorized'
   })
 }
+
+/**
+ * Requires an authenticated admin session (Nuxt Auth).
+ * Used for internal debug/diagnostic routes.
+ */
+export async function requireAdmin(event: H3Event) {
+  const session = await getServerSession(event)
+
+  if (!session?.user?.isAdmin) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden'
+    })
+  }
+
+  event.context.session = session
+  return session
+}
