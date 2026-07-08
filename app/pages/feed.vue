@@ -53,6 +53,8 @@
                 placeholder="All Sports"
                 class="w-40"
                 size="sm"
+                value-attribute="value"
+                option-attribute="label"
               />
               <USelectMenu
                 v-model="selectedIntensity"
@@ -89,6 +91,22 @@
           <div v-for="i in 3" :key="i" class="border-b border-gray-100 dark:border-gray-800">
             <USkeleton class="h-80 w-full rounded-none" />
           </div>
+        </div>
+
+        <div v-else-if="status === 'error'" class="text-center py-24 px-4">
+          <UIcon
+            name="i-heroicons-exclamation-triangle"
+            class="w-16 h-16 text-red-400 dark:text-red-500 mx-auto mb-4"
+          />
+          <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Failed to load feed
+          </h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {{ fetchErrorMessage }}
+          </p>
+          <UButton color="primary" variant="outline" class="mt-4" @click="retryFeed">
+            Retry
+          </UButton>
         </div>
 
         <div v-else-if="filteredWorkouts.length === 0" class="text-center py-24">
@@ -175,14 +193,26 @@
 
   const selectedIntensity = ref('all')
 
-  const { data, status, refresh } = (await (useFetch as any)('/api/workouts', {
+  const { data, status, error, refresh } = (await (useFetch as any)('/api/workouts', {
     query: computed(() => ({
       limit: limit.value,
       offset: offset.value,
       type: selectedSport.value === 'all' ? undefined : selectedSport.value
     })),
-    watch: [selectedSport, limit]
+    watch: [selectedSport, limit, offset]
   })) as any
+
+  const fetchErrorMessage = computed(
+    () =>
+      (error.value as any)?.data?.message ||
+      (error.value as any)?.message ||
+      'Something went wrong while loading your activities.'
+  )
+
+  function retryFeed() {
+    offset.value = 0
+    refresh()
+  }
 
   const filteredWorkouts = computed(() => {
     if (!workouts.value) return []

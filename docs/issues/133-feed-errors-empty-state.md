@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `dashboard, ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -27,5 +27,5 @@ Block /api/workouts; empty state with no error.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Regression covered where practical
+- [x] Issue no longer reproducible
+- [x] Regression covered where practical

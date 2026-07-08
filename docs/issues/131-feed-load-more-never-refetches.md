@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `dashboard, activities`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -27,5 +27,5 @@ Click Load Older Activities on /feed; no new API request.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Regression covered where practical
+- [x] Issue no longer reproducible
+- [x] Regression covered where practical
