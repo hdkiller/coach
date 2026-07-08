@@ -51,6 +51,7 @@
   const runError = ref<string | null>(null)
   const pollError = ref<string | null>(null)
   const isPolling = ref(false)
+  const pollStartedAt = ref<number | null>(null)
 
   const directWorkoutId = computed(() => {
     const response = props.response || {}
@@ -388,6 +389,7 @@
     clearRunPolling()
     clearWorkoutPolling()
     isPolling.value = false
+    pollStartedAt.value = null
   }
 
   const fetchWorkout = async () => {

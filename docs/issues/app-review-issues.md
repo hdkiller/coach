@@ -12,7 +12,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 | Priority | Count (039–218) | Active (excl. postponed) |
 | -------- | --------------- | ------------------------ |
-| Critical | 3               | 2                        |
+| Critical | 3               | 1                        |
 | High     | 52              | 42                       |
 | Medium   | 108             | 100                      |
 | Low      | 37              | 36                       |
@@ -21,11 +21,11 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P0 — Critical runtime & security (active)
 
-| ID                                                       | Title                                           |
-| -------------------------------------------------------- | ----------------------------------------------- |
-| [062](./062-chat-planned-workout-pollstartedat-crash.md) | Chat planned-workout card `pollStartedAt` crash |
-| ~~[069](./069-garmin-webhook-unauthenticated.md)~~       | Garmin webhook — **Postponed**                  |
-| ~~[058](./058-oauth-refresh-weak-client-binding.md)~~    | OAuth refresh — **Postponed**                   |
+| ID                                                       | Title                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| [062](./062-chat-planned-workout-pollstartedat-crash.md) | ~~Chat planned-workout card `pollStartedAt` crash~~ **Fixed** |
+| ~~[069](./069-garmin-webhook-unauthenticated.md)~~       | Garmin webhook — **Postponed**                                |
+| ~~[058](./058-oauth-refresh-weak-client-binding.md)~~    | OAuth refresh — **Postponed**                                 |
 
 ### P1 — High-impact user flows
 
@@ -121,37 +121,37 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ## Issues 062–090 (workouts, chat, nutrition, coaching)
 
-| ID                                                       | Title                           | Priority |
-| -------------------------------------------------------- | ------------------------------- | -------- |
-| [062](./062-chat-planned-workout-pollstartedat-crash.md) | Chat pollStartedAt crash        | Critical |
-| [063](./063-admin-queue-api-unauthenticated.md)          | Admin queue API unauthenticated | High     |
-| [064](./064-workout-detail-stale-on-nav.md)              | Workout detail stale on nav     | High     |
-| [065](./065-planned-workout-stale-on-nav.md)             | Planned workout stale on nav    | High     |
-| [066](./066-public-workout-share-raw-id-fallback.md)     | Share raw workout ID fallback   | High     |
-| [067](./067-nutrition-estimate-missing-id.md)            | Nutrition estimate missing id   | High     |
-| [068](./068-coaching-overview-wrong-workout-links.md)    | Coaching feed wrong links       | High     |
-| [069](./069-garmin-webhook-unauthenticated.md)           | Garmin webhook unauthenticated  | Critical |
-| [070](./070-yazio-password-plaintext-storage.md)         | Yazio password plaintext        | High     |
-| [071](./071-oauth-auth-code-ignores-redirect-uri.md)     | OAuth ignores redirect_uri      | High     |
-| [072](./072-whoop-async-webhook-auth-bypass.md)          | Whoop async webhook bypass      | High     |
-| [073](./073-workouts-index-analyze-stuck-loading.md)     | Workouts index analyze stuck    | High     |
-| [074](./074-workout-detail-analysis-stuck-loading.md)    | Workout detail analysis stuck   | High     |
-| [075](./075-nutrition-hydration-advice-inverted.md)      | Hydration advice inverted       | Medium   |
-| [076](./076-analytics-dashboard-autosave-silent-fail.md) | Analytics autosave silent fail  | High     |
-| [077](./077-chat-load-errors-empty-state.md)             | Chat load errors empty          | Medium   |
-| [078](./078-library-chat-deeplink-istemplate-ignored.md) | Library chat isTemplate ignored | Medium   |
-| [079](./079-chat-tool-approval-stuck-on-failure.md)      | Tool approval stuck             | Medium   |
-| [080](./080-plan-dashboard-tasks-no-ontaskfailed.md)     | Plan dashboard no onTaskFailed  | Medium   |
-| [081](./081-nutrition-history-analyze-stuck-loading.md)  | Nutrition history analyze stuck | Medium   |
-| [082](./082-meal-recommendation-modal-stuck-loading.md)  | Meal modal stuck loading        | Medium   |
-| [083](./083-nutrition-detail-analyze-no-ui-refresh.md)   | Nutrition analyze no UI refresh | Medium   |
-| [084](./084-nutrition-detail-back-wrong-route.md)        | Nutrition back wrong route      | Medium   |
-| [085](./085-coaching-team-delete-stub.md)                | Team delete stub                | Medium   |
-| [086](./086-library-plan-delete-stub.md)                 | Library plan delete stub        | Medium   |
-| [087](./087-library-workout-use-session-stub.md)         | Library use session stub        | Medium   |
-| [088](./088-workout-matcher-silent-link-errors.md)       | WorkoutMatcher silent errors    | Medium   |
-| [089](./089-planned-workout-error-as-not-found.md)       | Planned error as not found      | Medium   |
-| [090](./090-workouts-mobile-analyze-labeled-sync.md)     | Mobile analyze labeled Sync     | Medium   |
+| ID                                                       | Title                                  | Priority |
+| -------------------------------------------------------- | -------------------------------------- | -------- |
+| [062](./062-chat-planned-workout-pollstartedat-crash.md) | ~~Chat pollStartedAt crash~~ **Fixed** | Critical |
+| [063](./063-admin-queue-api-unauthenticated.md)          | Admin queue API unauthenticated        | High     |
+| [064](./064-workout-detail-stale-on-nav.md)              | Workout detail stale on nav            | High     |
+| [065](./065-planned-workout-stale-on-nav.md)             | Planned workout stale on nav           | High     |
+| [066](./066-public-workout-share-raw-id-fallback.md)     | Share raw workout ID fallback          | High     |
+| [067](./067-nutrition-estimate-missing-id.md)            | Nutrition estimate missing id          | High     |
+| [068](./068-coaching-overview-wrong-workout-links.md)    | Coaching feed wrong links              | High     |
+| [069](./069-garmin-webhook-unauthenticated.md)           | Garmin webhook unauthenticated         | Critical |
+| [070](./070-yazio-password-plaintext-storage.md)         | Yazio password plaintext               | High     |
+| [071](./071-oauth-auth-code-ignores-redirect-uri.md)     | OAuth ignores redirect_uri             | High     |
+| [072](./072-whoop-async-webhook-auth-bypass.md)          | Whoop async webhook bypass             | High     |
+| [073](./073-workouts-index-analyze-stuck-loading.md)     | Workouts index analyze stuck           | High     |
+| [074](./074-workout-detail-analysis-stuck-loading.md)    | Workout detail analysis stuck          | High     |
+| [075](./075-nutrition-hydration-advice-inverted.md)      | Hydration advice inverted              | Medium   |
+| [076](./076-analytics-dashboard-autosave-silent-fail.md) | Analytics autosave silent fail         | High     |
+| [077](./077-chat-load-errors-empty-state.md)             | Chat load errors empty                 | Medium   |
+| [078](./078-library-chat-deeplink-istemplate-ignored.md) | Library chat isTemplate ignored        | Medium   |
+| [079](./079-chat-tool-approval-stuck-on-failure.md)      | Tool approval stuck                    | Medium   |
+| [080](./080-plan-dashboard-tasks-no-ontaskfailed.md)     | Plan dashboard no onTaskFailed         | Medium   |
+| [081](./081-nutrition-history-analyze-stuck-loading.md)  | Nutrition history analyze stuck        | Medium   |
+| [082](./082-meal-recommendation-modal-stuck-loading.md)  | Meal modal stuck loading               | Medium   |
+| [083](./083-nutrition-detail-analyze-no-ui-refresh.md)   | Nutrition analyze no UI refresh        | Medium   |
+| [084](./084-nutrition-detail-back-wrong-route.md)        | Nutrition back wrong route             | Medium   |
+| [085](./085-coaching-team-delete-stub.md)                | Team delete stub                       | Medium   |
+| [086](./086-library-plan-delete-stub.md)                 | Library plan delete stub               | Medium   |
+| [087](./087-library-workout-use-session-stub.md)         | Library use session stub               | Medium   |
+| [088](./088-workout-matcher-silent-link-errors.md)       | WorkoutMatcher silent errors           | Medium   |
+| [089](./089-planned-workout-error-as-not-found.md)       | Planned error as not found             | Medium   |
+| [090](./090-workouts-mobile-analyze-labeled-sync.md)     | Mobile analyze labeled Sync            | Medium   |
 
 ## Issues 091–120 (workouts, oauth, webhooks, plans, library)
 
@@ -315,7 +315,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ## Recommended fix order (app review)
 
-1. **062** — Critical chat crash (069/058 postponed)
+1. ~~**062** — Critical chat crash (069/058 postponed)~~ **Fixed**
 2. **187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)
 3. **064–065, 141, 186** — Route param / tab navigation refetch pattern
 4. **145–147, 041, 136, 146** — Logout/account-switch data hygiene

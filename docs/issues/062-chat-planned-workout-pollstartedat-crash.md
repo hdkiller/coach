@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Critical  
 **Area:** `ai`, `chat`, `ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -50,5 +50,5 @@ Add `const pollStartedAt = ref<number | null>(null)` and reset in `clearPolling(
 
 ## Acceptance Criteria
 
-- [ ] No ReferenceError during structure-wait polling
-- [ ] Timeout path surfaces terminal UI state
+- [x] No ReferenceError during structure-wait polling
+- [x] Timeout path surfaces terminal UI state

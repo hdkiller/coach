@@ -11,7 +11,7 @@
 | Structure-generation issues                        | 001–038 ([issues.md](./issues.md))                                      |
 | App-review issues filed                            | 039–218                                                                 |
 | **Postponed** (auth / third-party / OAuth / Yazio) | **21** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
-| **Active (Open)**                                  | **197** (057 fixed)                                                     |
+| **Active (Open)**                                  | **196** (057, 062 fixed)                                                |
 | **Total documented issues**                        | **218**                                                                 |
 | Review phases complete                             | 5 / 5 (core)                                                            |
 | **Overall review progress**                        | **~90%**                                                                |
@@ -97,6 +97,7 @@
 | 2026-07-08 | 3       | Triggers deep pass, profile/settings, i18n/a11y, Sentry cross-ref                                     | 171–218    |
 | 2026-07-08 | 3c      | Postpone 070 Yazio + 158 OAuth developer; confirm OAuth batch deferred                                | —          |
 | 2026-07-08 | 4       | Fix 057 — requireAdmin on debug API routes + admin middleware on debug pages                          | —          |
+| 2026-07-08 | 5       | Fix 062 — declare pollStartedAt ref in ChatPlannedWorkoutCard polling                                 | —          |
 
 ## Postponed: auth & third-party (deferred 2026-07-08)
 
