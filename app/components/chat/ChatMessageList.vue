@@ -11,6 +11,7 @@
     messages: any[]
     status: any
     loading: boolean
+    loadError?: string | null
     canEditMessages?: boolean
     editingMessageId?: string | null
     editingContent?: string
@@ -26,7 +27,8 @@
     'resume-turn',
     'retry-turn',
     'remember-message',
-    'forget-message'
+    'forget-message',
+    'retry-load'
   ])
   const toast = useToast()
   const messageListRef = ref<HTMLElement | null>(null)
@@ -802,6 +804,19 @@
             <USkeleton class="h-8 w-8 rounded-full" />
           </div>
         </div>
+      </div>
+
+      <div v-else-if="loadError" class="text-center py-24 px-4">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-error-500 mx-auto" />
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mt-4">
+          Could not load chat
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          {{ loadError }}
+        </p>
+        <UButton color="primary" variant="outline" class="mt-4" @click="emit('retry-load')">
+          Retry
+        </UButton>
       </div>
 
       <ChatWelcomeTips v-else-if="filteredMessages.length === 0" />

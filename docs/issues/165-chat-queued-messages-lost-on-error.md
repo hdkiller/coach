@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ai,chat`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
