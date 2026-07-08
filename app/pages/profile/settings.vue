@@ -242,6 +242,14 @@
     }
   )
 
+  watch(activeTab, () => {
+    if (!import.meta.client) return
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur()
+    }
+  })
+
   // Profile Data
   const profile = ref<any>({
     name: user.value?.name || 'Athlete',

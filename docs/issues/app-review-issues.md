@@ -13,7 +13,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 | Priority | Count (039–218) | Active (excl. postponed) |
 | -------- | --------------- | ------------------------ |
 | Critical | 3               | 1                        |
-| High     | 52              | 42                       |
+| High     | 52              | 39                       |
 | Medium   | 108             | 100                      |
 | Low      | 37              | 36                       |
 
@@ -29,22 +29,22 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P1 — High-impact user flows
 
-| ID                                                                                                             | Title                                        |
-| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| [064](./064-workout-detail-stale-on-nav.md) / [065](./065-planned-workout-stale-on-nav.md)                     | Workout pages stale on neighbor navigation   |
-| [067](./067-nutrition-estimate-missing-id.md)                                                                  | Nutrition estimate days break mutations      |
-| [068](./068-coaching-overview-wrong-workout-links.md)                                                          | Coaching feed links wrong workout route      |
-| [076](./076-analytics-dashboard-autosave-silent-fail.md)                                                       | Analytics dashboard save fails silently      |
-| [131](./131-feed-load-more-never-refetches.md)                                                                 | Feed pagination broken                       |
-| [134](./134-activities-sync-spinner-stuck.md)                                                                  | Activities sync spinner stuck                |
-| [145](./145-logout-no-pinia-store-reset.md)                                                                    | Logout doesn't reset stores                  |
-| [147](./147-user-store-cache-blocks-refetch.md)                                                                | User store cache blocks refetch after switch |
-| [152](./152-onboarding-blocks-join-callback.md)                                                                | Onboarding blocks post-signup join           |
-| [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md)                   | Ingest date window bugs                      |
-| [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | AI quota / stuck PROCESSING                  |
-| [187](./187-profile-tab-unmount-popper-crash.md)                                                               | Profile settings popper crash (Sentry 18A)   |
-| [190](./190-autodetect-drops-ftp-hr-thresholds.md)                                                             | Autodetect drops FTP/HR thresholds           |
-| [197](./197-connected-apps-hides-failed-status.md)                                                             | Connected apps hides FAILED integrations     |
+| ID                                                                                                             | Title                                                    |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [064](./064-workout-detail-stale-on-nav.md) / [065](./065-planned-workout-stale-on-nav.md)                     | Workout pages stale on neighbor navigation               |
+| [067](./067-nutrition-estimate-missing-id.md)                                                                  | Nutrition estimate days break mutations                  |
+| [068](./068-coaching-overview-wrong-workout-links.md)                                                          | Coaching feed links wrong workout route                  |
+| [076](./076-analytics-dashboard-autosave-silent-fail.md)                                                       | Analytics dashboard save fails silently                  |
+| [131](./131-feed-load-more-never-refetches.md)                                                                 | Feed pagination broken                                   |
+| [134](./134-activities-sync-spinner-stuck.md)                                                                  | Activities sync spinner stuck                            |
+| [145](./145-logout-no-pinia-store-reset.md)                                                                    | Logout doesn't reset stores                              |
+| [147](./147-user-store-cache-blocks-refetch.md)                                                                | User store cache blocks refetch after switch             |
+| [152](./152-onboarding-blocks-join-callback.md)                                                                | Onboarding blocks post-signup join                       |
+| [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md)                   | Ingest date window bugs                                  |
+| [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | AI quota / stuck PROCESSING                              |
+| [187](./187-profile-tab-unmount-popper-crash.md)                                                               | ~~Profile settings popper crash (Sentry 18A)~~ **Fixed** |
+| [190](./190-autodetect-drops-ftp-hr-thresholds.md)                                                             | ~~Autodetect drops FTP/HR thresholds~~ **Fixed**         |
+| [197](./197-connected-apps-hides-failed-status.md)                                                             | ~~Connected apps hides FAILED integrations~~ **Fixed**   |
 
 ### P2 — Recurring pattern: stuck loading spinners
 
@@ -270,21 +270,21 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ## Issues 186–198 (profile/settings + Sentry)
 
-| ID                                                        | Title                               | Priority |
-| --------------------------------------------------------- | ----------------------------------- | -------- |
-| [186](./186-profile-tab-url-not-synced.md)                | Profile tab URL not synced          | Medium   |
-| [187](./187-profile-tab-unmount-popper-crash.md)          | Profile tab popper crash (18A)      | High     |
-| [188](./188-sport-settings-warning-no-revert.md)          | Sport settings warning no revert    | Medium   |
-| [189](./189-profile-watcheffect-clobbers-edits.md)        | Profile watchEffect clobbers edits  | Medium   |
-| [190](./190-autodetect-drops-ftp-hr-thresholds.md)        | Autodetect drops FTP/HR             | High     |
-| [191](./191-profile-autodetect-no-rollback.md)            | Autodetect no rollback              | Medium   |
-| [192](./192-nutrition-toggle-no-revert-on-fail.md)        | Nutrition toggle no revert          | Medium   |
-| [193](./193-measurements-preferred-source-no-rollback.md) | Measurements optimistic no rollback | Medium   |
-| [194](./194-availability-tab-loses-unsaved-edits.md)      | Availability tab loses edits        | Medium   |
-| [195](./195-public-presence-watcheffect-overwrites.md)    | Public presence overwrites edits    | Medium   |
-| [196](./196-sentry-no-cefsharp-scanner-filter.md)         | Sentry CefSharp filter missing      | Low      |
-| [197](./197-connected-apps-hides-failed-status.md)        | Connected apps hides FAILED         | High     |
-| [198](./198-measurements-load-error-wrong-toast.md)       | Measurements load wrong toast       | Low      |
+| ID                                                        | Title                                        | Priority |
+| --------------------------------------------------------- | -------------------------------------------- | -------- |
+| [186](./186-profile-tab-url-not-synced.md)                | Profile tab URL not synced                   | Medium   |
+| [187](./187-profile-tab-unmount-popper-crash.md)          | ~~Profile tab popper crash (18A)~~ **Fixed** | High     |
+| [188](./188-sport-settings-warning-no-revert.md)          | Sport settings warning no revert             | Medium   |
+| [189](./189-profile-watcheffect-clobbers-edits.md)        | Profile watchEffect clobbers edits           | Medium   |
+| [190](./190-autodetect-drops-ftp-hr-thresholds.md)        | ~~Autodetect drops FTP/HR~~ **Fixed**        | High     |
+| [191](./191-profile-autodetect-no-rollback.md)            | Autodetect no rollback                       | Medium   |
+| [192](./192-nutrition-toggle-no-revert-on-fail.md)        | Nutrition toggle no revert                   | Medium   |
+| [193](./193-measurements-preferred-source-no-rollback.md) | Measurements optimistic no rollback          | Medium   |
+| [194](./194-availability-tab-loses-unsaved-edits.md)      | Availability tab loses edits                 | Medium   |
+| [195](./195-public-presence-watcheffect-overwrites.md)    | Public presence overwrites edits             | Medium   |
+| [196](./196-sentry-no-cefsharp-scanner-filter.md)         | Sentry CefSharp filter missing               | Low      |
+| [197](./197-connected-apps-hides-failed-status.md)        | ~~Connected apps hides FAILED~~ **Fixed**    | High     |
+| [198](./198-measurements-load-error-wrong-toast.md)       | Measurements load wrong toast                | Low      |
 
 ## Issues 199–218 (i18n, a11y, misc)
 
@@ -316,7 +316,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 ## Recommended fix order (app review)
 
 1. ~~**062** — Critical chat crash (069/058 postponed)~~ **Fixed**
-2. **187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)
+2. ~~**187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)~~ **Fixed**
 3. **064–065, 141, 186** — Route param / tab navigation refetch pattern
 4. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
 5. **039, 049–051, 064–065, 073–074, 080–082, 119, 138, 216** — `onTaskFailed` sweep

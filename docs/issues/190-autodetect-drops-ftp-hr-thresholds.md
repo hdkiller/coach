@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `profile, integrations`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,5 +19,5 @@ Autodetect finds FTP; modal never shows or saves it.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

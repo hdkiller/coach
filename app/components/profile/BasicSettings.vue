@@ -695,11 +695,8 @@
       })
 
       if (response.success && response.diff && Object.keys(response.diff).length > 0) {
-        const { restingHr, ftp, maxHr, lthr, ...otherDiffs } = response.diff
-        pendingDiffs.value = otherDiffs
-
-        const { restingHr: _r, ftp: _f, maxHr: _m, lthr: _l, ...otherDetected } = response.detected
-        pendingDetectedProfile.value = otherDetected
+        pendingDiffs.value = response.diff
+        pendingDetectedProfile.value = response.detected
 
         if (Object.keys(pendingDiffs.value).length > 0) {
           showConfirmModal.value = true
@@ -742,11 +739,21 @@
     if (k === 'hrZones') return 'Heart Rate Zones'
     if (k === 'powerZones') return 'Power Zones'
     if (k === 'sportSettings') return 'Sport Specific Settings'
+    if (k === 'restingHr') return 'Resting HR'
+    if (k === 'maxHr') return 'Max HR'
+    if (k === 'lthr') return 'LTHR'
+    if (k === 'ftp') return 'FTP'
     return k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1')
   }
 
   function formatValue(key: string | number, value: any) {
     if (value === null || value === undefined) return 'Not set'
+    if (key === 'restingHr' || key === 'maxHr' || key === 'lthr') {
+      return `${value} bpm`
+    }
+    if (key === 'ftp') {
+      return `${value} W`
+    }
     if (key === 'hrZones' || key === 'powerZones') {
       return `${(value as any[]).length} zones`
     }
