@@ -317,7 +317,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 1. ~~**062** — Critical chat crash (069/058 postponed)~~ **Fixed**
 2. ~~**187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)~~ **Fixed**
-3. **064–065, 141, 186** — Route param / tab navigation refetch pattern
+3. ~~**064–065, 141, 186** — Route param / tab navigation refetch pattern~~ **Fixed**
 4. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
 5. **039, 049–051, 064–065, 073–074, 080–082, 119, 138, 216** — `onTaskFailed` sweep
 6. **171–172, 175–177** — Trigger ingest/quota/stuck PROCESSING (ingest-safe)
