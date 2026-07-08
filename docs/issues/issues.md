@@ -1,5 +1,7 @@
 # Workout Details Generation — Issue Tracker
 
+> **Broader app review (dashboard, billing, notifications, security, etc.):** see [app-review-issues.md](./app-review-issues.md) (issues 039–061).
+
 Last reviewed: 2026-07-07 (implementation in progress — see PRs #214–#222)
 
 This tracker documents bugs, UX gaps, and architectural concerns found during a code review of **planned workout structure generation** (the AI pipeline that produces interval steps, strength blocks, coach instructions, and related metadata for the Planned Workout Details page).
