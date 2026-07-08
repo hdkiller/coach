@@ -1,7 +1,7 @@
 # Systematic App Review — Progress Tracker
 
 **Started:** 2026-07-08  
-**Last updated:** 2026-07-08 (session 3)  
+**Last updated:** 2026-07-08 (session 6 — ingest/quota batch PR 6)  
 **Goal:** Comprehensive bug/UI/security audit across the full Coach Watts codebase. Documentation only — no refactors.
 
 ## Summary

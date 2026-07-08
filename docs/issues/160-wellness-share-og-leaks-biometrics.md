@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `wellness, share`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Wellness share OG/meta description uses generic text without recovery/HRV biometrics.
 
 ## Description
 

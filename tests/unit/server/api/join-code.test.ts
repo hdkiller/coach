@@ -42,7 +42,7 @@ describe('join code endpoint', () => {
       code: 'ABC12345',
       status: 'PENDING',
       expiresAt: new Date('2026-12-31T00:00:00Z'),
-      email: null,
+      email: 'athlete@example.com',
       coach: {
         id: 'coach-1',
         name: 'Coach Jane',
@@ -82,6 +82,7 @@ describe('join code endpoint', () => {
     const result = await mod.default({ context: { params: { code: 'abc12345' } } })
 
     expect(result.type).toBe('ATHLETE_INVITE')
+    expect(result).not.toHaveProperty('email')
     expect(result.coachJoin.coach.name).toBe('Coach Jane')
     expect(result.coachJoin.joinPage.headline).toBe('Join Coach Jane')
     expect(result.coachJoin.activeInviteCode).toBe('ABC12345')

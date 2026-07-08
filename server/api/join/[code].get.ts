@@ -109,7 +109,6 @@ export default defineEventHandler(async (event) => {
       id: coachAthleteInvite.id,
       name: coachAthleteInvite.coach.name || coachAthleteInvite.coach.email,
       image: coachAthleteInvite.coach.image,
-      email: coachAthleteInvite.email,
       coachJoin:
         coachUser && profile
           ? buildCoachJoinExperience({

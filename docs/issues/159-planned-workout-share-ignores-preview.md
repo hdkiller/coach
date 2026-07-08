@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `planning, share`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Planned workout shares honor `accessMode` PREVIEW — structure, description, and coach instructions omitted.
 
 ## Description
 

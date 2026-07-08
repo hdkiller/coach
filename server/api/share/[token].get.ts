@@ -1,5 +1,6 @@
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { sanitizeSharedNutrition, sanitizeSharedPlannedWorkout } from '../../utils/share-response'
 
 defineRouteMeta({
   openAPI: {
@@ -92,13 +93,14 @@ export default defineEventHandler(async (event) => {
       }
     })
   } else if (shareToken.resourceType === 'NUTRITION') {
-    data = await nutritionRepository.getByIdInternal(shareToken.resourceId)
+    const nutrition = await nutritionRepository.getByIdInternal(shareToken.resourceId)
+    data = nutrition ? sanitizeSharedNutrition(nutrition) : null
   } else if (shareToken.resourceType === 'ATHLETE_PROFILE') {
     data = await prisma.report.findUnique({
       where: { id: shareToken.resourceId }
     })
   } else if (shareToken.resourceType === 'PLANNED_WORKOUT') {
-    data = await prisma.plannedWorkout.findUnique({
+    const plannedWorkout = await prisma.plannedWorkout.findUnique({
       where: { id: shareToken.resourceId },
       include: {
         trainingWeek: {
@@ -116,6 +118,9 @@ export default defineEventHandler(async (event) => {
         }
       }
     })
+    data = plannedWorkout
+      ? sanitizeSharedPlannedWorkout(plannedWorkout, shareToken.accessMode)
+      : null
   } else if (shareToken.resourceType === 'TRAINING_PLAN') {
     data = await prisma.trainingPlan.findUnique({
       where: { id: shareToken.resourceId },
@@ -137,9 +142,7 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // If workouts don't have share tokens, generate them on the fly for the response
     if (data && data.blocks) {
-      const workoutsNeedingTokens: string[] = []
       const workoutIds: string[] = []
 
       data.blocks.forEach((block: any) => {
@@ -150,7 +153,6 @@ export default defineEventHandler(async (event) => {
         })
       })
 
-      // Fetch existing tokens for these workouts
       const existingTokens = await prisma.shareToken.findMany({
         where: {
           resourceType: 'PLANNED_WORKOUT',
@@ -160,40 +162,13 @@ export default defineEventHandler(async (event) => {
 
       const tokenMap = new Map(existingTokens.map((t) => [t.resourceId, t.token]))
 
-      // Identify workouts needing tokens
-
       data.blocks.forEach((block: any) => {
         block.weeks.forEach((week: any) => {
           week.workouts.forEach((workout: any) => {
-            if (!tokenMap.has(workout.id)) {
-              workoutsNeedingTokens.push(workout.id)
+            const token = tokenMap.get(workout.id)
+            if (token) {
+              workout.shareToken = { token }
             }
-          })
-        })
-      })
-
-      if (workoutsNeedingTokens.length > 0) {
-        // Generate tokens for any workouts that don't have them yet
-        await Promise.all(
-          workoutsNeedingTokens.map(async (workoutId) => {
-            const newToken = await prisma.shareToken.create({
-              data: {
-                userId: (data as any).userId,
-                resourceType: 'PLANNED_WORKOUT',
-                resourceId: workoutId
-              }
-            })
-            tokenMap.set(workoutId, newToken.token)
-          })
-        )
-      }
-
-      // Attach tokens to workouts in the response
-
-      data.blocks.forEach((block: any) => {
-        block.weeks.forEach((week: any) => {
-          week.workouts.forEach((workout: any) => {
-            workout.shareToken = { token: tokenMap.get(workout.id) }
           })
         })
       })

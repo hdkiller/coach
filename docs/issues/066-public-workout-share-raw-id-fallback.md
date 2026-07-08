@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `workouts`, `backend`, `integrations`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Removed raw workout ID fallback; share endpoint now requires a valid WORKOUT share token.
 
 ## Description
 

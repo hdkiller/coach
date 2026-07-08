@@ -52,7 +52,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P3 — Webhook & integration security (postponed)
 
-059, 069, 072, 098, 099, 100, 101, 105, 058, 071, 093, 094, 110, 111, 125, 126, 129, 063, 102 — **deferred** until third-party/provider coordination. Ingest-safe fixes (060, 108, 106, 197, etc.) remain active. **057 fixed** (admin guard on debug routes).
+059, 069, 072, 098, 099, 100, 101, 105, 058, 071, 093, 094, 110, 111, 125, 126, 129, 063, 102 — **deferred** until third-party/provider coordination. Ingest-safe fixes (060, 106, 108, 171–172, 175, 177 fixed; 197 etc. remain active). **057 fixed** (admin guard on debug routes).
 
 ---
 
@@ -87,7 +87,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P4 — Share/privacy over-exposure (active)
 
-066, 095–096, 135–137, 155–160, 157
+~~066, 095–096, 135–137, 155–160, 157~~ — **Fixed** (PR 7; 158 postponed)
 
 ---
 
@@ -172,9 +172,9 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 | [103](./103-health-endpoint-leaks-db-errors.md)           | Health leaks DB errors            | Medium   |
 | [104](./104-stripe-webhook-echoes-errors.md)              | Stripe webhook echoes errors      | Medium   |
 | [105](./105-withings-webhook-no-idempotency.md)           | Withings no idempotency           | Medium   |
-| [106](./106-sync-queue-duplicate-processing.md)           | Sync queue duplicates             | Medium   |
+| [106](./106-sync-queue-duplicate-processing.md)           | Sync queue duplicates (fixed)     | Medium   |
 | [107](./107-webhook-poller-double-enqueue.md)             | Webhook poller double enqueue     | Medium   |
-| [108](./108-integration-sync-no-inflight-guard.md)        | Sync no in-flight guard           | Medium   |
+| [108](./108-integration-sync-no-inflight-guard.md)        | Sync no in-flight guard (fixed)   | Medium   |
 | [109](./109-deactivated-users-pass-client-middleware.md)  | Deactivated users pass middleware | Medium   |
 | [110](./110-oauth-login-open-redirect.md)                 | OAuth login open redirect         | Medium   |
 | [111](./111-oauth-consent-csrf.md)                        | OAuth consent CSRF                | Medium   |
@@ -252,13 +252,13 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 | ID                                                            | Title                                    | Priority |
 | ------------------------------------------------------------- | ---------------------------------------- | -------- |
-| [171](./171-ingest-hevy-no-date-window.md)                    | Hevy ingest no date window               | High     |
-| [172](./172-garmin-ingest-clamps-24h-window.md)               | Garmin ingest clamps to 24h              | High     |
+| [171](./171-ingest-hevy-no-date-window.md)                    | Hevy ingest no date window (fixed)       | High     |
+| [172](./172-garmin-ingest-clamps-24h-window.md)               | Garmin ingest clamps to 24h (fixed)      | High     |
 | [173](./173-wahoo-ingest-capped-100-workouts.md)              | Wahoo capped at 100 workouts             | Medium   |
 | [174](./174-garmin-ingest-silent-noop-missing-integration.md) | Garmin silent noop                       | Medium   |
-| [175](./175-wellness-analysis-no-quota-check.md)              | Wellness analysis no quota               | High     |
+| [175](./175-wellness-analysis-no-quota-check.md)              | Wellness analysis no quota (fixed)       | High     |
 | [176](./176-recommend-today-inline-wellness-no-quota.md)      | Recommend-today inline wellness no quota | High     |
-| [177](./177-recommend-today-processing-stuck-on-failure.md)   | Recommend-today PROCESSING stuck         | High     |
+| [177](./177-recommend-today-processing-stuck-on-failure.md)   | Recommend-today PROCESSING stuck (fixed) | High     |
 | [178](./178-ingest-all-auto-readiness-no-idempotency.md)      | Ingest-all auto-readiness no idempotency | Medium   |
 | [179](./179-generate-recommendations-no-quota.md)             | Generate-recommendations no quota        | Medium   |
 | [180](./180-generate-recommendations-double-ai-call.md)       | Generate-recommendations double AI call  | Medium   |
@@ -320,8 +320,8 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 3. ~~**064–065, 141, 186** — Route param / tab navigation refetch pattern~~ **Fixed**
 4. ~~**145–147, 041, 136, 146** — Logout/account-switch data hygiene~~ **Fixed**
 5. **039, 049–051, 064–065, 073–074, 080–082, 119, 138, 216** — `onTaskFailed` sweep
-6. **171–172, 175–177** — Trigger ingest/quota/stuck PROCESSING (ingest-safe)
-7. **066, 155–160, 157** — Share/privacy hardening (158 postponed — OAuth developer)
+6. ~~**171–172, 175–177**~~ — Trigger ingest/quota/stuck PROCESSING **Fixed** (PR 6)
+7. ~~**066, 155–160, 157**~~ — Share/privacy hardening **Fixed** (PR 7; 158 postponed — OAuth developer)
 8. ~~Webhook/OAuth auth (057–129 subset)~~ — **Postponed** until third-party coordination
 9. **152–154** — Join/onboarding flow
 10. **199–215** — i18n/a11y (incremental, low risk)

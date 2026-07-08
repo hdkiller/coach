@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `coaching, backend`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Omitted reserved `email` from ATHLETE_INVITE public preview in `join/[code].get.ts`.
 
 ## Description
 

@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `planning, integrations`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Removed GET side-effect token creation for plan shares; only attaches existing planned-workout tokens.
 
 ## Description
 

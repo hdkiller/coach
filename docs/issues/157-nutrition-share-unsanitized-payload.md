@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `nutrition, share`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Sanitized nutrition share payload via `sanitizeSharedNutrition()` — strips `userId`, `rawJson`, and internal chain fields.
 
 ## Description
 

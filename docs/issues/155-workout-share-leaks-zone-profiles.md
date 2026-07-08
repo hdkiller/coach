@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `workouts, integrations`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Excluded `hrZones` and `powerZones` from user select in workout share response.
 
 ## Description
 

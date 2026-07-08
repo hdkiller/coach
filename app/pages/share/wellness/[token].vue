@@ -345,16 +345,7 @@
       ? `Daily Wellness - ${formatDate(wellness.value.date)} | Coach Wattz`
       : 'Shared Wellness | Coach Wattz'
   )
-  const pageDescription = computed(() => {
-    if (wellness.value) {
-      const dateStr = formatDate(wellness.value.date)
-      return `Check out this wellness data on Coach Wattz: ${dateStr}. Recovery: ${wellness.value.recoveryScore}%, HRV: ${Math.round(wellness.value.hrv)}ms.`.substring(
-        0,
-        160
-      )
-    }
-    return 'View shared wellness data on Coach Wattz.'
-  })
+  const pageDescription = computed(() => 'View shared wellness data on Coach Wattz.')
 
   useHead({
     title: pageTitle,

@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `nutrition, share`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-08):** Added `app/pages/share/nutrition/[token].vue` public share page matching generate URL path.
 
 ## Description
 

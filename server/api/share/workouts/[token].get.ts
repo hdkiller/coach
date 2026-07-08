@@ -49,30 +49,27 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  let workoutId: string | null = null
-
-  // 1. Try to find a dedicated share token first
   const shareToken = await prisma.shareToken.findUnique({
     where: { token }
   })
 
-  if (shareToken && shareToken.resourceType === 'WORKOUT') {
-    // Check for expiration
-    if (shareToken.expiresAt && new Date() > new Date(shareToken.expiresAt)) {
-      throw createError({
-        statusCode: 404,
-        message: 'Share link has expired'
-      })
-    }
-    workoutId = shareToken.resourceId
-  } else {
-    // 2. Fallback: Treat the token as a direct workout ID
-    workoutId = token
+  if (!shareToken || shareToken.resourceType !== 'WORKOUT') {
+    throw createError({
+      statusCode: 404,
+      message: 'Workout not found or link is invalid'
+    })
+  }
+
+  if (shareToken.expiresAt && new Date() > new Date(shareToken.expiresAt)) {
+    throw createError({
+      statusCode: 404,
+      message: 'Share link has expired'
+    })
   }
 
   const workout = await prisma.workout.findUnique({
     where: {
-      id: workoutId
+      id: shareToken.resourceId
     },
     include: {
       streams: true,
@@ -85,9 +82,7 @@ export default defineEventHandler(async (event) => {
       user: {
         select: {
           name: true,
-          image: true,
-          hrZones: true,
-          powerZones: true
+          image: true
         }
       },
       planAdherence: true,
@@ -102,16 +97,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 3. Security Check: If accessed via direct workout ID, it MUST not be private
-  // (ShareTokens override this as they are explicit invitation links)
-  if (!shareToken && workout.isPrivate) {
-    throw createError({
-      statusCode: 404, // 404 to avoid leaking existence of private workouts
-      message: 'Workout not found or link is invalid'
-    })
-  }
-
-  // Sanitize data before returning
   const { userId, externalId, ...safeWorkout } = workout
   return safeWorkout
 })

@@ -94,9 +94,22 @@
           </div>
         </div>
 
-        <div v-if="workout.description" class="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <div
+          v-if="workout.description && !workout.previewMode"
+          class="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+        >
           <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
             {{ workout.description }}
+          </p>
+        </div>
+
+        <div
+          v-if="workout.previewMode"
+          class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800"
+        >
+          <p class="text-sm text-amber-800 dark:text-amber-200">
+            This is a preview link. Detailed workout structure and coach instructions are not
+            included.
           </p>
         </div>
 
