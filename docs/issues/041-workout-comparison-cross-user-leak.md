@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `ui/ux`, `analytics`, `workouts`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -47,6 +47,6 @@ Prefix storage keys with `userId`, or clear comparison store in logout flow.
 
 ## Acceptance Criteria
 
-- [ ] Logout clears comparison basket
-- [ ] New login starts with empty basket
-- [ ] Same-browser multi-user scenario shows correct data per account
+- [x] Logout clears comparison basket
+- [x] New login starts with empty basket
+- [x] Same-browser multi-user scenario shows correct data per account

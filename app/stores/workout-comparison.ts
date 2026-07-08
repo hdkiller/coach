@@ -78,6 +78,11 @@ export const useWorkoutComparisonStore = defineStore('workout-comparison', () =>
     selectedWorkoutIds.value = []
   }
 
+  function clearAll() {
+    selectedWorkoutIds.value = []
+    snapshots.value = {}
+  }
+
   function setWorkoutIds(workoutIds: string[]) {
     const nextIds = Array.from(new Set(workoutIds.filter(Boolean)))
     if (!sameIds(selectedWorkoutIds.value, nextIds)) {
@@ -95,6 +100,7 @@ export const useWorkoutComparisonStore = defineStore('workout-comparison', () =>
     toggleWorkout,
     replaceWorkouts,
     clear,
+    clearAll,
     setWorkoutIds
   }
 })

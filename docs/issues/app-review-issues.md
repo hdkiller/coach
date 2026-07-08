@@ -29,19 +29,19 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P1 — High-impact user flows
 
-| ID                                                                                                             | Title                                                    |
-| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| ID                                                                                                             | Title                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [064](./064-workout-detail-stale-on-nav.md) / [065](./065-planned-workout-stale-on-nav.md)                     | ~~Workout pages stale on neighbor navigation~~ **Fixed** |
-| [067](./067-nutrition-estimate-missing-id.md)                                                                  | Nutrition estimate days break mutations                  |
-| [068](./068-coaching-overview-wrong-workout-links.md)                                                          | Coaching feed links wrong workout route                  |
-| [076](./076-analytics-dashboard-autosave-silent-fail.md)                                                       | Analytics dashboard save fails silently                  |
-| [131](./131-feed-load-more-never-refetches.md)                                                                 | Feed pagination broken                                   |
-| [134](./134-activities-sync-spinner-stuck.md)                                                                  | Activities sync spinner stuck                            |
-| [145](./145-logout-no-pinia-store-reset.md)                                                                    | Logout doesn't reset stores                              |
-| [147](./147-user-store-cache-blocks-refetch.md)                                                                | User store cache blocks refetch after switch             |
-| [152](./152-onboarding-blocks-join-callback.md)                                                                | Onboarding blocks post-signup join                       |
-| [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md)                   | Ingest date window bugs                                  |
-| [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | AI quota / stuck PROCESSING                              |
+| [067](./067-nutrition-estimate-missing-id.md)                                                                  | Nutrition estimate days break mutations                    |
+| [068](./068-coaching-overview-wrong-workout-links.md)                                                          | Coaching feed links wrong workout route                    |
+| [076](./076-analytics-dashboard-autosave-silent-fail.md)                                                       | Analytics dashboard save fails silently                    |
+| [131](./131-feed-load-more-never-refetches.md)                                                                 | Feed pagination broken                                     |
+| [134](./134-activities-sync-spinner-stuck.md)                                                                  | Activities sync spinner stuck                              |
+| [145](./145-logout-no-pinia-store-reset.md)                                                                    | ~~Logout doesn't reset stores~~ **Fixed**                  |
+| [147](./147-user-store-cache-blocks-refetch.md)                                                                | ~~User store cache blocks refetch after switch~~ **Fixed** |
+| [152](./152-onboarding-blocks-join-callback.md)                                                                | Onboarding blocks post-signup join                         |
+| [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md)                   | Ingest date window bugs                                    |
+| [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | AI quota / stuck PROCESSING                                |
 | [187](./187-profile-tab-unmount-popper-crash.md)                                                               | ~~Profile settings popper crash (Sentry 18A)~~ **Fixed** |
 | [190](./190-autodetect-drops-ftp-hr-thresholds.md)                                                             | ~~Autodetect drops FTP/HR thresholds~~ **Fixed**         |
 | [197](./197-connected-apps-hides-failed-status.md)                                                             | ~~Connected apps hides FAILED integrations~~ **Fixed**   |
@@ -91,31 +91,31 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ---
 
-| ID                                                      | Title                                   | Priority | Type        |
-| ------------------------------------------------------- | --------------------------------------- | -------- | ----------- |
-| [039](./039-dashboard-sync-stuck-loading.md)            | Dashboard sync stuck loading            | High     | Bug         |
-| [040](./040-billing-success-without-activation.md)      | Billing success without activation      | High     | Bug         |
-| [041](./041-workout-comparison-cross-user-leak.md)      | Comparison basket cross-user leak       | High     | Bug         |
-| [042](./042-non-intervals-today-workouts-skipped.md)    | Non-Intervals today workouts skipped    | Medium   | Bug         |
-| [043](./043-fit-upload-spurious-toasts.md)              | FIT upload spurious toasts              | Medium   | Bug         |
-| [044](./044-wellness-modal-error-as-empty.md)           | Wellness modal error as empty           | Medium   | UI          |
-| [045](./045-wellness-modal-dialog-title-a11y.md)        | Wellness modal a11y title               | Low      | UI          |
-| [046](./046-profile-settings-stale-on-fail.md)          | Profile stale on failed save            | Medium   | Bug         |
-| [047](./047-support-email-html-injection.md)            | Support email HTML injection            | Medium   | Bug         |
-| [048](./048-recovery-history-no-error-ui.md)            | Recovery history no error UI            | Medium   | UI          |
-| [049](./049-performance-insights-stuck-loading.md)      | Performance insights stuck              | Medium   | Bug         |
-| [050](./050-reports-generating-stuck-on-failure.md)     | Reports generating stuck                | Medium   | Bug         |
-| [051](./051-recommendations-update-stuck-loading.md)    | Recommendations update stuck            | Medium   | Bug         |
-| [052](./052-notification-errors-swallowed.md)           | Notification errors swallowed           | Medium   | UI          |
-| [053](./053-notification-mark-read-race.md)             | Notification mark-read race             | Low      | Bug         |
-| [054](./054-use-polling-aborts-on-error.md)             | usePolling aborts on error              | Medium   | Bug         |
-| [055](./055-communication-prefs-misleading-defaults.md) | Communication prefs defaults            | Medium   | UI          |
-| [056](./056-orchestrate-progress-key-mismatch.md)       | Orchestrate SSE key mismatch            | High     | Bug         |
-| [057](./057-unauthenticated-debug-endpoints.md)         | Unauthenticated debug endpoints (fixed) | High     | Bug         |
-| [058](./058-oauth-refresh-weak-client-binding.md)       | OAuth refresh weak binding              | Critical | Bug         |
-| [059](./059-withings-webhook-unauthenticated.md)        | Withings webhook unauthenticated        | High     | Bug         |
-| [060](./060-integration-syncstatus-stuck.md)            | syncStatus stuck SYNCING                | Medium   | Bug         |
-| [061](./061-i18n-gaps-secondary-pages.md)               | i18n gaps secondary pages               | Low      | Maintenance |
+| ID                                                      | Title                                           | Priority | Type        |
+| ------------------------------------------------------- | ----------------------------------------------- | -------- | ----------- |
+| [039](./039-dashboard-sync-stuck-loading.md)            | Dashboard sync stuck loading                    | High     | Bug         |
+| [040](./040-billing-success-without-activation.md)      | Billing success without activation              | High     | Bug         |
+| [041](./041-workout-comparison-cross-user-leak.md)      | ~~Comparison basket cross-user leak~~ **Fixed** | High     | Bug         |
+| [042](./042-non-intervals-today-workouts-skipped.md)    | Non-Intervals today workouts skipped            | Medium   | Bug         |
+| [043](./043-fit-upload-spurious-toasts.md)              | FIT upload spurious toasts                      | Medium   | Bug         |
+| [044](./044-wellness-modal-error-as-empty.md)           | Wellness modal error as empty                   | Medium   | UI          |
+| [045](./045-wellness-modal-dialog-title-a11y.md)        | Wellness modal a11y title                       | Low      | UI          |
+| [046](./046-profile-settings-stale-on-fail.md)          | Profile stale on failed save                    | Medium   | Bug         |
+| [047](./047-support-email-html-injection.md)            | Support email HTML injection                    | Medium   | Bug         |
+| [048](./048-recovery-history-no-error-ui.md)            | Recovery history no error UI                    | Medium   | UI          |
+| [049](./049-performance-insights-stuck-loading.md)      | Performance insights stuck                      | Medium   | Bug         |
+| [050](./050-reports-generating-stuck-on-failure.md)     | Reports generating stuck                        | Medium   | Bug         |
+| [051](./051-recommendations-update-stuck-loading.md)    | Recommendations update stuck                    | Medium   | Bug         |
+| [052](./052-notification-errors-swallowed.md)           | Notification errors swallowed                   | Medium   | UI          |
+| [053](./053-notification-mark-read-race.md)             | Notification mark-read race                     | Low      | Bug         |
+| [054](./054-use-polling-aborts-on-error.md)             | usePolling aborts on error                      | Medium   | Bug         |
+| [055](./055-communication-prefs-misleading-defaults.md) | Communication prefs defaults                    | Medium   | UI          |
+| [056](./056-orchestrate-progress-key-mismatch.md)       | Orchestrate SSE key mismatch                    | High     | Bug         |
+| [057](./057-unauthenticated-debug-endpoints.md)         | Unauthenticated debug endpoints (fixed)         | High     | Bug         |
+| [058](./058-oauth-refresh-weak-client-binding.md)       | OAuth refresh weak binding                      | Critical | Bug         |
+| [059](./059-withings-webhook-unauthenticated.md)        | Withings webhook unauthenticated                | High     | Bug         |
+| [060](./060-integration-syncstatus-stuck.md)            | syncStatus stuck SYNCING                        | Medium   | Bug         |
+| [061](./061-i18n-gaps-secondary-pages.md)               | i18n gaps secondary pages                       | Low      | Maintenance |
 
 ---
 
@@ -190,38 +190,38 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ## Issues 121–150 (library, feed, fitness, stores)
 
-| ID                                                           | Title                             | Priority |
-| ------------------------------------------------------------ | --------------------------------- | -------- |
-| [121](./121-library-plan-folder-errors-swallowed.md)         | Library folder errors swallowed   | Medium   |
-| [122](./122-workout-comparison-fetch-failure-hidden.md)      | Comparison fetch failure hidden   | Medium   |
-| [123](./123-chat-deeplink-bypasses-turn-queue.md)            | Chat deeplink bypasses queue      | Medium   |
-| [124](./124-onboarding-consent-save-silent-fail.md)          | Onboarding consent silent fail    | Medium   |
-| [125](./125-oauth-dangerous-email-account-linking.md)        | Dangerous email linking           | High     |
-| [126](./126-oauth-authorize-no-scope-validation.md)          | OAuth no scope validation         | Medium   |
-| [127](./127-polar-ingest-skips-syncstatus.md)                | Polar skips syncStatus            | Medium   |
-| [128](./128-trigger-is-task-running-fails-open.md)           | isTaskRunning fails open          | Medium   |
-| [129](./129-oauth-revoke-no-client-auth.md)                  | OAuth revoke no client auth       | Medium   |
-| [130](./130-planned-charts-error-as-not-found.md)            | Planned charts not found          | Medium   |
-| [131](./131-feed-load-more-never-refetches.md)               | Feed load more broken             | High     |
-| [132](./132-feed-sport-filter-wrong-type.md)                 | Feed sport filter wrong type      | Medium   |
-| [133](./133-feed-errors-empty-state.md)                      | Feed errors empty state           | Medium   |
-| [134](./134-activities-sync-spinner-stuck.md)                | Activities sync spinner stuck     | High     |
-| [135](./135-activities-modal-fetch-silent-fail.md)           | Activities modal silent fail      | Medium   |
-| [136](./136-activities-columns-cross-user.md)                | Activities columns cross-user     | Medium   |
-| [137](./137-activities-workout-matcher-unreachable.md)       | WorkoutMatcher unreachable        | Medium   |
-| [138](./138-fitness-detail-analyze-stuck.md)                 | Fitness analyze stuck             | High     |
-| [139](./139-fitness-index-90-day-api-cap.md)                 | Fitness 90-day API cap            | High     |
-| [140](./140-fitness-filter-empty-page.md)                    | Fitness filter empty page         | Low      |
-| [141](./141-events-detail-stale-on-nav.md)                   | ~~Events stale on nav~~ **Fixed** | Medium   |
-| [142](./142-event-priority-none-invalid.md)                  | Event priority NONE invalid       | Medium   |
-| [143](./143-admin-subscriptions-missing-admin-middleware.md) | Admin subscriptions no middleware | Medium   |
-| [144](./144-admin-issue-reactions-no-admin-check.md)         | Admin reactions no admin check    | High     |
-| [145](./145-logout-no-pinia-store-reset.md)                  | Logout no store reset             | High     |
-| [146](./146-logout-library-folders-not-cleared.md)           | Logout folders not cleared        | Medium   |
-| [147](./147-user-store-cache-blocks-refetch.md)              | User store cache blocks refetch   | High     |
-| [148](./148-recommendations-adhoc-spinner-stuck.md)          | Ad-hoc workout spinner stuck      | Medium   |
-| [149](./149-folder-refresh-silent-stale.md)                  | Folder refresh silent stale       | Medium   |
-| [150](./150-recommendations-stale-on-404.md)                 | Recommendations stale on 404      | Medium   |
+| ID                                                           | Title                                         | Priority |
+| ------------------------------------------------------------ | --------------------------------------------- | -------- |
+| [121](./121-library-plan-folder-errors-swallowed.md)         | Library folder errors swallowed               | Medium   |
+| [122](./122-workout-comparison-fetch-failure-hidden.md)      | Comparison fetch failure hidden               | Medium   |
+| [123](./123-chat-deeplink-bypasses-turn-queue.md)            | Chat deeplink bypasses queue                  | Medium   |
+| [124](./124-onboarding-consent-save-silent-fail.md)          | Onboarding consent silent fail                | Medium   |
+| [125](./125-oauth-dangerous-email-account-linking.md)        | Dangerous email linking                       | High     |
+| [126](./126-oauth-authorize-no-scope-validation.md)          | OAuth no scope validation                     | Medium   |
+| [127](./127-polar-ingest-skips-syncstatus.md)                | Polar skips syncStatus                        | Medium   |
+| [128](./128-trigger-is-task-running-fails-open.md)           | isTaskRunning fails open                      | Medium   |
+| [129](./129-oauth-revoke-no-client-auth.md)                  | OAuth revoke no client auth                   | Medium   |
+| [130](./130-planned-charts-error-as-not-found.md)            | Planned charts not found                      | Medium   |
+| [131](./131-feed-load-more-never-refetches.md)               | Feed load more broken                         | High     |
+| [132](./132-feed-sport-filter-wrong-type.md)                 | Feed sport filter wrong type                  | Medium   |
+| [133](./133-feed-errors-empty-state.md)                      | Feed errors empty state                       | Medium   |
+| [134](./134-activities-sync-spinner-stuck.md)                | Activities sync spinner stuck                 | High     |
+| [135](./135-activities-modal-fetch-silent-fail.md)           | Activities modal silent fail                  | Medium   |
+| [136](./136-activities-columns-cross-user.md)                | ~~Activities columns cross-user~~ **Fixed**   | Medium   |
+| [137](./137-activities-workout-matcher-unreachable.md)       | WorkoutMatcher unreachable                    | Medium   |
+| [138](./138-fitness-detail-analyze-stuck.md)                 | Fitness analyze stuck                         | High     |
+| [139](./139-fitness-index-90-day-api-cap.md)                 | Fitness 90-day API cap                        | High     |
+| [140](./140-fitness-filter-empty-page.md)                    | Fitness filter empty page                     | Low      |
+| [141](./141-events-detail-stale-on-nav.md)                   | ~~Events stale on nav~~ **Fixed**             | Medium   |
+| [142](./142-event-priority-none-invalid.md)                  | Event priority NONE invalid                   | Medium   |
+| [143](./143-admin-subscriptions-missing-admin-middleware.md) | Admin subscriptions no middleware             | Medium   |
+| [144](./144-admin-issue-reactions-no-admin-check.md)         | Admin reactions no admin check                | High     |
+| [145](./145-logout-no-pinia-store-reset.md)                  | ~~Logout no store reset~~ **Fixed**           | High     |
+| [146](./146-logout-library-folders-not-cleared.md)           | ~~Logout folders not cleared~~ **Fixed**      | Medium   |
+| [147](./147-user-store-cache-blocks-refetch.md)              | ~~User store cache blocks refetch~~ **Fixed** | High     |
+| [148](./148-recommendations-adhoc-spinner-stuck.md)          | Ad-hoc workout spinner stuck                  | Medium   |
+| [149](./149-folder-refresh-silent-stale.md)                  | Folder refresh silent stale                   | Medium   |
+| [150](./150-recommendations-stale-on-404.md)                 | Recommendations stale on 404                  | Medium   |
 
 ## Issues 151–170 (join, share, developer, triggers)
 
@@ -318,7 +318,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 1. ~~**062** — Critical chat crash (069/058 postponed)~~ **Fixed**
 2. ~~**187, 190, 197** — Profile settings crash + autodetect + failed integrations (Sentry-linked)~~ **Fixed**
 3. ~~**064–065, 141, 186** — Route param / tab navigation refetch pattern~~ **Fixed**
-4. **145–147, 041, 136, 146** — Logout/account-switch data hygiene
+4. ~~**145–147, 041, 136, 146** — Logout/account-switch data hygiene~~ **Fixed**
 5. **039, 049–051, 064–065, 073–074, 080–082, 119, 138, 216** — `onTaskFailed` sweep
 6. **171–172, 175–177** — Trigger ingest/quota/stuck PROCESSING (ingest-safe)
 7. **066, 155–160, 157** — Share/privacy hardening (158 postponed — OAuth developer)
