@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { computed } from 'vue'
+  import ChatMdcContent from '~/components/chat/ChatMdcContent.vue'
   import ChatToolCall from '~/components/ChatToolCall.vue'
   import ChatChart from '~/components/ChatChart.vue'
   import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
@@ -227,7 +228,7 @@
         <div
           class="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p]:leading-7 [&_p]:text-pretty"
         >
-          <MDC :value="toMdcSafeText(part.text)" />
+          <ChatMdcContent :value="toMdcSafeText(part.text)" />
         </div>
         <div
           v-if="isUserMessage && message.metadata?.editedAt"

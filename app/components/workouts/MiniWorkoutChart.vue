@@ -64,6 +64,8 @@
 </template>
 
 <script setup lang="ts">
+  import { computed } from 'vue'
+  import { flattenWorkoutSteps } from '~/utils/workout-analytics'
   import { normalizeStrengthBlocks, type StrengthBlockType } from '~/utils/strengthWorkout'
   import { ZONE_COLORS, FALLBACK_ZONE_COLOR } from '~/utils/zone-colors'
 
@@ -112,7 +114,7 @@
   const chartSteps = computed(() => {
     const rawSteps = normalizedWorkout.value?.steps
     if (!Array.isArray(rawSteps) || rawSteps.length === 0) return []
-    return flattenWorkoutSteps(rawSteps)
+    return flattenWorkoutSteps(rawSteps, { maxDepth: 16, maxSteps: 500, maxReps: 50 })
   })
 
   const strengthBlocks = computed(() => normalizeStrengthBlocks(normalizedWorkout.value || {}))
@@ -158,33 +160,6 @@
         chartSteps.value.length === 0)
     )
   })
-
-  function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
-    if (!Array.isArray(steps)) return []
-
-    const flattened: any[] = []
-
-    steps.forEach((step: any) => {
-      const children = Array.isArray(step.steps) ? step.steps : []
-      const hasChildren = children.length > 0
-
-      if (hasChildren) {
-        const repsRaw = Number(step.reps ?? step.repeat ?? step.intervals)
-        const reps = repsRaw > 1 ? repsRaw : 1
-        for (let i = 0; i < reps; i++) {
-          flattened.push(...flattenWorkoutSteps(children, depth + 1))
-        }
-        return
-      }
-
-      flattened.push({
-        ...step,
-        _depth: depth
-      })
-    })
-
-    return flattened
-  }
 
   const totalDuration = computed(() => {
     return chartSteps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)

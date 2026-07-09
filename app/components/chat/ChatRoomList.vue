@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
   import { useTranslate } from '@tolgee/vue'
 
   const { t } = useTranslate('chat')
@@ -23,12 +23,13 @@
   const reportRoomId = ref<string | null>(null)
   const newRoomName = ref('')
 
-  // Share Modal State
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
   const generatingShareLink = ref(false)
   const sharedRoomName = ref('')
   const toast = useToast()
+  const showAllRooms = ref(false)
+  const ROOM_PREVIEW_LIMIT = 25
 
   function confirmDelete(roomId: string) {
     roomToDelete.value = roomId
@@ -80,8 +81,8 @@
     } catch (error) {
       console.error('Failed to generate share link:', error)
       toast.add({
-        title: t.value('common_error_title'), // Using common if available or fallback
-        description: t.value('input_error_capture_failed'), // Reusing similar key or just 'Error'
+        title: t.value('common_error_title'),
+        description: t.value('input_error_capture_failed'),
         color: 'error'
       })
       isShareModalOpen.value = false
@@ -158,67 +159,74 @@
     }
   }
 
-  const getDropdownItems = (room: any) => [
-    [
-      {
-        label: t.value('sidebar_rename_chat'),
-        icon: 'i-heroicons-pencil-square',
-        onSelect: () => confirmRename(room)
-      },
-      {
-        label: t.value('sidebar_generate_ai_name'),
-        icon: 'i-heroicons-sparkles',
-        onSelect: () => generateRoomNameAi(room.roomId)
-      },
-      {
-        label: t.value('sidebar_summarize_optimize'),
-        icon: 'i-heroicons-adjustments-horizontal',
-        onSelect: () => summarizeRoom(room.roomId)
-      },
-      {
-        label: t.value('sidebar_share_chat'),
-        icon: 'i-heroicons-share',
-        onSelect: () => createPublicChat(room)
-      },
-      {
-        label: t.value('sidebar_copy_room_id'),
-        icon: 'i-heroicons-clipboard',
-        onSelect: () =>
-          copyToClipboard(
-            room.roomId,
-            t.value('sidebar_room_id_copied'),
-            t.value('sidebar_room_id_copied_desc')
-          )
-      }
-    ],
-    [
-      {
-        label: t.value('sidebar_report_issue'),
-        icon: 'i-heroicons-flag',
-        onSelect: () => confirmReport(room.roomId)
-      },
-      {
-        label: t.value('sidebar_delete_room'),
-        icon: 'i-heroicons-trash',
-        color: 'error' as const,
-        onSelect: () => confirmDelete(room.roomId)
-      }
+  function getDropdownItems(room: any) {
+    return [
+      [
+        {
+          label: t.value('sidebar_rename_chat'),
+          icon: 'i-heroicons-pencil-square',
+          onSelect: () => confirmRename(room)
+        },
+        {
+          label: t.value('sidebar_generate_ai_name'),
+          icon: 'i-heroicons-sparkles',
+          onSelect: () => generateRoomNameAi(room.roomId)
+        },
+        {
+          label: t.value('sidebar_summarize_optimize'),
+          icon: 'i-heroicons-adjustments-horizontal',
+          onSelect: () => summarizeRoom(room.roomId)
+        },
+        {
+          label: t.value('sidebar_share_chat'),
+          icon: 'i-heroicons-share',
+          onSelect: () => createPublicChat(room)
+        },
+        {
+          label: t.value('sidebar_copy_room_id'),
+          icon: 'i-heroicons-clipboard',
+          onSelect: () =>
+            copyToClipboard(
+              room.roomId,
+              t.value('sidebar_room_id_copied'),
+              t.value('sidebar_room_id_copied_desc')
+            )
+        }
+      ],
+      [
+        {
+          label: t.value('sidebar_report_issue'),
+          icon: 'i-heroicons-flag',
+          onSelect: () => confirmReport(room.roomId)
+        },
+        {
+          label: t.value('sidebar_delete_room'),
+          icon: 'i-heroicons-trash',
+          color: 'error' as const,
+          onSelect: () => confirmDelete(room.roomId)
+        }
+      ]
     ]
-  ]
+  }
 
-  const navigationItems = computed(() => {
-    return props.rooms.map((room) => ({
-      label: room.roomName,
-      avatar: { src: room.avatar, size: 'md' as const },
-      value: room.roomId,
-      active: room.roomId === props.currentRoomId,
-      description: room.lastMessage?.content
-        ? room.lastMessage.content.substring(0, 50) +
-          (room.lastMessage.content.length > 50 ? '...' : '')
-        : undefined,
-      onSelect: () => emit('select', room.roomId),
-      dropdownItems: getDropdownItems(room)
-    }))
+  function getRoomPreview(room: any) {
+    const content = room.lastMessage?.content
+    if (!content) return ''
+    return content.length > 50 ? `${content.slice(0, 50)}...` : content
+  }
+
+  const visibleRooms = computed(() =>
+    showAllRooms.value ? props.rooms : props.rooms.slice(0, ROOM_PREVIEW_LIMIT)
+  )
+
+  const hasMoreRooms = computed(() => props.rooms.length > ROOM_PREVIEW_LIMIT)
+
+  const dropdownItemsByRoomId = computed(() => {
+    const itemsByRoomId = new Map<string, ReturnType<typeof getDropdownItems>>()
+    for (const room of visibleRooms.value) {
+      itemsByRoomId.set(room.roomId, getDropdownItems(room))
+    }
+    return itemsByRoomId
   })
 </script>
 
@@ -234,54 +242,75 @@
       </div>
     </div>
 
-    <UNavigationMenu
-      v-else-if="navigationItems.length > 0"
-      orientation="vertical"
-      :items="navigationItems"
-      class="px-1"
-      :ui="{ link: 'justify-start' }"
-    >
-      <template #item="{ item }">
-        <div
-          class="flex items-center gap-2 w-full group py-1.5 px-1.5 cursor-pointer relative text-left"
-          @click="item.onSelect?.()"
+    <div v-else-if="rooms.length > 0" class="space-y-0.5 px-1">
+      <div
+        v-for="room in visibleRooms"
+        :key="room.roomId"
+        v-memo="[
+          room.roomId,
+          room.roomName,
+          room.lastMessage?.content,
+          currentRoomId === room.roomId
+        ]"
+        class="group flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-elevated/60"
+        :class="currentRoomId === room.roomId ? 'bg-primary/10' : ''"
+      >
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center gap-2 text-left"
+          @click="emit('select', room.roomId)"
         >
-          <UAvatar v-if="item.avatar" v-bind="item.avatar" size="sm" />
-          <div class="flex-1 min-w-0 text-left">
+          <UAvatar :src="room.avatar" size="sm" />
+          <div class="min-w-0 flex-1">
             <p
-              class="text-sm font-medium truncate text-left"
-              :class="item.active ? 'text-primary' : 'text-gray-900 dark:text-white'"
+              class="truncate text-sm font-medium"
+              :class="
+                currentRoomId === room.roomId ? 'text-primary' : 'text-gray-900 dark:text-white'
+              "
             >
-              {{ item.label }}
+              {{ room.roomName }}
             </p>
             <p
-              v-if="item.description"
-              class="text-xs text-gray-500 dark:text-gray-400 truncate text-left"
+              v-if="getRoomPreview(room)"
+              class="truncate text-xs text-gray-500 dark:text-gray-400"
             >
-              {{ item.description }}
+              {{ getRoomPreview(room) }}
             </p>
           </div>
+        </button>
 
-          <UDropdownMenu :items="item.dropdownItems" :content="{ align: 'end' }">
-            <UButton
-              icon="i-heroicons-ellipsis-vertical"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity -mr-1"
-              @click.stop
-            />
-          </UDropdownMenu>
-        </div>
-      </template>
-    </UNavigationMenu>
+        <UDropdownMenu
+          :items="dropdownItemsByRoomId.get(room.roomId) || []"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            icon="i-heroicons-ellipsis-vertical"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="-mr-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+            @click.stop
+          />
+        </UDropdownMenu>
+      </div>
 
-    <div v-else class="text-left py-8 text-sm text-gray-500 px-4">
+      <UButton
+        v-if="hasMoreRooms"
+        variant="ghost"
+        color="neutral"
+        class="mt-2 w-full justify-center"
+        @click="showAllRooms = !showAllRooms"
+      >
+        {{ showAllRooms ? 'Show fewer' : `Show more (${rooms.length - ROOM_PREVIEW_LIMIT})` }}
+      </UButton>
+    </div>
+
+    <div v-else class="px-4 py-8 text-left text-sm text-gray-500">
       {{ t('sidebar_empty_history') }}
     </div>
 
-    <!-- Rename Modal -->
     <UModal
+      v-if="isRenameModalOpen"
       v-model:open="isRenameModalOpen"
       :title="t('modal_rename_title')"
       :description="t('modal_rename_desc')"
@@ -310,15 +339,15 @@
       </template>
     </UModal>
 
-    <!-- Share Modal -->
     <UModal
+      v-if="isShareModalOpen"
       v-model:open="isShareModalOpen"
       :title="t('modal_share_title', { name: sharedRoomName })"
       :description="t('modal_share_desc')"
     >
       <template #body>
         <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+          <UIcon name="i-heroicons-arrow-path" class="h-8 w-8 animate-spin text-primary" />
         </div>
         <div v-else-if="shareLink" class="space-y-4">
           <div class="flex gap-2">
@@ -349,8 +378,8 @@
       </template>
     </UModal>
 
-    <!-- Report Issue Modal -->
     <UModal
+      v-if="isReportModalOpen"
       v-model:open="isReportModalOpen"
       :title="t('sidebar_report_issue')"
       :description="t('modal_rename_desc')"
@@ -364,8 +393,8 @@
       </template>
     </UModal>
 
-    <!-- Delete Confirmation Modal -->
     <UModal
+      v-if="isDeleteModalOpen"
       v-model:open="isDeleteModalOpen"
       :title="t('modal_delete_title')"
       :description="t('modal_delete_desc')"

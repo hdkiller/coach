@@ -346,6 +346,21 @@ export function useUserRunsState() {
 
   const notifiedRunIds = new Set<string>()
 
+  const invokeTaskCallback = (
+    taskIdentifier: string,
+    phase: 'completed' | 'failed',
+    callback: (run: TriggerRun) => void | Promise<void>,
+    run: TriggerRun
+  ) => {
+    try {
+      void Promise.resolve(callback(run)).catch((error) => {
+        console.error(`[useUserRuns] ${taskIdentifier} ${phase} callback failed`, error)
+      })
+    } catch (error) {
+      console.error(`[useUserRuns] ${taskIdentifier} ${phase} callback threw`, error)
+    }
+  }
+
   const onTaskCompleted = (
     taskIdentifier: string,
     callback: (run: TriggerRun) => void | Promise<void>
@@ -376,7 +391,7 @@ export function useUserRunsState() {
           const finishedTime = run.finishedAt ? new Date(run.finishedAt).getTime() : 0
           if (finishedTime > setupTime - 2000) {
             notifiedRunIds.add(run.id)
-            callback(run)
+            invokeTaskCallback(taskIdentifier, 'completed', callback, run)
           } else {
             // It's an old run that just appeared in the list (e.g. after initial fetch)
             alreadyCompleted.add(run.id)
@@ -413,7 +428,7 @@ export function useUserRunsState() {
           const finishedTime = run.finishedAt ? new Date(run.finishedAt).getTime() : 0
           if (finishedTime > setupTime - 2000) {
             notifiedRunIds.add(run.id)
-            callback(run)
+            invokeTaskCallback(taskIdentifier, 'failed', callback, run)
           } else {
             alreadyFailed.add(run.id)
           }

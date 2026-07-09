@@ -45,7 +45,7 @@
   const roomsLoadError = ref<string | null>(null)
   const rooms = ref<any[]>([])
   const loadingRooms = ref(true)
-  const isRoomListOpen = ref(false)
+  const chatSidebarRef = ref<{ open: () => void; close: () => void } | null>(null)
   const input = ref('')
   const chatInputRef = ref<any>(null)
   const toast = useToast()
@@ -65,6 +65,7 @@
   const queueReconcileTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
   const terminalSyncTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
   const approvalSyncTimersByRoom: Record<string, ReturnType<typeof setInterval> | undefined> = {}
+  let chatPageActive = true
   const loadMessagesInFlight: Record<string, boolean> = {}
   const loadMessagesPending: Record<string, boolean> = {}
   const isRealtimeConnected = ref(false)
@@ -169,9 +170,11 @@
       })
     }),
     onFinish: async () => {
+      if (!chatPageActive) return
       refreshRuns()
       if (currentRoomId.value) {
         await loadMessages(currentRoomId.value, { silent: true })
+        if (!chatPageActive) return
         restartTurnPolling({ forceForMs: 15000 })
         void processQueuedMessagesForRoom(currentRoomId.value)
       }
@@ -213,7 +216,7 @@
         // The backend executed successfully, but the frontend stream parser got confused.
         // We can just reload the messages to show the result.
         setTimeout(() => {
-          if (currentRoomId.value) loadMessages(currentRoomId.value)
+          if (chatPageActive && currentRoomId.value) loadMessages(currentRoomId.value)
         }, 1000)
         return
       }
@@ -625,7 +628,7 @@
     textDelta: string
     status?: string
   }) => {
-    if (!event.textDelta || event.roomId !== currentRoomId.value) return
+    if (!chatPageActive || !event.textDelta || event.roomId !== currentRoomId.value) return
     awaitingTurnStart.value = false
 
     const existingMessages = [...(chat.messages as any[])]
@@ -730,6 +733,7 @@
     return incomingMessage
   }
   const upsertChatMessage = (message: any) => {
+    if (!chatPageActive) return
     const transformedMessage = transformStoredMessage(message)
     if (
       transformedMessage?.role === 'assistant' ||
@@ -1002,6 +1006,8 @@
   onBeforeUnmount(() => {
     if (!import.meta.client) return
 
+    chatPageActive = false
+
     document.documentElement.style.overflow = previousDocumentOverflow
     document.body.style.overflow = previousBodyOverflow
 
@@ -1016,6 +1022,7 @@
     cleanupChatWebSocket()
     Object.keys(queueReconcileTimersByRoom).forEach((roomId) => clearQueueReconcileTimer(roomId))
     Object.keys(approvalSyncTimersByRoom).forEach((roomId) => clearApprovalSyncTimer(roomId))
+    Object.keys(terminalSyncTimersByRoom).forEach((roomId) => clearTerminalSyncTimer(roomId))
   })
 
   function cleanupChatWebSocket() {
@@ -1145,10 +1152,12 @@
         restartTurnPolling({ forceForMs: 15000 })
       }
 
-      if (import.meta.client) {
+      if (import.meta.client && chatPageActive) {
         chatWsReconnectTimer = setTimeout(() => {
           chatWsReconnectTimer = null
-          connectChatWebSocket()
+          if (chatPageActive) {
+            connectChatWebSocket()
+          }
         }, 3000)
       }
     }
@@ -1170,6 +1179,7 @@
   }
 
   function restartTurnPolling(options?: { forceForMs?: number }) {
+    if (!chatPageActive) return
     if (options?.forceForMs && options.forceForMs > 0) {
       turnPollingGraceUntil = Date.now() + options.forceForMs
     }
@@ -1189,7 +1199,7 @@
     }
 
     turnPollingTimer = setInterval(async () => {
-      if (!currentRoomId.value) {
+      if (!chatPageActive || !currentRoomId.value) {
         stopTurnPolling()
         return
       }
@@ -1264,6 +1274,7 @@
   }
 
   async function loadMessages(roomId: string, options?: { silent?: boolean }) {
+    if (!chatPageActive) return
     const silent = options?.silent ?? false
 
     // Coalesce concurrent calls: if already inflight for this room, mark pending
@@ -1280,6 +1291,8 @@
         loadingMessages.value = true
       }
       const loadedMessages = (await ($fetch as any)(`/api/chat/messages?roomId=${roomId}`)) as any[]
+
+      if (!chatPageActive || roomId !== currentRoomId.value) return
 
       // Transform DB messages to AI SDK format (UIMessage)
       const transformedMessages = loadedMessages.map((msg) => ({
@@ -1398,7 +1411,7 @@
     currentRoomId.value = roomId
     awaitingTurnStart.value = false
     await loadMessages(roomId)
-    isRoomListOpen.value = false
+    chatSidebarRef.value?.close()
     // Focus input after room selection
     nextTick(() => {
       chatInputRef.value?.focus()
@@ -2056,7 +2069,8 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-clock"
-              @click="isRoomListOpen = true"
+              aria-label="Open chat history"
+              @click="chatSidebarRef?.open()"
             />
           </template>
           <template #right>
@@ -2120,7 +2134,7 @@
       <div class="flex h-full min-h-0 overscroll-none">
         <!-- Sidebar and Mobile Drawer -->
         <ChatSidebar
-          v-model:is-open="isRoomListOpen"
+          ref="chatSidebarRef"
           :rooms="rooms"
           :current-room-id="currentRoomId"
           :loading="loadingRooms"
@@ -2157,6 +2171,7 @@
 
           <!-- Messages -->
           <ChatMessageList
+            :key="currentRoomId || 'no-room'"
             :messages="chatMessages"
             :status="uiChatStatus"
             :loading="loadingMessages"

@@ -32,6 +32,7 @@
   ])
   const toast = useToast()
   const messageListRef = ref<HTMLElement | null>(null)
+  let listActive = true
   const bottomAnchorRef = ref<HTMLElement | null>(null)
   const isTouchDevice = ref(false)
   const revealedActionsMessageId = ref<string | null>(null)
@@ -678,15 +679,20 @@
       } catch (error) {
         console.error('[Chat TTS] Failed to load voice settings:', error)
       } finally {
-        didHydrateTtsPrefs.value = true
+        if (listActive) {
+          didHydrateTtsPrefs.value = true
+        }
       }
     })()
 
-    void scrollToBottom('auto')
+    if (listActive) {
+      void scrollToBottom('auto')
+    }
   })
 
   onBeforeUnmount(() => {
     if (!import.meta.client) return
+    listActive = false
     touchMediaQuery?.removeEventListener('change', updateTouchMode)
     document.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
     if (saveTtsSettingsTimeout) {

@@ -709,19 +709,25 @@
   const loading = ref(true)
   const data = ref<any>(null)
   const showMatches = ref(false)
+  let metricsActive = true
 
   async function fetchData() {
+    if (!metricsActive) return
     loading.value = true
     try {
       const endpoint = props.publicToken
         ? `/api/share/workouts/${props.publicToken}/intervals`
         : `/api/workouts/${props.workoutId}/intervals`
 
-      data.value = await $fetch(endpoint)
+      const result = await $fetch(endpoint)
+      if (!metricsActive) return
+      data.value = result
     } catch (e) {
       console.error(e)
     } finally {
-      loading.value = false
+      if (metricsActive) {
+        loading.value = false
+      }
     }
   }
 
@@ -890,5 +896,9 @@
 
   onMounted(() => {
     fetchData()
+  })
+
+  onBeforeUnmount(() => {
+    metricsActive = false
   })
 </script>

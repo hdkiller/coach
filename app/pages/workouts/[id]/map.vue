@@ -544,8 +544,21 @@
                 </p>
               </div>
 
+              <div
+                v-else-if="layoutMode === 'default' && !zoomedStreams?.time?.length"
+                class="flex flex-col items-center justify-center min-h-[280px] flex-1 text-gray-400 space-y-2 py-12"
+              >
+                <UIcon name="i-heroicons-chart-bar" class="w-12 h-12 opacity-20" />
+                <p class="text-xs font-bold uppercase tracking-widest">
+                  Stream timing data unavailable for this workout
+                </p>
+              </div>
+
               <!-- Default Layout: Single Unified Chart -->
-              <div v-else-if="layoutMode === 'default'" class="min-h-[280px] flex-1 sm:min-h-0">
+              <div
+                v-else-if="layoutMode === 'default' && zoomedStreams?.time?.length"
+                class="min-h-[280px] flex-1 sm:min-h-0"
+              >
                 <client-only>
                   <StreamChart
                     :datasets="
@@ -612,7 +625,7 @@
                         {{ getStreamMetadata(streamObject.value).label }}
                       </span>
                     </div>
-                    <div class="h-40">
+                    <div v-if="zoomedStreams?.time?.length" class="h-40">
                       <client-only>
                         <StreamChart
                           :label="getStreamMetadata(streamObject.value).label"

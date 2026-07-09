@@ -370,6 +370,7 @@
 
   let runPollTimer: ReturnType<typeof setInterval> | null = null
   let workoutPollTimer: ReturnType<typeof setInterval> | null = null
+  let cardActive = true
 
   const clearRunPolling = () => {
     if (runPollTimer) {
@@ -393,13 +394,14 @@
   }
 
   const fetchWorkout = async () => {
-    if (!workoutId.value) return
+    if (!cardActive || !workoutId.value) return
 
     try {
       const data = (await ($fetch as any)(`/api/workouts/planned/${workoutId.value}`)) as {
         workout?: any
         sportSettings?: any
       }
+      if (!cardActive) return
       const workout = data?.workout || data
       if (workout && typeof workout === 'object') {
         liveWorkout.value = workout
@@ -414,7 +416,7 @@
   }
 
   const fetchRunStatus = async () => {
-    if (!runId.value) return
+    if (!cardActive || !runId.value) return
 
     try {
       const run = (await ($fetch as any)(`/api/runs/${runId.value}`)) as {
@@ -445,6 +447,7 @@
   }
 
   const startPolling = async () => {
+    if (!cardActive) return
     clearPolling()
     pollStartedAt.value = Date.now()
 
@@ -463,6 +466,10 @@
     if (hasWorkout) {
       await fetchWorkout()
       workoutPollTimer = setInterval(async () => {
+        if (!cardActive) {
+          clearPolling()
+          return
+        }
         if (checkStructureWaitTimeout()) {
           pollError.value =
             'Structure generation did not start. Open the workout page and use Build Structure to retry.'
@@ -486,6 +493,10 @@
     if (hasRun) {
       await fetchRunStatus()
       runPollTimer = setInterval(async () => {
+        if (!cardActive) {
+          clearRunPolling()
+          return
+        }
         await fetchRunStatus()
 
         if (runStatus.value && FINAL_RUN_STATUSES.has(runStatus.value)) {
@@ -577,6 +588,7 @@
   )
 
   onUnmounted(() => {
+    cardActive = false
     clearPolling()
   })
 </script>

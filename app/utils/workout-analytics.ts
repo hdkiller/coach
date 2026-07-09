@@ -7,27 +7,46 @@ export interface ZoneDistribution {
   label: string
 }
 
-export function flattenWorkoutSteps(steps: any[]): any[] {
-  if (!Array.isArray(steps)) return []
+export interface FlattenWorkoutStepsOptions {
+  maxDepth?: number
+  maxSteps?: number
+  maxReps?: number
+}
+
+const DEFAULT_FLATTEN_OPTIONS: Required<FlattenWorkoutStepsOptions> = {
+  maxDepth: 24,
+  maxSteps: 2000,
+  maxReps: 100
+}
+
+export function flattenWorkoutSteps(steps: any[], options: FlattenWorkoutStepsOptions = {}): any[] {
+  const { maxDepth, maxSteps, maxReps } = { ...DEFAULT_FLATTEN_OPTIONS, ...options }
+  if (!Array.isArray(steps) || steps.length === 0) return []
 
   const flattened: any[] = []
 
-  steps.forEach((step: any) => {
-    const children = Array.isArray(step.steps) ? step.steps : []
-    const hasChildren = children.length > 0
+  const walk = (currentSteps: any[], depth: number) => {
+    if (depth > maxDepth || flattened.length >= maxSteps) return
 
-    if (hasChildren) {
-      const repsRaw = Number(step.reps ?? step.repeat ?? step.intervals)
-      const reps = repsRaw > 1 ? repsRaw : 1
-      for (let i = 0; i < reps; i++) {
-        flattened.push(...flattenWorkoutSteps(children))
+    for (const step of currentSteps) {
+      if (flattened.length >= maxSteps) break
+
+      const children = Array.isArray(step?.steps) ? step.steps : []
+      if (children.length > 0) {
+        const repsRaw = Number(step?.reps ?? step?.repeat ?? step?.intervals)
+        const reps = Number.isFinite(repsRaw) && repsRaw > 1 ? Math.min(repsRaw, maxReps) : 1
+        for (let i = 0; i < reps; i++) {
+          walk(children, depth + 1)
+          if (flattened.length >= maxSteps) break
+        }
+        continue
       }
-      return
+
+      flattened.push(step)
     }
+  }
 
-    flattened.push(step)
-  })
-
+  walk(steps, 0)
   return flattened
 }
 

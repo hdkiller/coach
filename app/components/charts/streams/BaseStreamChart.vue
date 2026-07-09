@@ -85,6 +85,9 @@
 
   const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom', 'chart-select'])
 
+  const safeLabels = computed(() => (Array.isArray(props.labels) ? props.labels : []))
+  const hasLabels = computed(() => safeLabels.value.length > 0)
+
   const chartRef = ref<any>(null)
   const isSelecting = ref(false)
   const selectionStart = ref<number | null>(null)
@@ -101,8 +104,8 @@
 
       // Draw selection box if dragging
       if (isSelecting.value && selectionStart.value !== null && selectionEnd.value !== null) {
-        const startX = chart.scales.x.getPixelForValue(props.labels[selectionStart.value])
-        const endX = chart.scales.x.getPixelForValue(props.labels[selectionEnd.value])
+        const startX = chart.scales.x.getPixelForValue(safeLabels.value[selectionStart.value])
+        const endX = chart.scales.x.getPixelForValue(safeLabels.value[selectionEnd.value])
 
         ctx.save()
         ctx.fillStyle = 'rgba(59, 130, 246, 0.2)' // blue-500 with low opacity
@@ -132,9 +135,9 @@
       if (props.highlightRange) {
         const [startIdx, endIdx] = props.highlightRange
         // Check if indices are within visible bounds
-        if (startIdx >= 0 && endIdx < props.labels.length) {
-          const startX = chart.scales.x.getPixelForValue(props.labels[startIdx])
-          const endX = chart.scales.x.getPixelForValue(props.labels[endIdx])
+        if (startIdx >= 0 && endIdx < safeLabels.value.length) {
+          const startX = chart.scales.x.getPixelForValue(safeLabels.value[startIdx])
+          const endX = chart.scales.x.getPixelForValue(safeLabels.value[endIdx])
 
           ctx.save()
           ctx.fillStyle = 'rgba(251, 191, 36, 0.15)' // amber-400 with low opacity
@@ -149,9 +152,9 @@
         ctx.fillStyle = 'rgba(239, 68, 68, 0.1)' // red-500 with very low opacity
 
         props.highlightRanges.forEach(([startIdx, endIdx]) => {
-          if (startIdx >= 0 && endIdx < props.labels.length) {
-            const startX = chart.scales.x.getPixelForValue(props.labels[startIdx])
-            const endX = chart.scales.x.getPixelForValue(props.labels[endIdx])
+          if (startIdx >= 0 && endIdx < safeLabels.value.length) {
+            const startX = chart.scales.x.getPixelForValue(safeLabels.value[startIdx])
+            const endX = chart.scales.x.getPixelForValue(safeLabels.value[endIdx])
             ctx.fillRect(startX, topY, endX - startX, bottomY - topY)
           }
         })
@@ -220,7 +223,7 @@
       })
 
       return {
-        labels: props.labels,
+        labels: safeLabels.value,
         datasets: props.datasets.map((ds) => ({
           label: ds.label,
           data: ds.data,
@@ -237,7 +240,7 @@
     }
 
     return {
-      labels: props.labels,
+      labels: safeLabels.value,
       datasets: [
         {
           label: props.label,
@@ -323,9 +326,13 @@
       scales: {
         x: {
           type: props.xAxisType as 'linear' | 'category',
-          display: props.showXAxis,
-          min: props.labels[0],
-          max: props.labels[props.labels.length - 1],
+          display: props.showXAxis && hasLabels.value,
+          ...(hasLabels.value
+            ? {
+                min: safeLabels.value[0],
+                max: safeLabels.value[safeLabels.value.length - 1]
+              }
+            : {}),
           bounds: 'ticks',
           ticks: {
             callback: (value: any) => {

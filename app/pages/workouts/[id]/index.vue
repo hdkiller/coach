@@ -3474,6 +3474,7 @@
 
   const { formatDate: baseFormatDate, formatDateTime, formatDateUTC, formatTime } = useFormat()
   const { trackWorkoutViewDetail } = useAnalytics()
+  const isPageActive = ref(true)
 
   type WorkoutSectionKey =
     | 'overview'
@@ -4931,8 +4932,7 @@
   const workoutSectionSettings = computed<WorkoutSectionSettings>(() => {
     const saved =
       (userStore.user?.dashboardSettings?.workoutDetailSections as
-        | Partial<WorkoutSectionSettings>
-        | undefined) || {}
+        Partial<WorkoutSectionSettings> | undefined) || {}
 
     return workoutSectionCatalog.value.reduce((acc, section) => {
       const fallback = workoutSectionDefaults.value[section.key] || { visible: true, order: 99 }
@@ -4980,16 +4980,22 @@
 
   // Fetch workout data
   async function fetchWorkout() {
+    if (!isPageActive.value) return
     loading.value = true
     error.value = null
     try {
       const id = route.params.id
-      workout.value = await $fetch(`/api/workouts/${id}`)
+      const result = await $fetch(`/api/workouts/${id}`)
+      if (!isPageActive.value) return
+      workout.value = result
     } catch (e: any) {
+      if (!isPageActive.value) return
       error.value = e?.data?.message || e?.message || t.value('error_failed_to_load')
       console.error('Error fetching workout:', e)
     } finally {
-      loading.value = false
+      if (isPageActive.value) {
+        loading.value = false
+      }
     }
   }
 
@@ -5199,28 +5205,47 @@
   }
 
   // Listen for completion
-  onTaskCompleted('analyze-workout', async (run) => {
-    await fetchWorkout()
-    analyzingWorkout.value = false
-    toast.add({
-      title: t.value('analyzing_ready_title'),
-      description: 'AI workout analysis has been generated successfully',
-      color: 'success',
-      icon: 'i-heroicons-check-circle'
-    })
+  onTaskCompleted('analyze-workout', async () => {
+    if (!isPageActive.value) return
+    try {
+      await fetchWorkout()
+      if (!isPageActive.value) return
+      analyzingWorkout.value = false
+      toast.add({
+        title: t.value('analyzing_ready_title'),
+        description: 'AI workout analysis has been generated successfully',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+    } catch (error) {
+      console.error('[WorkoutDetail] analyze-workout completion handler failed:', error)
+      if (isPageActive.value) {
+        analyzingWorkout.value = false
+      }
+    }
   })
 
-  onTaskCompleted('analyze-plan-adherence', async (run) => {
-    await fetchWorkout()
-    analyzingAdherence.value = false
-    toast.add({
-      title: 'Adherence Analysis Complete',
-      color: 'success',
-      icon: 'i-heroicons-check-circle'
-    })
+  onTaskCompleted('analyze-plan-adherence', async () => {
+    if (!isPageActive.value) return
+    try {
+      await fetchWorkout()
+      if (!isPageActive.value) return
+      analyzingAdherence.value = false
+      toast.add({
+        title: 'Adherence Analysis Complete',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+    } catch (error) {
+      console.error('[WorkoutDetail] analyze-plan-adherence completion handler failed:', error)
+      if (isPageActive.value) {
+        analyzingAdherence.value = false
+      }
+    }
   })
 
   onTaskFailed('analyze-workout', async (run) => {
+    if (!isPageActive.value) return
     analyzingWorkout.value = false
     toast.add({
       title: 'Analysis Failed',
@@ -5231,6 +5256,7 @@
   })
 
   onTaskFailed('analyze-plan-adherence', async (run) => {
+    if (!isPageActive.value) return
     analyzingAdherence.value = false
     toast.add({
       title: 'Adherence Analysis Failed',
@@ -5870,6 +5896,10 @@
     if (route.query.share === 'true') {
       isShareModalOpen.value = true
     }
+  })
+
+  onBeforeUnmount(() => {
+    isPageActive.value = false
   })
 
   watch(
