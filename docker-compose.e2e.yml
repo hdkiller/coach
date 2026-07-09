@@ -1,0 +1,24 @@
+version: '3.8'
+
+# Dedicated Postgres for E2E tests — isolated from dev data on port 5439.
+# Start with: pnpm e2e:db:up
+services:
+  postgres-e2e:
+    image: postgres:16-alpine
+    container_name: coach-postgres-e2e
+    environment:
+      POSTGRES_USER: watts
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: coach_e2e
+    ports:
+      - '5440:5432'
+    volumes:
+      - postgres_e2e_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U watts -d coach_e2e']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_e2e_data:

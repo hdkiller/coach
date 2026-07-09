@@ -23,6 +23,13 @@ node_modules
 .env
 .env.*
 !.env.example
+!.env.e2e.example
+
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
 1
 
 /app/generated/prisma
