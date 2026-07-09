@@ -260,6 +260,7 @@
 
 <script setup lang="ts">
   import { isAutoDeduplicateWorkoutsEnabled } from '~/utils/ingestion-settings'
+  import { isIntegrationConnected } from '~/utils/integrations'
 
   const toast = useToast()
   const router = useRouter()
@@ -296,10 +297,9 @@
     }
   ) as any
 
-  const intervalsConnected = computed(
-    () =>
-      integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
-  )
+  const integrations = computed(() => integrationStatus.value?.integrations)
+
+  const intervalsConnected = computed(() => isIntegrationConnected(integrations.value, 'intervals'))
 
   const getIntegration = (provider: string) =>
     integrationStatus.value?.integrations?.find((i: any) => i.provider === provider)
@@ -322,32 +322,21 @@
     () => getIntegration('intervals')?.ingestWorkouts ?? false
   )
 
-  const whoopConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'whoop') ?? false
-  )
+  const whoopConnected = computed(() => isIntegrationConnected(integrations.value, 'whoop'))
 
   const whoopIngestWorkouts = computed(() => isActivityIngestionEnabled('whoop'))
 
-  const ouraConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'oura') ?? false
-  )
+  const ouraConnected = computed(() => isIntegrationConnected(integrations.value, 'oura'))
 
   const ouraIngestWorkouts = computed(() => isActivityIngestionEnabled('oura'))
 
-  const withingsConnected = computed(
-    () =>
-      integrationStatus.value?.integrations?.some((i: any) => i.provider === 'withings') ?? false
-  )
+  const withingsConnected = computed(() => isIntegrationConnected(integrations.value, 'withings'))
 
   const withingsIngestWorkouts = computed(() => isActivityIngestionEnabled('withings'))
 
-  const yazioConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'yazio') ?? false
-  )
+  const yazioConnected = computed(() => isIntegrationConnected(integrations.value, 'yazio'))
 
-  const fitbitConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'fitbit') ?? false
-  )
+  const fitbitConnected = computed(() => isIntegrationConnected(integrations.value, 'fitbit'))
 
   const fitbitIntegration = computed(() => getIntegration('fitbit'))
 
@@ -357,51 +346,35 @@
     () => fitbitIntegration.value?.errorMessage || 'Rate limited by Fitbit. Try again later.'
   )
 
-  const stravaConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'strava') ?? false
-  )
+  const stravaConnected = computed(() => isIntegrationConnected(integrations.value, 'strava'))
 
   const stravaIngestWorkouts = computed(() => isActivityIngestionEnabled('strava'))
 
-  const rouvyConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'rouvy') ?? false
-  )
+  const rouvyConnected = computed(() => isIntegrationConnected(integrations.value, 'rouvy'))
 
-  const hevyConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'hevy') ?? false
-  )
+  const hevyConnected = computed(() => isIntegrationConnected(integrations.value, 'hevy'))
 
   const hevyIngestWorkouts = computed(() => isActivityIngestionEnabled('hevy'))
 
-  const polarConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'polar') ?? false
-  )
+  const polarConnected = computed(() => isIntegrationConnected(integrations.value, 'polar'))
 
   const polarIngestWorkouts = computed(() => isActivityIngestionEnabled('polar'))
 
-  const garminConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'garmin') ?? false
-  )
+  const garminConnected = computed(() => isIntegrationConnected(integrations.value, 'garmin'))
 
   const garminIngestWorkouts = computed(() => isActivityIngestionEnabled('garmin'))
 
-  const wahooConnected = computed(
-    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'wahoo') ?? false
-  )
+  const wahooConnected = computed(() => isIntegrationConnected(integrations.value, 'wahoo'))
 
   const wahooIngestWorkouts = computed(() => getIntegration('wahoo')?.ingestWorkouts ?? false)
 
-  const ultrahumanConnected = computed(
-    () =>
-      integrationStatus.value?.integrations?.some((i: any) => i.provider === 'ultrahuman') ?? false
+  const ultrahumanConnected = computed(() =>
+    isIntegrationConnected(integrations.value, 'ultrahuman')
   )
 
   const ultrahumanIngestWorkouts = computed(() => isActivityIngestionEnabled('ultrahuman'))
 
-  const telegramConnected = computed(
-    () =>
-      integrationStatus.value?.integrations?.some((i: any) => i.provider === 'telegram') ?? false
-  )
+  const telegramConnected = computed(() => isIntegrationConnected(integrations.value, 'telegram'))
 
   const integrationSettings = computed(() => {
     const providers = [
