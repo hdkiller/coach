@@ -11,7 +11,7 @@
 | Structure-generation issues                        | 001–038 ([issues.md](./issues.md))                                      |
 | App-review issues filed                            | 039–218                                                                 |
 | **Postponed** (auth / third-party / OAuth / Yazio) | **21** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
-| **Active (Open)**                                  | **193** (057, 062, 187, 190, 197 fixed)                                 |
+| **Active (Open)**                                  | **189** (057, 062, 064–065, 141, 186, 187, 190, 197 fixed)              |
 | **Total documented issues**                        | **218**                                                                 |
 | Review phases complete                             | 5 / 5 (core)                                                            |
 | **Overall review progress**                        | **~90%**                                                                |
@@ -99,6 +99,7 @@
 | 2026-07-08 | 4       | Fix 057 — requireAdmin on debug API routes + admin middleware on debug pages                          | —          |
 | 2026-07-08 | 5       | Fix 062 — declare pollStartedAt ref in ChatPlannedWorkoutCard polling                                 | —          |
 | 2026-07-08 | 6       | Fix 187/190/197 — profile tab popper, autodetect thresholds, FAILED integrations UI                   | —          |
+| 2026-07-08 | 7       | Fix 064/065/141/186 — refetch on route param change; profile tab URL sync                           | —          |
 
 ## Postponed: auth & third-party (deferred 2026-07-08)
 

@@ -2672,4 +2672,16 @@
     fetchIntegrationStatus()
     refreshRuns()
   })
+
+  watch(
+    () => route.params.id,
+    (newId, oldId) => {
+      if (!newId || newId === oldId) return
+      generating.value = false
+      adjusting.value = false
+      generatingMessages.value = false
+      fetchWorkout()
+      fetchIntegrationStatus()
+    }
+  )
 </script>

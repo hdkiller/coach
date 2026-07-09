@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `workouts`, `ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -37,5 +37,5 @@ Prev/next navigation calls `navigateTo('/workouts/{otherId}')`, but `fetchWorkou
 
 ## Acceptance Criteria
 
-- [ ] Neighbor navigation loads correct workout data
-- [ ] Loading state shown during refetch
+- [x] Neighbor navigation loads correct workout data
+- [x] Loading state shown during refetch

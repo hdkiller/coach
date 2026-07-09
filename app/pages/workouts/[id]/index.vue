@@ -5852,6 +5852,14 @@
     }
   })
 
+  watch(
+    () => route.params.id,
+    (newId, oldId) => {
+      if (!newId || newId === oldId) return
+      fetchWorkout()
+    }
+  )
+
   useHead(() => ({
     title: workout.value?.title || 'Workout Details'
   }))

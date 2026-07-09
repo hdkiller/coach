@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `workouts`, `planning`, `ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -33,4 +33,4 @@ Watch `route.params.id` and refetch; reset generation UI state on navigation.
 
 ## Acceptance Criteria
 
-- [ ] Neighbor navigation shows correct planned workout
+- [x] Neighbor navigation shows correct planned workout
