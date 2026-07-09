@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Low  
 **Area:** `admin,ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,4 +19,4 @@ Progress bars visually incorrect.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

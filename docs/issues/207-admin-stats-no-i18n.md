@@ -16,8 +16,11 @@ Admin stats English-only.
 ## Affected Files
 
 - `app/pages/admin/stats/index.vue`
+- `app/pages/admin/stats/users.vue`
+- `app/pages/admin/stats/workouts.vue`
+- `app/pages/admin/stats/webhooks.vue`
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

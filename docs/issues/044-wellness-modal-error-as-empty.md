@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `wellness`, `ui/ux`, `dashboard`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -38,6 +38,6 @@ Add `fetchError` ref; render error UI with retry button when set.
 
 ## Acceptance Criteria
 
-- [ ] Network/server errors show distinct error UI
-- [ ] Retry refetches wellness data
-- [ ] Genuine empty dates still show empty state
+- [x] Network/server errors show distinct error UI
+- [x] Retry refetches wellness data
+- [x] Genuine empty dates still show empty state

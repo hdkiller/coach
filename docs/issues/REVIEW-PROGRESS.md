@@ -11,7 +11,7 @@
 | Structure-generation issues                        | 001–038 ([issues.md](./issues.md)) — **37 / 38 fixed** (only 012 open)  |
 | App-review issues filed                            | 039–218                                                                 |
 | **Postponed** (auth / third-party / OAuth / Yazio) | **21** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
-| **Active (Open)**                                  | **49** (148 fixed total; 21 postponed)                                  |
+| **Active (Open)**                                  | **44** (154 fixed total; 21 postponed)                                  |
 | **Total documented issues**                        | **223**                                                                 |
 | Review phases complete                             | 5 / 5 (core)                                                            |
 | **Overall review progress**                        | **~95%**                                                                |

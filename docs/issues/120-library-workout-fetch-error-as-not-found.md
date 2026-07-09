@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `workouts, planning`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -31,5 +31,5 @@ Distinguish error vs missing template.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

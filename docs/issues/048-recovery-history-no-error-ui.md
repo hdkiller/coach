@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `wellness`, `ui/ux`, `recovery`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -39,6 +39,6 @@ Render `pending` skeleton and `error` alert with retry button that calls `refres
 
 ## Acceptance Criteria
 
-- [ ] Loading state visible during fetch
-- [ ] Error state with retry on failure
-- [ ] Empty state only when fetch succeeds with zero items
+- [x] Loading state visible during fetch
+- [x] Error state with retry on failure
+- [x] Empty state only when fetch succeeds with zero items

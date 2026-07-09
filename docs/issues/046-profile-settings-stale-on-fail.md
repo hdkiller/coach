@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux`, `profile`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -45,5 +45,5 @@ Snapshot `profile.value` before assign; restore snapshot on catch. Alternatively
 
 ## Acceptance Criteria
 
-- [ ] Failed save restores previous field values
-- [ ] Successful save still updates UI immediately
+- [x] Failed save restores previous field values
+- [x] Successful save still updates UI immediately

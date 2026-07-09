@@ -100,11 +100,11 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [041](./041-workout-comparison-cross-user-leak.md)      | ~~Comparison basket cross-user leak~~ **Fixed** | High     | Bug         |
 | [042](./042-non-intervals-today-workouts-skipped.md)    | Non-Intervals today workouts skipped            | Medium   | Bug         |
 | [043](./043-fit-upload-spurious-toasts.md)              | FIT upload spurious toasts                      | Medium   | Bug         |
-| [044](./044-wellness-modal-error-as-empty.md)           | Wellness modal error as empty                   | Medium   | UI          |
+| [044](./044-wellness-modal-error-as-empty.md)           | ~~Wellness modal error as empty~~ **Fixed**     | Medium   | UI          |
 | [045](./045-wellness-modal-dialog-title-a11y.md)        | Wellness modal a11y title                       | Low      | UI          |
-| [046](./046-profile-settings-stale-on-fail.md)          | Profile stale on failed save                    | Medium   | Bug         |
+| [046](./046-profile-settings-stale-on-fail.md)          | ~~Profile stale on failed save~~ **Fixed**      | Medium   | Bug         |
 | [047](./047-support-email-html-injection.md)            | Support email HTML injection                    | Medium   | Bug         |
-| [048](./048-recovery-history-no-error-ui.md)            | Recovery history no error UI                    | Medium   | UI          |
+| [048](./048-recovery-history-no-error-ui.md)            | ~~Recovery history no error UI~~ **Fixed**      | Medium   | UI          |
 | [049](./049-performance-insights-stuck-loading.md)      | Performance insights stuck                      | Medium   | Bug         |
 | [050](./050-reports-generating-stuck-on-failure.md)     | Reports generating stuck                        | Medium   | Bug         |
 | [051](./051-recommendations-update-stuck-loading.md)    | Recommendations update stuck                    | Medium   | Bug         |
@@ -188,7 +188,7 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [117](./117-plan-wizard-after-failed-abandon.md)          | Plan wizard after failed abandon           | Medium   |
 | [118](./118-plan-creation-polling-no-failure-feedback.md) | Plan polling no failure feedback           | Medium   |
 | [119](./119-library-workout-structure-no-ontaskfailed.md) | Library structure no onTaskFailed          | Medium   |
-| [120](./120-library-workout-fetch-error-as-not-found.md)  | Library fetch as not found                 | Medium   |
+| [120](./120-library-workout-fetch-error-as-not-found.md)  | ~~Library fetch as not found~~ **Fixed**   | Medium   |
 
 ## Issues 121–150 (library, feed, fitness, stores)
 
@@ -227,28 +227,28 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 
 ## Issues 151–170 (join, share, developer, triggers)
 
-| ID                                                     | Title                                    | Priority |
-| ------------------------------------------------------ | ---------------------------------------- | -------- |
-| [151](./151-user-profile-stale-on-error.md)            | User profile stale on error              | Medium   |
-| ~~[152](./152-onboarding-blocks-join-callback.md)~~    | Onboarding blocks join (fixed)           | High     |
-| ~~[153](./153-join-auto-accept-branded-only.md)~~      | Join auto-accept branded only (fixed)    | Medium   |
-| ~~[154](./154-join-accept-errors-return-500.md)~~      | Join accept returns 500 (fixed)          | Medium   |
-| [155](./155-workout-share-leaks-zone-profiles.md)      | Share leaks zone profiles                | High     |
-| [156](./156-nutrition-share-url-404.md)                | Nutrition share URL 404                  | Medium   |
-| [157](./157-nutrition-share-unsanitized-payload.md)    | Nutrition share unsanitized              | High     |
-| [158](./158-developer-get-leaks-webhook-secret.md)     | Developer GET leaks secret               | High     |
-| [159](./159-planned-workout-share-ignores-preview.md)  | Planned share ignores preview            | Medium   |
-| [160](./160-wellness-share-og-leaks-biometrics.md)     | Wellness OG leaks biometrics             | Medium   |
-| [161](./161-connect-yazio-no-auth-middleware.md)       | Connect Yazio no auth                    | High     |
-| [162](./162-fit-ingest-no-file-ownership-check.md)     | FIT ingest no ownership check            | High     |
-| [163](./163-chat-tts-transcribe-no-quota.md)           | Chat TTS/transcribe no quota             | Medium   |
-| [164](./164-chat-turn-retry-no-quota.md)               | Chat retry no quota                      | Medium   |
-| [165](./165-chat-queued-messages-lost-on-error.md)     | Queued messages lost on error            | Medium   |
-| [166](./166-chat-message-queue-in-memory-only.md)      | Chat queue in-memory only                | Medium   |
-| [167](./167-admin-impersonate-self-allowed.md)         | Admin impersonate self                   | Medium   |
-| [168](./168-admin-user-detail-no-error-state.md)       | ~~Admin user detail no error~~ **Fixed** | Medium   |
-| [169](./169-admin-webhook-stats-wrong-progress-max.md) | Admin webhook stats wrong max            | Low      |
-| [170](./170-deduplicate-auto-analyzes-all-recent.md)   | Dedup auto-analyzes all recent           | Medium   |
+| ID                                                     | Title                                       | Priority |
+| ------------------------------------------------------ | ------------------------------------------- | -------- |
+| [151](./151-user-profile-stale-on-error.md)            | User profile stale on error                 | Medium   |
+| ~~[152](./152-onboarding-blocks-join-callback.md)~~    | Onboarding blocks join (fixed)              | High     |
+| ~~[153](./153-join-auto-accept-branded-only.md)~~      | Join auto-accept branded only (fixed)       | Medium   |
+| ~~[154](./154-join-accept-errors-return-500.md)~~      | Join accept returns 500 (fixed)             | Medium   |
+| [155](./155-workout-share-leaks-zone-profiles.md)      | Share leaks zone profiles                   | High     |
+| [156](./156-nutrition-share-url-404.md)                | Nutrition share URL 404                     | Medium   |
+| [157](./157-nutrition-share-unsanitized-payload.md)    | Nutrition share unsanitized                 | High     |
+| [158](./158-developer-get-leaks-webhook-secret.md)     | Developer GET leaks secret                  | High     |
+| [159](./159-planned-workout-share-ignores-preview.md)  | Planned share ignores preview               | Medium   |
+| [160](./160-wellness-share-og-leaks-biometrics.md)     | Wellness OG leaks biometrics                | Medium   |
+| [161](./161-connect-yazio-no-auth-middleware.md)       | Connect Yazio no auth                       | High     |
+| [162](./162-fit-ingest-no-file-ownership-check.md)     | FIT ingest no ownership check               | High     |
+| [163](./163-chat-tts-transcribe-no-quota.md)           | Chat TTS/transcribe no quota                | Medium   |
+| [164](./164-chat-turn-retry-no-quota.md)               | Chat retry no quota                         | Medium   |
+| [165](./165-chat-queued-messages-lost-on-error.md)     | Queued messages lost on error               | Medium   |
+| [166](./166-chat-message-queue-in-memory-only.md)      | Chat queue in-memory only                   | Medium   |
+| [167](./167-admin-impersonate-self-allowed.md)         | Admin impersonate self                      | Medium   |
+| [168](./168-admin-user-detail-no-error-state.md)       | ~~Admin user detail no error~~ **Fixed**    | Medium   |
+| [169](./169-admin-webhook-stats-wrong-progress-max.md) | ~~Admin webhook stats wrong max~~ **Fixed** | Low      |
+| [170](./170-deduplicate-auto-analyzes-all-recent.md)   | Dedup auto-analyzes all recent              | Medium   |
 
 ## Issues 171–185 (trigger tasks deep pass)
 
