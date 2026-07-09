@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import type { GeminiModel } from './ai-config'
+import { resolveModelId, type GeminiModel } from './ai-config'
 
 export interface LlmOperationSettings {
   model: GeminiModel
@@ -17,10 +17,17 @@ const CACHE_TTL = 60 * 1000 // 1 minute
 
 const DEFAULT_FLASH_SETTINGS: LlmOperationSettings = {
   model: 'flash',
-  modelId: 'gemini-2.5-flash',
+  modelId: 'gemini-3.1-flash-lite-preview',
   thinkingBudget: 2000,
   thinkingLevel: 'low',
   maxSteps: 3
+}
+
+function withResolvedModelId(settings: LlmOperationSettings): LlmOperationSettings {
+  return {
+    ...settings,
+    modelId: resolveModelId(settings.modelId)
+  }
 }
 
 /**
@@ -56,12 +63,12 @@ export async function getLlmOperationSettings(
   if (operation) {
     const overrideKey = `${level}:${operation}`
     if (settingsCache[overrideKey]) {
-      return settingsCache[overrideKey]
+      return withResolvedModelId(settingsCache[overrideKey])
     }
   }
 
   const defaultKey = `${level}:default`
-  return settingsCache[defaultKey] || DEFAULT_FLASH_SETTINGS
+  return withResolvedModelId(settingsCache[defaultKey] || DEFAULT_FLASH_SETTINGS)
 }
 
 /**

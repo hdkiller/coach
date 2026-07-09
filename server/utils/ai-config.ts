@@ -1,7 +1,16 @@
 export type GeminiModel = 'flash' | 'pro'
 
+/** Deprecated model IDs mapped to their current replacements. */
+export const MODEL_ALIASES = {
+  'gemini-2.5-flash': 'gemini-3.1-flash-lite-preview'
+} as const
+
+export function resolveModelId(modelId: string): string {
+  return MODEL_ALIASES[modelId as keyof typeof MODEL_ALIASES] ?? modelId
+}
+
 export const MODEL_NAMES = {
-  flash: 'gemini-2.5-flash',
+  flash: 'gemini-3.1-flash-lite-preview',
   pro: 'gemini-3-flash-preview'
 } as const
 
@@ -116,7 +125,7 @@ export function calculateLlmCost(
   outputTokens: number,
   cachedTokens: number = 0
 ): number {
-  const config = PRICING[model as keyof typeof PRICING]
+  const config = PRICING[resolveModelId(model) as keyof typeof PRICING]
 
   if (!config) {
     console.warn(`[AI Config] Unknown model for pricing: ${model}`)

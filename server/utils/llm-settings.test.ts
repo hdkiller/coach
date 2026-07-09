@@ -24,21 +24,28 @@ vi.mock('./db', () => ({
 
 describe('LLM Settings Logic', () => {
   describe('buildGoogleProviderOptions', () => {
-    it('should configure thinkingBudget for Gemini 2.5 models', () => {
+    it('should resolve deprecated Gemini 2.5 Flash to Gemini 3 Flash options', () => {
       const options = buildGoogleProviderOptions('gemini-2.5-flash', 'low', 2000)
       expect(options).toEqual({
         google: {
           thinkingConfig: {
-            thinkingBudget: 2000,
+            thinkingLevel: 'low',
             includeThoughts: true
           }
         }
       })
     })
 
-    it('should NOT configure thinkingBudget if budget is 0', () => {
+    it('should NOT configure thinking when budget is 0 for aliased Gemini 2.5 Flash', () => {
       const options = buildGoogleProviderOptions('gemini-2.5-flash', 'low', 0)
-      expect(options).toEqual({})
+      expect(options).toEqual({
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'low',
+            includeThoughts: true
+          }
+        }
+      })
     })
 
     it('should configure thinkingLevel for Gemini 3 Flash', () => {
@@ -167,7 +174,7 @@ describe('LLM Settings Logic', () => {
       await refreshLlmSettingsCache()
       const settings = await getLlmOperationSettings('user1', 'chat')
 
-      expect(settings.modelId).toBe('gemini-2.5-flash')
+      expect(settings.modelId).toBe('gemini-3.1-flash-lite-preview')
       expect(settings.thinkingBudget).toBe(500)
     })
 

@@ -14,7 +14,7 @@ import {
 } from './wellness'
 
 import type { GeminiModel } from './ai-config'
-import { MODEL_NAMES, calculateLlmCost } from './ai-config'
+import { MODEL_NAMES, calculateLlmCost, resolveModelId } from './ai-config'
 import { getLlmOperationSettings } from './ai-operation-settings'
 import { buildWorkoutAnalysisFactsV2 } from './workout-analysis-facts'
 
@@ -410,14 +410,15 @@ export function buildGoogleProviderOptions(
   thinkingLevel: string,
   thinkingBudget: number
 ) {
+  const resolvedModelId = resolveModelId(modelId)
   const providerOptions: any = {}
 
-  if (modelId.includes('gemini-3')) {
+  if (resolvedModelId.includes('gemini-3')) {
     // Gemini 3 uses level.
     // Gemini 3 Pro supports 'low' and 'high'
     // Gemini 3 Flash supports 'minimal', 'low', 'medium', 'high'
     let level = thinkingLevel
-    if (modelId.includes('pro') && !['low', 'high'].includes(level)) {
+    if (resolvedModelId.includes('pro') && !['low', 'high'].includes(level)) {
       level = level === 'minimal' ? 'low' : 'high' // Map minimal/medium for Pro
     }
 

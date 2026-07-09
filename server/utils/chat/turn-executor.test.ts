@@ -209,7 +209,7 @@ describe('write repair prompt helpers', () => {
     expect(getHardcodedChatProviderOptions('flash', 'gemini-2.5-flash')).toEqual({
       google: {
         thinkingConfig: {
-          thinkingBudget: 2000,
+          thinkingLevel: 'low',
           includeThoughts: true
         }
       }

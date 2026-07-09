@@ -29,8 +29,8 @@
     { label: 'Gemini 3.0 Flash (Preview)', value: 'gemini-3-flash-preview', family: 'pro' },
     { label: 'Gemini 3.0 Pro (Preview)', value: 'gemini-3-pro-preview', family: 'pro' },
     {
-      label: 'Gemini 2.5 Flash',
-      value: 'gemini-2.5-flash',
+      label: 'Gemini 3.1 Flash Lite (Preview)',
+      value: 'gemini-3.1-flash-lite-preview',
       family: 'flash'
     },
     { label: 'Gemini 2.5 Pro (Latest)', value: 'gemini-pro-latest', family: 'flash' }
