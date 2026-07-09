@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `admin,backend`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -19,4 +19,4 @@ Impersonate self causes confusing session state.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
+- [x] Issue no longer reproducible

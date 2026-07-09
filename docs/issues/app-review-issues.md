@@ -110,7 +110,7 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [051](./051-recommendations-update-stuck-loading.md)    | Recommendations update stuck                    | Medium   | Bug         |
 | [052](./052-notification-errors-swallowed.md)           | ~~Notification errors swallowed~~ **Fixed**     | Medium   | UI          |
 | [053](./053-notification-mark-read-race.md)             | Notification mark-read race                     | Low      | Bug         |
-| [054](./054-use-polling-aborts-on-error.md)             | usePolling aborts on error                      | Medium   | Bug         |
+| [054](./054-use-polling-aborts-on-error.md)             | ~~usePolling aborts on error~~ **Fixed**        | Medium   | Bug         |
 | [055](./055-communication-prefs-misleading-defaults.md) | Communication prefs defaults                    | Medium   | UI          |
 | [056](./056-orchestrate-progress-key-mismatch.md)       | Orchestrate SSE key mismatch                    | High     | Bug         |
 | [057](./057-unauthenticated-debug-endpoints.md)         | Unauthenticated debug endpoints (fixed)         | High     | Bug         |
@@ -245,7 +245,7 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [164](./164-chat-turn-retry-no-quota.md)               | Chat retry no quota                         | Medium   |
 | [165](./165-chat-queued-messages-lost-on-error.md)     | Queued messages lost on error               | Medium   |
 | [166](./166-chat-message-queue-in-memory-only.md)      | Chat queue in-memory only                   | Medium   |
-| [167](./167-admin-impersonate-self-allowed.md)         | Admin impersonate self                      | Medium   |
+| [167](./167-admin-impersonate-self-allowed.md)         | ~~Admin impersonate self~~ **Fixed**        | Medium   |
 | [168](./168-admin-user-detail-no-error-state.md)       | ~~Admin user detail no error~~ **Fixed**    | Medium   |
 | [169](./169-admin-webhook-stats-wrong-progress-max.md) | ~~Admin webhook stats wrong max~~ **Fixed** | Low      |
 | [170](./170-deduplicate-auto-analyzes-all-recent.md)   | Dedup auto-analyzes all recent              | Medium   |
@@ -283,7 +283,7 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [192](./192-nutrition-toggle-no-revert-on-fail.md)        | ~~Nutrition toggle no revert~~ **Fixed**          | Medium   |
 | [193](./193-measurements-preferred-source-no-rollback.md) | ~~Measurements optimistic no rollback~~ **Fixed** | Medium   |
 | [194](./194-availability-tab-loses-unsaved-edits.md)      | ~~Availability tab loses edits~~ **Fixed**        | Medium   |
-| [195](./195-public-presence-watcheffect-overwrites.md)    | Public presence overwrites edits                  | Medium   |
+| [195](./195-public-presence-watcheffect-overwrites.md)    | ~~Public presence overwrites edits~~ **Fixed**    | Medium   |
 | [196](./196-sentry-no-cefsharp-scanner-filter.md)         | Sentry CefSharp filter missing                    | Low      |
 | [197](./197-connected-apps-hides-failed-status.md)        | ~~Connected apps hides FAILED~~ **Fixed**         | High     |
 | [198](./198-measurements-load-error-wrong-toast.md)       | Measurements load wrong toast                     | Low      |

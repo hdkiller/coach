@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `ui/ux`, `profile`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -46,6 +46,6 @@ In catch block, increment attempts and schedule next poll if under `maxAttempts`
 
 ## Acceptance Criteria
 
-- [ ] Transient poll errors retry
-- [ ] `onMaxAttemptsReached` fires after final failure
-- [ ] Athlete profile auto-updates when processing completes after blip
+- [x] Transient poll errors retry
+- [x] `onMaxAttemptsReached` fires after final failure
+- [x] Athlete profile auto-updates when processing completes after blip
