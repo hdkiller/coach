@@ -43,8 +43,38 @@
             </div>
           </div>
 
-          <div v-else-if="!workout" class="text-sm text-gray-500 dark:text-gray-400">
-            Workout not found.
+          <div v-else-if="loadError || !workout" class="text-center py-20 space-y-4">
+            <UIcon name="i-heroicons-exclamation-circle" class="w-12 h-12 text-red-500 mx-auto" />
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{
+                loadError?.statusCode === 404 || (!loadError && !workout)
+                  ? 'Workout not found'
+                  : 'Failed to load workout'
+              }}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+              {{
+                loadError?.statusCode === 404 || (!loadError && !workout)
+                  ? "The planned workout you're looking for doesn't exist."
+                  : loadError?.message || 'Something went wrong while loading this workout.'
+              }}
+            </p>
+            <div class="flex items-center justify-center gap-3">
+              <UButton
+                v-if="loadError && loadError.statusCode !== 404"
+                color="primary"
+                @click="refreshWorkout()"
+              >
+                Retry
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                @click="navigateTo(`/workouts/planned/${route.params.id}`)"
+              >
+                Go Back
+              </UButton>
+            </div>
           </div>
 
           <div v-else class="space-y-6">
@@ -330,8 +360,7 @@
             <pre
               v-else
               class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-              >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre
-            >
+              >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre>
             <div class="flex justify-end">
               <UButton
                 size="xs"
@@ -349,8 +378,7 @@
           <div v-else class="space-y-3">
             <pre
               class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-              >{{ plannedWorkoutRawJson }}</pre
-            >
+              >{{ plannedWorkoutRawJson }}</pre>
             <div class="flex justify-end">
               <UButton
                 size="xs"
@@ -399,10 +427,23 @@
   const toast = useToast()
   const { formatDateUTC } = useFormat()
 
-  const { data: workoutResponse, pending } = (await useAsyncData<any>(
-    `planned-workout-charts-${route.params.id}`,
-    () => ($fetch as any)(`/api/workouts/planned/${route.params.id}`)
+  const {
+    data: workoutResponse,
+    pending,
+    error: workoutFetchError,
+    refresh: refreshWorkout
+  } = (await useAsyncData<any>(`planned-workout-charts-${route.params.id}`, () =>
+    ($fetch as any)(`/api/workouts/planned/${route.params.id}`)
   )) as any
+
+  const loadError = computed(() => {
+    if (!workoutFetchError.value) return null
+    const err = workoutFetchError.value as any
+    return {
+      statusCode: err.statusCode || err.data?.statusCode,
+      message: err.data?.message || err.message
+    }
+  })
 
   const { data: profile } = (await useAsyncData<any>('planned-workout-charts-profile', () =>
     ($fetch as any)('/api/profile')

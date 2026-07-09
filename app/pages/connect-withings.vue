@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Withings">
+      <UDashboardNavbar :title="p('title', 'Connect Withings')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,14 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Withings</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Withings') }}</h2>
                 <p class="text-sm text-muted">
-                  Connect your Withings account to sync weight and body composition data.
+                  {{
+                    p(
+                      'subtitle',
+                      'Connect your Withings account to sync weight and body composition data.'
+                    )
+                  }}
                 </p>
               </div>
             </div>
@@ -52,7 +57,7 @@
                 />
                 <div class="text-sm">
                   <p class="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    Secure OAuth Connection
+                    {{ secureOAuthTitle() }}
                   </p>
                   <p class="text-blue-700 dark:text-blue-300">
                     You'll be redirected to Withings' secure login page. We never see your password.
@@ -75,9 +80,9 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
               <UButton :loading="connecting" color="primary" @click="connect">
-                Connect Withings
+                {{ p('button', 'Connect Withings') }}
               </UButton>
             </div>
           </template>
@@ -90,17 +95,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, secureOAuthTitle } = useConnectI18n('withings')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Withings',
+    title: () => p('title', 'Connect Withings'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Withings account to sync weight and body composition data.'
+        content: () =>
+          p('meta', 'Connect your Withings account to sync weight and body composition data.')
       }
     ]
   })
@@ -118,8 +125,8 @@
       window.location.href = '/api/integrations/withings/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to initiate Withings connection',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to initiate Withings connection'),
         color: 'error'
       })
       connecting.value = false

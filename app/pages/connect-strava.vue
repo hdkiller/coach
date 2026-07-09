@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Strava">
+      <UDashboardNavbar :title="p('title', 'Connect Strava')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,9 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Strava</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Strava') }}</h2>
                 <p class="text-sm text-muted">
-                  Import your activities and training data from Strava.
+                  {{ p('subtitle', 'Import your activities and training data from Strava.') }}
                 </p>
               </div>
             </div>
@@ -39,8 +39,13 @@
               color="warning"
               variant="soft"
               icon="i-heroicons-exclamation-triangle"
-              title="Temporarily Unavailable"
-              description="Strava integration is temporarily unavailable. We are working to restore it as soon as possible."
+              :title="p('disabled_title', 'Temporarily Unavailable')"
+              :description="
+                p(
+                  'disabled_desc',
+                  'Strava integration is temporarily unavailable. We are working to restore it as soon as possible.'
+                )
+              "
               class="mb-4"
             />
             <div class="bg-muted/50 p-4 rounded-lg">
@@ -60,7 +65,7 @@
                   class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
                 />
                 <div class="text-sm text-blue-900 dark:text-blue-200">
-                  <p class="font-medium mb-1">OAuth Authorization</p>
+                  <p class="font-medium mb-1">{{ oauthTitle() }}</p>
                   <p>
                     You'll be redirected to Strava to authorize access to your activities. We only
                     request read permissions.
@@ -72,9 +77,13 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
               <UTooltip
-                :text="isStravaDisabled ? 'Strava integration is temporarily unavailable' : ''"
+                :text="
+                  isStravaDisabled
+                    ? p('disabled_tooltip', 'Strava integration is temporarily unavailable')
+                    : ''
+                "
                 :popper="{ placement: 'top' }"
               >
                 <UButton
@@ -83,7 +92,7 @@
                   :disabled="isStravaDisabled"
                   @click="connect"
                 >
-                  Connect with Strava
+                  {{ p('button', 'Connect with Strava') }}
                 </UButton>
               </UTooltip>
             </div>
@@ -97,6 +106,7 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, oauthTitle } = useConnectI18n('strava')
 
   const isStravaDisabled = computed(() => {
     const config = useRuntimeConfig()
@@ -108,11 +118,12 @@
   })
 
   useHead({
-    title: 'Connect Strava',
+    title: () => p('title', 'Connect Strava'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Strava account to import activities and sync training data.'
+        content: () =>
+          p('meta', 'Connect your Strava account to import activities and sync training data.')
       }
     ]
   })
@@ -129,8 +140,8 @@
       window.location.href = '/api/integrations/strava/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to connect to Strava',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to connect to Strava'),
         color: 'error'
       })
       connecting.value = false

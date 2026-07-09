@@ -83,6 +83,7 @@
 
 <script setup lang="ts">
   const { formatDateTime } = useFormat()
+  const toast = useToast()
 
   const props = defineProps<{
     completedWorkouts: any[]
@@ -112,6 +113,11 @@
       selectedPlanned.value = null
     } catch (error) {
       console.error('Failed to link workouts', error)
+      toast.add({
+        title: 'Failed to link workouts',
+        description: 'Please try again.',
+        color: 'error'
+      })
     } finally {
       matching.value = false
     }

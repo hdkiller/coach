@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect WHOOP">
+      <UDashboardNavbar :title="p('title', 'Connect WHOOP')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,9 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect WHOOP</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect WHOOP') }}</h2>
                 <p class="text-sm text-muted">
-                  Connect your WHOOP account to sync recovery and sleep data.
+                  {{ p('subtitle', 'Connect your WHOOP account to sync recovery and sleep data.') }}
                 </p>
               </div>
             </div>
@@ -39,8 +39,10 @@
               color="warning"
               variant="soft"
               icon="i-heroicons-exclamation-triangle"
-              title="WHOOP integration is temporarily unavailable"
-              description="WHOOP connections are currently disabled on coachwatts.com."
+              :title="p('disabled_title', 'WHOOP integration is temporarily unavailable')"
+              :description="
+                p('disabled_desc', 'WHOOP connections are currently disabled on coachwatts.com.')
+              "
             />
 
             <div class="bg-muted/50 p-4 rounded-lg">
@@ -62,7 +64,7 @@
                 />
                 <div class="text-sm">
                   <p class="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    Secure OAuth Connection
+                    {{ secureOAuthTitle() }}
                   </p>
                   <p class="text-blue-700 dark:text-blue-300">
                     You'll be redirected to WHOOP's secure login page. We never see your password.
@@ -101,14 +103,18 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
               <UButton
                 :loading="connecting"
                 color="primary"
                 :disabled="isWhoopDisabled"
                 @click="connect"
               >
-                {{ isWhoopDisabled ? 'Temporarily unavailable' : 'Connect WHOOP' }}
+                {{
+                  isWhoopDisabled
+                    ? p('unavailable_button', 'Temporarily unavailable')
+                    : p('button', 'Connect WHOOP')
+                }}
               </UButton>
             </div>
           </template>
@@ -121,17 +127,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, secureOAuthTitle } = useConnectI18n('whoop')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect WHOOP',
+    title: () => p('title', 'Connect WHOOP'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your WHOOP account to sync recovery, sleep, and strain data.'
+        content: () =>
+          p('meta', 'Connect your WHOOP account to sync recovery, sleep, and strain data.')
       }
     ]
   })
@@ -154,8 +162,8 @@
       window.location.href = '/api/integrations/whoop/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to initiate WHOOP connection',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to initiate WHOOP connection'),
         color: 'error'
       })
       connecting.value = false

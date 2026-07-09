@@ -1408,20 +1408,33 @@
   }
 
   async function downloadGPX() {
+    const toast = useToast()
     try {
       isExporting.value = true
-      const url = `/api/workouts/${workoutId}/export/gpx`
+      const response = await fetch(`/api/workouts/${workoutId}/export/gpx`, {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        throw new Error(`Export failed (${response.status})`)
+      }
 
-      // Use window.location.assign for simple download trigger
-      // or create a transient <a> tag for more control
+      const blob = await response.blob()
+      const disposition = response.headers.get('content-disposition')
+      const filenameMatch = disposition?.match(/filename="([^"]+)"/)
+      const filename = filenameMatch?.[1] || `workout-${workoutId}.gpx`
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', '')
-      document.body.appendChild(link)
+      link.download = filename
       link.click()
-      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (e) {
       console.error('Failed to download GPX:', e)
+      toast.add({
+        title: 'GPX download failed',
+        description: 'Please try again.',
+        color: 'error'
+      })
     } finally {
       isExporting.value = false
     }

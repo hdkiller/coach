@@ -627,11 +627,11 @@
   } catch (error: any) {
     console.error('Failed to load body measurements', error)
     toast.add({
-      title: t.value('measurements_toast_save_failed_title'),
+      title: tr('measurements_toast_load_failed_title', 'Load Failed'),
       description:
         error.data?.statusMessage ||
         error.message ||
-        t.value('measurements_toast_save_failed_desc'),
+        tr('measurements_toast_load_failed_desc', 'Could not load measurement history.'),
       color: 'error'
     })
   }

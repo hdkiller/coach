@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Intervals.icu">
+      <UDashboardNavbar :title="p('title', 'Connect Intervals.icu')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,11 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Intervals.icu</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Intervals.icu') }}</h2>
                 <p class="text-sm text-muted">
-                  Enter your Intervals.icu credentials to connect your account.
+                  {{
+                    p('subtitle', 'Enter your Intervals.icu credentials to connect your account.')
+                  }}
                 </p>
               </div>
             </div>
@@ -82,9 +84,9 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
               <UButton :loading="connecting" :disabled="!apiKey || !athleteId" @click="connect">
-                Connect
+                {{ p('button', 'Connect') }}
               </UButton>
             </div>
           </template>
@@ -97,17 +99,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle } = useConnectI18n('intervals')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Intervals.icu',
+    title: () => p('title', 'Connect Intervals.icu'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Intervals.icu account to import activities and training data.'
+        content: () =>
+          p('meta', 'Connect your Intervals.icu account to import activities and training data.')
       }
     ]
   })
@@ -123,8 +127,8 @@
   const connect = async () => {
     if (!athleteId.value || !apiKey.value) {
       toast.add({
-        title: 'Missing Information',
-        description: 'Please enter both your Athlete ID and API key',
+        title: p('missing_title', 'Missing Information'),
+        description: p('missing_desc', 'Please enter both your Athlete ID and API key'),
         color: 'error'
       })
       return
@@ -149,7 +153,7 @@
       })
 
       toast.add({
-        title: 'Connected!',
+        title: p('success_title', 'Connected!'),
         description: `Successfully connected to Intervals.icu as ${result.athlete.name}`,
         color: 'success'
       })
@@ -158,8 +162,8 @@
       await router.push('/dashboard')
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.data?.message || 'Failed to connect to Intervals.icu',
+        title: failedTitle(),
+        description: error.data?.message || p('failed_desc', 'Failed to connect to Intervals.icu'),
         color: 'error'
       })
     } finally {

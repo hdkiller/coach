@@ -3,7 +3,7 @@
 
   const { t } = useTranslate('dashboard')
   const notificationStore = useNotificationStore()
-  const { notifications, unreadCount, loading } = storeToRefs(notificationStore)
+  const { notifications, unreadCount, loading, error } = storeToRefs(notificationStore)
   useUserRuns()
 
   const isOpen = ref(false)
@@ -12,8 +12,8 @@
     notificationStore.fetchNotifications()
   })
 
-  function handleNotificationClick(notification: any) {
-    notificationStore.markAsRead(notification.id)
+  async function handleNotificationClick(notification: any) {
+    await notificationStore.markAsRead(notification.id)
     if (notification.link) {
       navigateTo(notification.link)
       isOpen.value = false
@@ -62,11 +62,33 @@
         </div>
 
         <div class="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
-          <div v-if="loading && notifications.length === 0" class="p-8 flex justify-center">
+          <div v-if="error" class="p-4">
+            <UAlert
+              color="error"
+              variant="soft"
+              icon="i-heroicons-exclamation-circle"
+              :title="error"
+              description="Could not load notifications."
+            >
+              <template #actions>
+                <UButton
+                  color="error"
+                  variant="soft"
+                  size="xs"
+                  icon="i-heroicons-arrow-path"
+                  @click="notificationStore.fetchNotifications()"
+                >
+                  Retry
+                </UButton>
+              </template>
+            </UAlert>
+          </div>
+
+          <div v-else-if="loading && notifications.length === 0" class="p-8 flex justify-center">
             <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-gray-400" />
           </div>
 
-          <div v-else-if="notifications.length === 0" class="p-12 text-center">
+          <div v-else-if="notifications.length === 0 && !error" class="p-12 text-center">
             <UIcon
               name="i-heroicons-bell-slash"
               class="w-12 h-12 text-gray-200 dark:text-gray-800 mx-auto mb-3"

@@ -24,12 +24,12 @@
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 sm:px-0">
           <div>
             <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-              Strategic Overview
+              {{ tr('index_title', 'Strategic Overview') }}
             </h1>
             <p
               class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
             >
-              Performance Roster & Compliance Control
+              {{ tr('index_subtitle', 'Performance Roster & Compliance Control') }}
             </p>
           </div>
 
@@ -39,7 +39,7 @@
               color="primary"
               variant="solid"
               icon="i-lucide-user-plus"
-              label="Add Athlete"
+              :label="tr('index_add_athlete', 'Add Athlete')"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/coaching/athletes"
@@ -48,7 +48,7 @@
               color="neutral"
               variant="subtle"
               icon="i-lucide-library"
-              label="Workouts"
+              :label="tr('index_workouts', 'Workouts')"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/library/workouts"
@@ -57,7 +57,7 @@
               color="neutral"
               variant="subtle"
               icon="i-lucide-dumbbell"
-              label="Exercises"
+              :label="tr('index_exercises', 'Exercises')"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/library/exercises"
@@ -66,7 +66,7 @@
               color="neutral"
               variant="subtle"
               icon="i-lucide-scroll-text"
-              label="Plans"
+              :label="tr('index_plans', 'Plans')"
               size="sm"
               class="font-bold whitespace-nowrap"
               to="/library/plans"
@@ -90,11 +90,23 @@
           <div class="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full inline-block mb-4">
             <UIcon name="i-heroicons-users" class="w-12 h-12 text-neutral-400" />
           </div>
-          <h3 class="text-xl font-bold">Connect Your First Athlete</h3>
+          <h3 class="text-xl font-bold">
+            {{ tr('index_empty_title', 'Connect Your First Athlete') }}
+          </h3>
           <p class="text-neutral-500 max-w-sm mx-auto mb-6">
-            Connecting athletes allows you to track their weekly compliance and live activity feed.
+            {{
+              tr(
+                'index_empty_desc',
+                'Connecting athletes allows you to track their weekly compliance and live activity feed.'
+              )
+            }}
           </p>
-          <UButton color="primary" size="lg" to="/coaching/athletes" label="Go to Athletes" />
+          <UButton
+            color="primary"
+            size="lg"
+            to="/coaching/athletes"
+            :label="tr('index_empty_cta', 'Go to Athletes')"
+          />
         </div>
 
         <!-- 2. Main Strategic Grid -->
@@ -118,13 +130,13 @@
           <div class="space-y-4">
             <div class="flex items-center justify-between px-4 sm:px-0">
               <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-                Your Roster
+                {{ tr('index_roster_title', 'Your Roster') }}
               </h2>
               <UButton
                 variant="link"
                 color="primary"
                 to="/coaching/athletes"
-                label="Manage Roster"
+                :label="tr('index_manage_roster', 'Manage Roster')"
                 icon="i-heroicons-arrow-right"
                 trailing
               />
@@ -167,16 +179,29 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('coaching')
+  const tr = (key: string, fallback: string) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key)
+    return translated === key ? fallback : translated
+  }
+
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Coach Dashboard | Coaching',
+    title: () => tr('index_meta_title', 'Coach Dashboard | Coaching'),
     meta: [
       {
         name: 'description',
-        content: 'Strategic overview of your athletes performance and compliance.'
+        content: () =>
+          tr(
+            'index_meta_description',
+            'Strategic overview of your athletes performance and compliance.'
+          )
       }
     ]
   })

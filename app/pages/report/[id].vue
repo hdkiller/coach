@@ -10,10 +10,11 @@
             variant="ghost"
             to="/reports"
             size="sm"
+            :aria-label="tr('back_aria', 'Back to reports')"
           />
           <USeparator orientation="vertical" class="h-4" />
           <span class="text-sm sm:text-base font-semibold truncate max-w-[120px] sm:max-w-none">{{
-            reportTitle || 'Report'
+            reportTitle || tr('default_title', 'Report')
           }}</span>
         </template>
       </UDashboardNavbar>
@@ -70,8 +71,13 @@
             v-if="report.status === 'PROCESSING'"
             color="info"
             icon="i-heroicons-arrow-path"
-            title="Generating Report"
-            description="Your AI coach is analyzing your training data. This may take a few moments..."
+            :title="tr('generating_title', 'Generating Report')"
+            :description="
+              tr(
+                'generating_desc',
+                'Your AI coach is analyzing your training data. This may take a few moments...'
+              )
+            "
             class="mb-6"
           />
 
@@ -79,8 +85,8 @@
             v-else-if="report.status === 'FAILED'"
             color="error"
             icon="i-heroicons-exclamation-triangle"
-            title="Report Generation Failed"
-            description="Unable to generate report. Please try again."
+            :title="tr('failed_title', 'Report Generation Failed')"
+            :description="tr('failed_desc', 'Unable to generate report. Please try again.')"
             class="mb-6"
           />
 
@@ -89,7 +95,7 @@
             <!-- Quick Take / Executive Summary -->
             <UCard>
               <template #header>
-                <h3 class="text-xl font-semibold">Quick Take</h3>
+                <h3 class="text-xl font-semibold">{{ tr('quick_take', 'Quick Take') }}</h3>
               </template>
               <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
                 {{ report.analysisJson.executive_summary }}
@@ -102,7 +108,9 @@
               <UCard v-if="report.analysisJson.current_fitness">
                 <template #header>
                   <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-semibold">Current Fitness</h3>
+                    <h3 class="text-xl font-semibold">
+                      {{ tr('current_fitness', 'Current Fitness') }}
+                    </h3>
                     <UBadge
                       :color="
                         getStatusBadgeColor(report.analysisJson.current_fitness.status) as any
@@ -132,19 +140,25 @@
               <!-- Training Characteristics -->
               <UCard v-if="report.analysisJson.training_characteristics">
                 <template #header>
-                  <h3 class="text-xl font-semibold">Training Characteristics</h3>
+                  <h3 class="text-xl font-semibold">
+                    {{ tr('training_characteristics', 'Training Characteristics') }}
+                  </h3>
                 </template>
 
                 <div class="space-y-4">
                   <div v-if="report.analysisJson.training_characteristics.training_style">
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Training Style</h4>
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">
+                      {{ tr('training_style', 'Training Style') }}
+                    </h4>
                     <p class="text-gray-700 dark:text-gray-300">
                       {{ report.analysisJson.training_characteristics.training_style }}
                     </p>
                   </div>
 
                   <div v-if="report.analysisJson.training_characteristics.strengths?.length">
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Strengths</h4>
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">
+                      {{ tr('strengths', 'Strengths') }}
+                    </h4>
                     <div class="space-y-2">
                       <div
                         v-for="(strength, idx) in report.analysisJson.training_characteristics
@@ -167,7 +181,7 @@
                     "
                   >
                     <h4 class="font-semibold text-gray-900 dark:text-white mb-2">
-                      Areas for Development
+                      {{ tr('areas_for_development', 'Areas for Development') }}
                     </h4>
                     <div class="space-y-2">
                       <div
@@ -190,7 +204,9 @@
               <!-- Recovery Profile -->
               <UCard v-if="report.analysisJson.recovery_profile">
                 <template #header>
-                  <h3 class="text-xl font-semibold">Recovery Profile</h3>
+                  <h3 class="text-xl font-semibold">
+                    {{ tr('recovery_profile', 'Recovery Profile') }}
+                  </h3>
                 </template>
 
                 <div class="space-y-4">
@@ -241,7 +257,9 @@
               <!-- Nutrition Profile -->
               <UCard v-if="report.analysisJson.nutrition_profile">
                 <template #header>
-                  <h3 class="text-xl font-semibold">Nutrition Profile</h3>
+                  <h3 class="text-xl font-semibold">
+                    {{ tr('nutrition_profile', 'Nutrition Profile') }}
+                  </h3>
                 </template>
 
                 <div class="space-y-4">
@@ -297,7 +315,9 @@
               <UCard v-if="report.analysisJson.recent_performance">
                 <template #header>
                   <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-semibold">Recent Performance</h3>
+                    <h3 class="text-xl font-semibold">
+                      {{ tr('recent_performance', 'Recent Performance') }}
+                    </h3>
                     <UBadge
                       :color="
                         getTrendBadgeColor(report.analysisJson.recent_performance.trend) as any
@@ -358,7 +378,9 @@
               <!-- Planning Context -->
               <UCard v-if="report.analysisJson.planning_context">
                 <template #header>
-                  <h3 class="text-xl font-semibold">Planning Context</h3>
+                  <h3 class="text-xl font-semibold">
+                    {{ tr('planning_context', 'Planning Context') }}
+                  </h3>
                 </template>
 
                 <div class="space-y-4">
@@ -411,7 +433,7 @@
                 <template #header>
                   <h3 class="text-xl font-semibold flex items-center gap-2">
                     <UIcon name="i-heroicons-light-bulb" class="w-6 h-6" />
-                    Recommendations Summary
+                    {{ tr('recommendations_summary', 'Recommendations Summary') }}
                   </h3>
                 </template>
 
@@ -492,7 +514,7 @@
               <template #header>
                 <h3 class="text-xl font-semibold flex items-center gap-2">
                   <UIcon name="i-heroicons-light-bulb" class="w-6 h-6" />
-                  Recommendations
+                  {{ tr('recommendations', 'Recommendations') }}
                 </h3>
               </template>
 
@@ -517,7 +539,9 @@
             <!-- Metrics Summary -->
             <UCard v-if="report.analysisJson.metrics_summary">
               <template #header>
-                <h3 class="text-xl font-semibold">Metrics Summary</h3>
+                <h3 class="text-xl font-semibold">
+                  {{ tr('metrics_summary', 'Metrics Summary') }}
+                </h3>
               </template>
 
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -589,7 +613,11 @@
             <template #header>
               <h3 class="text-xl font-semibold flex items-center gap-2">
                 <UIcon name="i-heroicons-cake" class="w-6 h-6" />
-                Nutrition Days Analyzed ({{ report.nutrition.length }})
+                {{
+                  tr('nutrition_days_analyzed', 'Nutrition Days Analyzed ({count})', {
+                    count: report.nutrition.length
+                  })
+                }}
               </h3>
             </template>
 
@@ -642,7 +670,11 @@
             <template #header>
               <h3 class="text-xl font-semibold flex items-center gap-2">
                 <UIcon name="i-heroicons-list-bullet" class="w-6 h-6" />
-                Workouts Analyzed ({{ report.workouts.length }})
+                {{
+                  tr('workouts_analyzed', 'Workouts Analyzed ({count})', {
+                    count: report.workouts.length
+                  })
+                }}
               </h3>
             </template>
 
@@ -684,7 +716,7 @@
             <template #header>
               <h3 class="text-xl font-semibold flex items-center gap-2">
                 <UIcon name="i-heroicons-light-bulb" class="w-6 h-6" />
-                Today's Coaching Suggestion
+                {{ tr('coaching_suggestion', "Today's Coaching Suggestion") }}
               </h3>
             </template>
 
@@ -722,7 +754,7 @@
             <div class="flex gap-4">
               <UButton color="neutral" variant="outline" @click="handlePrint">
                 <UIcon name="i-heroicons-printer" class="w-4 h-4 mr-2" />
-                Print / Save as PDF
+                {{ tr('print_pdf', 'Print / Save as PDF') }}
               </UButton>
 
               <UButton
@@ -732,7 +764,7 @@
                 disabled
               >
                 <UIcon name="i-heroicons-share" class="w-4 h-4 mr-2" />
-                Share (Coming Soon)
+                {{ tr('share_coming_soon', 'Share (Coming Soon)') }}
               </UButton>
             </div>
 
@@ -746,8 +778,10 @@
         </div>
 
         <div v-else class="text-center py-20">
-          <p class="text-gray-600 dark:text-gray-400">Report not found</p>
-          <UButton to="/reports" class="mt-4"> Back to Reports </UButton>
+          <p class="text-gray-600 dark:text-gray-400">{{ tr('not_found', 'Report not found') }}</p>
+          <UButton to="/reports" class="mt-4">{{
+            tr('back_to_reports', 'Back to Reports')
+          }}</UButton>
         </div>
       </div>
     </template>
@@ -760,6 +794,7 @@
   const route = useRoute()
   const { formatDate: baseFormatDate, formatDateTime, formatShortDate } = useFormat()
   const userStore = useUserStore()
+  const { tr } = useReportI18n()
   const reportId = route.params.id as string
 
   function formatDistance(meters: number): string {
@@ -830,15 +865,15 @@
   const reportTitle = computed(() => {
     if (!report.value) return ''
     const titles: Record<string, string> = {
-      WEEKLY_ANALYSIS: 'Weekly Training Analysis',
-      LAST_3_WORKOUTS: 'Last 3 Workouts Analysis',
-      LAST_3_NUTRITION: 'Last 3 Days Nutrition Analysis',
-      LAST_7_NUTRITION: 'Weekly Nutrition Analysis',
-      RACE_PREP: 'Race Preparation Report',
-      DAILY_SUGGESTION: 'Daily Coaching Brief',
-      CUSTOM: 'Custom Report'
+      WEEKLY_ANALYSIS: tr('type_weekly_analysis', 'Weekly Training Analysis'),
+      LAST_3_WORKOUTS: tr('type_last_3_workouts', 'Last 3 Workouts Analysis'),
+      LAST_3_NUTRITION: tr('type_last_3_nutrition', 'Last 3 Days Nutrition Analysis'),
+      LAST_7_NUTRITION: tr('type_last_7_nutrition', 'Weekly Nutrition Analysis'),
+      RACE_PREP: tr('type_race_prep', 'Race Preparation Report'),
+      DAILY_SUGGESTION: tr('type_daily_suggestion', 'Daily Coaching Brief'),
+      CUSTOM: tr('type_custom', 'Custom Report')
     }
-    return titles[report.value.type] || 'Report'
+    return titles[report.value.type] || tr('default_title', 'Report')
   })
 
   const statusColor = computed(() => {
@@ -902,10 +937,10 @@
 
   const getActionText = (action: string) => {
     const texts: Record<string, string> = {
-      proceed: '✅ Proceed as Planned',
-      modify: '🔄 Modify Workout',
-      reduce_intensity: '📉 Reduce Intensity',
-      rest: '🛌 Rest Day Recommended'
+      proceed: tr('action_proceed', '✅ Proceed as Planned'),
+      modify: tr('action_modify', '🔄 Modify Workout'),
+      reduce_intensity: tr('action_reduce_intensity', '📉 Reduce Intensity'),
+      rest: tr('action_rest', '🛌 Rest Day Recommended')
     }
     return texts[action] || action
   }
@@ -915,12 +950,19 @@
   }
 
   useHead(() => {
+    const title = reportTitle.value || tr('default_title', 'Report')
     return {
-      title: reportTitle.value || 'Report',
+      title,
       meta: [
         {
           name: 'description',
-          content: `Detailed training analysis and coaching insights for ${reportTitle.value}.`
+          content: tr(
+            'meta_description',
+            'Detailed training analysis and coaching insights for {title}.',
+            {
+              title
+            }
+          )
         }
       ]
     }

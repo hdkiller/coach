@@ -152,6 +152,8 @@
   "measurements_toast_delete_failed_title": "Delete Failed",
   "measurements_toast_deleted_desc": "The incorrect entry has been removed from history.",
   "measurements_toast_deleted_title": "Measurement Deleted",
+  "measurements_toast_load_failed_desc": "Could not load measurement history.",
+  "measurements_toast_load_failed_title": "Load Failed",
   "measurements_toast_missing_edit_value_desc": "Enter a value before saving your edit.",
   "measurements_toast_missing_name_desc": "Enter a custom measurement name before saving.",
   "measurements_toast_missing_name_title": "Missing Name",

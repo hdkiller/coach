@@ -3,7 +3,12 @@
     <template #header>
       <UDashboardNavbar>
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" to="/activities">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            color="neutral"
+            variant="ghost"
+            to="/nutrition/history"
+          >
             Back
           </UButton>
         </template>

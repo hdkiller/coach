@@ -1,8 +1,13 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    title="Daily Coach Check-In"
-    description="Answer a few quick questions so your coach can adapt today's guidance."
+    :title="tr('daily_checkin_title', 'Daily Coach Check-In')"
+    :description="
+      tr(
+        'daily_checkin_description',
+        'Answer a few quick questions so your coach can adapt today\'s guidance.'
+      )
+    "
   >
     <template #body>
       <div class="space-y-4">
@@ -12,7 +17,9 @@
           class="flex items-center justify-center gap-2 text-primary-500 bg-primary-50 dark:bg-primary-900/10 p-2 rounded-md mb-2"
         >
           <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 animate-spin" />
-          <span class="text-xs font-medium">Refreshing check-in...</span>
+          <span class="text-xs font-medium">{{
+            tr('daily_checkin_refreshing', 'Refreshing check-in...')
+          }}</span>
         </div>
 
         <div
@@ -39,7 +46,7 @@
 
           <UButton
             v-if="showManualRefresh"
-            label="Taking too long? Click to retry"
+            :label="tr('daily_checkin_retry_label', 'Taking too long? Click to retry')"
             variant="link"
             size="xs"
             color="neutral"
@@ -52,9 +59,13 @@
             name="i-heroicons-exclamation-circle"
             class="w-10 h-10 text-red-500 mx-auto mb-2"
           />
-          <p class="text-red-500">{{ error || checkin?.error || 'Generation failed' }}</p>
+          <p class="text-red-500">
+            {{
+              error || checkin?.error || tr('daily_checkin_generation_failed', 'Generation failed')
+            }}
+          </p>
           <UButton
-            label="Try Again"
+            :label="tr('daily_checkin_try_again', 'Try Again')"
             color="error"
             variant="soft"
             class="mt-4"
@@ -70,10 +81,15 @@
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-sm font-semibold text-teal-900 dark:text-teal-100">
-                  Today's submission
+                  {{ tr('daily_checkin_today_submission', "Today's submission") }}
                 </p>
                 <p class="mt-1 text-xs text-teal-800/80 dark:text-teal-200/80">
-                  Edit your answers here, or delete this entry if it was submitted by mistake.
+                  {{
+                    tr(
+                      'daily_checkin_today_submission_desc',
+                      'Edit your answers here, or delete this entry if it was submitted by mistake.'
+                    )
+                  }}
                 </p>
               </div>
               <UButton
@@ -85,7 +101,7 @@
                 :loading="deleting"
                 @click="deleteCheckin"
               >
-                Delete
+                {{ tr('daily_checkin_delete', 'Delete') }}
               </UButton>
             </div>
             <ul
@@ -95,7 +111,7 @@
               <li v-for="entry in completedAnswersSummary" :key="entry">{{ entry }}</li>
             </ul>
             <p v-if="userNotes" class="mt-3 text-sm text-teal-900 dark:text-teal-100">
-              Notes: {{ userNotes }}
+              {{ tr('daily_checkin_notes_prefix', 'Notes:') }} {{ userNotes }}
             </p>
           </div>
 
@@ -132,6 +148,7 @@
                 variant="ghost"
                 size="xs"
                 class="-mr-1 -mt-1"
+                :aria-label="tr('daily_checkin_remove_question', 'Remove question')"
                 @click.stop="removeQuestion(q.id)"
               />
             </div>
@@ -144,7 +161,7 @@
               <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div class="flex-1 leading-relaxed">
                 <span class="font-medium text-gray-900 dark:text-gray-200 block mb-0.5">
-                  Coach's Reasoning
+                  {{ tr('daily_checkin_coach_reasoning', "Coach's Reasoning") }}
                 </span>
                 {{ q.reasoning }}
               </div>
@@ -156,8 +173,8 @@
                 :name="q.id"
                 orientation="horizontal"
                 :items="[
-                  { label: 'Yes', value: 'YES' },
-                  { label: 'No', value: 'NO' }
+                  { label: tr('daily_checkin_answer_yes', 'Yes'), value: 'YES' },
+                  { label: tr('daily_checkin_answer_no', 'No'), value: 'NO' }
                 ]"
               />
             </div>
@@ -167,11 +184,16 @@
           <UCard :ui="{ body: 'p-3 sm:p-6' }">
             <div class="space-y-3">
               <label class="text-sm font-medium text-gray-900 dark:text-white block">
-                Do you have anything to share?
+                {{ tr('daily_checkin_share_label', 'Do you have anything to share?') }}
               </label>
               <UTextarea
                 v-model="userNotes"
-                placeholder="E.g., I feel tired today, I think I have the flu, etc."
+                :placeholder="
+                  tr(
+                    'daily_checkin_share_placeholder',
+                    'E.g., I feel tired today, I think I have the flu, etc.'
+                  )
+                "
                 :rows="4"
                 autoresize
                 class="w-full"
@@ -191,8 +213,15 @@
         </div>
 
         <div v-else class="text-center py-8">
-          <p class="text-gray-500">No questions available.</p>
-          <UButton label="Generate" color="primary" class="mt-4" @click="generate(true)" />
+          <p class="text-gray-500">
+            {{ tr('daily_checkin_no_questions', 'No questions available.') }}
+          </p>
+          <UButton
+            :label="tr('daily_checkin_generate', 'Generate')"
+            color="primary"
+            class="mt-4"
+            @click="generate(true)"
+          />
         </div>
 
         <div
@@ -202,10 +231,15 @@
           <div class="flex items-center justify-between gap-2">
             <div>
               <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-                Recent Check-ins
+                {{ tr('daily_checkin_recent_header', 'Recent Check-ins') }}
               </p>
               <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                Your last submitted check-ins stay visible here so they are not write-only.
+                {{
+                  tr(
+                    'daily_checkin_recent_desc',
+                    'Your last submitted check-ins stay visible here so they are not write-only.'
+                  )
+                }}
               </p>
             </div>
             <UButton
@@ -215,7 +249,11 @@
               :icon="showRecentCheckins ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
               @click="showRecentCheckins = !showRecentCheckins"
             >
-              {{ showRecentCheckins ? 'Hide' : 'Show' }}
+              {{
+                showRecentCheckins
+                  ? tr('daily_checkin_hide', 'Hide')
+                  : tr('daily_checkin_show', 'Show')
+              }}
             </UButton>
           </div>
           <div v-if="showRecentCheckins" class="mt-4 space-y-3">
@@ -231,11 +269,18 @@
                   {{ formatDateUTC(entry.date, 'EEE, MMM d') }}
                 </p>
                 <span class="text-[10px] uppercase tracking-widest text-gray-400">
-                  {{ summarizeCheckin(entry).length }} answers
+                  {{
+                    tr('daily_checkin_answers_count', '{count} answers', {
+                      count: summarizeCheckin(entry).length
+                    })
+                  }}
                 </span>
               </div>
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{ summarizeCheckin(entry).slice(0, 2).join(' • ') || 'No answers captured' }}
+                {{
+                  summarizeCheckin(entry).slice(0, 2).join(' • ') ||
+                  tr('daily_checkin_no_answers', 'No answers captured')
+                }}
               </p>
             </button>
           </div>
@@ -247,17 +292,19 @@
       <div class="flex justify-between w-full">
         <UButton
           v-if="!loading && !isPending"
-          label="Regenerate"
+          :label="tr('daily_checkin_regenerate', 'Regenerate')"
           color="neutral"
           variant="ghost"
           icon="i-heroicons-arrow-path"
           @click="generate(true)"
         />
         <div class="flex gap-2 ml-auto">
-          <UButton color="neutral" variant="outline" @click="isOpen = false"> Close </UButton>
+          <UButton color="neutral" variant="outline" @click="isOpen = false">
+            {{ tr('daily_checkin_close', 'Close') }}
+          </UButton>
           <UButton
             v-if="localQuestions.length > 0"
-            label="Save Answers"
+            :label="tr('daily_checkin_save', 'Save Answers')"
             color="primary"
             :loading="submitting"
             @click="submit"
@@ -270,6 +317,14 @@
 
 <script setup lang="ts">
   import { useIntervalFn } from '@vueuse/core'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
+  const tr = (key: string, fallback: string, params?: Record<string, any>) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key, params)
+    return translated === key ? fallback : translated
+  }
 
   const props = defineProps<{
     open: boolean
@@ -395,18 +450,18 @@
       userNotes.value = checkin.value.userNotes || ''
       useCheckinStore().currentCheckin = checkin.value
     } else if (checkin.value?.status === 'FAILED') {
-      error.value = 'Generation failed'
+      error.value = tr('daily_checkin_generation_failed', 'Generation failed')
     }
   })
 
   onTaskFailed('generate-daily-checkin', async (run) => {
     loading.value = false
-    error.value = run.error?.message || 'Generation failed'
+    error.value = run.error?.message || tr('daily_checkin_generation_failed', 'Generation failed')
     if (checkin.value) {
       checkin.value = { ...checkin.value, status: 'FAILED' }
     }
     toast.add({
-      title: 'Check-in Failed',
+      title: tr('daily_checkin_failed_toast', 'Check-in Failed'),
       description: error.value,
       color: 'error',
       icon: 'i-heroicons-exclamation-circle'
@@ -483,8 +538,10 @@
     } catch (e: any) {
       const statusCode = e?.statusCode ?? e?.status
       if (statusCode === 429) {
-        error.value =
+        error.value = tr(
+          'daily_checkin_quota_error',
           'You have reached your Daily Coach Check-In quota for your current plan. Try again after your quota resets, or upgrade for more check-ins.'
+        )
         upgradeModal.show({
           title: 'Usage Quota Reached',
           featureTitle: 'Daily Coach Check-In',
@@ -568,7 +625,7 @@
 
   async function deleteCheckin() {
     if (!checkin.value?.id) return
-    if (!window.confirm('Delete this daily check-in?')) return
+    if (!window.confirm(tr('daily_checkin_delete_confirm', 'Delete this daily check-in?'))) return
 
     deleting.value = true
     try {
@@ -581,12 +638,12 @@
       userNotes.value = ''
       await Promise.all([useCheckinStore().fetchToday(), fetchHistory()])
       toast.add({
-        title: 'Daily check-in deleted',
+        title: tr('daily_checkin_deleted_toast', 'Daily check-in deleted'),
         color: 'success'
       })
     } catch (error: any) {
       toast.add({
-        title: 'Unable to delete check-in',
+        title: tr('daily_checkin_delete_failed_toast', 'Unable to delete check-in'),
         description: error?.data?.message || error?.message || 'Please try again.',
         color: 'error'
       })

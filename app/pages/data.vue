@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="data">
     <template #header>
-      <UDashboardNavbar title="Data Management">
+      <UDashboardNavbar :title="tr('data_page_title', 'Data Management')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -16,31 +16,31 @@
         <div class="flex gap-2 overflow-x-auto">
           <UButton variant="ghost" color="neutral" @click="scrollToSection('summary')">
             <UIcon name="i-lucide-bar-chart-3" class="w-4 h-4 mr-2" />
-            Summary
+            {{ tr('data_nav_summary', 'Summary') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('fitness')">
             <UIcon name="i-lucide-heart-pulse" class="w-4 h-4 mr-2" />
-            Fitness
+            {{ tr('data_nav_fitness', 'Fitness') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('planned')">
             <UIcon name="i-lucide-calendar" class="w-4 h-4 mr-2" />
-            Planned
+            {{ tr('data_nav_planned', 'Planned') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('events')">
             <UIcon name="i-lucide-trophy" class="w-4 h-4 mr-2" />
-            Events
+            {{ tr('data_nav_events', 'Events') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('workouts')">
             <UIcon name="i-lucide-bike" class="w-4 h-4 mr-2" />
-            Workouts
+            {{ tr('data_nav_workouts', 'Workouts') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('nutrition')">
             <UIcon name="i-lucide-utensils" class="w-4 h-4 mr-2" />
-            Nutrition
+            {{ tr('data_nav_nutrition', 'Nutrition') }}
           </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('pipeline')">
             <UIcon name="i-lucide-workflow" class="w-4 h-4 mr-2" />
-            Pipeline
+            {{ tr('data_nav_pipeline', 'Pipeline') }}
           </UButton>
         </div>
       </UDashboardToolbar>
@@ -51,48 +51,62 @@
         <!-- Page Header -->
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Data Management</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+              {{ tr('data_page_title', 'Data Management') }}
+            </h1>
             <p class="text-sm text-muted mt-1">
-              View your training data from connected integrations.
+              {{
+                tr('data_page_description', 'View your training data from connected integrations.')
+              }}
             </p>
           </div>
           <UButton to="/settings/apps" color="primary" variant="solid" icon="i-lucide-settings-2">
-            Manage Connections
+            {{ tr('data_manage_connections', 'Manage Connections') }}
           </UButton>
         </div>
 
         <!-- Data Summary -->
         <div id="summary" class="scroll-mt-20" />
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Summary</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            {{ tr('data_summary_title', 'Data Summary') }}
+          </h2>
 
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {{ dataSummary.workouts }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Workouts</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ tr('data_summary_workouts', 'Workouts') }}
+              </div>
             </div>
 
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div class="text-3xl font-bold text-green-600 dark:text-green-400">
                 {{ dataSummary.wellness }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Wellness Entries</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ tr('data_summary_wellness', 'Wellness Entries') }}
+              </div>
             </div>
 
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">
                 {{ dataSummary.plannedWorkouts }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Planned Workouts</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ tr('data_summary_planned', 'Planned Workouts') }}
+              </div>
             </div>
 
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">
                 {{ dataSummary.nutrition }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Nutrition Entries</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ tr('data_summary_nutrition', 'Nutrition Entries') }}
+              </div>
             </div>
           </div>
         </div>
@@ -102,34 +116,51 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Fitness & Recovery Data
+              {{ tr('data_fitness_title', 'Fitness & Recovery Data') }}
             </h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              HRV, sleep, and recovery metrics from WHOOP and Intervals.icu
+              {{
+                tr(
+                  'data_fitness_desc',
+                  'HRV, sleep, and recovery metrics from WHOOP and Intervals.icu'
+                )
+              }}
             </p>
           </div>
 
           <div v-if="loading" class="p-8 text-center text-gray-600 dark:text-gray-400">
-            Loading...
+            {{ tr('data_loading', 'Loading...') }}
           </div>
 
           <div
             v-else-if="fitnessData.length === 0"
             class="p-8 text-center text-gray-600 dark:text-gray-400"
           >
-            No fitness data found. Connect WHOOP and sync data to get started.
+            {{
+              tr(
+                'data_fitness_empty',
+                'No fitness data found. Connect WHOOP and sync data to get started.'
+              )
+            }}
           </div>
 
           <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <caption class="sr-only">
+                {{
+                  tr('data_table_fitness_caption', 'Fitness and recovery metrics')
+                }}
+              </caption>
               <thead class="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th
+                    scope="col"
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
                     Date
                   </th>
                   <th
+                    scope="col"
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
                     Recovery
@@ -494,6 +525,11 @@
 
           <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <caption class="sr-only">
+                {{
+                  tr('data_table_workouts_caption', 'Recent workouts')
+                }}
+              </caption>
               <thead class="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th
@@ -554,8 +590,14 @@
                 <tr
                   v-for="workout in recentWorkouts"
                   :key="workout.id"
+                  tabindex="0"
+                  role="link"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  :aria-label="
+                    tr('data_open_workout', 'Open workout: {title}', { title: workout.title })
+                  "
                   @click="navigateToWorkout(workout.id)"
+                  @keydown="activateRowNavigation($event, () => navigateToWorkout(workout.id))"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(workout.date) }}
@@ -679,6 +721,11 @@
 
           <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <caption class="sr-only">
+                {{
+                  tr('data_table_nutrition_caption', 'Nutrition entries')
+                }}
+              </caption>
               <thead class="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th
@@ -729,8 +776,16 @@
                 <tr
                   v-for="nutrition in nutritionData"
                   :key="nutrition.id"
+                  tabindex="0"
+                  role="link"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  :aria-label="
+                    tr('data_open_nutrition', 'Open nutrition entry for {date}', {
+                      date: formatDate(nutrition.date)
+                    })
+                  "
                   @click="navigateToNutrition(nutrition.id)"
+                  @keydown="activateRowNavigation($event, () => navigateToNutrition(nutrition.id))"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(nutrition.date) }}
@@ -819,19 +874,31 @@
 
 <script setup lang="ts">
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
-
   import { formatDistance as formatDist } from '~/utils/metrics'
+  import { useTranslate, useTolgee } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
+  const tolgee = useTolgee()
+  const tr = (key: string, fallback: string, params?: Record<string, any>) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key, params)
+    return translated === key ? fallback : translated
+  }
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Data Management',
+    title: () => tr('data_page_title', 'Data Management'),
     meta: [
       {
         name: 'description',
-        content: 'Manage your connected integrations, sync data, and view training summaries.'
+        content: () =>
+          tr(
+            'data_page_meta_description',
+            'Manage your connected integrations, sync data, and view training summaries.'
+          )
       }
     ]
   })
@@ -1001,14 +1068,20 @@
 
   // Utility functions
   function formatDate(date: string | Date) {
-    // Parse date in UTC to avoid timezone conversion issues
-    // Database stores dates as YYYY-MM-DD (date-only, no time component)
-    return new Date(date).toLocaleDateString('en-US', {
+    const locale = tolgee.value.getLanguage() || 'en'
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      timeZone: 'UTC' // Force UTC to prevent timezone shifts
+      timeZone: 'UTC'
     })
+  }
+
+  function activateRowNavigation(event: KeyboardEvent, navigate: () => void) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      navigate()
+    }
   }
 
   function formatDuration(seconds: number) {
@@ -1045,12 +1118,12 @@
   }
 
   function getAnalysisStatusLabel(status: string | null | undefined) {
-    if (status === 'COMPLETED') return '✓ Complete'
-    if (status === 'PROCESSING') return '⟳ Processing'
-    if (status === 'PENDING') return '⋯ Pending'
-    if (status === 'FAILED') return '✗ Failed'
-    if (status === 'SKIPPED_EMPTY') return '− Empty'
-    return '− Not Started'
+    if (status === 'COMPLETED') return `✓ ${tr('data_analysis_complete', 'Complete')}`
+    if (status === 'PROCESSING') return `⟳ ${tr('data_analysis_processing', 'Processing')}`
+    if (status === 'PENDING') return `⋯ ${tr('data_analysis_pending', 'Pending')}`
+    if (status === 'FAILED') return `✗ ${tr('data_analysis_failed', 'Failed')}`
+    if (status === 'SKIPPED_EMPTY') return `− ${tr('data_analysis_empty', 'Empty')}`
+    return `− ${tr('data_analysis_not_started', 'Not Started')}`
   }
 
   // Navigate to workout detail page

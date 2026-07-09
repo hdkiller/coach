@@ -22,12 +22,12 @@
       <div class="p-0 sm:p-6 space-y-8">
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            My Team
+            {{ tr('team_title', 'My Team') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Your Personal Coaching & Mentorship Network
+            {{ tr('team_subtitle', 'Your Personal Coaching & Mentorship Network') }}
           </p>
         </div>
 
@@ -40,10 +40,16 @@
         >
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="space-y-1">
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white">Invite a Coach</h3>
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                {{ tr('team_invite_title', 'Invite a Coach') }}
+              </h3>
               <p class="text-sm text-neutral-600 dark:text-neutral-400 max-w-md">
-                Give this code to your coach so they can connect to your account and manage your
-                training.
+                {{
+                  tr(
+                    'team_invite_desc',
+                    'Give this code to your coach so they can connect to your account and manage your training.'
+                  )
+                }}
               </p>
             </div>
 
@@ -301,6 +307,7 @@
 </template>
 
 <script setup lang="ts">
+  const { tr } = useCoachingI18n()
   definePageMeta({
     middleware: 'auth'
   })

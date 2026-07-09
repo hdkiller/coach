@@ -29,6 +29,7 @@ export function useWorkoutTemplateFolders(
   )
   const loading = useState('workout-template-folders:loading', () => false)
   const loaded = useState('workout-template-folders:loaded', () => false)
+  const error = useState<string | null>('workout-template-folders:error', () => null)
 
   const selectedScope = useStorage<FolderScope>(
     `workout-template-folders:scope:${storageKey}`,
@@ -104,6 +105,7 @@ export function useWorkoutTemplateFolders(
 
   async function refreshFolders() {
     loading.value = true
+    error.value = null
     try {
       const response = await ($fetch as any)('/api/library/workout-folders', {
         query: {
@@ -114,6 +116,10 @@ export function useWorkoutTemplateFolders(
       flat.value = response.flat || []
       counts.value = response.counts || { total: 0, unfiled: 0 }
       loaded.value = true
+    } catch (err) {
+      console.error('Failed to load workout folders:', err)
+      error.value = 'Failed to load folders'
+      throw err
     } finally {
       loading.value = false
     }
@@ -173,6 +179,7 @@ export function useWorkoutTemplateFolders(
     counts,
     loading,
     loaded,
+    error,
     selectedScope,
     selectedFolder,
     selectedFolderLabel,

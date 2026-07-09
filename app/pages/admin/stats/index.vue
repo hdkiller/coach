@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  const { tr } = useAdminStatsI18n()
+
   definePageMeta({
     layout: 'admin',
     middleware: ['auth', 'admin']
@@ -74,9 +76,13 @@
   })
 
   useHead({
-    title: 'System Statistics',
+    title: () => tr('meta_title', 'System Statistics'),
     meta: [
-      { name: 'description', content: 'Coach Watts system-wide statistics and AI cost analysis.' }
+      {
+        name: 'description',
+        content: () =>
+          tr('meta_description', 'Coach Watts system-wide statistics and AI cost analysis.')
+      }
     ]
   })
 </script>
@@ -84,7 +90,7 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Application Statistics">
+      <UDashboardNavbar :title="tr('nav_title', 'Application Statistics')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -101,7 +107,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-lucide-users" class="w-8 h-8 text-purple-500" />
-                <span class="font-semibold text-sm">Users</span>
+                <span class="font-semibold text-sm">{{ tr('nav_users', 'Users') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -111,7 +117,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-lucide-brain" class="w-8 h-8 text-emerald-500" />
-                <span class="font-semibold text-sm">LLM Intelligence</span>
+                <span class="font-semibold text-sm">{{ tr('nav_llm', 'LLM Intelligence') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -121,7 +127,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-lucide-webhook" class="w-8 h-8 text-amber-500" />
-                <span class="font-semibold text-sm">Webhooks</span>
+                <span class="font-semibold text-sm">{{ tr('nav_webhooks', 'Webhooks') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -131,7 +137,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-lucide-activity" class="w-8 h-8 text-blue-500" />
-                <span class="font-semibold text-sm">Workouts</span>
+                <span class="font-semibold text-sm">{{ tr('nav_workouts', 'Workouts') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -141,7 +147,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-heroicons-ticket" class="w-8 h-8 text-rose-500" />
-                <span class="font-semibold text-sm">Tickets</span>
+                <span class="font-semibold text-sm">{{ tr('nav_tickets', 'Tickets') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -151,7 +157,7 @@
             >
               <div class="flex flex-col items-center justify-center py-2 gap-2">
                 <UIcon name="i-lucide-code" class="w-8 h-8 text-gray-500" />
-                <span class="font-semibold text-sm">Developers</span>
+                <span class="font-semibold text-sm">{{ tr('nav_developers', 'Developers') }}</span>
               </div>
             </UCard>
           </NuxtLink>
@@ -167,7 +173,7 @@
             <UCard class="bg-blue-50/50 dark:bg-blue-900/10">
               <div class="text-center">
                 <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">
-                  Avg Workouts/Day
+                  {{ tr('kpi_avg_workouts_day', 'Avg Workouts/Day') }}
                 </div>
                 <div class="text-2xl font-bold">
                   {{ stats?.avgWorkoutsPerDay?.toFixed(1) || 0 }}
@@ -177,7 +183,7 @@
             <UCard class="bg-purple-50/50 dark:bg-purple-900/10">
               <div class="text-center">
                 <div class="text-xs font-bold text-purple-500 uppercase tracking-widest mb-1">
-                  Users Joined (30d)
+                  {{ tr('kpi_users_joined_30d', 'Users Joined (30d)') }}
                 </div>
                 <div class="text-2xl font-bold">{{ stats?.totalUsersLast30Days || 0 }}</div>
               </div>
@@ -185,7 +191,7 @@
             <UCard class="bg-emerald-50/50 dark:bg-emerald-900/10">
               <div class="text-center">
                 <div class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">
-                  Avg AI Cost/Call
+                  {{ tr('kpi_avg_ai_cost', 'Avg AI Cost/Call') }}
                 </div>
                 <div class="text-2xl font-bold">
                   ${{ stats?.avgAiCostPerCall?.toFixed(4) || 0 }}
@@ -195,7 +201,7 @@
             <UCard class="bg-amber-50/50 dark:bg-amber-900/10">
               <div class="text-center">
                 <div class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-1">
-                  Success Rate
+                  {{ tr('kpi_success_rate', 'Success Rate') }}
                 </div>
                 <div class="text-2xl font-bold">{{ stats?.aiSuccessRate?.toFixed(1) || 0 }}%</div>
               </div>
@@ -203,7 +209,7 @@
             <UCard class="bg-purple-50/50 dark:bg-purple-900/10">
               <div class="text-center">
                 <div class="text-xs font-bold text-purple-500 uppercase tracking-widest mb-1">
-                  Total AI Calls
+                  {{ tr('kpi_total_ai_calls', 'Total AI Calls') }}
                 </div>
                 <div class="text-2xl font-bold">{{ stats?.totalAiCalls || 0 }}</div>
               </div>
@@ -215,8 +221,12 @@
             <UCard>
               <template #header>
                 <div class="flex justify-between items-center">
-                  <h2 class="text-lg font-bold uppercase tracking-tight">Workouts Per Day</h2>
-                  <span class="text-xs text-gray-500">Last 30 Days</span>
+                  <h2 class="text-lg font-bold uppercase tracking-tight">
+                    {{ tr('chart_workouts_per_day', 'Workouts Per Day') }}
+                  </h2>
+                  <span class="text-xs text-gray-500">{{
+                    tr('chart_last_30_days', 'Last 30 Days')
+                  }}</span>
                 </div>
               </template>
               <div class="h-64">
@@ -233,7 +243,12 @@
                     <div
                       class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10"
                     >
-                      {{ day.date }}: {{ day.count }} workouts
+                      {{
+                        tr('chart_workouts_tooltip', '{date}: {count} workouts', {
+                          date: day.date,
+                          count: day.count
+                        })
+                      }}
                     </div>
                   </div>
                 </div>
@@ -243,8 +258,12 @@
             <UCard>
               <template #header>
                 <div class="flex justify-between items-center">
-                  <h2 class="text-lg font-bold uppercase tracking-tight">AI Cost Trends</h2>
-                  <span class="text-xs text-gray-500">Last 30 Days</span>
+                  <h2 class="text-lg font-bold uppercase tracking-tight">
+                    {{ tr('chart_ai_cost_trends', 'AI Cost Trends') }}
+                  </h2>
+                  <span class="text-xs text-gray-500">{{
+                    tr('chart_last_30_days', 'Last 30 Days')
+                  }}</span>
                 </div>
               </template>
               <div class="h-64">
@@ -272,8 +291,12 @@
             <UCard>
               <template #header>
                 <div class="flex justify-between items-center">
-                  <h2 class="text-lg font-bold uppercase tracking-tight">New Users Per Day</h2>
-                  <span class="text-xs text-gray-500">Last 30 Days</span>
+                  <h2 class="text-lg font-bold uppercase tracking-tight">
+                    {{ tr('chart_new_users_per_day', 'New Users Per Day') }}
+                  </h2>
+                  <span class="text-xs text-gray-500">{{
+                    tr('chart_last_30_days', 'Last 30 Days')
+                  }}</span>
                 </div>
               </template>
               <div class="h-64">
@@ -289,7 +312,12 @@
                     <div
                       class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10"
                     >
-                      {{ day.date }}: {{ day.count }} users
+                      {{
+                        tr('chart_users_tooltip', '{date}: {count} users', {
+                          date: day.date,
+                          count: day.count
+                        })
+                      }}
                     </div>
                   </div>
                 </div>
@@ -299,8 +327,12 @@
             <UCard>
               <template #header>
                 <div class="flex justify-between items-center">
-                  <h2 class="text-lg font-bold uppercase tracking-tight">Active Users Per Day</h2>
-                  <span class="text-xs text-gray-500">Last 30 Days</span>
+                  <h2 class="text-lg font-bold uppercase tracking-tight">
+                    {{ tr('chart_active_users_per_day', 'Active Users Per Day') }}
+                  </h2>
+                  <span class="text-xs text-gray-500">{{
+                    tr('chart_last_30_days', 'Last 30 Days')
+                  }}</span>
                 </div>
               </template>
               <div class="h-64">
@@ -316,7 +348,12 @@
                     <div
                       class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10"
                     >
-                      {{ day.date }}: {{ day.count }} active
+                      {{
+                        tr('chart_active_tooltip', '{date}: {count} active', {
+                          date: day.date,
+                          count: day.count
+                        })
+                      }}
                     </div>
                   </div>
                 </div>

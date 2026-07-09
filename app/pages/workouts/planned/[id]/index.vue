@@ -583,16 +583,35 @@
             class="w-16 h-16 text-red-500 mx-auto mb-4"
           />
           <h3 class="text-xl font-semibold mb-2">
-            {{ loadError?.statusCode === 403 ? 'Access Denied' : 'Workout Not Found' }}
+            {{
+              loadError?.statusCode === 403
+                ? 'Access Denied'
+                : loadError?.statusCode === 404
+                  ? 'Workout Not Found'
+                  : loadError
+                    ? 'Failed to Load Workout'
+                    : 'Workout Not Found'
+            }}
           </h3>
           <p class="text-muted mb-4">
             {{
               loadError?.statusCode === 403
                 ? "You don't have permission to view this planned workout."
-                : "The planned workout you're looking for doesn't exist."
+                : loadError?.statusCode === 404
+                  ? "The planned workout you're looking for doesn't exist."
+                  : loadError?.message || 'Something went wrong while loading this workout.'
             }}
           </p>
-          <UButton color="primary" @click="goBack">Go Back</UButton>
+          <div class="flex items-center justify-center gap-3">
+            <UButton
+              v-if="loadError && loadError.statusCode !== 404"
+              color="primary"
+              @click="fetchWorkout"
+            >
+              Retry
+            </UButton>
+            <UButton color="neutral" variant="outline" @click="goBack">Go Back</UButton>
+          </div>
         </div>
       </div>
     </template>
@@ -625,8 +644,7 @@
           <pre
             v-else
             class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-            >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre
-          >
+            >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre>
           <div class="flex justify-end">
             <UButton
               size="xs"
@@ -644,8 +662,7 @@
         <div v-else class="space-y-3">
           <pre
             class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
-            >{{ plannedWorkoutRawJson }}</pre
-          >
+            >{{ plannedWorkoutRawJson }}</pre>
           <div class="flex justify-end">
             <UButton
               size="xs"

@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen" class="sm:max-w-2xl" title="Dialog">
+  <UModal v-model:open="isOpen" class="sm:max-w-2xl" title="Wellness Overview">
     <template #header>
       <div class="flex w-full items-start justify-between gap-6">
         <div class="min-w-0">

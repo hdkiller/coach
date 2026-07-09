@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Fitbit">
+      <UDashboardNavbar :title="p('title', 'Connect Fitbit')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,14 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Fitbit</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Fitbit') }}</h2>
                 <p class="text-sm text-muted">
-                  Connect your Fitbit account to sync nutrition, sleep, and heart-rate trends.
+                  {{
+                    p(
+                      'subtitle',
+                      'Connect your Fitbit account to sync nutrition, sleep, and heart-rate trends.'
+                    )
+                  }}
                 </p>
               </div>
             </div>
@@ -53,7 +58,7 @@
                 />
                 <div class="text-sm">
                   <p class="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    Secure OAuth Connection
+                    {{ secureOAuthTitle() }}
                   </p>
                   <p class="text-blue-700 dark:text-blue-300">
                     You'll be redirected to Fitbit's secure login page. We never see your password.
@@ -84,9 +89,11 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/settings/apps" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/settings/apps" color="neutral" variant="outline">{{
+                cancel()
+              }}</UButton>
               <UButton :loading="connecting" color="primary" @click="connect">
-                Connect Fitbit
+                {{ p('button', 'Connect Fitbit') }}
               </UButton>
             </div>
           </template>
@@ -99,17 +106,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, secureOAuthTitle } = useConnectI18n('fitbit')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Fitbit',
+    title: () => p('title', 'Connect Fitbit'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Fitbit account to sync nutrition, sleep, and heart-rate trends.'
+        content: () =>
+          p('meta', 'Connect your Fitbit account to sync nutrition, sleep, and heart-rate trends.')
       }
     ]
   })
@@ -126,8 +135,8 @@
       window.location.href = '/api/integrations/fitbit/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to initiate Fitbit connection',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to initiate Fitbit connection'),
         color: 'error'
       })
       connecting.value = false

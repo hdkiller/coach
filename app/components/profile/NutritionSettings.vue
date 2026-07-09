@@ -1367,6 +1367,7 @@
   )
 
   async function saveSettings() {
+    const previousNutritionTrackingEnabled = localSettings.value.nutritionTrackingEnabled
     loading.value = true
     try {
       const payload = {
@@ -1397,6 +1398,7 @@
       emit('update:settings', response?.settings || localSettings.value)
       emit('saved')
     } catch (err: any) {
+      localSettings.value.nutritionTrackingEnabled = previousNutritionTrackingEnabled
       toast.add({
         title: t.value('nutrition_toast_save_failed_title'),
         description: err.data?.message || err.message,

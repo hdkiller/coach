@@ -35,5 +35,10 @@ Sentry.init({
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
-  environment: process.env.NODE_ENV || 'development'
+  environment: process.env.NODE_ENV || 'development',
+
+  ignoreErrors: [
+    'Object Not Found Matching Id:2, MethodName:update',
+    'Object Not Found Matching Id:3, MethodName:update'
+  ]
 })

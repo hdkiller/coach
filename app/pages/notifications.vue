@@ -4,7 +4,7 @@
   })
 
   const notificationStore = useNotificationStore()
-  const { notifications, loading, total, unreadCount } = storeToRefs(notificationStore)
+  const { notifications, loading, total, unreadCount, error } = storeToRefs(notificationStore)
 
   const page = ref(1)
   const limit = 20
@@ -25,8 +25,8 @@
     await notificationStore.markAllAsRead()
   }
 
-  function handleNotificationClick(n: any) {
-    handleMarkRead(n.id)
+  async function handleNotificationClick(n: any) {
+    await handleMarkRead(n.id)
     if (n.link) {
       navigateTo(n.link)
     }
@@ -67,11 +67,33 @@
 
     <template #body>
       <div class="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="soft"
+          icon="i-heroicons-exclamation-circle"
+          :title="error"
+          description="Notifications could not be loaded."
+          class="mb-4"
+        >
+          <template #actions>
+            <UButton
+              color="error"
+              variant="soft"
+              size="xs"
+              icon="i-heroicons-arrow-path"
+              @click="notificationStore.fetchNotifications(page, limit)"
+            >
+              Retry
+            </UButton>
+          </template>
+        </UAlert>
+
         <div v-if="loading && notifications.length === 0" class="flex flex-col gap-4">
           <USkeleton v-for="i in 5" :key="i" class="h-24 w-full rounded-xl" />
         </div>
 
-        <div v-else-if="notifications.length === 0" class="py-24 text-center">
+        <div v-else-if="notifications.length === 0 && !error" class="py-24 text-center">
           <UIcon
             name="i-heroicons-bell-slash"
             class="w-16 h-16 text-gray-200 dark:text-gray-800 mx-auto mb-4"

@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Wahoo">
+      <UDashboardNavbar :title="p('title', 'Connect Wahoo')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,9 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Wahoo</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Wahoo') }}</h2>
                 <p class="text-sm text-muted">
-                  Sync your workouts and training plans with Wahoo Cloud.
+                  {{ p('subtitle', 'Sync your workouts and training plans with Wahoo Cloud.') }}
                 </p>
               </div>
             </div>
@@ -51,7 +51,7 @@
                   class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
                 />
                 <div class="text-sm text-blue-900 dark:text-blue-200">
-                  <p class="font-medium mb-1">OAuth Authorization</p>
+                  <p class="font-medium mb-1">{{ oauthTitle() }}</p>
                   <p>
                     You'll be redirected to Wahoo Cloud to authorize access. This enables
                     bidirectional sync between Coach Watts and your Wahoo ELEMNT.
@@ -63,9 +63,9 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
               <UButton :loading="connecting" icon="i-heroicons-bolt" @click="connect">
-                Connect with Wahoo
+                {{ p('button', 'Connect with Wahoo') }}
               </UButton>
             </div>
           </template>
@@ -78,17 +78,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, oauthTitle } = useConnectI18n('wahoo')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Wahoo',
+    title: () => p('title', 'Connect Wahoo'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Wahoo account to sync activities and planned workouts.'
+        content: () =>
+          p('meta', 'Connect your Wahoo account to sync activities and planned workouts.')
       }
     ]
   })
@@ -105,8 +107,8 @@
       window.location.href = '/api/integrations/wahoo/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to connect to Wahoo',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to connect to Wahoo'),
         color: 'error'
       })
       connecting.value = false

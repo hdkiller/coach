@@ -29,6 +29,9 @@ import enPerformance from '../i18n/en/performance.json'
 import enFitness from '../i18n/en/fitness.json'
 import enSettings from '../i18n/en/settings.json'
 import enIntegrations from '../i18n/en/integrations.json'
+import enCoaching from '../i18n/en/coaching.json'
+import enReport from '../i18n/en/report.json'
+import enAdminStats from '../i18n/en/admin-stats.json'
 
 import esCommon from '../i18n/es/common.json'
 import esDashboard from '../i18n/es/dashboard.json'
@@ -57,6 +60,9 @@ import esPerformance from '../i18n/es/performance.json'
 import esFitness from '../i18n/es/fitness.json'
 import esSettings from '../i18n/es/settings.json'
 import esIntegrations from '../i18n/es/integrations.json'
+import esCoaching from '../i18n/es/coaching.json'
+import esReport from '../i18n/es/report.json'
+import esAdminStats from '../i18n/es/admin-stats.json'
 
 import huCommon from '../i18n/hu/common.json'
 import huDashboard from '../i18n/hu/dashboard.json'
@@ -380,6 +386,9 @@ export default defineNuxtPlugin((nuxtApp) => {
       'en:fitness': enFitness,
       'en:settings': enSettings,
       'en:integrations': enIntegrations,
+      'en:coaching': enCoaching,
+      'en:report': enReport,
+      'en:admin-stats': enAdminStats,
 
       'es:common': esCommon,
       'es:dashboard': esDashboard,
@@ -408,6 +417,9 @@ export default defineNuxtPlugin((nuxtApp) => {
       'es:fitness': esFitness,
       'es:settings': esSettings,
       'es:integrations': esIntegrations,
+      'es:coaching': esCoaching,
+      'es:report': esReport,
+      'es:admin-stats': esAdminStats,
 
       'hu:common': huCommon,
       'hu:dashboard': huDashboard,

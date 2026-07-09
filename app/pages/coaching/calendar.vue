@@ -17,7 +17,11 @@
               size="sm"
               @click="railCollapsed = !railCollapsed"
             >
-              {{ railCollapsed ? 'Show roster' : 'Hide roster' }}
+              {{
+                railCollapsed
+                  ? tr('calendar_show_roster', 'Show roster')
+                  : tr('calendar_hide_roster', 'Hide roster')
+              }}
             </UButton>
             <UButton
               icon="i-heroicons-rectangle-group"
@@ -26,7 +30,11 @@
               size="sm"
               @click="toggleLibraryPanel"
             >
-              {{ isLibraryPanelVisible ? 'Hide workouts' : 'Show workouts' }}
+              {{
+                isLibraryPanelVisible
+                  ? tr('calendar_hide_workouts', 'Hide workouts')
+                  : tr('calendar_show_workouts', 'Show workouts')
+              }}
             </UButton>
             <UButton
               icon="i-heroicons-rectangle-stack"
@@ -35,7 +43,11 @@
               size="sm"
               @click="toggleDrawer"
             >
-              {{ isWorkoutDrawerVisible ? 'Hide drawer' : 'Show drawer' }}
+              {{
+                isWorkoutDrawerVisible
+                  ? tr('calendar_hide_drawer', 'Hide drawer')
+                  : tr('calendar_show_drawer', 'Show drawer')
+              }}
             </UButton>
           </div>
         </template>
@@ -60,7 +72,7 @@
                 class="flex-1 rounded-xl"
                 @click="leftRailTab = 'roster'"
               >
-                Roster
+                {{ tr('calendar_roster', 'Roster') }}
               </UButton>
               <UButton
                 size="sm"
@@ -69,7 +81,7 @@
                 class="flex-1 rounded-xl"
                 @click="leftRailTab = 'library'"
               >
-                Workouts
+                {{ tr('calendar_workouts', 'Workouts') }}
               </UButton>
               <UButton
                 size="sm"
@@ -78,7 +90,7 @@
                 class="flex-1 rounded-xl"
                 @click="leftRailTab = 'plans'"
               >
-                Plans
+                {{ tr('calendar_plans', 'Plans') }}
               </UButton>
             </div>
 
@@ -440,6 +452,7 @@
 
   const { formatDateUTC } = useFormat()
   const toast = useToast()
+  const { tr } = useCoachingI18n()
   const route = useRoute()
   const comparisonStore = useWorkoutComparisonStore()
   const athleteSearch = ref('')
@@ -857,20 +870,34 @@
   }
 
   async function onActivityClick(athleteId: string, activity: any) {
-    if (activity.source === 'planned') {
-      selectedPlannedWorkoutAthleteId.value = athleteId
-      selectedPlannedWorkout.value = await $fetch(
-        `/api/coaching/athletes/${athleteId}/planned-workouts/${activity.id}`
-      )
-      showPlannedWorkoutModal.value = true
-      return
-    }
+    try {
+      if (activity.source === 'planned') {
+        selectedPlannedWorkoutAthleteId.value = athleteId
+        selectedPlannedWorkout.value = await $fetch(
+          `/api/coaching/athletes/${athleteId}/planned-workouts/${activity.id}`
+        )
+        showPlannedWorkoutModal.value = true
+        return
+      }
 
-    if (activity.source === 'completed') {
-      selectedWorkout.value = await $fetch(
-        `/api/coaching/athletes/${athleteId}/workouts/${activity.id}`
-      )
-      showWorkoutPreviewModal.value = true
+      if (activity.source === 'completed') {
+        selectedWorkout.value = await $fetch(
+          `/api/coaching/athletes/${athleteId}/workouts/${activity.id}`
+        )
+        showWorkoutPreviewModal.value = true
+      }
+    } catch (error: any) {
+      console.error('Failed to load calendar activity:', error)
+      toast.add({
+        title: tr('calendar_failed_load_activity', 'Failed to load activity'),
+        description:
+          error.data?.message ||
+          tr(
+            'calendar_failed_load_activity_desc',
+            'This activity may have been deleted or is no longer available.'
+          ),
+        color: 'error'
+      })
     }
   }
 

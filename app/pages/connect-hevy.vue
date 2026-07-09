@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Hevy">
+      <UDashboardNavbar :title="p('title', 'Connect Hevy')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,8 +25,10 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Hevy</h2>
-                <p class="text-sm text-muted">Enter your Hevy API key to connect your account.</p>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Hevy') }}</h2>
+                <p class="text-sm text-muted">
+                  {{ p('subtitle', 'Enter your Hevy API key to connect your account.') }}
+                </p>
               </div>
             </div>
           </template>
@@ -67,9 +69,11 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton to="/settings/apps" color="neutral" variant="outline"> Cancel </UButton>
+              <UButton to="/settings/apps" color="neutral" variant="outline">{{
+                cancel()
+              }}</UButton>
               <UButton :loading="connecting" :disabled="!apiKey" @click="connect">
-                Connect
+                {{ p('button', 'Connect') }}
               </UButton>
             </div>
           </template>
@@ -82,17 +86,18 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle } = useConnectI18n('hevy')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Hevy',
+    title: () => p('title', 'Connect Hevy'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Hevy account to import strength training workouts.'
+        content: () => p('meta', 'Connect your Hevy account to import strength training workouts.')
       }
     ]
   })
@@ -107,8 +112,8 @@
   const connect = async () => {
     if (!apiKey.value) {
       toast.add({
-        title: 'Missing Information',
-        description: 'Please enter your API key',
+        title: p('missing_title', 'Missing Information'),
+        description: p('missing_desc', 'Please enter your API key'),
         color: 'error'
       })
       return
@@ -132,8 +137,8 @@
       })
 
       toast.add({
-        title: 'Connected!',
-        description: 'Successfully connected to Hevy',
+        title: p('success_title', 'Connected!'),
+        description: p('success_desc', 'Successfully connected to Hevy'),
         color: 'success'
       })
 
@@ -141,8 +146,8 @@
       await router.push('/settings/apps')
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.data?.message || 'Failed to connect to Hevy',
+        title: failedTitle(),
+        description: error.data?.message || p('failed_desc', 'Failed to connect to Hevy'),
         color: 'error'
       })
     } finally {

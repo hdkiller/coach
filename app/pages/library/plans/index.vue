@@ -785,6 +785,9 @@
       }
       await refreshFolders()
       isFolderModalOpen.value = false
+    } catch (error) {
+      console.error('Failed to save folder:', error)
+      toast.add({ title: 'Folder save failed', color: 'error' })
     } finally {
       savingFolder.value = false
     }

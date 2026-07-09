@@ -155,7 +155,7 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showSportSettingsWarningModal = false">
+        <UButton color="neutral" variant="ghost" @click="dismissSportSettingsWarning">
           Continue Editing
         </UButton>
         <UButton color="warning" :loading="savingSportSettings" @click="confirmSaveSportSettings">
@@ -290,6 +290,7 @@
   const savingProfile = ref(false)
   const savingSportSettings = ref(false)
   const showSportSettingsWarningModal = ref(false)
+  const sportSettingsBeforePendingSave = ref<any[] | null>(null)
   const pendingSportSettingsSave = ref<any[] | null>(null)
   const sportSettingsSaveWarnings = ref<Array<{ id: string; name: string; issues: string[] }>>([])
 
@@ -642,6 +643,16 @@
     return warnings
   }
 
+  function dismissSportSettingsWarning() {
+    if (sportSettingsBeforePendingSave.value) {
+      sportSettings.value = sportSettingsBeforePendingSave.value
+    }
+    pendingSportSettingsSave.value = null
+    sportSettingsSaveWarnings.value = []
+    sportSettingsBeforePendingSave.value = null
+    showSportSettingsWarningModal.value = false
+  }
+
   async function persistSportSettings(updatedSettings: any[]) {
     savingSportSettings.value = true
     try {
@@ -656,6 +667,7 @@
       })
       pendingSportSettingsSave.value = null
       sportSettingsSaveWarnings.value = []
+      sportSettingsBeforePendingSave.value = null
       showSportSettingsWarningModal.value = false
     } catch (error: any) {
       console.error('Sport settings update failed:', {
@@ -681,6 +693,7 @@
 
   // Save updated sport settings manually
   async function updateSportSettings(updatedSettings: any[]) {
+    sportSettingsBeforePendingSave.value = JSON.parse(JSON.stringify(sportSettings.value))
     sportSettings.value = updatedSettings
     const warnings = buildSportSettingsWarnings(updatedSettings)
     pendingSportSettingsSave.value = updatedSettings

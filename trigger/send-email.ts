@@ -14,6 +14,7 @@ import { EmailDeliveryService } from '../server/utils/services/emailDeliveryServ
 export const sendEmailTask = task({
   id: 'send-email',
   queue: emailQueue,
+  maxDuration: 300,
   retry: {
     maxAttempts: 3,
     minTimeoutInMs: 1000,
@@ -168,8 +169,8 @@ export const sendEmailTask = task({
 
     // 4. Render Template via Internal API
     logger.log('Step 3: Requesting HTML render from internal API...')
-    let htmlBody = ''
-    let textBody = ''
+    let htmlBody: string
+    let textBody: string
 
     try {
       const renderUrl = `${baseUrl}/api/internal/render-email`

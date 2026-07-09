@@ -155,6 +155,27 @@
             </div>
           </div>
 
+          <UAlert
+            v-else-if="nutritionTrendsError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-circle"
+            title="Failed to load nutrition trends"
+            description="Nutrition quality scores could not be loaded. Please try again."
+          >
+            <template #actions>
+              <UButton
+                color="error"
+                variant="soft"
+                size="xs"
+                icon="i-heroicons-arrow-path"
+                @click="refreshNutritionTrends()"
+              >
+                Retry
+              </UButton>
+            </template>
+          </UAlert>
+
           <div v-else-if="nutritionTrendsData" class="space-y-6">
             <!-- Score Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -795,12 +816,14 @@
   })
 
   // Fetch nutrition score trends (renamed to avoid conflict with chart data)
-  const { data: nutritionTrendsData, pending: nutritionScoresLoading } = await useFetch(
-    '/api/scores/nutrition-trends',
-    {
-      query: { days: selectedPeriod }
-    }
-  )
+  const {
+    data: nutritionTrendsData,
+    pending: nutritionScoresLoading,
+    error: nutritionTrendsError,
+    refresh: refreshNutritionTrends
+  } = await useFetch('/api/scores/nutrition-trends', {
+    query: { days: selectedPeriod }
+  })
 
   // Modal state
   const showModal = ref(false)

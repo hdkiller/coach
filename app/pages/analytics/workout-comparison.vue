@@ -230,17 +230,19 @@
     }
   )
 
-  const { data: selectedWorkoutsData, pending: loadingSelectedWorkouts } = await useFetch(
-    '/api/analytics/workout-comparison/workouts',
-    {
-      method: 'POST',
-      body: computed(() => ({
-        workoutIds: workoutIds.value
-      })),
-      immediate: workoutIds.value.length > 0,
-      watch: [workoutIds]
-    }
-  )
+  const {
+    data: selectedWorkoutsData,
+    pending: loadingSelectedWorkouts,
+    error: selectedWorkoutsError,
+    refresh: refreshSelectedWorkouts
+  } = await useFetch('/api/analytics/workout-comparison/workouts', {
+    method: 'POST',
+    body: computed(() => ({
+      workoutIds: workoutIds.value
+    })),
+    immediate: workoutIds.value.length > 0,
+    watch: [workoutIds]
+  })
 
   const selectedWorkoutDetails = computed(() =>
     Array.isArray(selectedWorkoutsData.value) ? (selectedWorkoutsData.value as any[]) : []
@@ -438,7 +440,11 @@
       .toLowerCase()
       .trim()
 
-    if (normalized.includes('ride') || normalized.includes('bike') || normalized.includes('cycling')) {
+    if (
+      normalized.includes('ride') ||
+      normalized.includes('bike') ||
+      normalized.includes('cycling')
+    ) {
       return 'i-lucide-bike'
     }
 
@@ -485,7 +491,8 @@
     leftRailTab.value = 'workouts'
     toast.add({
       title: 'Workout browser tuned for similar sessions',
-      description: 'Matching type, source, and athlete filters were applied from the current basket.',
+      description:
+        'Matching type, source, and athlete filters were applied from the current basket.',
       color: 'success'
     })
   }
@@ -502,7 +509,10 @@
       return Math.max(0, 1 - diffRatio)
     }
 
-    const durationScore = relativeScore(Number(workout.durationSec || 0), similarityReference.value.duration)
+    const durationScore = relativeScore(
+      Number(workout.durationSec || 0),
+      similarityReference.value.duration
+    )
     if (durationScore !== null) {
       score += durationScore * 0.3
       weight += 0.3
@@ -791,6 +801,27 @@
                   <USkeleton v-for="i in 2" :key="i" class="h-16 rounded-2xl" />
                 </div>
 
+                <UAlert
+                  v-else-if="selectedWorkoutsError && workoutIds.length > 0"
+                  color="error"
+                  variant="soft"
+                  icon="i-heroicons-exclamation-circle"
+                  title="Failed to load selected workouts"
+                  description="Your comparison basket could not be loaded. Please try again."
+                >
+                  <template #actions>
+                    <UButton
+                      color="error"
+                      variant="soft"
+                      size="xs"
+                      icon="i-heroicons-arrow-path"
+                      @click="refreshSelectedWorkouts()"
+                    >
+                      Retry
+                    </UButton>
+                  </template>
+                </UAlert>
+
                 <div
                   v-else-if="selectedWorkouts.length === 0"
                   class="rounded-2xl border border-dashed border-default/70 bg-default p-4 text-sm text-muted"
@@ -808,10 +839,7 @@
                     <div
                       class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-default/60"
                     >
-                      <UIcon
-                        :name="workoutTypeIcon(workout.type)"
-                        class="h-4 w-4 text-primary"
-                      />
+                      <UIcon :name="workoutTypeIcon(workout.type)" class="h-4 w-4 text-primary" />
                     </div>
                     <div class="min-w-0 flex-1 space-y-2">
                       <div class="truncate font-bold text-highlighted">{{ workout.title }}</div>
@@ -940,10 +968,7 @@
                       <div
                         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-default/60 bg-muted/30"
                       >
-                        <UIcon
-                          :name="workoutTypeIcon(workout.type)"
-                          class="h-4 w-4 text-primary"
-                        />
+                        <UIcon :name="workoutTypeIcon(workout.type)" class="h-4 w-4 text-primary" />
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">

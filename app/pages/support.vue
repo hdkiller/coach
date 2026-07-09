@@ -109,7 +109,7 @@
                 <UInput
                   v-model="form.email"
                   type="email"
-                  placeholder="your@email.com"
+                  :placeholder="translate('form.email_placeholder', 'your@email.com')"
                   class="w-full"
                 />
               </UFormField>
@@ -165,8 +165,10 @@
   import { useTranslate } from '@tolgee/vue'
 
   const { t } = useTranslate('support')
-  function translate(key: string): string {
-    return t.value(key)
+  function translate(key: string, fallback?: string): string {
+    if (typeof t.value !== 'function') return fallback || key
+    const translated = t.value(key)
+    return translated === key ? fallback || key : translated
   }
   const { status, data: session } = useAuth()
   const isAuthenticated = computed(() => status.value === 'authenticated')
@@ -207,7 +209,7 @@
     } catch (error: any) {
       toast.add({
         title: translate('toast.error'),
-        description: error.message || 'Unknown error',
+        description: error.message || translate('toast.unknown_error', 'Unknown error'),
         color: 'error'
       })
     } finally {
@@ -221,12 +223,15 @@
   })
 
   useHead({
-    title: 'Support | Coach Watts',
+    title: () => translate('meta_title', 'Support | Coach Watts'),
     meta: [
       {
         name: 'description',
-        content:
-          'Get help with Coach Watts. Join our Discord community or contact our support team.'
+        content: () =>
+          translate(
+            'meta_description',
+            'Get help with Coach Watts. Join our Discord community or contact our support team.'
+          )
       }
     ]
   })

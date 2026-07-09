@@ -248,16 +248,11 @@
 
             <UFormField label="Webhook URL" help="Your unique endpoint for pushing data.">
               <UInput
-                :model-value="`https://coachwatts.com/api/webhooks/oauth/${app.clientId}`"
+                :model-value="webhookUrl"
                 readonly
                 icon="i-heroicons-link"
                 class="w-full font-mono"
-                @click="
-                  copyToClipboard(
-                    `https://coachwatts.com/api/webhooks/oauth/${app.clientId}`,
-                    'Webhook URL'
-                  )
-                "
+                @click="copyToClipboard(webhookUrl, 'Webhook URL')"
               />
             </UFormField>
 
@@ -532,9 +527,16 @@
 
   const route = useRoute()
   const toast = useToast()
+  const runtimeConfig = useRuntimeConfig()
   const appId = route.params.id as string
   const { data: authData } = useAuth()
   const isAdmin = computed(() => Boolean((authData.value?.user as any)?.isAdmin))
+
+  const webhookUrl = computed(() => {
+    const base = runtimeConfig.public.siteUrl || (import.meta.client ? window.location.origin : '')
+    const origin = String(base).replace(/\/$/, '')
+    return `${origin}/api/webhooks/oauth/${app.value?.clientId || appId}`
+  })
 
   const {
     data: app,

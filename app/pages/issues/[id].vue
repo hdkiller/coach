@@ -1,10 +1,24 @@
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
   import {
     ISSUE_COMMENT_MAX_LENGTH,
     ISSUE_COMMENT_MAX_LENGTH_LABEL,
     ISSUE_COMMENT_WARNING_LENGTH
   } from '~/utils/issue-constants'
+
+  const { t } = useTranslate('common')
+  const tr = (key: string, fallback: string, params?: Record<string, string | number>) => {
+    if (typeof t.value !== 'function') return fallback
+    let translated = t.value(key)
+    if (translated === key) translated = fallback
+    if (params) {
+      for (const [name, value] of Object.entries(params)) {
+        translated = translated.replace(`{${name}}`, String(value))
+      }
+    }
+    return translated
+  }
 
   definePageMeta({
     middleware: 'auth'
@@ -51,12 +65,12 @@
   function copyText(value: string, label: string) {
     if (!value?.trim()) return
     navigator.clipboard.writeText(value)
-    toast.add({ title: `${label} copied`, color: 'success' })
+    toast.add({ title: tr('issues_detail_copied', '{label} copied', { label }), color: 'success' })
   }
 
   function copyIssueId() {
     if (!report.value?.id) return
-    copyText(report.value.id, 'Ticket ID')
+    copyText(report.value.id, tr('issues_detail_ticket_id', 'Ticket ID'))
   }
 
   async function addComment() {
@@ -69,10 +83,10 @@
       })
       newComment.value = ''
       await refreshReport()
-      toast.add({ title: 'Message sent', color: 'success' })
+      toast.add({ title: tr('issues_detail_message_sent', 'Message sent'), color: 'success' })
     } catch (error: any) {
       toast.add({
-        title: 'Failed to send message',
+        title: tr('issues_detail_message_failed', 'Failed to send message'),
         description: getApiErrorMessage(error, 'Something went wrong.'),
         color: 'error'
       })
@@ -229,9 +243,15 @@
 <template>
   <UDashboardPanel id="user-bug-report">
     <template #header>
-      <UDashboardNavbar :title="report?.title || 'Issue Details'">
+      <UDashboardNavbar :title="report?.title || tr('issues_detail_title', 'Issue Details')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" to="/issues" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            color="neutral"
+            variant="ghost"
+            to="/issues"
+            :aria-label="tr('issues_detail_back_aria', 'Back to issues')"
+          />
         </template>
         <template #right>
           <div class="flex items-center gap-2">
@@ -242,9 +262,10 @@
               variant="outline"
               size="sm"
               class="font-bold"
+              :aria-label="tr('issues_detail_edit_aria', 'Edit issue')"
               @click="showEditModal = true"
             >
-              Edit
+              {{ tr('issues_detail_edit', 'Edit') }}
             </UButton>
             <UButton
               v-if="report"
@@ -252,10 +273,11 @@
               color="error"
               variant="ghost"
               size="sm"
+              :aria-label="tr('issues_detail_delete_aria', 'Delete issue')"
               :loading="deletingIssue"
               @click="showDeleteIssueModal = true"
             >
-              Delete
+              {{ tr('issues_detail_delete', 'Delete') }}
             </UButton>
             <ClientOnly>
               <DashboardTriggerMonitorButton />
@@ -275,7 +297,7 @@
               class="size-8 animate-spin text-primary-500 mx-auto"
             />
             <p class="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
-              Loading Issue...
+              {{ tr('issues_detail_loading', 'Loading Issue...') }}
             </p>
           </div>
         </div>
@@ -306,6 +328,7 @@
                   color="neutral"
                   variant="ghost"
                   size="xs"
+                  :aria-label="tr('issues_detail_copy_id_aria', 'Copy issue ID')"
                   @click="copyIssueId"
                 />
               </div>
@@ -326,6 +349,9 @@
                       color="neutral"
                       variant="ghost"
                       size="xs"
+                      :aria-label="
+                        tr('issues_detail_copy_description_aria', 'Copy initial description')
+                      "
                       @click="copyText(report.description, 'Initial description')"
                     />
                   </div>
@@ -360,6 +386,7 @@
                         color="neutral"
                         size="xs"
                         class="rounded-full p-1 opacity-70 hover:opacity-100"
+                        :aria-label="tr('issues_detail_add_reaction_aria', 'Add reaction')"
                         :loading="reactingIssueId"
                       />
                     </template>
@@ -448,6 +475,7 @@
                           color="neutral"
                           variant="ghost"
                           size="xs"
+                          :aria-label="tr('issues_detail_copy_comment_aria', 'Copy comment')"
                           @click="copyText(comment.content, 'Comment')"
                         />
                         <UButton
@@ -456,6 +484,7 @@
                           color="neutral"
                           variant="ghost"
                           size="xs"
+                          :aria-label="tr('issues_detail_edit_comment_aria', 'Edit comment')"
                           @click="openEditCommentModal(comment)"
                         />
                         <UButton
@@ -464,6 +493,7 @@
                           color="error"
                           variant="ghost"
                           size="xs"
+                          :aria-label="tr('issues_detail_delete_comment_aria', 'Delete comment')"
                           :loading="deletingCommentId === comment.id"
                           @click="deleteComment(comment.id)"
                         />
@@ -492,7 +522,7 @@
                           </div>
                           <UButton
                             v-else
-                            label="Mark as Viewed"
+                            :label="tr('issues_detail_mark_viewed', 'Mark as Viewed')"
                             variant="ghost"
                             color="neutral"
                             size="xs"
@@ -567,7 +597,12 @@
                 <div class="flex gap-3">
                   <UTextarea
                     v-model="newComment"
-                    placeholder="Add more details or reply to the team..."
+                    :placeholder="
+                      tr(
+                        'issues_detail_comment_placeholder',
+                        'Add more details or reply to the team...'
+                      )
+                    "
                     autoresize
                     :rows="2"
                     :maxlength="ISSUE_COMMENT_MAX_LENGTH"
@@ -676,8 +711,13 @@
 
       <UModal
         v-model:open="showDeleteIssueModal"
-        title="Delete issue"
-        description="This will permanently remove the issue and all comments."
+        :title="tr('issues_detail_delete_title', 'Delete issue')"
+        :description="
+          tr(
+            'issues_detail_delete_desc',
+            'This will permanently remove the issue and all comments.'
+          )
+        "
       >
         <template #body>
           <div class="space-y-3">
@@ -690,7 +730,7 @@
                 Cancel
               </UButton>
               <UButton color="error" :loading="deletingIssue" @click="deleteIssue">
-                Delete
+                {{ tr('issues_detail_delete', 'Delete') }}
               </UButton>
             </div>
           </div>
@@ -699,8 +739,8 @@
 
       <UModal
         v-model:open="isEditCommentModalOpen"
-        title="Edit comment"
-        description="Update your message."
+        :title="tr('issues_detail_edit_comment_title', 'Edit comment')"
+        :description="tr('issues_detail_edit_comment_desc', 'Update your message.')"
       >
         <template #body>
           <div class="space-y-3">

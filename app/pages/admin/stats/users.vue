@@ -4,6 +4,8 @@
 
   ChartJS.register(ArcElement, Tooltip, Legend)
 
+  const { tr } = useAdminStatsI18n()
+
   definePageMeta({
     layout: 'admin',
     middleware: ['auth', 'admin']
@@ -12,8 +14,15 @@
   const { data: stats, pending } = await useFetch('/api/admin/stats/users')
 
   useHead({
-    title: 'User Statistics'
+    title: () => tr('users_meta_title', 'User Statistics')
   })
+
+  const countryChartLabel = computed(() =>
+    tr('users_country_chart', 'Pie chart of users by country')
+  )
+  const checkinsChartLabel = computed(() =>
+    tr('users_checkins_chart', 'Bar chart of daily check-ins over the last 30 days')
+  )
 
   const pieOptions = {
     responsive: true,
@@ -58,7 +67,13 @@
     <template #header>
       <UDashboardNavbar title="User Statistics">
         <template #leading>
-          <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
+          <UButton
+            to="/admin/stats"
+            icon="i-lucide-arrow-left"
+            color="neutral"
+            variant="ghost"
+            aria-label="Back to admin stats"
+          />
         </template>
       </UDashboardNavbar>
     </template>
@@ -207,7 +222,7 @@
                   <span class="text-xs text-gray-500">Last 30 Days</span>
                 </div>
               </template>
-              <div class="h-48">
+              <div class="h-48" role="img" :aria-label="checkinsChartLabel">
                 <div v-if="stats" class="flex items-end justify-between h-full pt-4 gap-1">
                   <div
                     v-for="day in stats.activity.dailyCheckinsByDay"
@@ -302,7 +317,7 @@
               <template #header>
                 <h3 class="font-semibold">Users by Country</h3>
               </template>
-              <div class="h-64 relative">
+              <div class="h-64 relative" role="img" :aria-label="countryChartLabel">
                 <Pie :data="countryChartData" :options="pieOptions" />
               </div>
               <div class="mt-4 space-y-2 border-t border-gray-100 dark:border-gray-800 pt-4">

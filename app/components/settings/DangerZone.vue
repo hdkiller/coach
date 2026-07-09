@@ -534,8 +534,21 @@
   async function executeExportData() {
     exportingData.value = true
     try {
-      // Direct window.open for downloading file with headers set by server
-      window.location.href = '/api/profile/export'
+      const response = await fetch('/api/profile/export', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error(`Export failed (${response.status})`)
+      }
+
+      const blob = await response.blob()
+      const disposition = response.headers.get('content-disposition')
+      const filenameMatch = disposition?.match(/filename="([^"]+)"/)
+      const filename = filenameMatch?.[1] || 'watts_export.json'
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
 
       toast.add({
         title: 'Export Started',
@@ -550,8 +563,6 @@
         color: 'error'
       })
     } finally {
-      // Since it's a direct download, we can't easily know when it finished,
-      // but the UI stays responsive anyway.
       setTimeout(() => {
         exportingData.value = false
       }, 1000)

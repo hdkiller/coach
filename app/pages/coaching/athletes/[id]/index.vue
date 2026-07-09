@@ -25,7 +25,7 @@
               icon="i-heroicons-chat-bubble-left-right"
               @click="messageAthlete"
             >
-              Message
+              {{ tr('athlete_detail_message', 'Message') }}
             </UButton>
           </div>
         </template>
@@ -46,8 +46,10 @@
         <UAlert
           color="error"
           icon="i-heroicons-exclamation-triangle"
-          title="Error loading athlete"
-          :description="error.message || 'Could not load athlete profile.'"
+          :title="tr('athlete_detail_error_title', 'Error loading athlete')"
+          :description="
+            error.message || tr('athlete_detail_error_desc', 'Could not load athlete profile.')
+          "
         />
       </div>
 
@@ -557,6 +559,7 @@
     Filler
   )
 
+  const { tr } = useCoachingI18n()
   const { formatDateUTC } = useFormat()
   const route = useRoute()
   const router = useRouter()

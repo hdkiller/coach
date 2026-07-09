@@ -11,6 +11,7 @@
   },
   "form": {
     "email": "Email",
+    "email_placeholder": "your@email.com",
     "message": "Message",
     "message_placeholder": "Describe your issue or feedback...",
     "name": "Name",
@@ -28,10 +29,13 @@
   },
   "subtitle": "We're here to help. Choose the channel that works best for you.",
   "title": "Support",
+  "meta_title": "Support | Coach Watts",
+  "meta_description": "Get help with Coach Watts. Join our Discord community or contact our support team.",
   "toast": {
     "error": "Failed to send message",
     "missing_content": "Subject and Message are required",
     "missing_fields": "Name and Email are required",
-    "success": "Message sent successfully!"
+    "success": "Message sent successfully!",
+    "unknown_error": "Unknown error"
   }
 }

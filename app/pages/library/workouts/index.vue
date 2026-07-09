@@ -60,6 +60,27 @@
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <div v-if="librarySource !== 'all'" class="hidden lg:block">
             <UCard :ui="{ body: 'p-4' }" class="sticky top-4 shadow-sm">
+              <UAlert
+                v-if="folderError"
+                color="error"
+                variant="soft"
+                icon="i-heroicons-exclamation-circle"
+                :title="folderError"
+                description="Workout folders could not be loaded."
+                class="mb-4"
+              >
+                <template #actions>
+                  <UButton
+                    color="error"
+                    variant="soft"
+                    size="xs"
+                    icon="i-heroicons-arrow-path"
+                    @click="refreshFolders()"
+                  >
+                    Retry
+                  </UButton>
+                </template>
+              </UAlert>
               <WorkoutFolderSelector
                 title="Library"
                 :tree="folderTree"
@@ -665,6 +686,7 @@
     scopedFolderIds,
     ensureFoldersLoaded,
     refreshFolders,
+    error: folderError,
     setSelectedScope,
     toggleExpanded
   } = useWorkoutTemplateFolders('library-page', {

@@ -1498,7 +1498,7 @@
     return opts
   }
 
-  watch([selectedPeriod], () => {
+  watch([selectedPeriod, filterRecovery, filterSleep], () => {
     currentPage.value = 1
   })
 

@@ -1,17 +1,25 @@
 <script setup lang="ts">
   import { useDebounce } from '@vueuse/core'
+  import { useTranslate } from '@tolgee/vue'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
+
+  const { t } = useTranslate('common')
+  const tr = (key: string, fallback: string) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key)
+    return translated === key ? fallback : translated
+  }
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'My Issues',
+    title: () => tr('issues_header', 'Issues'),
     meta: [
       {
         name: 'description',
-        content: 'View and track your reported issues.'
+        content: () => tr('issues_meta_description', 'View and track your reported issues.')
       }
     ]
   })
@@ -57,14 +65,14 @@
     page.value = 1
   })
 
-  const statusOptions = [
-    { label: 'All Status', value: 'ALL' },
-    { label: 'Open', value: 'OPEN' },
-    { label: 'In Progress', value: 'IN_PROGRESS' },
-    { label: 'Need Info', value: 'NEED_MORE_INFO' },
-    { label: 'Resolved', value: 'RESOLVED' },
-    { label: 'Closed', value: 'CLOSED' }
-  ]
+  const statusOptions = computed(() => [
+    { label: tr('issues_filter_all', 'All Status'), value: 'ALL' },
+    { label: tr('issues_filter_open', 'Open'), value: 'OPEN' },
+    { label: tr('issues_filter_in_progress', 'In Progress'), value: 'IN_PROGRESS' },
+    { label: tr('issues_filter_need_info', 'Need Info'), value: 'NEED_MORE_INFO' },
+    { label: tr('issues_filter_resolved', 'Resolved'), value: 'RESOLVED' },
+    { label: tr('issues_filter_closed', 'Closed'), value: 'CLOSED' }
+  ])
 
   const filteredReports = computed(() => reportsData.value?.items || [])
 
@@ -111,7 +119,7 @@
 <template>
   <UDashboardPanel id="user-issues">
     <template #header>
-      <UDashboardNavbar title="Issues">
+      <UDashboardNavbar :title="tr('issues_header', 'Issues')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -128,8 +136,8 @@
             class="font-bold"
             @click="showReportModal = true"
           >
-            <span class="hidden sm:inline">New Issue</span>
-            <span class="sm:hidden">Add</span>
+            <span class="hidden sm:inline">{{ tr('issues_new_button', 'New Issue') }}</span>
+            <span class="sm:hidden">{{ tr('issues_new_button_short', 'Add') }}</span>
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -140,12 +148,12 @@
         <!-- Branding Header -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Issues
+            {{ tr('issues_header', 'Issues') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Bug Tracking & Resolution Integrity
+            {{ tr('issues_description', 'Bug Tracking & Resolution Integrity') }}
           </p>
         </div>
 
@@ -158,7 +166,7 @@
               </div>
               <div>
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  Total Issues
+                  {{ tr('issues_total_label', 'Total Issues') }}
                 </p>
                 <p class="text-xl font-black">{{ stats.total }}</p>
               </div>
@@ -171,7 +179,7 @@
               </div>
               <div>
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  Active Issues
+                  {{ tr('issues_active_label', 'Active Issues') }}
                 </p>
                 <p class="text-xl font-black">{{ stats.active }}</p>
               </div>
@@ -184,7 +192,7 @@
               </div>
               <div>
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  Resolved
+                  {{ tr('issues_resolved_label', 'Resolved') }}
                 </p>
                 <p class="text-xl font-black text-success-600 dark:text-success-400">
                   {{ stats.resolved }}
@@ -204,13 +212,14 @@
               class="w-40"
               color="neutral"
               variant="outline"
+              :aria-label="tr('issues_filter_status', 'Filter issues by status')"
             />
           </template>
           <template #right>
             <UInput
               v-model="searchQuery"
               icon="i-heroicons-magnifying-glass"
-              placeholder="Search issues..."
+              :placeholder="tr('issues_search_placeholder', 'Search issues...')"
               size="sm"
               class="w-64"
             >
@@ -220,6 +229,7 @@
                   variant="ghost"
                   icon="i-heroicons-x-mark"
                   size="xs"
+                  :aria-label="tr('issues_clear_search', 'Clear search')"
                   @click="searchQuery = ''"
                 />
               </template>
@@ -242,8 +252,12 @@
             name="i-heroicons-ticket"
             class="w-12 h-12 text-gray-200 dark:text-gray-800 mx-auto mb-4"
           />
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white">No issues found</h2>
-          <p class="text-gray-500 mt-2">Adjust your filters or report a new issue.</p>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{ tr('issues_empty_title', 'No issues found') }}
+          </h2>
+          <p class="text-gray-500 mt-2">
+            {{ tr('issues_empty_desc', 'Adjust your filters or report a new issue.') }}
+          </p>
         </div>
 
         <div v-else class="space-y-6 px-4 sm:px-0">
@@ -318,14 +332,20 @@
                               : 'i-heroicons-chat-bubble-left'
                           "
                         />
-                        {{ report.comments[0].isAdmin ? 'Support' : 'User' }}
+                        {{
+                          report.comments[0].isAdmin
+                            ? tr('issues_support_badge', 'Support')
+                            : tr('issues_user_badge', 'User')
+                        }}
                       </UBadge>
                       <p class="text-[10px] text-gray-400 mt-0.5 italic">
                         {{ formatRelativeTime(report.comments[0].createdAt) }}
                       </p>
                     </template>
                     <template v-else>
-                      <span class="text-[10px] text-gray-400 italic block mt-1">No replies</span>
+                      <span class="text-[10px] text-gray-400 italic block mt-1">
+                        {{ tr('issues_no_replies', 'No replies') }}
+                      </span>
                     </template>
                   </div>
                 </div>

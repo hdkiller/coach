@@ -16,9 +16,11 @@ export const useNotificationStore = defineStore('notifications', () => {
   const unreadCount = ref(0)
   const total = ref(0)
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   const fetchNotifications = async (page = 1, limit = 20) => {
     loading.value = true
+    error.value = null
     try {
       const data = await ($fetch as any)('/api/notifications', {
         query: { page, limit }
@@ -26,8 +28,9 @@ export const useNotificationStore = defineStore('notifications', () => {
       notifications.value = data.notifications
       total.value = data.total
       unreadCount.value = data.unreadCount
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error)
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err)
+      error.value = 'Failed to load notifications'
     } finally {
       loading.value = false
     }
@@ -81,6 +84,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     unreadCount,
     total,
     loading,
+    error,
     fetchNotifications,
     markAsRead,
     markAllAsRead,

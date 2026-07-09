@@ -1087,7 +1087,10 @@
   import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
   import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
   import { getCalendarActivityDateKey } from '~/utils/calendar'
-  import { getStructuredWorkoutObject, hasStructuredWorkoutPreviewData } from '~/utils/structuredWorkout'
+  import {
+    getStructuredWorkoutObject,
+    hasStructuredWorkoutPreviewData
+  } from '~/utils/structuredWorkout'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
   const { t } = useTranslate('activities')
@@ -1103,6 +1106,7 @@
   const userStore = useUserStore()
   const route = useRoute()
   const router = useRouter()
+  const toast = useToast()
   const nutritionEnabled = computed(
     () =>
       userStore.profile?.nutritionTrackingEnabled !== false &&
@@ -1839,6 +1843,11 @@
       showCalendarNoteModal.value = true
     } catch (error) {
       console.error('Error fetching calendar note:', error)
+      toast.add({
+        title: 'Failed to load calendar note',
+        description: 'Please try again.',
+        color: 'error'
+      })
     }
   }
 
@@ -1849,6 +1858,11 @@
       showPlannedWorkoutModal.value = true
     } catch (error) {
       console.error('Error fetching planned workout:', error)
+      toast.add({
+        title: 'Failed to load planned workout',
+        description: 'Please try again.',
+        color: 'error'
+      })
     }
   }
 
@@ -1859,6 +1873,11 @@
       showWorkoutModal.value = true
     } catch (error) {
       console.error('Error fetching workout:', error)
+      toast.add({
+        title: 'Failed to load workout',
+        description: 'Please try again.',
+        color: 'error'
+      })
     }
   }
 

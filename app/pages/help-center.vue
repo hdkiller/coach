@@ -5,16 +5,27 @@
 
   const { t } = useTranslate('common')
 
+  const { t } = useTranslate('common')
+  const trCommon = (key: string, fallback: string) => {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key)
+    return translated === key ? fallback : translated
+  }
+
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Help Center',
+    title: () => trCommon('help_meta_title', 'Help Center'),
     meta: [
       {
         name: 'description',
-        content: 'Get support, report bugs, and track your active issues.'
+        content: () =>
+          trCommon(
+            'help_meta_description',
+            'Get support, report bugs, and track your active issues.'
+          )
       }
     ]
   })
@@ -34,6 +45,23 @@
       color: 'success',
       icon: 'i-heroicons-check-circle'
     })
+  }
+
+  const aiTicketDraftMessage = computed(() =>
+    trCommon(
+      'help_chat_ai_ticket_prompt',
+      'Help me create a support ticket. I will describe the bug and you can draft it first.'
+    )
+  )
+  const ticketCommandsMessage = computed(() =>
+    trCommon(
+      'help_chat_ticket_commands_prompt',
+      'Show me ticket commands. Explain how to create or update support tickets in plain, non-technical language for regular users.'
+    )
+  )
+
+  function openChatWithMessage(message: string) {
+    navigateTo(`/chat?initialMessage=${encodeURIComponent(message)}`)
   }
 
   const helpLinks = computed(() => [
@@ -93,64 +121,66 @@
 
         <!-- Primary Actions -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <UCard
-            class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
-            @click="showReportModal = true"
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
-              >
-                <UIcon name="i-heroicons-bug-ant" class="size-8 text-primary-500" />
+          <UCard class="hover:ring-2 hover:ring-primary-500/50 transition-all group p-0">
+            <button
+              type="button"
+              class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              @click="showReportModal = true"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
+                >
+                  <UIcon name="i-heroicons-bug-ant" class="size-8 text-primary-500" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold">{{ t('help_action_report_bug') }}</h3>
+                  <p class="text-sm text-gray-500">{{ t('help_action_report_bug_desc') }}</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-lg font-bold">{{ t('help_action_report_bug') }}</h3>
-                <p class="text-sm text-gray-500">{{ t('help_action_report_bug_desc') }}</p>
-              </div>
-            </div>
+            </button>
           </UCard>
 
-          <UCard
-            class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
-            @click="navigateTo('/issues')"
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
-              >
-                <UIcon name="i-heroicons-ticket" class="size-8 text-primary-500" />
+          <UCard class="hover:ring-2 hover:ring-primary-500/50 transition-all group p-0">
+            <button
+              type="button"
+              class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              @click="navigateTo('/issues')"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
+                >
+                  <UIcon name="i-heroicons-ticket" class="size-8 text-primary-500" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold">{{ t('help_action_my_issues') }}</h3>
+                  <p class="text-sm text-gray-500">{{ t('help_action_my_issues_desc') }}</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-lg font-bold">{{ t('help_action_my_issues') }}</h3>
-                <p class="text-sm text-gray-500">{{ t('help_action_my_issues_desc') }}</p>
-              </div>
-            </div>
+            </button>
           </UCard>
 
-          <UCard
-            class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
-            @click="
-              navigateTo(
-                '/chat?initialMessage=' +
-                  encodeURIComponent(
-                    'Help me create a support ticket. I will describe the bug and you can draft it first.'
-                  )
-              )
-            "
-          >
-            <div class="flex items-center gap-4">
-              <div
-                class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
-              >
-                <UIcon name="i-heroicons-sparkles" class="size-8 text-primary-500" />
+          <UCard class="hover:ring-2 hover:ring-primary-500/50 transition-all group p-0">
+            <button
+              type="button"
+              class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              @click="openChatWithMessage(aiTicketDraftMessage)"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors"
+                >
+                  <UIcon name="i-heroicons-sparkles" class="size-8 text-primary-500" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold">{{ t('help_action_ai_ticket') }}</h3>
+                  <p class="text-sm text-gray-500">
+                    {{ t('help_action_ai_ticket_desc') }}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-lg font-bold">{{ t('help_action_ai_ticket') }}</h3>
-                <p class="text-sm text-gray-500">
-                  {{ t('help_action_ai_ticket_desc') }}
-                </p>
-              </div>
-            </div>
+            </button>
           </UCard>
         </div>
 
@@ -171,9 +201,18 @@
                 {{ t('help_ai_assistant_desc') }}
               </p>
               <div class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                <p><strong>Try:</strong> {{ t('help_ai_assistant_try_1') }}</p>
-                <p><strong>Try:</strong> {{ t('help_ai_assistant_try_2') }}</p>
-                <p><strong>Tip:</strong> {{ t('help_ai_assistant_tip') }}</p>
+                <p>
+                  <strong>{{ trCommon('help_try_prefix', 'Try:') }}</strong>
+                  {{ t('help_ai_assistant_try_1') }}
+                </p>
+                <p>
+                  <strong>{{ trCommon('help_try_prefix', 'Try:') }}</strong>
+                  {{ t('help_ai_assistant_try_2') }}
+                </p>
+                <p>
+                  <strong>{{ trCommon('help_tip_prefix', 'Tip:') }}</strong>
+                  {{ t('help_ai_assistant_tip') }}
+                </p>
               </div>
               <div class="flex flex-wrap gap-2 pt-1">
                 <UButton
@@ -191,40 +230,36 @@
           </UCard>
 
           <UCard
-            class="md:col-span-1 hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
-            @click="
-              navigateTo(
-                '/chat?initialMessage=' +
-                  encodeURIComponent(
-                    'Show me ticket commands. Explain how to create or update support tickets in plain, non-technical language for regular users.'
-                  )
-              )
-            "
+            class="md:col-span-1 hover:ring-2 hover:ring-primary-500/50 transition-all group p-0"
           >
-            <div class="space-y-3 h-full flex flex-col justify-between">
-              <div class="space-y-2">
-                <UIcon
-                  name="i-heroicons-command-line"
-                  class="size-6 text-primary-500 group-hover:scale-105 transition-transform"
-                />
-                <h3
-                  class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
+            <button
+              type="button"
+              class="w-full h-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              @click="openChatWithMessage(ticketCommandsMessage)"
+            >
+              <div class="space-y-3 h-full flex flex-col justify-between">
+                <div class="space-y-2">
+                  <UIcon
+                    name="i-heroicons-command-line"
+                    class="size-6 text-primary-500 group-hover:scale-105 transition-transform"
+                  />
+                  <h3
+                    class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
+                  >
+                    {{ t('help_ticket_commands_title') }}
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                    {{ t('help_ticket_commands_desc') }}
+                  </p>
+                </div>
+                <span
+                  class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 self-start"
                 >
-                  {{ t('help_ticket_commands_title') }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {{ t('help_ticket_commands_desc') }}
-                </p>
+                  {{ t('help_ticket_commands_button') }}
+                  <UIcon name="i-heroicons-arrow-right" class="size-4" />
+                </span>
               </div>
-              <UButton
-                color="primary"
-                variant="outline"
-                icon="i-heroicons-arrow-right"
-                class="self-start"
-              >
-                {{ t('help_ticket_commands_button') }}
-              </UButton>
-            </div>
+            </button>
           </UCard>
         </div>
 
@@ -237,16 +272,21 @@
             <template v-for="link in helpLinks" :key="link.title">
               <UCard
                 v-if="!link.disabled"
-                class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
-                @click="navigateTo(link.to, { external: link.external })"
+                class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group p-0"
               >
-                <div class="space-y-2">
-                  <UIcon :name="link.icon" class="size-5 text-primary-500" />
-                  <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
-                    {{ link.title }}
-                  </h4>
-                  <p class="text-xs text-gray-500 leading-relaxed">{{ link.description }}</p>
-                </div>
+                <button
+                  type="button"
+                  class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                  @click="navigateTo(link.to, { external: link.external })"
+                >
+                  <div class="space-y-2">
+                    <UIcon :name="link.icon" class="size-5 text-primary-500" />
+                    <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
+                      {{ link.title }}
+                    </h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">{{ link.description }}</p>
+                  </div>
+                </button>
               </UCard>
               <UCard v-else class="opacity-60 cursor-not-allowed">
                 <div class="space-y-2">
@@ -265,27 +305,30 @@
             {{ t('help_diagnostics_header') }}
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <UCard
-              class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
-              @click="copyUserId"
-            >
-              <div class="space-y-2">
-                <UIcon
-                  name="i-heroicons-identification"
-                  class="size-5 text-primary-500 group-hover:scale-110 transition-transform"
-                />
-                <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
-                  {{ t('help_diagnostics_id_title') }}
-                </h4>
-                <div
-                  class="text-[10px] font-mono text-gray-600 dark:text-gray-400 break-all bg-gray-100/50 dark:bg-gray-900/40 p-2 rounded border border-gray-200 dark:border-gray-800"
-                >
-                  {{ userStore.user?.id || 'Loading...' }}
+            <UCard class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group p-0">
+              <button
+                type="button"
+                class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                @click="copyUserId"
+              >
+                <div class="space-y-2">
+                  <UIcon
+                    name="i-heroicons-identification"
+                    class="size-5 text-primary-500 group-hover:scale-110 transition-transform"
+                  />
+                  <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
+                    {{ t('help_diagnostics_id_title') }}
+                  </h4>
+                  <div
+                    class="text-[10px] font-mono text-gray-600 dark:text-gray-400 break-all bg-gray-100/50 dark:bg-gray-900/40 p-2 rounded border border-gray-200 dark:border-gray-800"
+                  >
+                    {{ userStore.user?.id || trCommon('help_loading', 'Loading...') }}
+                  </div>
+                  <p class="text-[10px] text-gray-400 italic">
+                    {{ t('help_diagnostics_id_hint') }}
+                  </p>
                 </div>
-                <p class="text-[10px] text-gray-400 italic">
-                  {{ t('help_diagnostics_id_hint') }}
-                </p>
-              </div>
+              </button>
             </UCard>
           </div>
         </div>

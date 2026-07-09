@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Yazio">
+      <UDashboardNavbar :title="p('title', 'Connect Yazio')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -25,9 +25,9 @@
                 />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Yazio</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Yazio') }}</h2>
                 <p class="text-sm text-muted">
-                  Track your nutrition and fueling for optimized performance.
+                  {{ p('subtitle', 'Track your nutrition and fueling for optimized performance.') }}
                 </p>
               </div>
             </div>
@@ -39,7 +39,9 @@
             </div>
 
             <div v-if="success" class="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p class="text-sm text-green-600">Successfully connected to Yazio!</p>
+              <p class="text-sm text-green-600">
+                {{ p('success', 'Successfully connected to Yazio!') }}
+              </p>
             </div>
 
             <div class="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
@@ -87,14 +89,14 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton color="neutral" variant="outline" @click="goBack"> Cancel </UButton>
+              <UButton color="neutral" variant="outline" @click="goBack">{{ cancel() }}</UButton>
               <UButton
                 :loading="loading"
                 :disabled="!username || !password"
                 color="success"
                 @click="handleConnect"
               >
-                Connect Yazio
+                {{ p('button', 'Connect Yazio') }}
               </UButton>
             </div>
           </template>
@@ -106,13 +108,15 @@
 
 <script setup lang="ts">
   const router = useRouter()
+  const { p, back, cancel } = useConnectI18n('yazio')
 
   useHead({
-    title: 'Connect Yazio',
+    title: () => p('title', 'Connect Yazio'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Yazio account to track nutrition, calories, and macros.'
+        content: () =>
+          p('meta', 'Connect your Yazio account to track nutrition, calories, and macros.')
       }
     ]
   })
@@ -150,7 +154,7 @@
         }, 2000)
       }
     } catch (e: any) {
-      error.value = e.data?.message || 'Failed to connect to Yazio'
+      error.value = e.data?.message || p('failed_desc', 'Failed to connect to Yazio')
     } finally {
       loading.value = false
     }

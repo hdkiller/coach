@@ -1,5 +1,7 @@
 # Sentry Issues Resolution Plan (April 8, 2026)
 
+> **Status:** Mostly completed. Live tracking moved to [SENTRY-ISSUES.md](../SENTRY-ISSUES.md) (synced 2026-07-09). Use this file for historical context only.
+
 ## Objective
 
 Identify and resolve outstanding Sentry issues that were first seen before today (April 8, 2026) but are still occurring.

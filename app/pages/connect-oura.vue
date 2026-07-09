@@ -1,10 +1,10 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Connect Oura">
+      <UDashboardNavbar :title="p('title', 'Connect Oura')">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
-            Back
+            {{ back() }}
           </UButton>
         </template>
       </UDashboardNavbar>
@@ -21,9 +21,14 @@
                 <img src="/images/logos/oura.svg" alt="Oura Logo" class="w-8 h-8 object-contain" />
               </div>
               <div>
-                <h2 class="text-xl font-semibold">Connect Oura</h2>
+                <h2 class="text-xl font-semibold">{{ p('title', 'Connect Oura') }}</h2>
                 <p class="text-sm text-muted">
-                  Connect your Oura account to sync readiness, sleep, and activity data.
+                  {{
+                    p(
+                      'subtitle',
+                      'Connect your Oura account to sync readiness, sleep, and activity data.'
+                    )
+                  }}
                 </p>
               </div>
             </div>
@@ -49,7 +54,7 @@
                 />
                 <div class="text-sm">
                   <p class="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    Secure OAuth Connection
+                    {{ secureOAuthTitle() }}
                   </p>
                   <p class="text-blue-700 dark:text-blue-300">
                     You'll be redirected to Oura's secure login page. We never see your password.
@@ -99,9 +104,9 @@
                 />
               </div>
               <div class="flex justify-end gap-3">
-                <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
+                <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
                 <UButton :loading="connecting" color="primary" @click="connect">
-                  Connect Oura
+                  {{ p('button', 'Connect Oura') }}
                 </UButton>
               </div>
             </div>
@@ -115,17 +120,19 @@
 <script setup lang="ts">
   const toast = useToast()
   const router = useRouter()
+  const { p, back, cancel, failedTitle, secureOAuthTitle } = useConnectI18n('oura')
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Connect Oura',
+    title: () => p('title', 'Connect Oura'),
     meta: [
       {
         name: 'description',
-        content: 'Connect your Oura account to sync readiness, sleep, and activity data.'
+        content: () =>
+          p('meta', 'Connect your Oura account to sync readiness, sleep, and activity data.')
       }
     ]
   })
@@ -143,8 +150,8 @@
       window.location.href = '/api/integrations/oura/authorize'
     } catch (error: any) {
       toast.add({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to initiate Oura connection',
+        title: failedTitle(),
+        description: error.message || p('failed_desc', 'Failed to initiate Oura connection'),
         color: 'error'
       })
       connecting.value = false

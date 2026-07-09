@@ -21,7 +21,7 @@
               class="font-bold"
               @click="openInviteModal('email')"
             >
-              Invite Athlete
+              {{ tr('athletes_invite', 'Invite Athlete') }}
             </UButton>
           </div>
         </template>
@@ -32,12 +32,12 @@
       <div class="p-0 sm:p-6 space-y-6">
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            My Athletes
+            {{ tr('athletes_title', 'My Athletes') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Managing Your Performance Roster
+            {{ tr('athletes_subtitle', 'Managing Your Performance Roster') }}
           </p>
         </div>
 
@@ -54,14 +54,21 @@
           <div class="flex items-center justify-between gap-4 mb-4">
             <div>
               <h2 class="text-lg font-bold text-gray-900 dark:text-white">
-                Pending Coaching Requests
+                {{ tr('athletes_pending_requests_title', 'Pending Coaching Requests') }}
               </h2>
               <p class="text-sm text-neutral-500">
-                Athletes from your public start page are waiting for your review.
+                {{
+                  tr(
+                    'athletes_pending_requests_desc',
+                    'Athletes from your public start page are waiting for your review.'
+                  )
+                }}
               </p>
             </div>
             <UBadge color="warning" variant="soft" size="sm" class="uppercase font-bold">
-              {{ pendingRequests.length }} pending
+              {{
+                tr('athletes_pending_count', '{count} pending', { count: pendingRequests.length })
+              }}
             </UBadge>
           </div>
 
@@ -97,7 +104,7 @@
                     v-if="request.athleteSnapshot?.activeCoaches?.length"
                     class="rounded-xl border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-200"
                   >
-                    Already coaching with:
+                    {{ tr('athletes_already_coaching', 'Already coaching with:') }}
                     {{
                       request.athleteSnapshot.activeCoaches
                         .map((coach: any) => coach.name || coach.email)
@@ -131,7 +138,7 @@
                     :loading="reviewingRequestId === request.id && reviewingAction === 'approve'"
                     @click="approveRequest(request.id)"
                   >
-                    Approve
+                    {{ tr('athletes_approve', 'Approve') }}
                   </UButton>
                   <UButton
                     color="error"
@@ -140,7 +147,7 @@
                     :loading="reviewingRequestId === request.id && reviewingAction === 'decline'"
                     @click="declineRequest(request.id)"
                   >
-                    Decline
+                    {{ tr('athletes_decline', 'Decline') }}
                   </UButton>
                 </div>
               </div>
@@ -170,29 +177,33 @@
           <div class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-full mb-4">
             <UIcon name="i-heroicons-users" class="w-8 h-8 text-neutral-400" />
           </div>
-          <h3 class="font-bold text-lg">No Athletes Yet</h3>
+          <h3 class="font-bold text-lg">{{ tr('athletes_empty_title', 'No Athletes Yet') }}</h3>
           <p class="text-neutral-500 mb-6 max-w-xs">
-            Send a direct email invite, create one share link for your community, or use an
-            athlete's personal invite code.
+            {{
+              tr(
+                'athletes_empty_desc',
+                "Send a direct email invite, create one share link for your community, or use an athlete's personal invite code."
+              )
+            }}
           </p>
           <div class="flex flex-col sm:flex-row items-center gap-3">
             <UButton
               color="primary"
-              label="Create Share Link"
+              :label="tr('athletes_create_share_link', 'Create Share Link')"
               icon="i-heroicons-link"
               @click="openInviteModal('share')"
             />
             <UButton
               color="neutral"
               variant="outline"
-              label="Invite by Email"
+              :label="tr('athletes_invite_email', 'Invite by Email')"
               icon="i-heroicons-envelope"
               @click="openInviteModal('email')"
             />
             <UButton
               color="neutral"
               variant="outline"
-              label="Connect by Code"
+              :label="tr('athletes_connect_code', 'Connect by Code')"
               icon="i-heroicons-ticket"
               @click="openInviteModal('code')"
             />
@@ -214,7 +225,7 @@
           class="py-12 text-center flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-800/20 rounded-lg border border-gray-100 dark:border-gray-800"
         >
           <p class="text-neutral-500 text-sm italic font-medium">
-            No athletes assigned to this group yet.
+            {{ tr('athletes_no_group', 'No athletes assigned to this group yet.') }}
           </p>
         </div>
 
@@ -229,17 +240,20 @@
               <p
                 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300"
               >
-                Coach Onboarding
+                {{ tr('athletes_onboarding_label', 'Coach Onboarding') }}
               </p>
               <h2
                 class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight"
               >
-                Invite athletes by email or connect by code
+                {{ tr('athletes_onboarding_title', 'Invite athletes by email or connect by code') }}
               </h2>
               <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Send a direct join link to a new athlete, or keep using their existing personal
-                invite code if they already shared one with you. You can also create a public share
-                link for Facebook groups or community posts.
+                {{
+                  tr(
+                    'athletes_onboarding_desc',
+                    'Send a direct join link to a new athlete, or keep using their existing personal invite code if they already shared one with you. You can also create a public share link for Facebook groups or community posts.'
+                  )
+                }}
               </p>
             </div>
 
@@ -248,21 +262,21 @@
                 color="primary"
                 variant="solid"
                 icon="i-heroicons-link"
-                label="Create Share Link"
+                :label="tr('athletes_create_share_link', 'Create Share Link')"
                 @click="openInviteModal('share')"
               />
               <UButton
                 color="neutral"
                 variant="outline"
                 icon="i-heroicons-envelope"
-                label="Invite by Email"
+                :label="tr('athletes_invite_email', 'Invite by Email')"
                 @click="openInviteModal('email')"
               />
               <UButton
                 color="neutral"
                 variant="outline"
                 icon="i-heroicons-ticket"
-                label="Connect by Code"
+                :label="tr('athletes_connect_code', 'Connect by Code')"
                 @click="openInviteModal('code')"
               />
             </div>
@@ -272,9 +286,16 @@
         <UCard v-if="pendingInvites.length > 0" :ui="{ body: 'p-6' }">
           <div class="flex items-center justify-between gap-4 mb-4">
             <div>
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white">Pending Invitations</h2>
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                {{ tr('athletes_pending_invites_title', 'Pending Invitations') }}
+              </h2>
               <p class="text-sm text-neutral-500">
-                Manage private email invites and public share links from one place.
+                {{
+                  tr(
+                    'athletes_pending_invites_desc',
+                    'Manage private email invites and public share links from one place.'
+                  )
+                }}
               </p>
             </div>
             <UButton
@@ -465,17 +486,22 @@
 
 <script setup lang="ts">
   const { formatRelativeTime } = useFormat()
+  const { tr } = useCoachingI18n()
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'My Athletes | Coaching',
+    title: () => tr('athletes_meta_title', 'My Athletes | Coaching'),
     meta: [
       {
         name: 'description',
-        content: 'Manage the athletes you are currently coaching.'
+        content: () =>
+          tr(
+            'athletes_meta_description',
+            'Manage your athlete roster, invitations, and coaching requests.'
+          )
       }
     ]
   })
