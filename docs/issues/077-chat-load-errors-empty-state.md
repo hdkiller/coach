@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `ai, chat`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -11,7 +11,7 @@ app/pages/chat.vue
 
 ## Steps to Reproduce
 
-Block /api/chat/* requests; open /chat — empty state, no error banner.
+Block /api/chat/\* requests; open /chat — empty state, no error banner.
 
 ## Expected Behavior
 

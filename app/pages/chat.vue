@@ -6,7 +6,8 @@
     onBeforeUnmount,
     defineAsyncComponent,
     watch,
-    nextTick
+    nextTick,
+    provide
   } from 'vue'
   import { useTranslate } from '@tolgee/vue'
   import { Chat } from '@ai-sdk/vue'
@@ -40,6 +41,8 @@
   // State
   const currentRoomId = ref('')
   const loadingMessages = ref(true)
+  const messagesLoadError = ref<string | null>(null)
+  const roomsLoadError = ref<string | null>(null)
   const rooms = ref<any[]>([])
   const loadingRooms = ref(true)
   const isRoomListOpen = ref(false)
@@ -78,6 +81,7 @@
     text: string
     attachments: QueuedAttachment[]
     createdAt: Date
+    failed?: boolean
   }
   type ChatRoomStateSnapshot = {
     latestMessageId: string | null
@@ -89,7 +93,52 @@
     activeTurnUpdatedAt: string | null
     hasAssistantMessage: boolean
   }
-  const queuedOutgoingByRoom = ref<Record<string, QueuedOutgoingMessage[]>>({})
+  const CHAT_QUEUE_STORAGE_KEY = 'coach-chat-outgoing-queue'
+
+  type SerializedQueuedOutgoingMessage = Omit<QueuedOutgoingMessage, 'createdAt'> & {
+    createdAt: string
+  }
+
+  const loadPersistedOutgoingQueue = (): Record<string, QueuedOutgoingMessage[]> => {
+    if (!import.meta.client) return {}
+
+    try {
+      const raw = sessionStorage.getItem(CHAT_QUEUE_STORAGE_KEY)
+      if (!raw) return {}
+
+      const parsed = JSON.parse(raw) as Record<string, SerializedQueuedOutgoingMessage[]>
+      return Object.fromEntries(
+        Object.entries(parsed).map(([roomId, messages]) => [
+          roomId,
+          messages.map((message) => ({
+            ...message,
+            createdAt: new Date(message.createdAt)
+          }))
+        ])
+      )
+    } catch {
+      return {}
+    }
+  }
+
+  const persistOutgoingQueue = (state: Record<string, QueuedOutgoingMessage[]>) => {
+    if (!import.meta.client) return
+
+    const serialized = Object.fromEntries(
+      Object.entries(state).map(([roomId, messages]) => [
+        roomId,
+        messages.map((message) => ({
+          ...message,
+          createdAt: message.createdAt.toISOString()
+        }))
+      ])
+    )
+    sessionStorage.setItem(CHAT_QUEUE_STORAGE_KEY, JSON.stringify(serialized))
+  }
+
+  const queuedOutgoingByRoom = ref<Record<string, QueuedOutgoingMessage[]>>(
+    loadPersistedOutgoingQueue()
+  )
   const queueDispatchInFlightByRoom = ref<Record<string, boolean>>({})
   const roomStateSignaturesByRoom = ref<Record<string, string>>({})
 
@@ -99,6 +148,14 @@
   const { refresh: refreshRuns } = useUserRuns()
   const upgradeModal = useUpgradeModal()
   const { trackChatSessionStart, trackChatError } = useAnalytics()
+
+  watch(
+    queuedOutgoingByRoom,
+    (value) => {
+      persistOutgoingQueue(value)
+    },
+    { deep: true }
+  )
 
   const route = useRoute()
   const router = useRouter()
@@ -413,6 +470,15 @@
     const nextQueuedMessage = getQueuedOutgoingMessages(roomId)[0]
     if (!nextQueuedMessage) return
 
+    if (nextQueuedMessage.failed) {
+      setQueuedOutgoingMessages(
+        roomId,
+        getQueuedOutgoingMessages(roomId).map((message) =>
+          message.id === nextQueuedMessage.id ? { ...message, failed: false } : message
+        )
+      )
+    }
+
     setQueueDispatchInFlight(roomId, true)
 
     try {
@@ -423,11 +489,16 @@
       removeQueuedOutgoingMessage(roomId, nextQueuedMessage.id)
       scheduleQueueReconcile(roomId)
     } catch (error: any) {
-      // Remove the failing message so it doesn't block the queue indefinitely
-      removeQueuedOutgoingMessage(roomId, nextQueuedMessage.id)
+      setQueuedOutgoingMessages(
+        roomId,
+        getQueuedOutgoingMessages(roomId).map((message) =>
+          message.id === nextQueuedMessage.id ? { ...message, failed: true } : message
+        )
+      )
       toast.add({
         title: 'Message failed to send',
-        description: error?.message || 'Could not send the queued message. Please try again.',
+        description:
+          error?.message || 'Could not send the queued message. It will retry when ready.',
         color: 'error'
       })
     } finally {
@@ -446,7 +517,7 @@
       createdAt: message.createdAt,
       metadata: {
         localOnly: true,
-        localQueueState: 'QUEUED'
+        localQueueState: message.failed ? 'FAILED' : 'QUEUED'
       }
     }))
     const combinedMessages = [...sanitizedMessages, ...queuedMessages].sort(
@@ -783,10 +854,6 @@
     if (pendingApprovalSubmissions.has(approval.approvalId)) return
     pendingApprovalSubmissions.add(approval.approvalId)
 
-    // Append a tool message with a tool-approval-response part directly to chat.messages.
-    // addToolApprovalResponse only works with messages that came through the SDK's own
-    // streaming transport, not with messages synthesized from WebSocket-delivered state.
-    // The server's hasToolApprovalResponse path handles this message correctly.
     const approvalToolMsg = {
       id: crypto.randomUUID(),
       role: 'tool',
@@ -807,16 +874,26 @@
     chat.messages = [...(chat.messages as any[]), approvalToolMsg] as any
     try {
       await (chat as any).sendMessage()
-    } catch (error) {
+      awaitingTurnStart.value = true
+      restartTurnPolling({ forceForMs: 15000 })
+      if (currentRoomId.value) {
+        startApprovalSync(currentRoomId.value, approvalToolMsg.createdAt.getTime())
+      }
+    } catch (error: any) {
       pendingApprovalSubmissions.delete(approval.approvalId)
+      chat.messages = (chat.messages as any[]).filter(
+        (message) => message.id !== approvalToolMsg.id
+      ) as any
+      toast.add({
+        title: 'Tool approval failed',
+        description: error?.message || 'Could not submit your approval. Please try again.',
+        color: 'error'
+      })
       throw error
     }
-    awaitingTurnStart.value = true
-    restartTurnPolling({ forceForMs: 15000 })
-    if (currentRoomId.value) {
-      startApprovalSync(currentRoomId.value, approvalToolMsg.createdAt.getTime())
-    }
   }
+
+  provide('chatToolApproval', onToolApproval)
 
   const getMessageText = (message: any) => {
     if (typeof message?.content === 'string') return message.content
@@ -1171,6 +1248,7 @@
       if (selectFirst) loadingRooms.value = true
       const loadedRooms = (await ($fetch as any)('/api/chat/rooms')) as any[]
       rooms.value = loadedRooms
+      roomsLoadError.value = null
 
       // Select first room if we don't have a current one
       if (selectFirst && !currentRoomId.value && loadedRooms.length > 0 && loadedRooms[0]) {
@@ -1178,6 +1256,8 @@
       }
     } catch (err: any) {
       console.error('Failed to load rooms:', err)
+      roomsLoadError.value =
+        err?.data?.message || err?.message || 'Failed to load chat rooms. Please try again.'
     } finally {
       loadingRooms.value = false
     }
@@ -1227,8 +1307,11 @@
       }
       restartTurnPolling()
       void processQueuedMessagesForRoom(roomId)
+      messagesLoadError.value = null
     } catch (err: any) {
       console.error('Failed to load messages:', err)
+      messagesLoadError.value =
+        err?.data?.message || err?.message || 'Failed to load messages. Please try again.'
     } finally {
       loadMessagesInFlight[roomId] = false
       if (!silent) {
@@ -1281,10 +1364,7 @@
       }
 
       if (text) {
-        chat.sendMessage({
-          text,
-          role: 'user'
-        } as any)
+        await sendOutgoingMessage({ text, attachments: [] })
       }
 
       // Clear query params
@@ -1323,6 +1403,17 @@
     nextTick(() => {
       chatInputRef.value?.focus()
     })
+  }
+
+  async function retryChatLoad() {
+    if (roomsLoadError.value) {
+      await loadRooms(false)
+    }
+    if (currentRoomId.value) {
+      await loadMessages(currentRoomId.value)
+    } else if (!roomsLoadError.value) {
+      await loadChat()
+    }
   }
 
   async function createNewChat() {
@@ -2069,6 +2160,7 @@
             :messages="chatMessages"
             :status="uiChatStatus"
             :loading="loadingMessages"
+            :load-error="messagesLoadError"
             :can-edit-messages="
               uiChatStatus === 'ready' && queuedMessageCount === 0 && !isCurrentRoomReadOnly
             "
@@ -2084,6 +2176,7 @@
             @retry-turn="retryTurn"
             @remember-message="onRememberMessage"
             @forget-message="onForgetMessage"
+            @retry-load="retryChatLoad"
           />
 
           <!-- Input -->

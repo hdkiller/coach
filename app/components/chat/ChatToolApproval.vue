@@ -13,6 +13,10 @@
   const props = defineProps<Props>()
   const emit = defineEmits(['approve', 'deny'])
 
+  const submitToolApproval = inject<
+    ((approval: { approvalId: string; approved: boolean; result?: string }) => Promise<void>) | null
+  >('chatToolApproval', null)
+
   const submitting = ref(false)
   const showDenyEditor = ref(false)
   const denyReason = ref('')
@@ -64,10 +68,34 @@
     }
   )
 
+  const submitApproval = async (payload: {
+    approvalId: string
+    approved: boolean
+    result: string
+  }) => {
+    if (submitToolApproval) {
+      await submitToolApproval(payload)
+      return
+    }
+
+    emit(payload.approved ? 'approve' : 'deny', {
+      approvalId: payload.approvalId,
+      result: payload.result
+    })
+  }
+
   const handleApprove = async () => {
     if (submitting.value || resultText.value) return
     submitting.value = true
-    emit('approve', { approvalId: props.approvalId, result: 'User confirmed action.' })
+    try {
+      await submitApproval({
+        approvalId: props.approvalId,
+        approved: true,
+        result: 'User confirmed action.'
+      })
+    } catch {
+      submitting.value = false
+    }
   }
 
   const openDenyEditor = () => {
@@ -91,10 +119,15 @@
         ? `User cancelled action. Reason: ${trimmedReason}`
         : 'User cancelled action.'
 
-    emit('deny', {
-      approvalId: props.approvalId,
-      result
-    })
+    try {
+      await submitApproval({
+        approvalId: props.approvalId,
+        approved: false,
+        result
+      })
+    } catch {
+      submitting.value = false
+    }
   }
 
   const handleDenyClick = () => {
