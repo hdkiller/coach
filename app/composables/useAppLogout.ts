@@ -12,6 +12,7 @@ export function useAppLogout() {
 
   async function logout(callbackUrl = '/login') {
     clearAuthOverrides()
+    resetClientState()
 
     await signOut({ callbackUrl })
   }
