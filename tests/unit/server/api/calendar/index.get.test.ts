@@ -177,4 +177,30 @@ describe('GET /api/calendar threshold milestones', () => {
       })
     ])
   })
+
+  it('queries planned workouts using the viewer-local UTC range', async () => {
+    const handler = await getHandler()
+
+    vi.mocked(getStartOfLocalDateUTC).mockReturnValue(new Date('2026-07-16T04:00:00.000Z'))
+    vi.mocked(getEndOfLocalDateUTC).mockReturnValue(new Date('2026-07-20T03:59:59.999Z'))
+
+    await handler({
+      query: {
+        startDate: '2026-07-16T00:00:00Z',
+        endDate: '2026-07-19T00:00:00Z'
+      }
+    } as any)
+
+    expect(prisma.plannedWorkout.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          date: {
+            gte: new Date('2026-07-16T04:00:00.000Z'),
+            lte: new Date('2026-07-20T03:59:59.999Z')
+          }
+        })
+      })
+    )
+  })
 })

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createIntervalsPlannedWorkout,
   normalizeIntervalsPlannedWorkout,
+  normalizeIntervalsSportType,
   normalizeIntervalsWorkout,
   cleanIntervalsDescription,
   normalizeIntervalsWellness,
@@ -31,6 +32,12 @@ It has multiple lines.
 
       const cleaned = cleanIntervalsDescription(fullText)
       expect(cleaned).toBe('This is the description.\nIt has multiple lines.')
+    })
+  })
+
+  describe('normalizeIntervalsSportType', () => {
+    it('maps Brick workouts to Other for Intervals compatibility', () => {
+      expect(normalizeIntervalsSportType('Brick')).toBe('Other')
     })
   })
 

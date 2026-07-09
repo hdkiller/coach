@@ -38,6 +38,7 @@ export function normalizeIntervalsSportType(type?: string | null): string {
   if (!type) return 'Ride'
   if (type === 'Gym') return 'WeightTraining'
   if (type === 'Active Recovery') return 'Ride'
+  if (type === 'Brick') return 'Other'
   if (type === 'Rest') return 'Other'
   return type
 }

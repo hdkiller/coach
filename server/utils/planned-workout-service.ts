@@ -14,6 +14,14 @@ import { WorkoutConverter } from './workout-converter'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 
 export function normalizePlannedWorkoutDate(value: string | Date) {
+  if (typeof value === 'string') {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+    if (match) {
+      const [, year, month, day] = match
+      return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+    }
+  }
+
   const rawDate = new Date(value)
   return new Date(Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate()))
 }

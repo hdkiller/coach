@@ -175,8 +175,8 @@ export async function getCalendarDataForUser(
     where: {
       userId,
       date: {
-        gte: calendarStart,
-        lte: calendarEnd
+        gte: rangeStart,
+        lte: rangeEnd
       }
     },
     orderBy: { date: 'asc' }
