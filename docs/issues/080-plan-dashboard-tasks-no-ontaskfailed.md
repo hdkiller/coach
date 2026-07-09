@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `planning, ui/ux`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -31,5 +31,5 @@ Add onTaskFailed for all registered task types.
 
 ## Acceptance Criteria
 
-- [ ] Bug no longer reproducible via steps above
-- [ ] Appropriate error handling or auth in place
+- [x] Bug no longer reproducible via steps above
+- [x] Appropriate error handling or auth in place

@@ -1189,7 +1189,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Generate explanations function
   const generateExplanations = async () => {
@@ -1255,6 +1255,16 @@
     if (showModal.value) {
       await refreshCurrentModal()
     }
+  })
+
+  onTaskFailed('generate-score-explanations', async (run) => {
+    generatingExplanations.value = false
+    toast.add({
+      title: t.value('toast_generation_failed_title') || 'Generation Failed',
+      description: run.error?.message || 'Failed to generate insights',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   // Watch for period changes and refetch

@@ -243,7 +243,7 @@
   const showClearModal = ref(false)
   const selectedCategory = ref<string | undefined>(undefined)
 
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
   const { refresh: refreshUserRuns } = useUserRuns()
 
   // Global listener for ANY recommendation generation completing
@@ -260,6 +260,16 @@
       })
       refreshingAdvice.value = false
     }, 1000)
+  })
+
+  onTaskFailed('generate-recommendations', async (run) => {
+    refreshingAdvice.value = false
+    toast.add({
+      title: 'Update Failed',
+      description: run.error?.message || 'Failed to generate recommendations',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   // Fetch Categories

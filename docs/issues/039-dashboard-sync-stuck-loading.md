@@ -3,7 +3,7 @@
 **Type:** Bug  
 **Priority:** High  
 **Area:** `dashboard`, `ui/ux`, `integrations`  
-**Status:** Open
+**Status:** Fixed
 
 ## Description
 
@@ -41,6 +41,6 @@ Register `onTaskFailed('ingest-all')` alongside `onTaskCompleted` to reset `sync
 
 ## Acceptance Criteria
 
-- [ ] `syncingData` resets on `ingest-all` failure
-- [ ] User sees a failure toast when sync task fails
-- [ ] Sync button is usable again without page reload
+- [x] `syncingData` resets on `ingest-all` failure
+- [x] User sees a failure toast when sync task fails
+- [x] Sync button is usable again without page reload

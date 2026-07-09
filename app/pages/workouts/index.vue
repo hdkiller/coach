@@ -641,7 +641,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Listeners
   onTaskCompleted('analyze-workout', async () => {
@@ -663,6 +663,26 @@
       description: 'Workout insights have been generated.',
       color: 'success',
       icon: 'i-heroicons-sparkles'
+    })
+  })
+
+  onTaskFailed('analyze-workout', async (run) => {
+    analyzingWorkouts.value = false
+    toast.add({
+      title: 'Analysis Failed',
+      description: run.error?.message || 'Workout analysis failed',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
+
+  onTaskFailed('generate-score-explanations', async (run) => {
+    generatingExplanations.value = false
+    toast.add({
+      title: 'Insights Failed',
+      description: run.error?.message || 'Failed to generate workout insights',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
     })
   })
 

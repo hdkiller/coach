@@ -384,7 +384,7 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Listeners
   onTaskCompleted('generate-daily-checkin', async (run) => {
@@ -397,6 +397,20 @@
     } else if (checkin.value?.status === 'FAILED') {
       error.value = 'Generation failed'
     }
+  })
+
+  onTaskFailed('generate-daily-checkin', async (run) => {
+    loading.value = false
+    error.value = run.error?.message || 'Generation failed'
+    if (checkin.value) {
+      checkin.value = { ...checkin.value, status: 'FAILED' }
+    }
+    toast.add({
+      title: 'Check-in Failed',
+      description: error.value,
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   async function fetchToday(silent = false) {

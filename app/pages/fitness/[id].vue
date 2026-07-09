@@ -683,6 +683,31 @@
   )
 
   const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
+
+  onTaskCompleted('analyze-wellness', async () => {
+    await fetchWellness()
+    analyzingWellness.value = false
+    toast.add({
+      title: 'Analysis Complete',
+      description: 'Wellness analysis has been updated.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskFailed('analyze-wellness', async (run) => {
+    analyzingWellness.value = false
+    if (wellness.value) {
+      wellness.value.aiAnalysisStatus = 'FAILED'
+    }
+    toast.add({
+      title: 'Analysis Failed',
+      description: run.error?.message || 'Failed to analyze wellness data',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  })
 
   // Computed
   const navTitle = computed(() => {

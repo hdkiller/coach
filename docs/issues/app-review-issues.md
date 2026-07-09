@@ -48,7 +48,7 @@ Documents **180 app-wide issues** (039–218) from systematic codebase review. C
 
 ### P2 — Recurring pattern: stuck loading spinners
 
-039, 049–051, 064–065, 073–074, 080–082, 119, 138 — all need `onTaskFailed` handlers.
+039, 049–051, 073–074, 080–082, 119, 138, 216 — ~~all need `onTaskFailed` handlers~~ **Fixed**.
 
 ### P3 — Webhook & integration security (postponed)
 

@@ -312,7 +312,7 @@
       `${props.date}|${props.windowType || 'GENERAL'}|${props.slotName || ''}|${props.targetCarbs}|${props.targetProtein || 0}|${props.targetKcal || 0}`
   )
 
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   function stopLoadingStageRotation() {
     if (loadingStageTimer) {
@@ -470,6 +470,20 @@
 
     loading.value = false
     loadingLlm.value = false
+  })
+
+  onTaskFailed('recommend-nutrition-meal', async (run) => {
+    if (!runIdsMatch(currentRunId.value, run.id)) return
+    stopLoadingStageRotation()
+    loading.value = false
+    loadingLlm.value = false
+    recommendations.value = []
+    toast.add({
+      title: 'Recommendation Failed',
+      description: run.error?.message || 'Failed to generate meal recommendations',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
   })
 
   watch(isOpen, (val) => {

@@ -37,7 +37,7 @@ export const useReportStore = defineStore('report', () => {
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
   // Listeners for all report tasks
   const reportTasks = [
@@ -58,6 +58,16 @@ export const useReportStore = defineStore('report', () => {
         description: 'Your report has been generated successfully.',
         color: 'success',
         icon: 'i-heroicons-check-circle'
+      })
+    })
+
+    onTaskFailed(taskId, async (run) => {
+      generating.value = false
+      toast.add({
+        title: 'Report Generation Failed',
+        description: run.error?.message || 'Report generation failed',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
       })
     })
   })
