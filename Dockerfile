@@ -21,6 +21,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM base AS builder
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
+ENV CHAT_TURN_RUNNER_ENABLED=false
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm build

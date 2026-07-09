@@ -7,6 +7,10 @@ import {
 import { sendToUserLocal } from '../utils/ws-state'
 
 export default defineNitroPlugin((nitroApp) => {
+  if (process.env.NITRO_BUILD || import.meta.prerender) {
+    return
+  }
+
   const runnerEnabled = process.env.CHAT_TURN_RUNNER_ENABLED !== 'false'
   const runner = runnerEnabled ? getChatTurnRunner() : null
 
