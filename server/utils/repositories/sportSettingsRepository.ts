@@ -14,8 +14,26 @@ function normalizePersistedSetting(setting: any) {
   if (!setting) return setting
   const { targetPolicy, loadPreference, targetFormatPolicy } =
     resolveTargetPolicyAndLoadPreference(setting)
+
+  // Intervals.icu has historically returned running pace-zone bounds in
+  // metres/minute, while Coach Watts stores and consumes pace as m/s. Keep
+  // the persisted database value untouched, but normalize the repository
+  // representation so every caller receives one canonical unit.
+  const thresholdPace = Number(setting.thresholdPace || 0)
+  const paceZones = Array.isArray(setting.paceZones) ? setting.paceZones : []
+  const paceZoneValues = paceZones.flatMap((zone: any) => [Number(zone?.min), Number(zone?.max)])
+  const maxPaceZoneValue = Math.max(...paceZoneValues.filter((value) => Number.isFinite(value)), 0)
+  const paceZonesAreMetersPerMinute = thresholdPace > 0 && maxPaceZoneValue > thresholdPace * 20
+
   return {
     ...setting,
+    paceZones: paceZonesAreMetersPerMinute
+      ? paceZones.map((zone: any) => ({
+          ...zone,
+          min: Number.isFinite(Number(zone?.min)) ? Number(zone.min) / 60 : zone?.min,
+          max: Number.isFinite(Number(zone?.max)) ? Number(zone.max) / 60 : zone?.max
+        }))
+      : setting.paceZones,
     targetPolicy,
     loadPreference,
     targetFormatPolicy
