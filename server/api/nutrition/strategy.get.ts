@@ -6,9 +6,9 @@ import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import {
+  getHydrationAdviceSummary,
   getHydrationRingStatus,
-  HYDRATION_DEBT_FLUSH_THRESHOLD_ML,
-  HYDRATION_DEBT_NUDGE_THRESHOLD_ML
+  HYDRATION_DEBT_FLUSH_THRESHOLD_ML
 } from '../../utils/nutrition/hydration'
 
 defineRouteMeta({
@@ -129,11 +129,9 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (hydrationDebt > HYDRATION_DEBT_NUDGE_THRESHOLD_ML) {
-      summary +=
-        ' High fluid debt detected. Add 500ml of water to your next two meals to normalize.'
-    } else if (hydrationDebt > 1000) {
-      summary += ` WARNING: You are carrying a significant fluid debt of ${Math.round(hydrationDebt)}ml. Prioritize rehydration today.`
+    const hydrationAdvice = getHydrationAdviceSummary(hydrationDebt)
+    if (hydrationAdvice) {
+      summary += hydrationAdvice
     }
 
     return {

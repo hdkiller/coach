@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { workoutStreamRepository } from '../../../utils/repositories/workoutStreamRepository'
 import { analyzePacingStrategy } from '../../../utils/pacing'
 import {
@@ -53,14 +53,7 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await getServerSession(event)
-
-    if (!session?.user) {
-      throw createError({
-        statusCode: 401,
-        message: 'Unauthorized'
-      })
-    }
+    const authUser = await requireAuth(event, ['workout:read'])
 
     const workoutId = getRouterParam(event, 'id')
 
@@ -75,7 +68,7 @@ export default defineEventHandler(async (event) => {
     const workout = await prisma.workout.findFirst({
       where: {
         id: workoutId,
-        userId: (session.user as any).id
+        userId: authUser.id
       },
       include: {
         user: {

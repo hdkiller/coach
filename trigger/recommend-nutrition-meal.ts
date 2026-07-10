@@ -39,17 +39,26 @@ export const recommendNutritionMealTask = task({
       if (quotaError.statusCode === 429) {
         logger.warn('Meal recommendation quota exceeded', { userId })
 
-        // Create a FAILED recommendation record with the quota error
-        await prisma.nutritionRecommendation.create({
-          data: {
-            userId,
-            date: new Date(date),
-            scope: 'MEAL',
-            windowType,
-            status: 'FAILED',
-            contextJson: { error: 'QUOTA_EXCEEDED' }
-          }
-        })
+        if (recommendationId) {
+          await prisma.nutritionRecommendation.update({
+            where: { id: recommendationId },
+            data: {
+              status: 'FAILED',
+              contextJson: { error: 'QUOTA_EXCEEDED' }
+            }
+          })
+        } else {
+          await prisma.nutritionRecommendation.create({
+            data: {
+              userId,
+              date: new Date(date),
+              scope: 'MEAL',
+              windowType,
+              status: 'FAILED',
+              contextJson: { error: 'QUOTA_EXCEEDED' }
+            }
+          })
+        }
 
         return { success: false, reason: 'QUOTA_EXCEEDED' }
       }

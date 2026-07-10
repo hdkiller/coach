@@ -15,6 +15,31 @@ export function getHydrationRingStatus(hydrationDebtMl: number): HydrationRingSt
   return 'green'
 }
 
+export type HydrationAdviceLevel = 'optimal' | 'moderate' | 'high' | 'severe'
+
+/** Returns the hydration advice tier — higher debt maps to more urgent tiers. */
+export function getHydrationAdviceLevel(debtMl: number): HydrationAdviceLevel {
+  if (debtMl > HYDRATION_DEBT_NUDGE_THRESHOLD_ML) return 'severe'
+  if (debtMl > 1500) return 'high'
+  if (debtMl > 500) return 'moderate'
+  return 'optimal'
+}
+
+/** Server-side strategy summary fragment for hydration debt. */
+export function getHydrationAdviceSummary(debtMl: number): string | null {
+  const level = getHydrationAdviceLevel(debtMl)
+  if (level === 'severe') {
+    return ` WARNING: You are carrying a significant fluid debt of ${Math.round(debtMl)}ml. Prioritize rehydration today.`
+  }
+  if (level === 'high') {
+    return ' High fluid debt detected. Add 500ml of water to your next two meals to normalize.'
+  }
+  if (debtMl > 1000) {
+    return ` Moderate fluid debt of ${Math.round(debtMl)}ml. Increase intake today.`
+  }
+  return null
+}
+
 const FLUID_KEYWORDS = [
   'water',
   'coffee',

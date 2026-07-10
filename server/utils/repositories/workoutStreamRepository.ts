@@ -127,12 +127,27 @@ export const workoutStreamRepository = {
       lng,
       time: rest.time ?? [],
       distance: rest.distance ?? [],
-      velocity: rest.velocity ?? []
+      velocity: rest.velocity ?? [],
+      heartrate: rest.heartrate ?? [],
+      cadence: rest.cadence ?? [],
+      watts: rest.watts ?? [],
+      altitude: rest.altitude ?? [],
+      grade: rest.grade ?? [],
+      moving: rest.moving ?? [],
+      temp: rest.temp ?? [],
+      torque: rest.torque ?? [],
+      leftRightBalance: rest.leftRightBalance ?? [],
+      hrv: rest.hrv ?? [],
+      respiration: rest.respiration ?? [],
+      targetPower: rest.targetPower ?? []
     }
 
     return (prisma as any).workoutStreamV2.upsert({
       where: { workoutId },
-      create: { workoutId, ...writeData },
+      create: {
+        workout: { connect: { id: workoutId } },
+        ...writeData
+      },
       update: { ...writeData, updatedAt: new Date() }
     })
   }

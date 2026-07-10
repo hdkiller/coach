@@ -1,6 +1,30 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 
+function sanitizeNutritionRecommendation(recommendation: {
+  id: string
+  date: Date
+  scope: string
+  windowType: string | null
+  status: string
+  resultJson: unknown
+  runId: string | null
+  createdAt: Date
+  updatedAt: Date
+}) {
+  return {
+    id: recommendation.id,
+    date: recommendation.date,
+    scope: recommendation.scope,
+    windowType: recommendation.windowType,
+    status: recommendation.status,
+    resultJson: recommendation.resultJson,
+    runId: recommendation.runId,
+    createdAt: recommendation.createdAt,
+    updatedAt: recommendation.updatedAt
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user) {
@@ -24,6 +48,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    recommendation
+    recommendation: sanitizeNutritionRecommendation(recommendation)
   }
 })

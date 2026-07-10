@@ -355,8 +355,6 @@ export const analyzeNutritionTask = task({
           nutritionId,
           userId: nutrition.userId
         })
-        // Optionally, update status to 'SKIPPED' or similar
-        await nutritionRepository.updateStatus(nutritionId, 'COMPLETED') // Mark as completed to avoid re-queueing
         return {
           success: true,
           skipped: true,

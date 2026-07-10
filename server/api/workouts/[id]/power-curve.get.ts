@@ -1,5 +1,5 @@
 import { defineEventHandler, createError, getRouterParam } from 'h3'
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { prisma } from '../../../utils/db'
 import { computePowerCurveWindows } from '../../../utils/power-curve'
 
@@ -57,31 +57,13 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['workout:read'])
 
   const workoutId = getRouterParam(event, 'id')
   if (!workoutId) {
     throw createError({
       statusCode: 400,
       message: 'Workout ID is required'
-    })
-  }
-
-  // Get user
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found'
     })
   }
 

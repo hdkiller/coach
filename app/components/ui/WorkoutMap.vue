@@ -176,9 +176,13 @@
           />
         </div>
       </div>
-      <div v-else class="flex flex-col items-center gap-2 text-gray-500">
+      <div v-else-if="loading" class="flex flex-col items-center gap-2 text-gray-500">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin" />
         <span class="text-sm">Loading map...</span>
+      </div>
+      <div v-else class="flex flex-col items-center gap-2 px-4 text-center text-gray-500">
+        <UIcon name="i-heroicons-map" class="h-8 w-8" />
+        <span class="text-sm">No route data available for this workout.</span>
       </div>
     </client-only>
   </div>
@@ -190,6 +194,7 @@
   const props = withDefaults(
     defineProps<{
       coordinates: any[]
+      loading?: boolean
       interactive?: boolean
       scrollWheelZoom?: boolean
       provider?: string
@@ -204,6 +209,7 @@
     }>(),
     {
       interactive: true,
+      loading: false,
       scrollWheelZoom: false,
       provider: undefined,
       providerLabel: undefined,

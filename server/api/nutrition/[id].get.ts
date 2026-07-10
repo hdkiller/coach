@@ -162,18 +162,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const llmUsage = await prisma.llmUsage.findFirst({
-    where: {
-      entityId: nutrition.id,
-      entityType: 'Nutrition'
-    },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      feedback: true,
-      feedbackText: true
-    }
-  })
+  const llmUsage = nutrition.id
+    ? await prisma.llmUsage.findFirst({
+        where: {
+          entityId: nutrition.id,
+          entityType: 'Nutrition'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          feedback: true,
+          feedbackText: true
+        }
+      })
+    : null
 
   return {
     ...applyCanonicalNutritionTargets(nutrition),

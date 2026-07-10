@@ -1,4 +1,5 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
+import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -48,14 +49,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
 
   const nutritionId = getRouterParam(event, 'id')
   if (!nutritionId) {
@@ -75,18 +70,45 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Verify the nutrition entry belongs to the user
-  const nutrition = await nutritionRepository.getById(nutritionId, (session.user as any).id)
+  let nutrition: any
+  if (/^\d{4}-\d{2}-\d{2}$/.test(nutritionId)) {
+    const dateObj = new Date(`${nutritionId}T00:00:00Z`)
+    nutrition = await nutritionRepository.getByDate(userId, dateObj)
+  } else {
+    nutrition = await nutritionRepository.getById(nutritionId, userId)
+  }
 
   if (!nutrition) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(nutritionId)) {
+      const dateObj = new Date(`${nutritionId}T00:00:00Z`)
+      const created = await nutritionRepository.create({
+        userId,
+        date: dateObj,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+        snacks: [],
+        notes,
+        notesUpdatedAt: new Date()
+      })
+
+      return {
+        success: true,
+        nutrition: created
+      }
+    }
+
     throw createError({
       statusCode: 404,
       message: 'Nutrition entry not found'
     })
   }
 
-  // Update the nutrition notes
-  const updatedNutrition = await nutritionRepository.update(nutritionId, {
+  const updatedNutrition = await nutritionRepository.update(nutrition.id, {
     notes: notes,
     notesUpdatedAt: new Date()
   })

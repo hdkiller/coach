@@ -125,17 +125,33 @@ export const nutritionPlanService = {
 
     if (existing) return existing
 
-    return prisma.nutritionPlan.create({
-      data: {
-        userId,
-        startDate: weekStart,
-        endDate: weekEnd,
-        status
-      },
-      include: {
-        meals: true
+    try {
+      return await prisma.nutritionPlan.create({
+        data: {
+          userId,
+          startDate: weekStart,
+          endDate: weekEnd,
+          status
+        },
+        include: {
+          meals: true
+        }
+      })
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const raced = await prisma.nutritionPlan.findFirst({
+          where: {
+            userId,
+            startDate: weekStart
+          },
+          include: {
+            meals: true
+          }
+        })
+        if (raced) return raced
       }
-    })
+      throw error
+    }
   },
 
   getWindowSummaryForDay(daySummary: any, windowType: string) {
@@ -769,9 +785,15 @@ export const nutritionPlanService = {
             (entry: any) => entry.date === toDateKey(dayStartUtc)
           )
         : null
-    const windows = Array.isArray(daySummary?.fuelingPlan?.windows)
-      ? daySummary.fuelingPlan.windows
+    const liveWindows = Array.isArray((nutrition.fuelingPlan as any)?.windows)
+      ? (nutrition.fuelingPlan as any).windows
       : []
+    const windows =
+      liveWindows.length > 0
+        ? liveWindows
+        : Array.isArray(daySummary?.fuelingPlan?.windows)
+          ? daySummary.fuelingPlan.windows
+          : []
     const loggedItems = this.buildLoggedItems(nutrition, resolvedTimezone, dayStartUtc)
     const usedIds = new Set<string>()
     const updates: any[] = []

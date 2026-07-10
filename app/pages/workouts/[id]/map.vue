@@ -104,8 +104,9 @@
           <div :class="mapCardClass">
             <UiWorkoutMap
               ref="workoutMap"
-              :coordinates="workout.streams?.latlng || []"
+              :coordinates="workout.streams?.latlng || summaryPolylineCoordinates"
               :streams="workout.streams"
+              :loading="loading"
               :workout-id="workout.id"
               :highlight-index="hoverIndex"
               :highlight-range="activeHighlightRange"
@@ -659,6 +660,7 @@
 </template>
 
 <script setup lang="ts">
+  import { decode } from '@googlemaps/polyline-codec'
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
 
   import { ref, computed, watch, toRaw, nextTick } from 'vue'
@@ -697,6 +699,17 @@
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
   const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
+  const summaryPolylineCoordinates = computed<[number, number][]>(() => {
+    const polyline = workout.value?.summaryPolyline
+    if (!polyline) return []
+
+    try {
+      return decode(polyline) as [number, number][]
+    } catch (error) {
+      console.error('Failed to decode workout summary polyline:', error)
+      return []
+    }
+  })
 
   function calculateDisplayedHrZoneTimes(streams: Record<string, any>, zones: any[]) {
     if (!Array.isArray(streams?.heartrate) || !Array.isArray(streams?.time) || !zones.length)
@@ -948,18 +961,19 @@
       }))
   })
 
-  // Fetch workout and streams using useAsyncData
-  const { data: workoutData, error: workoutError } = (await useAsyncData<any>(
-    `workout-${workoutId}`,
-    () => ($fetch as any)(`/api/workouts/${workoutId}`),
+  // useFetch forwards the SSR request cookies; raw $fetch inside useAsyncData does not.
+  const { data: workoutData, error: workoutError } = (await useFetch<any>(
+    `/api/workouts/${workoutId}`,
     {
+      key: `workout-map-${workoutId}`,
+      query: { includeStreams: false },
       lazy: true
     }
   )) as any
-  const { data: streamsData, error: streamsError } = (await useAsyncData<any>(
-    `workout-streams-${workoutId}`,
-    () => ($fetch as any)(`/api/workouts/${workoutId}/streams`),
+  const { data: streamsData, error: streamsError } = (await useFetch<any>(
+    `/api/workouts/${workoutId}/streams`,
     {
+      key: `workout-streams-${workoutId}`,
       lazy: true
     }
   )) as any
@@ -1120,6 +1134,16 @@
 
   async function fetchPeakPowerWindows() {
     if (peakPowerLoading.value || peakPowerWindows.value.length > 0) return
+
+    const streams = workout.value?.streams
+    if (
+      !Array.isArray(streams?.watts) ||
+      streams.watts.length === 0 ||
+      !Array.isArray(streams?.time) ||
+      streams.time.length === 0
+    ) {
+      return
+    }
 
     try {
       peakPowerLoading.value = true

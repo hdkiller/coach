@@ -537,6 +537,7 @@
   import type { RecoveryContextItem } from '~/types/recovery-context'
 
   const { t } = useTranslate('nutrition')
+  const toast = useToast()
 
   definePageMeta({
     middleware: ['auth', 'nutrition-enabled'],
@@ -874,8 +875,8 @@
   const hydrationAdvice = computed(() => {
     if (!strategy.value) return t.value('nav_refresh') + '...'
     const debt = strategy.value.hydrationDebt
-    if (debt > 2000) return t.value('hydration_advice_high')
-    if (debt > 1500) return t.value('hydration_advice_severe')
+    if (debt > 2000) return t.value('hydration_advice_severe')
+    if (debt > 1500) return t.value('hydration_advice_high')
     if (debt > 500) return t.value('hydration_advice_moderate')
     return t.value('hydration_advice_optimal')
   })
@@ -895,8 +896,18 @@
     try {
       await $fetch('/api/nutrition/hydration-reset', { method: 'POST' })
       await refreshData()
-    } catch (error) {
+      toast.add({
+        title: t.value('hydration_reset_success_title'),
+        description: t.value('hydration_reset_success_description'),
+        color: 'success'
+      })
+    } catch (error: any) {
       console.error('Failed to reset hydration debt:', error)
+      toast.add({
+        title: t.value('hydration_reset_failed_title'),
+        description: error?.data?.message || t.value('hydration_reset_failed_description'),
+        color: 'error'
+      })
     }
   }
 
@@ -928,12 +939,17 @@
         items: (response as any).items || [],
         totals: (response as any).totals || { ingredients: 0, meals: 0 }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load grocery list:', error)
       groceryData.value = {
         items: [],
         totals: { ingredients: 0, meals: 0 }
       }
+      toast.add({
+        title: t.value('grocery_load_failed_title'),
+        description: error?.data?.message || t.value('grocery_load_failed_description'),
+        color: 'error'
+      })
     } finally {
       groceryLoading.value = false
     }

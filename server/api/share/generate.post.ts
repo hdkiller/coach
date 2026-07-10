@@ -63,14 +63,15 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event, ['workout:read'])
-  const userId = user.id
-
   const { resourceType, resourceId, expiresIn, forceNew } = await readBody(event)
 
   if (!resourceType || !resourceId) {
     throw createError({ statusCode: 400, message: 'Missing resourceType or resourceId' })
   }
+
+  const authScope = resourceType === 'NUTRITION' ? ['nutrition:read'] : ['workout:read']
+  const user = await requireAuth(event, authScope)
+  const userId = user.id
 
   // Verify resource existence and ownership
   let resourceExists = false
@@ -152,7 +153,7 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig()
   const siteUrl = config.public.siteUrl || 'http://localhost:3000'
-  let sharePath = ''
+  let sharePath: string
 
   switch (resourceType) {
     case 'REPORT':

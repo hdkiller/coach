@@ -1,5 +1,5 @@
 import { defineEventHandler, readBody } from 'h3'
-import { getEffectiveUserId } from '../../../utils/coaching'
+import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
 
 function parseDateOnlyUtcStart(value: string) {
@@ -21,7 +21,8 @@ function parseDateOnlyUtcEnd(value: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  const userId = await getEffectiveUserId(event)
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
   const body = await readBody(event)
 
   const start = body.startDate

@@ -5,7 +5,6 @@ import { useWorkoutComparisonStore } from '../../../app/stores/workout-compariso
 describe('logout client state hygiene', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    localStorage.clear()
   })
 
   it('clears workout comparison basket and snapshots', () => {

@@ -36,6 +36,7 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['workout:read'])
+  const includeStreams = getQuery(event).includeStreams !== 'false'
 
   const id = getRouterParam(event, 'id')
 
@@ -64,7 +65,6 @@ export default defineEventHandler(async (event) => {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          streams: true,
           oauthApp: {
             select: {
               id: true,
@@ -125,7 +125,6 @@ export default defineEventHandler(async (event) => {
   if (!workout) {
     workout = await workoutRepository.getById(id, user.id, {
       include: {
-        streams: true,
         oauthApp: {
           select: {
             id: true,
@@ -236,6 +235,11 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
+  const streams = includeStreams ? await workoutStreamRepository.findByWorkoutId(workout.id) : null
+  if (streams) {
+    workout.streams = streams
+  }
+
   const analysisFacts = buildWorkoutAnalysisFacts({
     workout: workout as any,
     sportSettings,
@@ -248,8 +252,6 @@ export default defineEventHandler(async (event) => {
     plannedWorkout: (workout as any).plannedWorkout,
     userProfile: userProfile || undefined
   })
-
-  const streams = await workoutStreamRepository.findByWorkoutId(workout.id)
 
   return {
     ...workout,

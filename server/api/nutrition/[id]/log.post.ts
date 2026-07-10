@@ -187,6 +187,14 @@ export default defineEventHandler(async (event) => {
       })
       itemsByDate[targetDateStr]!.items.push(hydrationItem)
       itemsByDate[targetDateStr]!.mealTypes.add('snacks')
+      const fluidMl = Math.round(Number(item.waterMl || hydrationItem.water_ml || 0))
+      if (fluidMl > 0) {
+        itemsByDate[targetDateStr]!.hydrationMl += fluidMl
+        if (!itemsByDate[targetDateStr]!.hydrationLoggedAt && normalizedLoggedAt) {
+          itemsByDate[targetDateStr]!.hydrationLoggedAt =
+            typeof normalizedLoggedAt === 'string' ? normalizedLoggedAt : null
+        }
+      }
       return
     }
 
@@ -230,6 +238,8 @@ export default defineEventHandler(async (event) => {
       })
     )
     itemsByDate[dateStr]!.mealTypes.add('snacks')
+    itemsByDate[dateStr]!.hydrationMl += inferredFluidMl
+    itemsByDate[dateStr]!.hydrationLoggedAt = new Date().toISOString()
   }
 
   // Process each date group

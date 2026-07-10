@@ -483,6 +483,8 @@
 <script setup lang="ts">
   import { addDays, format, parseISO } from 'date-fns'
 
+  const toast = useToast()
+
   interface DayWorkout {
     id: string
     title: string
@@ -974,8 +976,13 @@
       })
       await fetchPlan()
       drawerOpen.value = false
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update planned meal status:', error)
+      toast.add({
+        title: 'Could not update meal',
+        description: error?.data?.message || 'Please try again.',
+        color: 'error'
+      })
     }
   }
 

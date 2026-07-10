@@ -821,15 +821,47 @@
   const readinessPeriod = ref<number | string>(30)
   const powerCurvePeriod = ref<number | string>(90)
   const powerCurveScope = ref<string>('all')
+  const workoutScope = ref<string>('all')
+  const scopeToSport = (scope: string) =>
+    scope === 'all' || scope.startsWith('tag:') ? 'all' : scope
+  const scopeToTags = (scope: string) => (scope.startsWith('tag:') ? [scope.slice(4)] : [])
 
-  // Fetch available sports
-  const { data: sportsData } = (await useAsyncData<string[]>('workouts-sports', () =>
-    ($fetch as any)('/api/workouts/sports')
-  )) as any
-  const { data: workoutTagsData } = (await useAsyncData<Array<{ value: string; count: number }>>(
-    'workouts-tags',
-    () => ($fetch as any)('/api/workouts/tags')
-  )) as any
+  // These requests are independent; start them together instead of creating a waterfall.
+  const [sportsResult, workoutTagsResult, profileResult, workoutResult, nutritionResult] =
+    await Promise.all([
+      useAsyncData<string[]>('workouts-sports', () => ($fetch as any)('/api/workouts/sports')),
+      useAsyncData<Array<{ value: string; count: number }>>('workouts-tags', () =>
+        ($fetch as any)('/api/workouts/tags')
+      ),
+      useAsyncData<AthleteProfile>('athlete-profile', () =>
+        ($fetch as any)('/api/scores/athlete-profile')
+      ),
+      useAsyncData(
+        'workout-trends',
+        () =>
+          ($fetch as any)('/api/scores/workout-trends', {
+            query: {
+              days: selectedPeriod.value,
+              sport: scopeToSport(workoutScope.value),
+              tags: scopeToTags(workoutScope.value).join(',')
+            }
+          }),
+        { watch: [selectedPeriod, workoutScope] }
+      ),
+      useAsyncData(
+        'nutrition-trends',
+        () =>
+          ($fetch as any)('/api/scores/nutrition-trends', {
+            query: {
+              days: selectedPeriod.value
+            }
+          }),
+        { watch: [selectedPeriod] }
+      )
+    ])
+
+  const { data: sportsData } = sportsResult as any
+  const { data: workoutTagsData } = workoutTagsResult as any
   const sportOptions = computed(() => {
     const options = [{ label: t.value('highlights_all_sports'), value: 'all' }]
     if (sportsData.value) {
@@ -867,11 +899,6 @@
 
     return groups
   })
-
-  const scopeToSport = (scope: string) =>
-    scope === 'all' || scope.startsWith('tag:') ? 'all' : scope
-
-  const scopeToTags = (scope: string) => (scope.startsWith('tag:') ? [scope.slice(4)] : [])
 
   const periodOptions = computed(() => [
     { label: t.value('period_7_days'), value: 7 },
@@ -914,8 +941,6 @@
     { label: t.value('period_all_time'), value: 3650 }
   ])
 
-  const workoutScope = ref<string>('all')
-
   const hasPersonalBests = computed(() => {
     return (profileData.value?.personalBests?.length || 0) > 0
   })
@@ -939,41 +964,9 @@
     }
   }
 
-  // Fetch athlete profile data
-  const { data: profileData, pending: profileLoading } = (await useAsyncData<AthleteProfile>(
-    'athlete-profile',
-    () => ($fetch as any)('/api/scores/athlete-profile')
-  )) as any
-
-  // Fetch workout score trends
-  const { data: workoutData, pending: workoutLoading } = (await useAsyncData(
-    'workout-trends',
-    () =>
-      ($fetch as any)('/api/scores/workout-trends', {
-        query: {
-          days: selectedPeriod.value,
-          sport: scopeToSport(workoutScope.value),
-          tags: scopeToTags(workoutScope.value).join(',')
-        }
-      }),
-    {
-      watch: [selectedPeriod, workoutScope]
-    }
-  )) as any
-
-  // Fetch nutrition score trends
-  const { data: nutritionData, pending: nutritionLoading } = (await useAsyncData(
-    'nutrition-trends',
-    () =>
-      ($fetch as any)('/api/scores/nutrition-trends', {
-        query: {
-          days: selectedPeriod.value
-        }
-      }),
-    {
-      watch: [selectedPeriod]
-    }
-  )) as any
+  const { data: profileData, pending: profileLoading } = profileResult as any
+  const { data: workoutData, pending: workoutLoading } = workoutResult as any
+  const { data: nutritionData, pending: nutritionLoading } = nutritionResult as any
   // Modal state
   const showModal = ref(false)
   const loadingExplanation = ref(false)

@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `nutrition, ui/ux`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-09):** Reordered hydration advice thresholds in `index.vue` and centralized severity logic in `server/utils/nutrition/hydration.ts` (`getHydrationAdviceLevel`, `getHydrationAdviceSummary`).
 
 ## Description
 

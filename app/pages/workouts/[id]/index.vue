@@ -2087,7 +2087,7 @@
 
           <!-- AI Analysis Section -->
           <div
-            v-if="isSectionEnabled('analysis')"
+            v-if="shouldRenderSection('analysis')"
             id="analysis"
             class="scroll-mt-20 space-y-0 sm:space-y-8"
             :style="sectionStyle('analysis')"
@@ -2446,7 +2446,7 @@
 
           <!-- Power Curve Section -->
           <div
-            v-if="isSectionEnabled('power-curve')"
+            v-if="shouldRenderSection('power-curve')"
             id="power-curve"
             class="scroll-mt-20 space-y-6"
             :style="sectionStyle('power-curve')"
@@ -2465,7 +2465,7 @@
 
           <!-- Interval Analysis Section -->
           <div
-            v-if="isSectionEnabled('intervals')"
+            v-if="shouldRenderSection('intervals')"
             id="intervals"
             class="scroll-mt-20 space-y-6"
             :style="sectionStyle('intervals')"
@@ -2497,7 +2497,7 @@
 
           <!-- Advanced Analytics Section -->
           <div
-            v-if="isSectionEnabled('advanced')"
+            v-if="shouldRenderSection('advanced')"
             id="advanced"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('advanced')"
@@ -2510,7 +2510,7 @@
 
           <!-- Route Map Section -->
           <div
-            v-if="isSectionEnabled('map')"
+            v-if="shouldRenderSection('map')"
             id="map"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('map')"
@@ -2543,7 +2543,7 @@
 
           <!-- Pacing Analysis -->
           <div
-            v-if="isSectionEnabled('pacing')"
+            v-if="shouldRenderSection('pacing')"
             id="pacing"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('pacing')"
@@ -2560,7 +2560,7 @@
 
           <!-- Timeline -->
           <div
-            v-if="isSectionEnabled('timeline')"
+            v-if="shouldRenderSection('timeline')"
             id="timeline"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('timeline')"
@@ -2573,7 +2573,7 @@
 
           <!-- Zones -->
           <div
-            v-if="isSectionEnabled('zones')"
+            v-if="shouldRenderSection('zones')"
             id="zones"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('zones')"
@@ -2590,7 +2590,7 @@
 
           <!-- Efficiency -->
           <div
-            v-if="isSectionEnabled('efficiency')"
+            v-if="shouldRenderSection('efficiency')"
             id="efficiency"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('efficiency')"
@@ -2629,7 +2629,7 @@
 
           <!-- Detailed Metrics Section -->
           <div
-            v-if="isSectionEnabled('metrics')"
+            v-if="shouldRenderSection('metrics')"
             id="metrics"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('metrics')"
@@ -2838,7 +2838,7 @@
 
           <!-- Data Streams Section -->
           <div
-            v-if="isSectionEnabled('streams')"
+            v-if="shouldRenderSection('streams')"
             id="streams"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('streams')"
@@ -2883,7 +2883,7 @@
 
           <!-- Duplicate Workout Section -->
           <div
-            v-if="isSectionEnabled('duplicates')"
+            v-if="shouldRenderSection('duplicates')"
             id="duplicates"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('duplicates')"
@@ -3180,7 +3180,7 @@
           </div>
 
           <div
-            v-if="isSectionEnabled('raw-data')"
+            v-if="shouldRenderSection('raw-data')"
             id="raw-data"
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('raw-data')"
@@ -3456,6 +3456,7 @@
 </template>
 
 <script setup lang="ts">
+  import { nextTick } from 'vue'
   import { useTranslate } from '@tolgee/vue'
   import { marked } from 'marked'
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
@@ -3523,6 +3524,8 @@
   const workout = ref<any>(null)
   const loading = ref(true)
   const error = ref<string | null>(null)
+  const deferredSectionsReady = ref(false)
+  let deferredSectionsTimer: ReturnType<typeof setTimeout> | null = null
   const savingTags = ref(false)
   const showTagEditor = ref(false)
   const analysisFactsOpen = ref(false)
@@ -4965,6 +4968,41 @@
       )
   )
 
+  const deferredSectionKeys = new Set<WorkoutSectionKey>([
+    'analysis',
+    'power-curve',
+    'intervals',
+    'advanced',
+    'map',
+    'pacing',
+    'timeline',
+    'zones',
+    'efficiency',
+    'metrics',
+    'streams',
+    'duplicates',
+    'raw-data'
+  ])
+
+  function shouldRenderSection(sectionKey: WorkoutSectionKey) {
+    return (
+      isSectionEnabled(sectionKey) &&
+      (deferredSectionsReady.value || !deferredSectionKeys.has(sectionKey))
+    )
+  }
+
+  function scheduleDeferredSections() {
+    if (!import.meta.client || deferredSectionsReady.value) return
+
+    const renderDeferredSections = () => {
+      deferredSectionsTimer = null
+      deferredSectionsReady.value = true
+    }
+
+    // Keep the first summary paint light; nav clicks can still opt into these sections immediately.
+    deferredSectionsTimer = setTimeout(renderDeferredSections, 1500)
+  }
+
   function isSectionEnabled(sectionKey: WorkoutSectionKey) {
     return (
       (workoutSectionSettings.value[sectionKey]?.visible ?? true) &&
@@ -5628,10 +5666,14 @@
 
   // Scroll to section
   function scrollToSection(sectionId: string) {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!deferredSectionsReady.value) {
+      deferredSectionsReady.value = true
     }
+
+    void nextTick(() => {
+      const element = document.getElementById(sectionId)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   async function saveToLibrary() {
@@ -5898,14 +5940,30 @@
     }
   })
 
+  watch(loading, (isLoading) => {
+    if (!isLoading) {
+      scheduleDeferredSections()
+    }
+  })
+
   onBeforeUnmount(() => {
     isPageActive.value = false
+
+    if (deferredSectionsTimer) {
+      clearTimeout(deferredSectionsTimer)
+      deferredSectionsTimer = null
+    }
   })
 
   watch(
     () => route.params.id,
     (newId, oldId) => {
       if (!newId || newId === oldId) return
+      if (deferredSectionsTimer) {
+        clearTimeout(deferredSectionsTimer)
+        deferredSectionsTimer = null
+      }
+      deferredSectionsReady.value = false
       fetchWorkout()
     }
   )

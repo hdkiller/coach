@@ -464,7 +464,7 @@
             <NotesEditor
               v-model="nutrition.notes"
               :notes-updated-at="nutrition.notesUpdatedAt"
-              :api-endpoint="`/api/nutrition/${nutrition.id}/notes`"
+              :api-endpoint="`/api/nutrition/${nutritionApiId}/notes`"
               @update:notes-updated-at="nutrition.notesUpdatedAt = $event"
             />
           </div>
@@ -533,7 +533,10 @@
   const modalInitialData = ref<any>(null)
   const aiModalContext = ref<any>(null)
 
-  const energyViewIdx = ref('0') // '0': %, '1': kcal, '2': carbs
+  const nutritionApiId = computed(() => {
+    if (!nutrition.value) return ''
+    return nutrition.value.id || nutrition.value.date || (route.params.id as string)
+  })
 
   const defaultChartSettings: any = {
     detail: {
@@ -811,7 +814,7 @@
     if (!nutrition.value) return
     analyzingNutrition.value = true
     try {
-      await $fetch(`/api/nutrition/${nutrition.value.id}/analyze`, {
+      await $fetch(`/api/nutrition/${nutritionApiId.value}/analyze`, {
         method: 'POST'
       })
       toast.add({

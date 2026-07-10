@@ -5,6 +5,8 @@
 **Area:** `nutrition`, `backend`, `ui/ux`  
 **Status:** Fixed
 
+> **Fixed (2026-07-09):** Notes endpoint accepts date strings; detail page uses `nutritionApiId` fallback; `llmUsage` query guarded when no persisted id.
+
 ## Description
 
 For a date with no DB row, the API returns an in-memory estimate object **without** `id`. The detail page still renders NotesEditor, food modals, and analyze using `nutrition.id`, producing broken endpoints like `/api/nutrition/undefined/notes`.

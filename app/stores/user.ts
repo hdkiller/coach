@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { toRaw } from 'vue'
 import type { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
 import { LBS_TO_KG } from '~/utils/metrics'
 import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
@@ -68,19 +69,20 @@ export const useUserStore = defineStore('user', () => {
   async function updateDashboardSettings(settings: any) {
     if (!user.value) return
 
-    const previousDashboardSettings = structuredClone(user.value.dashboardSettings || {})
+    const previousDashboardSettings = structuredClone(toRaw(user.value.dashboardSettings || {}))
+    const serializableSettings = structuredClone(toRaw(settings))
 
     // Optimistic update
     if (!user.value.dashboardSettings) {
       user.value.dashboardSettings = {}
     }
 
-    user.value.dashboardSettings = { ...user.value.dashboardSettings, ...settings }
+    user.value.dashboardSettings = { ...user.value.dashboardSettings, ...serializableSettings }
 
     try {
       await $fetch('/api/user/settings', {
         method: 'PATCH',
-        body: { dashboardSettings: settings }
+        body: { dashboardSettings: serializableSettings }
       })
     } catch (error) {
       user.value.dashboardSettings = previousDashboardSettings
