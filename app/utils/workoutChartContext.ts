@@ -10,6 +10,8 @@ export function getStructuredWorkoutPayload(workout: any) {
 
 export function resolveWorkoutChartSportSettings(workout: any, sportSettings?: any) {
   const rootWorkout = workout?.structuredWorkout ? workout : workout?._workoutContext || workout
+  const structure = getStructuredWorkoutPayload(rootWorkout)
+  const zoneSnapshot = structure?.zoneProfileSnapshot || null
   const snapshot =
     rootWorkout?.lastGenerationSettingsSnapshot ||
     rootWorkout?.generationSettingsSnapshot ||
@@ -27,32 +29,39 @@ export function resolveWorkoutChartSportSettings(workout: any, sportSettings?: a
     lthr: Number(snapshot?.thresholds?.lthr || snapshot?.lthr || sportSettings?.lthr || 0),
     maxHr: Number(snapshot?.thresholds?.maxHr || snapshot?.maxHr || sportSettings?.maxHr || 0),
     thresholdPace: Number(
-      snapshot?.thresholds?.thresholdPace ||
+      zoneSnapshot?.pace?.thresholdMps ||
+        snapshot?.thresholds?.thresholdPace ||
         snapshot?.thresholdPace ||
         sportSettings?.thresholdPace ||
         0
     ),
-    hrZones: Array.isArray(snapshot?.zones?.heartRate)
-      ? snapshot.zones.heartRate
-      : Array.isArray(snapshot?.hrZones)
-        ? snapshot.hrZones
-        : Array.isArray(sportSettings?.hrZones)
-          ? sportSettings.hrZones
-          : [],
-    powerZones: Array.isArray(snapshot?.zones?.power)
-      ? snapshot.zones.power
-      : Array.isArray(snapshot?.powerZones)
-        ? snapshot.powerZones
-        : Array.isArray(sportSettings?.powerZones)
-          ? sportSettings.powerZones
-          : [],
-    paceZones: Array.isArray(snapshot?.zones?.pace)
-      ? snapshot.zones.pace
-      : Array.isArray(snapshot?.paceZones)
-        ? snapshot.paceZones
-        : Array.isArray(sportSettings?.paceZones)
-          ? sportSettings.paceZones
-          : [],
+    hrZones: Array.isArray(zoneSnapshot?.heartRate?.ranges)
+      ? zoneSnapshot.heartRate.ranges
+      : Array.isArray(snapshot?.zones?.heartRate)
+        ? snapshot.zones.heartRate
+        : Array.isArray(snapshot?.hrZones)
+          ? snapshot.hrZones
+          : Array.isArray(sportSettings?.hrZones)
+            ? sportSettings.hrZones
+            : [],
+    powerZones: Array.isArray(zoneSnapshot?.power?.ranges)
+      ? zoneSnapshot.power.ranges
+      : Array.isArray(snapshot?.zones?.power)
+        ? snapshot.zones.power
+        : Array.isArray(snapshot?.powerZones)
+          ? snapshot.powerZones
+          : Array.isArray(sportSettings?.powerZones)
+            ? sportSettings.powerZones
+            : [],
+    paceZones: Array.isArray(zoneSnapshot?.pace?.ranges)
+      ? zoneSnapshot.pace.ranges
+      : Array.isArray(snapshot?.zones?.pace)
+        ? snapshot.zones.pace
+        : Array.isArray(snapshot?.paceZones)
+          ? snapshot.paceZones
+          : Array.isArray(sportSettings?.paceZones)
+            ? sportSettings.paceZones
+            : [],
     targetPolicy:
       snapshot?.targetPolicy || sportSettings?.targetPolicy || merged.targetPolicy || undefined,
     loadPreference:

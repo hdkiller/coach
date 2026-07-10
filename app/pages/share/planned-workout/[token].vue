@@ -173,8 +173,8 @@
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Power Profile</h3>
         </div>
-        <!-- Passing userFtp as undefined for generic % view on public share -->
-        <WorkoutChart :workout="workout.structuredWorkout" />
+        <!-- Keep the workout context so the chart can use its persisted settings snapshot. -->
+        <WorkoutChart :workout="workout" />
       </div>
 
       <!-- Coaching Messages Timeline -->

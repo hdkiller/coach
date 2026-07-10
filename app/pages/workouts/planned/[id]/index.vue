@@ -97,6 +97,99 @@
 
         <!-- Workout Content -->
         <div v-else-if="workout" class="space-y-4 sm:space-y-8">
+          <UAlert
+            v-if="workout.syncConflict"
+            color="warning"
+            icon="i-heroicons-exclamation-triangle"
+            title="A newer remote workout version is waiting"
+          >
+            <template #actions>
+              <div class="flex flex-wrap gap-2">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
+                  @click="resolveStructureConflict('keep_local')"
+                >
+                  Keep local
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="warning"
+                  @click="resolveStructureConflict('accept_remote')"
+                >
+                  Accept remote
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="resolveStructureConflict('regenerate')"
+                >
+                  Regenerate
+                </UButton>
+              </div>
+            </template>
+            <template #description>
+              <div class="space-y-2">
+                <p>
+                  Your local structure is still shown. Choose which version to keep before the next
+                  sync.
+                </p>
+                <p class="text-xs opacity-80">
+                  Remote seen: {{ workout.lastRemoteStructureSeenAt || 'unknown' }} · Remote hash:
+                  {{ workout.remoteStructureHash || 'unavailable' }}
+                </p>
+                <details v-if="structureConflictDiff?.steps.length" class="text-xs">
+                  <summary class="cursor-pointer font-bold">
+                    Compare steps ({{ structureConflictDiff.steps.length }} difference{{
+                      structureConflictDiff.steps.length === 1 ? '' : 's'
+                    }})
+                  </summary>
+                  <div
+                    class="mt-2 overflow-x-auto rounded border border-black/10 dark:border-white/10"
+                  >
+                    <table class="min-w-full text-left text-[11px]">
+                      <thead class="bg-black/5 dark:bg-white/5">
+                        <tr>
+                          <th class="px-2 py-1">#</th>
+                          <th class="px-2 py-1">Step</th>
+                          <th class="px-2 py-1">Duration</th>
+                          <th class="px-2 py-1">Local target</th>
+                          <th class="px-2 py-1">Remote target</th>
+                          <th class="px-2 py-1">Changed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="row in structureConflictDiff.steps"
+                          :key="row.path"
+                          class="border-t border-black/5 dark:border-white/5"
+                        >
+                          <td class="px-2 py-1">{{ row.index }}</td>
+                          <td class="px-2 py-1">{{ row.name }}</td>
+                          <td class="px-2 py-1">{{ formatConflictDuration(row.durationSec) }}</td>
+                          <td class="px-2 py-1">{{ row.localTarget }}</td>
+                          <td class="px-2 py-1">{{ row.remoteTarget }}</td>
+                          <td class="px-2 py-1">{{ row.changedFields.join(', ') || '—' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p
+                    v-if="
+                      structureConflictDiff.remoteOnlyCount || structureConflictDiff.localOnlyCount
+                    "
+                    class="mt-2 opacity-80"
+                  >
+                    Local-only steps: {{ structureConflictDiff.localOnlyCount }} · Remote-only
+                    steps:
+                    {{ structureConflictDiff.remoteOnlyCount }}
+                  </p>
+                </details>
+              </div>
+            </template>
+          </UAlert>
           <!-- Header Card -->
           <div
             class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 overflow-hidden relative"
@@ -1126,6 +1219,7 @@
   import SwimView from '~/components/workouts/planned/SwimView.vue'
   import StrengthView from '~/components/workouts/planned/StrengthView.vue'
   import TriggerMonitorButton from '~/components/dashboard/TriggerMonitorButton.vue'
+  import { compareStructuredWorkouts } from '#shared/workout-structure-diff'
   import { ACTIVE_STATUSES } from '~/utils/user-runs-client'
 
   definePageMeta({
@@ -1185,6 +1279,22 @@
   const nutritionSettings = ref<any>(null)
   const workoutFuelingPlan = ref<any>(null)
   const sportSettings = ref<any>(null)
+
+  const structureConflictDiff = computed(() => {
+    if (!workout.value?.syncConflict || !workout.value?.pendingRemoteStructuredWorkout) return null
+    return compareStructuredWorkouts(
+      workout.value.structuredWorkout,
+      workout.value.pendingRemoteStructuredWorkout
+    )
+  })
+
+  function formatConflictDuration(seconds: number) {
+    if (!seconds) return '—'
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return s ? `${m}m ${s}s` : `${m}m`
+  }
+
   const updatingFuelingStrategy = ref(false)
   const savingToLibrary = ref(false)
 
@@ -2216,6 +2326,29 @@
                 : 'recovery'
     }
     showAdjustModal.value = true
+  }
+
+  async function resolveStructureConflict(
+    resolution: 'keep_local' | 'accept_remote' | 'regenerate'
+  ) {
+    if (!workout.value?.id) return
+    try {
+      await $fetch(`/api/workouts/planned/${workout.value.id}/conflict`, {
+        method: 'POST',
+        body: { resolution }
+      })
+      toast.add({
+        title: resolution === 'regenerate' ? 'Regeneration started' : 'Conflict resolved',
+        color: 'success'
+      })
+      await fetchWorkout()
+    } catch (error: any) {
+      toast.add({
+        title: 'Could not resolve conflict',
+        description: error?.data?.message || error?.message,
+        color: 'error'
+      })
+    }
   }
 
   async function openViewModal() {

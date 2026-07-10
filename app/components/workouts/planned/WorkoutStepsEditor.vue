@@ -18,7 +18,7 @@
             >Editing:</span
           >
           <USelect
-            v-model="activeMetric"
+            :model-value="activeMetric"
             :items="[
               { label: 'Power (% FTP)', value: 'power' },
               { label: 'Heart Rate (% LTHR)', value: 'hr' },
@@ -26,6 +26,7 @@
             ]"
             size="xs"
             class="w-36"
+            @update:model-value="requestMetricChange"
           />
           <UButton
             color="neutral"
@@ -71,6 +72,26 @@
         </UButton>
       </div>
 
+      <UAlert
+        v-if="targetPolicyChangeNotice"
+        color="warning"
+        icon="i-heroicons-exclamation-triangle"
+        :description="targetPolicyChangeNotice"
+        class="mb-3"
+      />
+      <UModal v-model:open="showMetricConfirm" title="Change primary target metric?">
+        <template #body>
+          <p class="text-sm whitespace-pre-wrap">{{ metricChangeReport }}</p>
+        </template>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="ghost" size="sm" @click="cancelMetricChange">
+              Cancel
+            </UButton>
+            <UButton color="primary" size="sm" @click="confirmMetricChange">Apply change</UButton>
+          </div>
+        </template>
+      </UModal>
       <div class="space-y-1">
         <draggable
           v-model="editedSteps"
@@ -137,6 +158,102 @@
   const activeMetric = ref<'power' | 'hr' | 'pace'>(
     props.preference || detectBestMetric(props.steps)
   )
+  const targetPolicyChangeNotice = ref('')
+  const showMetricConfirm = ref(false)
+  const pendingMetric = ref<'power' | 'hr' | 'pace' | null>(null)
+  const metricChangeReport = ref('')
+
+  type MetricChangeSummary = {
+    summary: string
+    requiresConfirmation: boolean
+    converted: number
+    retained: number
+    unresolved: number
+  }
+
+  function buildMetricChangeReport(
+    fromMetric: 'power' | 'hr' | 'pace',
+    toMetric: 'power' | 'hr' | 'pace'
+  ): MetricChangeSummary {
+    const preview = migrateStepsToMetric(editedSteps.value, toMetric, { dryRun: true })
+    let converted = 0
+    let retained = 0
+    let unresolved = 0
+
+    const countTargets = (steps: any[]) => {
+      steps.forEach((step) => {
+        const targets = [
+          { key: 'power', metric: 'power' as const },
+          { key: 'heartRate', metric: 'hr' as const },
+          { key: 'pace', metric: 'pace' as const }
+        ]
+        targets.forEach(({ key, metric }) => {
+          const target = step?.[key]
+          if (!target) return
+          if (metric === toMetric) converted += 1
+          else if (target.unresolved) unresolved += 1
+          else retained += 1
+        })
+        if (step.steps) countTargets(step.steps)
+      })
+    }
+    countTargets(preview)
+
+    const summary = [
+      `Primary target will change from ${fromMetric.toUpperCase()} to ${toMetric.toUpperCase()}.`,
+      `${converted} step target(s) will use the new primary metric.`,
+      `${retained} secondary target(s) will be retained.`,
+      unresolved > 0
+        ? `${unresolved} target(s) will remain unresolved because canonical pace requires a threshold snapshot.`
+        : null
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return {
+      summary,
+      requiresConfirmation: unresolved > 0 || (fromMetric !== toMetric && retained > 0),
+      converted,
+      retained,
+      unresolved
+    }
+  }
+
+  function requestMetricChange(newMetric: 'power' | 'hr' | 'pace') {
+    if (newMetric === activeMetric.value) return
+    const report = buildMetricChangeReport(activeMetric.value, newMetric)
+    if (report.requiresConfirmation) {
+      pendingMetric.value = newMetric
+      metricChangeReport.value = report.summary
+      showMetricConfirm.value = true
+      return
+    }
+    applyMetricChange(newMetric, report.summary)
+  }
+
+  function confirmMetricChange() {
+    if (!pendingMetric.value) return
+    applyMetricChange(pendingMetric.value, metricChangeReport.value)
+    pendingMetric.value = null
+    showMetricConfirm.value = false
+  }
+
+  function cancelMetricChange() {
+    pendingMetric.value = null
+    showMetricConfirm.value = false
+  }
+
+  function applyMetricChange(newMetric: 'power' | 'hr' | 'pace', notice: string) {
+    const previousMetric = activeMetric.value
+    activeMetric.value = newMetric
+    targetPolicyChangeNotice.value = notice
+    editedSteps.value = migrateStepsToMetric(editedSteps.value, newMetric)
+    originalSteps.value = migrateStepsToMetric(originalSteps.value, newMetric)
+    if (durationFactor.value !== 1) applyScaling()
+    if (previousMetric !== newMetric && !notice) {
+      targetPolicyChangeNotice.value = `Primary target changed from ${previousMetric.toUpperCase()} to ${newMetric.toUpperCase()}. Secondary targets are retained; pace edits use canonical m/s when a threshold snapshot is available.`
+    }
+  }
 
   function detectBestMetric(steps: any[]): 'power' | 'hr' | 'pace' {
     for (const step of steps) {
@@ -151,12 +268,6 @@
     return 'power'
   }
 
-  watch(
-    () => props.preference,
-    (newPref) => {
-      if (newPref) activeMetric.value = newPref
-    }
-  )
   const durationFactor = ref(1)
   const originalSteps = ref<any[]>([])
   const editedSteps = ref<any[]>([])
@@ -192,10 +303,7 @@
         const midpoint = (Number(zone.min) + Number(zone.max)) / 2
         return Math.round((midpoint / refValue) * 100)
       }
-
-      // Fallback midpoints if zones missing
-      const fallbacks = [0.5, 0.65, 0.82, 0.97, 1.12, 1.3]
-      return Math.round((fallbacks[zoneIdx] || 0.75) * 100)
+      return 0
     }
 
     // Handle absolute values (W, BPM, m/s)
@@ -278,21 +386,19 @@
     { deep: true }
   )
 
-  // Re-initialize steps when metric changes to update internal start/end percentages
-  watch(activeMetric, (newMetric) => {
-    // Migrate currently edited steps to the new metric, carrying over the percentage values
-    editedSteps.value = migrateStepsToMetric(editedSteps.value, newMetric)
-
-    // Also update originalSteps to match the new metric, ensuring Reset and Scaling work as expected
-    originalSteps.value = migrateStepsToMetric(originalSteps.value, newMetric)
-
-    // Also re-apply scaling if active
-    if (durationFactor.value !== 1) {
-      applyScaling()
+  // Re-initialize steps when external preference changes
+  watch(
+    () => props.preference,
+    (newPref) => {
+      if (newPref && newPref !== activeMetric.value) applyMetricChange(newPref, '')
     }
-  })
+  )
 
-  function migrateStepsToMetric(steps: any[], metric: 'power' | 'hr' | 'pace'): any[] {
+  function migrateStepsToMetric(
+    steps: any[],
+    metric: 'power' | 'hr' | 'pace',
+    options: { dryRun?: boolean } = {}
+  ): any[] {
     return steps.map((s) => {
       const news = JSON.parse(JSON.stringify(s))
 
@@ -313,18 +419,37 @@
       // Update the correct metric object and CLEAR others to match StepRow logic
       if (metric === 'power') {
         news.power = { ...target, units: '%' }
-        delete news.heartRate
-        delete news.pace
         news.primaryTarget = 'power'
       } else if (metric === 'hr') {
         news.heartRate = { ...target, units: 'LTHR' }
-        delete news.power
-        delete news.pace
         news.primaryTarget = 'heartRate'
       } else {
-        news.pace = { ...target, units: 'Pace' }
-        delete news.power
-        delete news.heartRate
+        const threshold = Number(props.sportSettings?.thresholdPace || 0)
+        if (threshold <= 0) {
+          // Do not manufacture a pace unit when the editor lacks a canonical
+          // threshold snapshot; the server will report this as unresolved.
+          news.pace = { metric: 'pace', kind: 'freeform', unresolved: true }
+        } else if (target.range) {
+          news.pace = {
+            metric: 'pace',
+            kind: 'relative',
+            relativeToThreshold: { min: target.range.start, max: target.range.end },
+            rangeMps: { min: target.range.start * threshold, max: target.range.end * threshold },
+            range: { start: target.range.start * threshold, end: target.range.end * threshold },
+            units: 'm/s',
+            ramp: target.ramp === true
+          }
+        } else {
+          const value = Number(target.value || 0) * threshold
+          news.pace = {
+            metric: 'pace',
+            kind: 'relative',
+            relativeToThreshold: { min: Number(target.value || 0), max: Number(target.value || 0) },
+            rangeMps: { min: value, max: value },
+            range: { start: value, end: value },
+            units: 'm/s'
+          }
+        }
         news.primaryTarget = 'pace'
       }
 
@@ -418,7 +543,26 @@
     } else if (activeMetric.value === 'hr') {
       return { ...baseStep, heartRate: { ...target, units: 'LTHR' } }
     } else {
-      return { ...baseStep, pace: { ...target, units: 'Pace' } }
+      const threshold = Number(props.sportSettings?.thresholdPace || 0)
+      if (threshold <= 0) {
+        return {
+          ...baseStep,
+          pace: { metric: 'pace', kind: 'freeform', unresolved: true },
+          primaryTarget: 'pace'
+        }
+      }
+      return {
+        ...baseStep,
+        pace: {
+          metric: 'pace',
+          kind: 'relative',
+          relativeToThreshold: { min: 0.7, max: 0.7 },
+          rangeMps: { min: 0.7 * threshold, max: 0.7 * threshold },
+          range: { start: 0.7 * threshold, end: 0.7 * threshold },
+          units: 'm/s'
+        },
+        primaryTarget: 'pace'
+      }
     }
   }
 
@@ -451,7 +595,19 @@
     // Update metric specific target to 100%
     if (activeMetric.value === 'power') newStep.power.value = 1.0
     else if (activeMetric.value === 'hr') newStep.heartRate.value = 1.0
-    else newStep.pace.value = 1.0
+    else {
+      const threshold = Number(props.sportSettings?.thresholdPace || 0)
+      if (threshold > 0) {
+        newStep.pace = {
+          metric: 'pace',
+          kind: 'relative',
+          relativeToThreshold: { min: 1, max: 1 },
+          rangeMps: { min: threshold, max: threshold },
+          range: { start: threshold, end: threshold },
+          units: 'm/s'
+        }
+      }
+    }
 
     parent.steps.push(newStep)
   }

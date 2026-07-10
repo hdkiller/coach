@@ -520,18 +520,35 @@
     // Update the correct metric object and CLEAR others to prevent backend confusion
     if (props.metric === 'power') {
       updatedStep.power = { ...target, units: '%' }
-      delete updatedStep.heartRate
-      delete updatedStep.pace
       updatedStep.primaryTarget = 'power'
     } else if (props.metric === 'hr') {
       updatedStep.heartRate = { ...target, units: 'LTHR' }
-      delete updatedStep.power
-      delete updatedStep.pace
       updatedStep.primaryTarget = 'heartRate'
     } else {
-      updatedStep.pace = { ...target, units: 'Pace' }
-      delete updatedStep.power
-      delete updatedStep.heartRate
+      const threshold = Number(props.sportSettings?.thresholdPace || 0)
+      if (threshold <= 0) {
+        updatedStep.pace = { metric: 'pace', kind: 'freeform', unresolved: true }
+      } else if (target.range) {
+        updatedStep.pace = {
+          metric: 'pace',
+          kind: 'relative',
+          relativeToThreshold: { min: target.range.start, max: target.range.end },
+          rangeMps: { min: target.range.start * threshold, max: target.range.end * threshold },
+          range: { start: target.range.start * threshold, end: target.range.end * threshold },
+          units: 'm/s',
+          ramp: target.ramp === true
+        }
+      } else {
+        const value = Number(target.value || 0) * threshold
+        updatedStep.pace = {
+          metric: 'pace',
+          kind: 'relative',
+          relativeToThreshold: { min: Number(target.value || 0), max: Number(target.value || 0) },
+          rangeMps: { min: value, max: value },
+          range: { start: value, end: value },
+          units: 'm/s'
+        }
+      }
       updatedStep.primaryTarget = 'pace'
     }
 

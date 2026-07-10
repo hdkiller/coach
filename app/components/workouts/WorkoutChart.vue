@@ -1,6 +1,9 @@
 <template>
   <div class="workout-chart-container">
-    <div v-if="normalizedSteps.length === 0" class="rounded-xl border border-default/70 bg-muted/10 p-5">
+    <div
+      v-if="normalizedSteps.length === 0"
+      class="rounded-xl border border-default/70 bg-muted/10 p-5"
+    >
       <div class="text-sm font-semibold text-highlighted">No interval steps available</div>
       <p class="mt-2 text-sm text-muted">
         {{
@@ -403,6 +406,7 @@
     resolveWorkoutChartSportSettings,
     getWorkoutChartPreference
   } from '~/utils/workoutChartContext'
+  import { resolveStepChartIntensity, type ChartMetric } from '#shared/workout-render-model'
   import WorkoutStepsEditor from './planned/WorkoutStepsEditor.vue'
 
   const props = defineProps<{
@@ -541,13 +545,24 @@
   })
 
   const structureDescription = computed(() => {
-    const description = String(workoutData.value?.description || props.workout?.description || '').trim()
+    const description = String(
+      workoutData.value?.description || props.workout?.description || ''
+    ).trim()
     return description || null
   })
 
   const effectiveSportSettings = computed(() =>
     resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
   )
+  const zoneProfileSnapshot = computed(
+    () => getStructuredWorkoutPayload(props.workout)?.zoneProfileSnapshot
+  )
+  const chartTargetRefs = computed(() => ({
+    ftp: Number(effectiveSportSettings.value?.ftp || props.userFtp || 0),
+    lthr: Number(effectiveSportSettings.value?.lthr || 0),
+    maxHr: Number(effectiveSportSettings.value?.maxHr || 0),
+    thresholdPace: Number(effectiveSportSettings.value?.thresholdPace || 0)
+  }))
   const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
 
   const chartPreference = computed(() => {
@@ -585,16 +600,6 @@
     previewSteps.value = newSteps
     emit('update:steps', newSteps)
   }
-
-  const defaultZoneRanges: Array<{ start: number; end: number }> = [
-    { start: 0, end: 0.55 },
-    { start: 0.55, end: 0.75 },
-    { start: 0.75, end: 0.9 },
-    { start: 0.9, end: 1.05 },
-    { start: 1.05, end: 1.2 },
-    { start: 1.2, end: 1.5 },
-    { start: 1.5, end: 2.0 }
-  ]
 
   const totalDuration = computed(() => {
     return normalizedSteps.value.reduce(
@@ -803,7 +808,7 @@
       }
     }
 
-    return defaultZoneRanges[zoneIndex] || null
+    return null
   }
 
   function normalizePowerTarget(target: any):
@@ -896,17 +901,9 @@
   }
 
   function getStepIntensity(step: any): number {
-    const power = getTargetValue(step.power)
-    if (power !== undefined) return power
-
-    const hr = getTargetValue(step.heartRate)
-    if (hr !== undefined) return hr
-
-    const pace = getTargetValue(step.pace)
-    if (pace !== undefined) return pace
-
-    if (step?.type === 'Rest') return 0.55
-    return 0.75
+    const metric: ChartMetric =
+      chartPreference.value === 'hr' ? 'hr' : chartPreference.value === 'pace' ? 'pace' : 'power'
+    return resolveStepChartIntensity(step, metric, chartTargetRefs.value, zoneProfileSnapshot.value)
   }
 
   function getStepCadenceMeta(step: any): { value: number; inferred: boolean } {

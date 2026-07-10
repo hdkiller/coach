@@ -928,23 +928,6 @@
       return { start: Number(zone.min), end: Number(zone.max) }
     }
 
-    // Avoid circular reads against zoneDistribution while it is being computed.
-    const defaultZoneRatios = [
-      { min: 0, max: 0.75 },
-      { min: 0.75, max: 0.85 },
-      { min: 0.85, max: 0.95 },
-      { min: 0.95, max: 1.05 },
-      { min: 1.05, max: 1.25 }
-    ]
-    const fallbackZone = defaultZoneRatios[index - 1]
-    if (fallbackZone) {
-      const reference = getHeartRateReference()
-      return {
-        start: fallbackZone.min * reference,
-        end: fallbackZone.max * reference
-      }
-    }
-
     return null
   }
 
@@ -987,13 +970,10 @@
 
     if (normalizedUnits === 'm/s') return value
 
-    // Model output may sometimes use "Pace" while values are already absolute m/s.
-    if (value > 1.5 && value < 8) return value
-
-    if (thresholdPace > 0) {
-      if (value > 3) return value / thresholdPace
+    if ((normalizedUnits === 'pace' || normalizedUnits === 'relative') && thresholdPace > 0)
       return value * thresholdPace
-    }
+    if ((normalizedUnits === '%pace' || normalizedUnits === 'percentpace') && thresholdPace > 0)
+      return (value / 100) * thresholdPace
 
     return null
   }
@@ -1356,10 +1336,6 @@
         (normalizeMetricTarget(step.pace, 'pace') as any)?.units
       )
       if (paceMps) return paceMps
-      if (thresholdPace > 0) {
-        const factor = paceMid > 3 ? paceMid / thresholdPace : paceMid
-        return Math.max(1.4, Math.min(7.5, factor * thresholdPace))
-      }
     }
 
     const hrMid = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))

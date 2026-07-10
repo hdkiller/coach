@@ -68,6 +68,8 @@
   import { flattenWorkoutSteps } from '~/utils/workout-analytics'
   import { normalizeStrengthBlocks, type StrengthBlockType } from '~/utils/strengthWorkout'
   import { ZONE_COLORS, FALLBACK_ZONE_COLOR } from '~/utils/zone-colors'
+  import { resolveWorkoutChartSportSettings } from '~/utils/workoutChartContext'
+  import { resolveStepChartIntensity, type ChartMetric } from '#shared/workout-render-model'
 
   const props = withDefaults(
     defineProps<{
@@ -165,37 +167,25 @@
     return chartSteps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
   })
 
-  const effectiveSportSettings = computed(() => {
-    const source =
-      props.sportSettings ||
-      normalizedWorkout.value?._workoutContext?.lastGenerationSettingsSnapshot ||
-      normalizedWorkout.value?._workoutContext?.generationSettingsSnapshot ||
-      normalizedWorkout.value?._workoutContext?.createdFromSettingsSnapshot ||
-      null
+  const effectiveSportSettings = computed(() =>
+    resolveWorkoutChartSportSettings(
+      normalizedWorkout.value?._workoutContext || props.workout,
+      props.sportSettings
+    )
+  )
 
-    if (!source) return null
+  const zoneProfileSnapshot = computed(() => normalizedWorkout.value?.zoneProfileSnapshot || null)
 
-    return {
-      ftp: Number(source?.ftp || source?.thresholds?.ftp || 0),
-      lthr: Number(source?.lthr || source?.thresholds?.lthr || 0),
-      thresholdPace: Number(source?.thresholdPace || source?.thresholds?.thresholdPace || 0),
-      hrZones: Array.isArray(source?.hrZones)
-        ? source.hrZones
-        : Array.isArray(source?.zones?.heartRate)
-          ? source.zones.heartRate
-          : [],
-      powerZones: Array.isArray(source?.powerZones)
-        ? source.powerZones
-        : Array.isArray(source?.zones?.power)
-          ? source.zones.power
-          : [],
-      paceZones: Array.isArray(source?.paceZones)
-        ? source.paceZones
-        : Array.isArray(source?.zones?.pace)
-          ? source.zones.pace
-          : []
-    }
-  })
+  const chartMetric = computed<ChartMetric>(() =>
+    props.preference === 'hr' ? 'hr' : props.preference === 'pace' ? 'pace' : 'power'
+  )
+
+  const chartTargetRefs = computed(() => ({
+    ftp: Number(effectiveSportSettings.value?.ftp || 0),
+    lthr: Number(effectiveSportSettings.value?.lthr || 0),
+    maxHr: Number(effectiveSportSettings.value?.maxHr || 0),
+    thresholdPace: Number(effectiveSportSettings.value?.thresholdPace || 0)
+  }))
 
   const defaultZoneRanges: Array<{ start: number; end: number; color: string }> = [
     { start: 0, end: 0.55, color: ZONE_COLORS[0] },
@@ -502,6 +492,14 @@
   }
 
   function getStepIntensity(step: any): number {
+    const intensity = resolveStepChartIntensity(
+      step,
+      chartMetric.value,
+      chartTargetRefs.value,
+      zoneProfileSnapshot.value
+    )
+    if (intensity > 0) return intensity
+
     const power = normalizePowerTarget(step?.power)
     const hr = normalizeHrTarget(step?.heartRate)
     const pace = getRelativePaceTarget(step?.pace)
@@ -629,12 +627,10 @@
     }
 
     if (normalizedUnits === 'm/s') return value
-    if (value > 1.5 && value < 8) return value
-
-    if (thresholdPace > 0) {
-      if (value > 3) return value / thresholdPace
+    if ((normalizedUnits === 'pace' || normalizedUnits === 'relative') && thresholdPace > 0)
       return value * thresholdPace
-    }
+    if ((normalizedUnits === '%pace' || normalizedUnits === 'percentpace') && thresholdPace > 0)
+      return (value / 100) * thresholdPace
 
     return null
   }
@@ -705,21 +701,25 @@
     const convert = (value: number) => {
       const speedMps = paceValueToMps(value, normalized.units)
       if (speedMps !== null && thresholdPace > 0) return speedMps / thresholdPace
-      if (value > 2) return value / 100
-      return value
+      return null
     }
 
     if (normalized.range) {
-      return {
-        range: {
-          start: convert(normalized.range.start),
-          end: convert(normalized.range.end)
+      const start = convert(normalized.range.start)
+      const end = convert(normalized.range.end)
+      if (start !== null && end !== null) {
+        return {
+          range: {
+            start,
+            end
+          }
         }
       }
     }
 
     if (typeof normalized.value === 'number') {
-      return { value: convert(normalized.value) }
+      const converted = convert(normalized.value)
+      if (converted !== null) return { value: converted }
     }
 
     return null
