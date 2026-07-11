@@ -48,6 +48,8 @@
   "calendar_plans": "Plans",
   "calendar_failed_load_activity": "Failed to load activity",
   "calendar_failed_load_activity_desc": "This activity may have been deleted or is no longer available.",
+  "calendar_failed_load_lane": "Failed to load calendar",
+  "calendar_failed_load_lane_desc": "Could not load this athlete calendar.",
   "team_title": "My Team",
   "team_subtitle": "Your Personal Coaching & Mentorship Network",
   "team_invite_title": "Invite a Coach",

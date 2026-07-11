@@ -314,7 +314,9 @@
 
   // Chart Logic
   const chartData = computed(() => {
-    const history = props.athlete.stats?.wellnessHistory || []
+    const history =
+      props.athlete.stats?.wellnessHistory ||
+      [...(props.athlete.wellness || [])].filter((entry: any) => entry.ctl != null).reverse()
     if (history.length < 2) return null
 
     return {

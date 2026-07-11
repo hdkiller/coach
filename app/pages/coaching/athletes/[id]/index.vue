@@ -273,7 +273,12 @@
                     <div
                       v-for="workout in athlete.plannedWorkouts"
                       :key="workout.id"
-                      class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                      class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-500/50 transition-colors"
+                      @click="
+                        () => {
+                          openPlannedWorkout(workout)
+                        }
+                      "
                     >
                       <div class="w-12 text-center shrink-0">
                         <p class="text-[10px] font-bold text-gray-400 uppercase">
@@ -311,7 +316,12 @@
                     <div
                       v-for="workout in athlete.workouts"
                       :key="workout.id"
-                      class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                      class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-500/50 transition-colors"
+                      @click="
+                        () => {
+                          void openCompletedWorkout(workout)
+                        }
+                      "
                     >
                       <div class="w-14 text-center shrink-0">
                         <p class="text-[10px] font-bold text-gray-400 uppercase">
@@ -416,7 +426,12 @@
                     <div
                       v-for="workout in athlete.plannedWorkouts"
                       :key="workout.id"
-                      class="rounded-lg border border-gray-200 dark:border-gray-800 p-4"
+                      class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 cursor-pointer hover:border-primary-500/50 transition-colors"
+                      @click="
+                        () => {
+                          openPlannedWorkout(workout)
+                        }
+                      "
                     >
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
@@ -444,7 +459,12 @@
                     <div
                       v-for="workout in athlete.workouts"
                       :key="workout.id"
-                      class="rounded-lg border border-gray-200 dark:border-gray-800 p-4"
+                      class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 cursor-pointer hover:border-primary-500/50 transition-colors"
+                      @click="
+                        () => {
+                          void openCompletedWorkout(workout)
+                        }
+                      "
                     >
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
@@ -536,6 +556,38 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal
+    v-model:open="showWorkoutPreviewModal"
+    title="Workout Overview"
+    description="A quick coach-facing summary of the completed session."
+  >
+    <template #body>
+      <div v-if="selectedWorkout" class="space-y-4 p-2">
+        <div>
+          <div class="text-lg font-black">{{ selectedWorkout.title }}</div>
+          <div class="text-xs uppercase tracking-widest text-muted">
+            {{ selectedWorkout.type || 'Workout' }} •
+            {{ formatLongDate(selectedWorkout.date) }}
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-xl border border-default/70 p-3">
+            <div class="text-[10px] font-black uppercase tracking-wider text-muted">Duration</div>
+            <div class="mt-1 text-base font-black">
+              {{ formatDurationMinutes(selectedWorkout.durationSec) }}
+            </div>
+          </div>
+          <div class="rounded-xl border border-default/70 p-3">
+            <div class="text-[10px] font-black uppercase tracking-wider text-muted">TSS</div>
+            <div class="mt-1 text-base font-black">
+              {{ Math.round(selectedWorkout.tss || 0) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -571,6 +623,8 @@
   const { formatDateUTC } = useFormat()
   const route = useRoute()
   const router = useRouter()
+  const { messageAthlete: openAthleteChat } = useCoachingMessageAthlete()
+  const toast = useToast()
   const athleteId = route.params.id as string
 
   interface AthleteProfile {
@@ -636,6 +690,8 @@
   })
 
   const selectedTab = ref('overview')
+  const showWorkoutPreviewModal = ref(false)
+  const selectedWorkout = ref<any | null>(null)
   const tabItems = [
     { value: 'overview', label: 'Overview', icon: 'i-heroicons-squares-2x2' },
     { value: 'calendar', label: 'Calendar', icon: 'i-heroicons-calendar' },
@@ -817,6 +873,26 @@
   }
 
   function messageAthlete() {
-    router.push('/chat')
+    if (!athlete.value) return
+    openAthleteChat(athlete.value)
+  }
+
+  function openPlannedWorkout(_workout: { id: string }) {
+    void router.push(`/coaching/calendar?athlete=${athleteId}`)
+  }
+
+  async function openCompletedWorkout(workout: { id: string }) {
+    try {
+      selectedWorkout.value = await $fetch(
+        `/api/coaching/athletes/${athleteId}/workouts/${workout.id}`
+      )
+      showWorkoutPreviewModal.value = true
+    } catch (error: any) {
+      toast.add({
+        title: 'Failed to load workout',
+        description: error.data?.message || 'This workout may no longer be available.',
+        color: 'error'
+      })
+    }
   }
 </script>

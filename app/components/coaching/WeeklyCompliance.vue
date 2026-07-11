@@ -15,6 +15,10 @@
             <span>Missed</span>
           </div>
           <div class="flex items-center gap-1">
+            <div class="w-2 h-2 rounded-full bg-yellow-500" />
+            <span>Partial</span>
+          </div>
+          <div class="flex items-center gap-1">
             <div class="w-2 h-2 rounded-full bg-blue-500" />
             <span>Planned</span>
           </div>
@@ -147,6 +151,8 @@
     switch (status) {
       case 'completed':
         return 'i-heroicons-check-circle-solid'
+      case 'partially_completed':
+        return 'i-heroicons-minus-circle-solid'
       case 'unscheduled_completed':
         return 'i-heroicons-bolt-solid'
       case 'missed':
@@ -162,6 +168,8 @@
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-800'
+      case 'partially_completed':
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 ring-1 ring-yellow-200 dark:ring-yellow-800'
       case 'unscheduled_completed':
         return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 ring-1 ring-emerald-100 dark:ring-emerald-800/50'
       case 'missed':
@@ -175,6 +183,7 @@
 
   function getStatusTooltip(day: any) {
     if (day.status === 'completed') return 'Completed as planned'
+    if (day.status === 'partially_completed') return 'Partially completed'
     if (day.status === 'unscheduled_completed') return 'Unscheduled workout completed'
     if (day.status === 'missed') return 'Missed planned workout'
     if (day.status === 'planned') return 'Planned workout'

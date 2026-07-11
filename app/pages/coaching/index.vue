@@ -234,6 +234,7 @@
 
   function getMiniStatusClass(status: string) {
     if (status === 'completed' || status === 'unscheduled_completed') return 'bg-green-500'
+    if (status === 'partially_completed') return 'bg-yellow-500'
     if (status === 'missed') return 'bg-orange-500'
     if (status === 'planned') return 'bg-blue-500'
     return 'bg-neutral-200 dark:bg-neutral-800'

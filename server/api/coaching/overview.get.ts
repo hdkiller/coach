@@ -77,54 +77,52 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
-  // 4. Build Compliance Grid
-  const athletesWithCompliance = await Promise.all(
-    athleteRelationships.map(async (rel) => {
-      const athlete = rel.athlete
+  // 4. Build Compliance Grid (reuse enriched athlete data from getAthletesForCoach)
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0))
+  const athletesWithCompliance = athleteRelationships.map((rel) => {
+    const athlete = rel.athlete
 
-      // Add enriched data for the AthleteCard (expanded view)
-      const enrichedAthlete = await coachingRepository.getEnrichedAthleteForCoach(
-        coachId,
-        athlete.id
+    const complianceDays = days.map((day) => {
+      const dayWorkouts = allWorkouts.filter(
+        (w) => w.userId === athlete.id && isSameDay(new Date(w.date), day)
+      )
+      const dayPlanned = allPlanned.filter(
+        (p) => p.userId === athlete.id && isSameDay(new Date(p.date), day)
       )
 
-      const complianceDays = days.map((day) => {
-        const dayWorkouts = allWorkouts.filter(
-          (w) => w.userId === athlete.id && isSameDay(new Date(w.date), day)
-        )
-        const dayPlanned = allPlanned.filter(
-          (p) => p.userId === athlete.id && isSameDay(new Date(p.date), day)
-        )
-
-        let status = 'empty' // empty, planned, completed, partially_completed, missed
-        if (dayWorkouts.length > 0 && dayPlanned.length > 0) {
+      let status = 'empty' // empty, planned, completed, partially_completed, missed
+      if (dayPlanned.length > 0) {
+        const allCompleted = dayPlanned.every((p) => p.completed)
+        const someCompleted = dayPlanned.some((p) => p.completed)
+        if (allCompleted) {
           status = 'completed'
-        } else if (dayWorkouts.length > 0) {
-          status = 'unscheduled_completed'
-        } else if (dayPlanned.length > 0) {
-          const isPast = day < new Date(new Date().setHours(0, 0, 0, 0))
-          status = isPast ? 'missed' : 'planned'
+        } else if (someCompleted || dayWorkouts.length > 0) {
+          status = 'partially_completed'
+        } else {
+          status = day < todayStart ? 'missed' : 'planned'
         }
-
-        return {
-          date: day,
-          status,
-          hasWorkout: dayWorkouts.length > 0,
-          hasPlanned: dayPlanned.length > 0,
-          workouts: dayWorkouts,
-          planned: dayPlanned
-        }
-      })
+      } else if (dayWorkouts.length > 0) {
+        status = 'unscheduled_completed'
+      }
 
       return {
-        id: athlete.id,
-        name: athlete.name,
-        image: athlete.image,
-        compliance: complianceDays,
-        fullData: enrichedAthlete || athlete
+        date: day,
+        status,
+        hasWorkout: dayWorkouts.length > 0,
+        hasPlanned: dayPlanned.length > 0,
+        workouts: dayWorkouts,
+        planned: dayPlanned
       }
     })
-  )
+
+    return {
+      id: athlete.id,
+      name: athlete.name,
+      image: athlete.image,
+      compliance: complianceDays,
+      fullData: athlete
+    }
+  })
 
   // 5. Build Feed (Recent 20 items across all athletes)
   // Reuse some logic from recent.get.ts but for multiple users
@@ -149,7 +147,7 @@ export default defineEventHandler(async (event) => {
     activityType: w.type,
     icon: getWorkoutIcon(w.type || ''),
     description: `${Math.round(w.durationSec / 60)} min • ${w.type}`,
-    link: `/coaching/athletes/${w.userId}`
+    link: `/coaching/calendar?athlete=${w.userId}`
   }))
 
   return {

@@ -581,6 +581,7 @@
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
+  const { messageAthlete } = useCoachingMessageAthlete()
 
   const team = ref<any>(null)
   const roster = ref<any[]>([])
@@ -681,6 +682,7 @@
       myCoachedAthletes.value = data as any[]
     } catch (e) {
       console.error(e)
+      toast.add({ title: 'Failed to load coached athletes', color: 'error' })
     }
   }
 
@@ -806,14 +808,20 @@
     router.push(`/coaching/athletes/${athlete.id}`)
   }
 
-  function messageAthlete(athlete: any) {
-    router.push('/chat')
-  }
-
-  function confirmDeleteTeam() {
+  async function confirmDeleteTeam() {
     if (!confirm(`Are you sure you want to delete "${team.value.name}"? This cannot be undone.`))
       return
-    // Implement delete logic
+
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}`, { method: 'DELETE' })
+      toast.add({ title: 'Team deleted', color: 'success' })
+      await router.push('/coaching/team')
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to delete team',
+        color: 'error'
+      })
+    }
   }
 
   function formatRelative(date: string) {

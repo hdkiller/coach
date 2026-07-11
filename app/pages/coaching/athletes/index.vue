@@ -601,8 +601,9 @@
   const reviewingRequestId = ref<string | null>(null)
   const reviewingAction = ref<'approve' | 'decline' | null>(null)
   const inviteTab = ref('share')
-  const toast = useToast()
   const router = useRouter()
+  const toast = useToast()
+  const { messageAthlete } = useCoachingMessageAthlete()
 
   const filteredAthletes = computed(() => {
     if (activeGroupId.value === 'all') return athletes.value
@@ -640,6 +641,7 @@
       groups.value = (await ($fetch as any)('/api/coaching/groups')) as any[]
     } catch (e) {
       console.error(e)
+      toast.add({ title: 'Failed to refresh groups', color: 'error' })
     }
   }
 
@@ -791,10 +793,6 @@
 
   function viewAthlete(athlete: any) {
     router.push(`/coaching/athletes/${athlete.id}`)
-  }
-
-  function messageAthlete(athlete: any) {
-    router.push('/chat')
   }
 
   onMounted(fetchData)

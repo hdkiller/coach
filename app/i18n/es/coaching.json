@@ -1,3 +1,5 @@
 {
-  "label": "Coaching"
+  "label": "Coaching",
+  "calendar_failed_load_lane": "No se pudo cargar el calendario",
+  "calendar_failed_load_lane_desc": "No se pudo cargar el calendario de este atleta."
 }

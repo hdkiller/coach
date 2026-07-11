@@ -811,6 +811,13 @@
       })
     } catch (error: any) {
       panelState[panel].error = error
+      toast.add({
+        title: tr('calendar_failed_load_lane', 'Failed to load calendar'),
+        description:
+          error.data?.message ||
+          tr('calendar_failed_load_lane_desc', 'Could not load this athlete calendar.'),
+        color: 'error'
+      })
     } finally {
       panelState[panel].pending = false
     }
