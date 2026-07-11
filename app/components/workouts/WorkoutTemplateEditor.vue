@@ -38,7 +38,16 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-black uppercase tracking-widest text-primary">Workout Structure</h3>
-        <UButton color="neutral" variant="ghost" icon="i-heroicons-plus" size="xs" @click="addStep"
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-plus"
+          size="xs"
+          @click="
+            () => {
+              void addStep()
+            }
+          "
           >Add Step</UButton
         >
       </div>
@@ -88,15 +97,37 @@
             icon="i-heroicons-trash"
             size="xs"
             class="opacity-0 group-hover:opacity-100 transition-opacity"
-            @click="removeStep(Number(index))"
+            @click="
+              () => {
+                removeStep(Number(index))
+              }
+            "
           />
         </div>
       </div>
     </div>
 
     <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-      <UButton color="neutral" variant="ghost" @click="$emit('cancel')">Cancel</UButton>
-      <UButton color="primary" :loading="saving" @click="saveTemplate">Save Template</UButton>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            void $emit('cancel')
+          }
+        "
+        >Cancel</UButton
+      >
+      <UButton
+        color="primary"
+        :loading="saving"
+        @click="
+          () => {
+            void saveTemplate()
+          }
+        "
+        >Save Template</UButton
+      >
     </div>
   </div>
 </template>

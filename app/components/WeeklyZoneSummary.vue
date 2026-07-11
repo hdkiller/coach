@@ -3,7 +3,11 @@
     <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-1">Training Zones</div>
     <div
       class="w-full h-4 flex gap-[1px] rounded overflow-hidden shadow-sm hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer"
-      @click="$emit('click')"
+      @click="
+        () => {
+          void $emit('click')
+        }
+      "
     >
       <UTooltip
         v-for="(segment, index) in zoneSegments"

@@ -22,12 +22,14 @@
           compact
           explanation="Click for AI-generated insights"
           @click="
-            $emit(
-              'open-modal',
-              'Overall Workout Performance',
-              trendsData.summary?.avgOverall,
-              'yellow'
-            )
+            () => {
+              void $emit(
+                'open-modal',
+                'Overall Workout Performance',
+                trendsData.summary?.avgOverall,
+                'yellow'
+              )
+            }
           "
         />
         <ScoreCard
@@ -38,7 +40,14 @@
           compact
           explanation="Click for AI-generated insights"
           @click="
-            $emit('open-modal', 'Technical Execution', trendsData.summary?.avgTechnical, 'blue')
+            () => {
+              void $emit(
+                'open-modal',
+                'Technical Execution',
+                trendsData.summary?.avgTechnical,
+                'blue'
+              )
+            }
           "
         />
         <ScoreCard
@@ -48,7 +57,11 @@
           color="red"
           compact
           explanation="Click for AI-generated insights"
-          @click="$emit('open-modal', 'Effort Management', trendsData.summary?.avgEffort, 'red')"
+          @click="
+            () => {
+              void $emit('open-modal', 'Effort Management', trendsData.summary?.avgEffort, 'red')
+            }
+          "
         />
         <ScoreCard
           title="Pacing"
@@ -57,7 +70,11 @@
           color="green"
           compact
           explanation="Click for AI-generated insights"
-          @click="$emit('open-modal', 'Pacing Strategy', trendsData.summary?.avgPacing, 'green')"
+          @click="
+            () => {
+              void $emit('open-modal', 'Pacing Strategy', trendsData.summary?.avgPacing, 'green')
+            }
+          "
         />
         <ScoreCard
           title="Execution"
@@ -67,7 +84,14 @@
           compact
           explanation="Click for AI-generated insights"
           @click="
-            $emit('open-modal', 'Workout Execution', trendsData.summary?.avgExecution, 'purple')
+            () => {
+              void $emit(
+                'open-modal',
+                'Workout Execution',
+                trendsData.summary?.avgExecution,
+                'purple'
+              )
+            }
           "
         />
       </div>

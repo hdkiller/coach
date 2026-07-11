@@ -11,7 +11,11 @@
               ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20'
               : 'text-gray-400 hover:text-white'
           "
-          @click="billingInterval = 'monthly'"
+          @click="
+            () => {
+              billingInterval = 'monthly'
+            }
+          "
         >
           {{ t('billing.monthly') }}
         </button>
@@ -22,7 +26,11 @@
               ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20'
               : 'text-gray-400 hover:text-white'
           "
-          @click="billingInterval = 'annual'"
+          @click="
+            () => {
+              billingInterval = 'annual'
+            }
+          "
         >
           {{ t('billing.annual') }}
           <span
@@ -44,7 +52,11 @@
               ? 'bg-white/10 text-white shadow-sm'
               : 'text-gray-500 hover:text-gray-300'
           "
-          @click="setCurrency('usd')"
+          @click="
+            () => {
+              void setCurrency('usd')
+            }
+          "
         >
           USD
         </button>
@@ -55,7 +67,11 @@
               ? 'bg-white/10 text-white shadow-sm'
               : 'text-gray-500 hover:text-gray-300'
           "
-          @click="setCurrency('eur')"
+          @click="
+            () => {
+              void setCurrency('eur')
+            }
+          "
         >
           EUR
         </button>
@@ -205,7 +221,11 @@
                 variant="outline"
                 size="xl"
                 class="flex-1 h-14 rounded-xl text-[11px] font-black uppercase tracking-widest"
-                @click="showDowngradeModal = false"
+                @click="
+                  () => {
+                    showDowngradeModal = false
+                  }
+                "
               >
                 {{ t('modal.keep_plan') }}
               </UButton>
@@ -215,7 +235,11 @@
                 size="xl"
                 class="flex-1 h-14 rounded-xl text-[11px] font-black uppercase tracking-widest"
                 :loading="loading"
-                @click="planToChangeTo && executePlanChange(planToChangeTo)"
+                @click="
+                  () => {
+                    planToChangeTo && executePlanChange(planToChangeTo)
+                  }
+                "
               >
                 {{ t('modal.confirm_change') }}
               </UButton>

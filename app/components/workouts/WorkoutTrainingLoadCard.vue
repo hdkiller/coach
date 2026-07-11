@@ -26,7 +26,11 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            @click="$emit('settings')"
+            @click="
+              () => {
+                void $emit('settings')
+              }
+            "
           />
         </div>
       </div>

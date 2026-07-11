@@ -112,7 +112,11 @@
       <div class="space-y-6">
         <div
           class="flex justify-between items-center group cursor-pointer"
-          @click="showTable = !showTable"
+          @click="
+            () => {
+              showTable = !showTable
+            }
+          "
         >
           <div class="flex items-center gap-3">
             <h3 class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]">

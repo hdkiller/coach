@@ -8,7 +8,11 @@
         size="xs"
         class="group/up"
         :loading="loading === 'THUMBS_UP'"
-        @click="submitFeedback('THUMBS_UP')"
+        @click="
+          () => {
+            void submitFeedback('THUMBS_UP')
+          }
+        "
       >
         <template #leading>
           <UIcon
@@ -35,7 +39,11 @@
         size="xs"
         class="group/down"
         :loading="loading === 'THUMBS_DOWN'"
-        @click="handleThumbsDown"
+        @click="
+          () => {
+            void handleThumbsDown()
+          }
+        "
       >
         <template #leading>
           <UIcon
@@ -63,7 +71,11 @@
         size="xs"
         target="_blank"
         class="group/log"
-        @click="trackAiLogView()"
+        @click="
+          () => {
+            void trackAiLogView()
+          }
+        "
       >
         <template #leading>
           <UIcon name="i-heroicons-document-text" class="w-4 h-4 group-hover/log:hidden" />

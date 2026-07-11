@@ -98,7 +98,11 @@
           color="neutral"
           variant="ghost"
           class="font-bold uppercase text-[10px] tracking-widest"
-          @click="isOpen = false"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
         >
           Dismiss
         </UButton>

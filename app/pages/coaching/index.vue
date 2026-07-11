@@ -148,7 +148,11 @@
                 :key="athlete.id"
                 class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group"
                 :ui="{ body: 'p-4' }"
-                @click="router.push(`/coaching/athletes/${athlete.id}`)"
+                @click="
+                  () => {
+                    void router.push(`/coaching/athletes/${athlete.id}`)
+                  }
+                "
               >
                 <div class="flex items-center gap-3">
                   <UAvatar :src="athlete.image" :alt="athlete.name" size="md" />

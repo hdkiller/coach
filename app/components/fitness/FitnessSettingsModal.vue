@@ -15,7 +15,11 @@
               icon="i-heroicons-x-mark"
               color="neutral"
               variant="ghost"
-              @click="isOpen = false"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
             />
           </div>
         </template>
@@ -46,10 +50,27 @@
 
         <template #footer>
           <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="resetDefaults">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  void resetDefaults()
+                }
+              "
+            >
               Reset Defaults
             </UButton>
-            <UButton color="primary" @click="isOpen = false"> Done </UButton>
+            <UButton
+              color="primary"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
+            >
+              Done
+            </UButton>
           </div>
         </template>
       </UCard>
@@ -104,8 +125,7 @@
         }, {} as any)
         trainingLoadDisplayMode.value =
           (userStore.user?.dashboardSettings?.trainingLoad?.displayMode as
-            | 'adjusted'
-            | 'intervals') || defaultTrainingLoadDisplayMode
+            'adjusted' | 'intervals') || defaultTrainingLoadDisplayMode
       }
     }
   )

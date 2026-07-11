@@ -2070,7 +2070,11 @@
               variant="ghost"
               icon="i-heroicons-clock"
               aria-label="Open chat history"
-              @click="chatSidebarRef?.open()"
+              @click="
+                () => {
+                  void chatSidebarRef?.open()
+                }
+              "
             />
           </template>
           <template #right>
@@ -2086,7 +2090,11 @@
               size="sm"
               class="font-bold"
               :disabled="!currentRoomId"
-              @click="openMemoryPanel"
+              @click="
+                () => {
+                  void openMemoryPanel()
+                }
+              "
             >
               <span class="hidden sm:inline">Memory</span>
             </UButton>
@@ -2098,7 +2106,11 @@
               size="sm"
               class="font-bold"
               :disabled="!currentRoomId"
-              @click="isShareModalOpen = true"
+              @click="
+                () => {
+                  isShareModalOpen = true
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('nav_share') }}</span>
             </UButton>
@@ -2120,7 +2132,11 @@
               aria-label="New Chat"
               size="sm"
               class="font-bold"
-              @click="createNewChat"
+              @click="
+                () => {
+                  void createNewChat()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('nav_new_chat') }}</span>
               <span class="sm:hidden">{{ t('controls_chat') }}</span>
@@ -2163,7 +2179,11 @@
                   variant="outline"
                   size="xs"
                   :label="t('legacy_banner_action')"
-                  @click="createNewChat"
+                  @click="
+                    () => {
+                      void createNewChat()
+                    }
+                  "
                 />
               </template>
             </UAlert>
@@ -2227,7 +2247,11 @@
                 :variant="memoryTab === 'global' ? 'solid' : 'outline'"
                 color="neutral"
                 size="sm"
-                @click="selectMemoryTab('global')"
+                @click="
+                  () => {
+                    void selectMemoryTab('global')
+                  }
+                "
               >
                 Across chats
               </UButton>
@@ -2235,7 +2259,11 @@
                 :variant="memoryTab === 'room' ? 'solid' : 'outline'"
                 color="neutral"
                 size="sm"
-                @click="selectMemoryTab('room')"
+                @click="
+                  () => {
+                    void selectMemoryTab('room')
+                  }
+                "
               >
                 This chat
               </UButton>
@@ -2265,7 +2293,11 @@
               color="primary"
               variant="soft"
               icon="i-heroicons-plus"
-              @click="beginCreateMemory"
+              @click="
+                () => {
+                  void beginCreateMemory()
+                }
+              "
             >
               Add memory
             </UButton>
@@ -2318,7 +2350,11 @@
                       ? 'border-primary bg-primary/5 dark:border-primary'
                       : 'border-gray-200 bg-white/90 dark:border-gray-800 dark:bg-gray-900/80'
                   "
-                  @click="selectMemory(memory)"
+                  @click="
+                    () => {
+                      void selectMemory(memory)
+                    }
+                  "
                 >
                   <div class="mb-3 flex flex-wrap items-center gap-2">
                     <UBadge color="neutral" variant="soft" size="xs">
@@ -2401,8 +2437,22 @@
                       />
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                      <UButton @click="saveEditedMemory">Save changes</UButton>
-                      <UButton color="neutral" variant="ghost" @click="cancelEditingMemory"
+                      <UButton
+                        @click="
+                          () => {
+                            void saveEditedMemory()
+                          }
+                        "
+                        >Save changes</UButton
+                      >
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        @click="
+                          () => {
+                            void cancelEditingMemory()
+                          }
+                        "
                         >Cancel</UButton
                       >
                     </div>
@@ -2459,7 +2509,11 @@
                             selectedMemory.pinned ? 'i-heroicons-star-solid' : 'i-heroicons-star'
                           "
                           class="rounded-full"
-                          @click="toggleMemoryPinned(selectedMemory)"
+                          @click="
+                            () => {
+                              void toggleMemoryPinned(selectedMemory)
+                            }
+                          "
                         />
                         <UButton
                           size="sm"
@@ -2468,10 +2522,12 @@
                           icon="i-heroicons-arrow-right-circle"
                           class="rounded-full"
                           @click="
-                            moveMemoryScope(
-                              selectedMemory,
-                              getOppositeMemoryScope(selectedMemory.scope)
-                            )
+                            () => {
+                              moveMemoryScope(
+                                selectedMemory,
+                                getOppositeMemoryScope(selectedMemory.scope)
+                              )
+                            }
                           "
                         />
                         <UButton
@@ -2480,7 +2536,11 @@
                           variant="ghost"
                           icon="i-heroicons-pencil-square"
                           class="rounded-full"
-                          @click="startEditingMemory(selectedMemory)"
+                          @click="
+                            () => {
+                              void startEditingMemory(selectedMemory)
+                            }
+                          "
                         />
                         <UButton
                           size="sm"
@@ -2488,7 +2548,11 @@
                           variant="ghost"
                           icon="i-heroicons-trash"
                           class="rounded-full"
-                          @click="deleteMemory(selectedMemory.id)"
+                          @click="
+                            () => {
+                              void deleteMemory(selectedMemory.id)
+                            }
+                          "
                         />
                       </div>
                     </div>
@@ -2563,7 +2627,15 @@
                         description="Keep this memory prioritized when selecting what the coach should remember."
                       />
                     </div>
-                    <UButton block @click="createMemory">Save memory</UButton>
+                    <UButton
+                      block
+                      @click="
+                        () => {
+                          void createMemory()
+                        }
+                      "
+                      >Save memory</UButton
+                    >
                   </div>
                 </template>
               </div>
@@ -2571,8 +2643,24 @@
           </div>
           <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
             <div class="flex w-full items-center justify-between">
-              <UButton color="neutral" variant="ghost" @click="loadMemoryState">Refresh</UButton>
-              <UButton color="neutral" variant="ghost" @click="isMemoryPanelOpen = false"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    void loadMemoryState()
+                  }
+                "
+                >Refresh</UButton
+              >
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isMemoryPanelOpen = false
+                  }
+                "
                 >Close</UButton
               >
             </div>
@@ -2604,7 +2692,11 @@
         :label="t('banner_exit')"
         color="neutral"
         variant="ghost"
-        @click="isShareModalOpen = false"
+        @click="
+          () => {
+            isShareModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>

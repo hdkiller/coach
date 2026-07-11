@@ -22,7 +22,11 @@
           size="sm"
           icon="i-heroicons-share"
           class="shrink-0 font-medium"
-          @click="isOpen = true"
+          @click="
+            () => {
+              isOpen = true
+            }
+          "
         >
           {{ t('share_footer_button') }}
         </UButton>

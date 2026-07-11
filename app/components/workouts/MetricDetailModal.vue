@@ -222,7 +222,11 @@
         color="neutral"
         variant="ghost"
         class="font-black uppercase tracking-widest text-[10px]"
-        @click="isOpen = false"
+        @click="
+          () => {
+            isOpen = false
+          }
+        "
       />
     </template>
   </UModal>

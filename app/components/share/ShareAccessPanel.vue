@@ -30,7 +30,11 @@
             <button
               type="button"
               class="block w-full text-left"
-              @click="handleOpenImage(imageVariant.id)"
+              @click="
+                () => {
+                  void handleOpenImage(imageVariant.id)
+                }
+              "
             >
               <div
                 class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 dark:border-white/10 dark:bg-gray-950"
@@ -91,7 +95,11 @@
                     variant="ghost"
                     size="sm"
                     class="rounded-xl transition-all duration-300"
-                    @click="handleCopy"
+                    @click="
+                      () => {
+                        void handleCopy()
+                      }
+                    "
                   >
                     {{ copied ? 'Copied' : 'Copy' }}
                   </UButton>
@@ -128,7 +136,11 @@
             v-for="network in networks"
             :key="network"
             class="group/share-item"
-            @click="emitNetworkClick(network)"
+            @click="
+              () => {
+                void emitNetworkClick(network)
+              }
+            "
           >
             <SocialShare
               :network="network"
@@ -165,7 +177,15 @@
       <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
         Create a share link, then post it or send it directly.
       </p>
-      <UButton color="primary" :loading="loading" @click="emitGenerateWithExpiry">
+      <UButton
+        color="primary"
+        :loading="loading"
+        @click="
+          () => {
+            void emitGenerateWithExpiry()
+          }
+        "
+      >
         Generate Link
       </UButton>
     </div>

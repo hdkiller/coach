@@ -15,6 +15,8 @@ import {
   type PlannedWorkoutExportSource
 } from './workout-export-settings'
 
+type ConverterWorkout = Parameters<typeof WorkoutConverter.toZWO>[0]
+
 export type WorkoutExportDestination =
   'intervals' | 'garmin' | 'rouvy' | 'zwo' | 'fit' | 'mrc' | 'erg'
 
@@ -78,7 +80,7 @@ function buildConverterWorkout(
   canonical: CanonicalStructuredWorkout,
   options: CanonicalExportOptions,
   exportContext: ReturnType<typeof resolveWorkoutExportContext>
-) {
+): ConverterWorkout {
   return {
     title: options.title,
     description: options.description,
@@ -86,8 +88,9 @@ function buildConverterWorkout(
     steps: canonical.steps.map(converterStep),
     exercises: canonical.exercises,
     messages: canonical.messages,
-    sportSettings: exportContext.sportSettings,
-    generationSettingsSnapshot: exportContext.generationSettingsSnapshot
+    sportSettings: exportContext.sportSettings as ConverterWorkout['sportSettings'],
+    generationSettingsSnapshot:
+      exportContext.generationSettingsSnapshot as ConverterWorkout['generationSettingsSnapshot']
   }
 }
 

@@ -355,7 +355,11 @@
                   icon="i-heroicons-x-mark"
                   size="xs"
                   class="opacity-0 group-hover/slot:opacity-100 transition-opacity -mr-1"
-                  @click="removeSlot(day, idx as number)"
+                  @click="
+                    () => {
+                      void removeSlot(day, idx as number)
+                    }
+                  "
                 />
               </div>
 
@@ -400,7 +404,11 @@
                       icon="i-lucide-home"
                       size="xs"
                       label="Indoor Only"
-                      @click="slot.indoorOnly = !slot.indoorOnly"
+                      @click="
+                        () => {
+                          slot.indoorOnly = !slot.indoorOnly
+                        }
+                      "
                     />
                   </UTooltip>
                 </div>
@@ -448,7 +456,11 @@
           icon="i-heroicons-check-badge"
           :loading="loading"
           class="min-w-[200px] shadow-lg shadow-primary-500/20 font-bold"
-          @click="save"
+          @click="
+            () => {
+              void save()
+            }
+          "
         />
       </div>
     </div>

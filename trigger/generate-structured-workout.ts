@@ -1237,7 +1237,7 @@ OUTPUT JSON matching the schema.`
 
             promptForAttempt = buildCorrectiveStructureRetryPrompt({
               workout,
-              reason: strengthValidation.reason,
+              reason: strengthValidation.reason ?? 'Strength validation failed',
               previousDraft: lastAiOutputForRetry,
               generatorMode,
               extraInstructions:
@@ -1301,7 +1301,7 @@ OUTPUT JSON matching the schema.`
             : undefined
         promptForAttempt = buildCorrectiveStructureRetryPrompt({
           workout,
-          reason: coverageValidation.reason,
+          reason: coverageValidation.reason ?? 'Coverage validation failed',
           previousDraft: lastAiOutputForRetry,
           generatorMode,
           extraInstructions: swimCoverageFeedback
@@ -1449,7 +1449,7 @@ OUTPUT JSON matching the schema.`
           // 4. Recurse and Calculate
           let stepDistance: number
           let stepDuration: number
-          let stepTSS: number
+          let stepTSS = 0
 
           if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
             const nested = normalizeAndCalculate(step.steps, depth + 1, step)
@@ -1637,7 +1637,7 @@ OUTPUT JSON matching the schema.`
       }
       if (entityType === 'PlannedWorkout') {
         const write = await writeCanonicalPlannedWorkoutStructure({
-          plannedWorkoutId: entityId,
+          plannedWorkoutId: plannedWorkoutId!,
           source: 'AI_GENERATION',
           structure: canonicalStructure,
           zoneProfileSnapshot: canonicalStructure.zoneProfileSnapshot,

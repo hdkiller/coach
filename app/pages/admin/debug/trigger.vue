@@ -110,14 +110,22 @@
                 label="Trigger Hello World"
                 color="primary"
                 :loading="loading === 'hello-world'"
-                @click="triggerTask('hello-world')"
+                @click="
+                  () => {
+                    void triggerTask('hello-world')
+                  }
+                "
               />
 
               <UButton
                 label="Trigger Error Test"
                 color="error"
                 :loading="loading === 'sentry-error-test'"
-                @click="triggerTask('sentry-error-test')"
+                @click="
+                  () => {
+                    void triggerTask('sentry-error-test')
+                  }
+                "
               />
             </div>
           </div>
@@ -163,8 +171,7 @@
             <p class="text-sm font-medium">Error Details:</p>
             <pre
               class="bg-gray-100 dark:bg-gray-900 p-4 rounded text-xs overflow-x-auto text-red-600 whitespace-pre-wrap"
-              >{{ result.error }}</pre
-            >
+              >{{ result.error }}</pre>
           </div>
         </UCard>
 

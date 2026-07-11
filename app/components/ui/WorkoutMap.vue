@@ -21,7 +21,11 @@
                 :color="selectedMode === mode.id ? 'primary' : 'neutral'"
                 :variant="selectedMode === mode.id ? 'soft' : 'ghost'"
                 :icon="mode.icon"
-                @click="selectedMode = mode.id"
+                @click="
+                  () => {
+                    selectedMode = mode.id
+                  }
+                "
               >
                 <span class="hidden sm:inline">{{ mode.label }}</span>
               </UButton>
@@ -34,7 +38,11 @@
               :variant="showSplits ? 'soft' : 'ghost'"
               :icon="showSplits ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'"
               class="mt-2 w-full justify-center"
-              @click="showSplits = !showSplits"
+              @click="
+                () => {
+                  showSplits = !showSplits
+                }
+              "
             >
               <span class="hidden sm:inline">Splits</span>
             </UButton>

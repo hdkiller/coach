@@ -38,7 +38,11 @@
           type="button"
           class="group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition"
           :class="chipClass(item.sourceType)"
-          @click="$emit('select', item)"
+          @click="
+            () => {
+              void $emit('select', item)
+            }
+          "
         >
           <div
             class="flex size-6 items-center justify-center rounded-full"

@@ -23,7 +23,11 @@
                 ? 'border-primary bg-primary/5'
                 : 'border-gray-200 dark:border-gray-700'
             "
-            @click="selectedCompleted = workout"
+            @click="
+              () => {
+                selectedCompleted = workout
+              }
+            "
           >
             <div class="font-bold">{{ workout.title }}</div>
             <div class="text-xs text-muted flex gap-2 mt-1">
@@ -55,7 +59,11 @@
                 ? 'border-primary bg-primary/5'
                 : 'border-gray-200 dark:border-gray-700'
             "
-            @click="selectedPlanned = planned"
+            @click="
+              () => {
+                selectedPlanned = planned
+              }
+            "
           >
             <div class="font-bold">{{ planned.title }}</div>
             <div class="text-xs text-muted flex gap-2 mt-1">
@@ -74,7 +82,16 @@
 
     <!-- Actions -->
     <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-      <UButton :disabled="!canMatch" color="primary" :loading="matching" @click="matchWorkouts">
+      <UButton
+        :disabled="!canMatch"
+        color="primary"
+        :loading="matching"
+        @click="
+          () => {
+            void matchWorkouts()
+          }
+        "
+      >
         Link Workouts
       </UButton>
     </div>

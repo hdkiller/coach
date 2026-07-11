@@ -15,7 +15,11 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div
           class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-blue-400/50 transition-colors"
-          @click="openExplanation('fitness')"
+          @click="
+            () => {
+              void openExplanation('fitness')
+            }
+          "
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic"
@@ -47,7 +51,11 @@
 
         <div
           class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-orange-400/50 transition-colors"
-          @click="openExplanation('fatigue')"
+          @click="
+            () => {
+              void openExplanation('fatigue')
+            }
+          "
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic"
@@ -79,7 +87,11 @@
 
         <div
           class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-amber-400/50 transition-colors"
-          @click="openExplanation('form')"
+          @click="
+            () => {
+              void openExplanation('form')
+            }
+          "
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic"
@@ -104,7 +116,11 @@
 
         <div
           class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-gray-400 transition-colors"
-          @click="openExplanation('tss')"
+          @click="
+            () => {
+              void openExplanation('tss')
+            }
+          "
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic"
@@ -219,7 +235,11 @@
               color="neutral"
               variant="ghost"
               class="font-bold uppercase text-xs"
-              @click="showExplanation = false"
+              @click="
+                () => {
+                  showExplanation = false
+                }
+              "
             >
               Close
             </UButton>

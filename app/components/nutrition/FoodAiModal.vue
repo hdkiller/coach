@@ -14,7 +14,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-x-mark"
-          @click="isOpen = false"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
         />
       </div>
     </template>
@@ -49,13 +53,27 @@
 
     <template #footer>
       <div class="flex justify-end gap-2 w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false"> Cancel </UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+        >
+          Cancel
+        </UButton>
         <UButton
           color="primary"
           icon="i-heroicons-sparkles"
           :loading="loading"
           :disabled="!query.trim()"
-          @click="onLog"
+          @click="
+            () => {
+              void onLog()
+            }
+          "
         >
           <span class="hidden sm:inline">Log with AI</span>
           <span class="sm:hidden">Log</span>

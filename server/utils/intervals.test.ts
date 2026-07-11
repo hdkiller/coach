@@ -104,8 +104,8 @@ It has multiple lines.
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
 
       expect(result.durationSec).toBe(10800)
-      expect(result.structuredWorkout.duration).toBe(10800)
-      expect(result.structuredWorkout.steps[0].durationSeconds).toBe(1200)
+      expect((result.structuredWorkout as any)?.duration).toBe(10800)
+      expect(result.structuredWorkout!.steps[0].durationSeconds).toBe(1200)
     })
   })
 
@@ -206,7 +206,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       expect(steps[0].durationSeconds).toBe(600)
       expect(steps[0].duration).toBe(600) // We backfill duration too
@@ -250,7 +250,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       // Step 1: Ramp, Percent -> Nested, Ratio
       expect(steps[0].power.range).toEqual({ start: 0.5, end: 0.75 })
@@ -290,7 +290,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       // Step 1
       expect(steps[0].heartRate.range).toEqual({ start: 0.6, end: 0.8 })
@@ -321,7 +321,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       expect(steps[0].cadence).toBe(90)
       expect(steps[1].cadence).toBe(95)
@@ -362,7 +362,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       // Step 1: Warmup flag
       expect(steps[0].name).toBe('Warmup Spin')
@@ -398,7 +398,7 @@ It has multiple lines.
       }
 
       const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
-      const steps = result.structuredWorkout.steps
+      const steps = result.structuredWorkout!.steps
 
       expect(steps[0].heartRate).toBeDefined()
       expect(steps[0].heartRate.range).toEqual({ start: 0.7, end: 0.8 })

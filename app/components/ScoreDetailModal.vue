@@ -162,7 +162,17 @@
     </template>
 
     <template #footer="{ close }">
-      <UButton color="neutral" variant="outline" @click="close"> Close </UButton>
+      <UButton
+        color="neutral"
+        variant="outline"
+        @click="
+          () => {
+            void close()
+          }
+        "
+      >
+        Close
+      </UButton>
     </template>
   </UModal>
 </template>

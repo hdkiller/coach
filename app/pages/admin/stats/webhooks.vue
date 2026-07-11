@@ -85,8 +85,8 @@
                 >
                   {{
                     tr('webhooks_daily_tooltip', '{date}: {count} events', {
-                      date: day.date,
-                      count: day.count
+                      date: day.date ?? '',
+                      count: day.count ?? 0
                     })
                   }}
                 </div>

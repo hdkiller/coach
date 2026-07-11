@@ -18,8 +18,8 @@ export default defineEventHandler(async (event) => {
     _sum: {
       estimatedCost: true,
       totalTokens: true,
-      inputTokens: true,
-      outputTokens: true,
+      promptTokens: true,
+      completionTokens: true,
       cachedTokens: true,
       reasoningTokens: true
     },
@@ -482,10 +482,10 @@ export default defineEventHandler(async (event) => {
       cost: totals._sum.estimatedCost || 0,
       tokens: {
         total: totals._sum.totalTokens || 0,
-        prompt: totals._sum.inputTokens || 0,
-        completion: totals._sum.outputTokens || 0,
+        prompt: totals._sum.promptTokens || 0,
+        completion: totals._sum.completionTokens || 0,
         cached: totals._sum.cachedTokens || 0,
-        reasoningText: totals._sum.outputTokenDetails.reasoningTokens || 0
+        reasoningText: totals._sum.reasoningTokens || 0
       }
     },
     dailyCosts,

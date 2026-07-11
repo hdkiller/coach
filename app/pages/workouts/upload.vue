@@ -74,7 +74,11 @@
                 variant="solid"
                 size="lg"
                 class="font-black uppercase tracking-widest text-xs px-8"
-                @click="fileInput?.click()"
+                @click="
+                  () => {
+                    void fileInput?.click()
+                  }
+                "
               >
                 Select Files
               </UButton>
@@ -117,7 +121,11 @@
                       icon="i-heroicons-trash"
                       size="xs"
                       class="opacity-0 group-hover:opacity-100 transition-opacity"
-                      @click="removeFile(index)"
+                      @click="
+                        () => {
+                          void removeFile(index)
+                        }
+                      "
                     />
                   </div>
                 </div>
@@ -140,7 +148,11 @@
                     color="neutral"
                     variant="ghost"
                     class="font-black uppercase tracking-widest text-[10px]"
-                    @click="clearFiles"
+                    @click="
+                      () => {
+                        void clearFiles()
+                      }
+                    "
                     >Reset</UButton
                   >
                   <UButton
@@ -148,7 +160,11 @@
                     color="primary"
                     variant="solid"
                     class="font-black uppercase tracking-widest text-[10px] px-6"
-                    @click="uploadFiles"
+                    @click="
+                      () => {
+                        void uploadFiles()
+                      }
+                    "
                   >
                     {{ uploading ? 'Uploading...' : 'Commence Ingestion' }}
                   </UButton>

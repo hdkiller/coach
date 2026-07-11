@@ -18,7 +18,11 @@
               variant="outline"
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
-              @click="showFilters = !showFilters"
+              @click="
+                () => {
+                  showFilters = !showFilters
+                }
+              "
             >
               <span class="hidden md:inline">Filters</span>
             </UButton>
@@ -78,7 +82,11 @@
                 variant="ghost"
                 size="sm"
                 icon="i-heroicons-x-mark"
-                @click="resetFilters"
+                @click="
+                  () => {
+                    void resetFilters()
+                  }
+                "
               >
                 Reset
               </UButton>
@@ -104,7 +112,16 @@
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {{ fetchErrorMessage }}
           </p>
-          <UButton color="primary" variant="outline" class="mt-4" @click="retryFeed">
+          <UButton
+            color="primary"
+            variant="outline"
+            class="mt-4"
+            @click="
+              () => {
+                void retryFeed()
+              }
+            "
+          >
             Retry
           </UButton>
         </div>
@@ -130,7 +147,11 @@
             v-for="workout in filteredWorkouts"
             :key="workout.id"
             :workout="workout"
-            @click="navigateTo(`/workouts/${workout.id}`)"
+            @click="
+              () => {
+                void navigateTo(`/workouts/${workout.id}`)
+              }
+            "
           />
 
           <!-- Load More -->
@@ -141,7 +162,11 @@
               variant="outline"
               icon="i-heroicons-arrow-path"
               class="font-black uppercase tracking-widest text-[10px] px-8 py-3"
-              @click="loadMore"
+              @click="
+                () => {
+                  void loadMore()
+                }
+              "
             >
               Load Older Activities
             </UButton>

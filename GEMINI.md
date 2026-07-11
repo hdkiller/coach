@@ -4,7 +4,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 
 ### Active Status & Known Issues
 
-- **Typechecks**: The project has failing typechecks (TS2307, TS2578) across multiple existing files (share API, user store, fit utils). This is a known cleanup task.
+- **Typechecks**: `pnpm typecheck` (Nuxt + vue-tsc) should pass cleanly. Run it before large refactors.
 - **Pricing Transition**: Transitioning from 'Free for Early Adopters' to tiered structure: Free ($0), Supporter ($8.99/mo), and Pro ($14.99/mo). See `docs/06-plans/pricing-and-entitlements.md`.
 
 ### Recent Integrations & Changes

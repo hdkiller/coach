@@ -15,12 +15,14 @@
         v-if="metrics.variabilityIndex !== null && metrics.variabilityIndex !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', {
-            key: 'Variability Index',
-            value: metrics.variabilityIndex.toFixed(3),
-            rating: getVIRating(metrics.variabilityIndex),
-            ratingColor: getVIColor(metrics.variabilityIndex)
-          })
+          () => {
+            emit('open-metric', {
+              key: 'Variability Index',
+              value: metrics.variabilityIndex!.toFixed(3),
+              rating: getVIRating(metrics.variabilityIndex),
+              ratingColor: getVIColor(metrics.variabilityIndex)
+            })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">
@@ -67,12 +69,14 @@
         v-if="metrics.efficiencyFactor !== null && metrics.efficiencyFactor !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', {
-            key: 'Efficiency Factor',
-            value: metrics.efficiencyFactor.toFixed(2),
-            rating: getEFRating(metrics.efficiencyFactor),
-            ratingColor: getEFColor(metrics.efficiencyFactor)
-          })
+          () => {
+            emit('open-metric', {
+              key: 'Efficiency Factor',
+              value: metrics.efficiencyFactor!.toFixed(2),
+              rating: getEFRating(metrics.efficiencyFactor),
+              ratingColor: getEFColor(metrics.efficiencyFactor)
+            })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">
@@ -119,13 +123,15 @@
         v-if="metrics.decoupling !== null && metrics.decoupling !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', {
-            key: 'Aerobic Decoupling',
-            value: metrics.decoupling.toFixed(1),
-            unit: '%',
-            rating: getDecouplingRating(metrics.decoupling),
-            ratingColor: getDecouplingColor(metrics.decoupling)
-          })
+          () => {
+            emit('open-metric', {
+              key: 'Aerobic Decoupling',
+              value: metrics.decoupling!.toFixed(1),
+              unit: '%',
+              rating: getDecouplingRating(metrics.decoupling),
+              ratingColor: getDecouplingColor(metrics.decoupling)
+            })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">
@@ -173,7 +179,9 @@
         v-if="metrics.powerHrRatio !== null && metrics.powerHrRatio !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', { key: 'Power/HR Ratio', value: metrics.powerHrRatio.toFixed(2) })
+          () => {
+            emit('open-metric', { key: 'Power/HR Ratio', value: metrics.powerHrRatio!.toFixed(2) })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">
@@ -210,10 +218,12 @@
         v-if="metrics.polarizationIndex !== null && metrics.polarizationIndex !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', {
-            key: 'Polarization Index',
-            value: metrics.polarizationIndex.toFixed(2)
-          })
+          () => {
+            emit('open-metric', {
+              key: 'Polarization Index',
+              value: metrics.polarizationIndex!.toFixed(2)
+            })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">
@@ -250,13 +260,15 @@
         v-if="metrics.lrBalance !== null && metrics.lrBalance !== undefined"
         class="bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl p-5 group transition-all hover:border-primary-500/30 cursor-pointer active:scale-[0.98]"
         @click="
-          emit('open-metric', {
-            key: 'L/R Balance',
-            value: metrics.lrBalance.toFixed(1),
-            unit: '%',
-            rating: getLRBalanceRating(metrics.lrBalance),
-            ratingColor: getLRBalanceColor(metrics.lrBalance)
-          })
+          () => {
+            emit('open-metric', {
+              key: 'L/R Balance',
+              value: metrics.lrBalance!.toFixed(1),
+              unit: '%',
+              rating: getLRBalanceRating(metrics.lrBalance),
+              ratingColor: getLRBalanceColor(metrics.lrBalance)
+            })
+          }
         "
       >
         <div class="flex items-center justify-between mb-4">

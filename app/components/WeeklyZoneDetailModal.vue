@@ -117,7 +117,17 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <UButton color="neutral" variant="ghost" @click="closeModal"> Close </UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              void closeModal()
+            }
+          "
+        >
+          Close
+        </UButton>
       </div>
     </template>
   </UModal>

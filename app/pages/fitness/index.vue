@@ -26,7 +26,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="isSettingsModalOpen = true"
+              @click="
+                () => {
+                  isSettingsModalOpen = true
+                }
+              "
             >
               Customize
             </UButton>
@@ -123,7 +127,11 @@
                 variant="outline"
                 size="sm"
                 icon="i-lucide-plus"
-                @click="openCreateRecoveryEvent()"
+                @click="
+                  () => {
+                    void openCreateRecoveryEvent()
+                  }
+                "
               >
                 Log event
               </UButton>

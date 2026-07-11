@@ -28,7 +28,11 @@
               ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/10'
               : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800'
           "
-          @click="acceptedTerms = !acceptedTerms"
+          @click="
+            () => {
+              acceptedTerms = !acceptedTerms
+            }
+          "
         >
           <div class="flex h-6 items-center" @click.stop>
             <UCheckbox v-model="acceptedTerms" name="terms" />
@@ -68,7 +72,11 @@
               ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/10'
               : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800'
           "
-          @click="acceptedHealth = !acceptedHealth"
+          @click="
+            () => {
+              acceptedHealth = !acceptedHealth
+            }
+          "
         >
           <div class="flex h-6 items-center" @click.stop>
             <UCheckbox v-model="acceptedHealth" name="health" />

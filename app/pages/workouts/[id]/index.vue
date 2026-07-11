@@ -8,7 +8,11 @@
             color="neutral"
             variant="ghost"
             class="hidden sm:flex"
-            @click="goBack"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
           >
             {{ t('back_to_data') }}
           </UButton>
@@ -17,7 +21,11 @@
             color="neutral"
             variant="ghost"
             class="sm:hidden"
-            @click="goBack"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
           />
         </template>
 
@@ -34,7 +42,11 @@
               variant="outline"
               size="sm"
               class="hidden sm:inline-flex"
-              @click="isWorkoutSectionsModalOpen = true"
+              @click="
+                () => {
+                  isWorkoutSectionsModalOpen = true
+                }
+              "
             >
               <span>{{ t('controls_customize') }}</span>
             </UButton>
@@ -44,7 +56,11 @@
               variant="outline"
               size="sm"
               class="hidden sm:flex"
-              @click="isShareModalOpen = true"
+              @click="
+                () => {
+                  isShareModalOpen = true
+                }
+              "
             >
               <span>{{ t('controls_share') }}</span>
             </UButton>
@@ -57,7 +73,11 @@
               variant="outline"
               size="sm"
               class="hidden sm:inline-flex font-bold"
-              @click="toggleWorkoutComparison()"
+              @click="
+                () => {
+                  void toggleWorkoutComparison()
+                }
+              "
             >
               <span>{{
                 isWorkoutInComparison(workout.id) ? 'In Comparison' : 'Add to Comparison'
@@ -71,7 +91,11 @@
               size="sm"
               class="hidden sm:inline-flex font-bold"
               :loading="savingToLibrary"
-              @click="saveToLibrary"
+              @click="
+                () => {
+                  void saveToLibrary()
+                }
+              "
             >
               <span>Save to Library</span>
             </UButton>
@@ -141,7 +165,11 @@
               variant="solid"
               size="sm"
               class="font-bold"
-              @click="chatAboutWorkout"
+              @click="
+                () => {
+                  void chatAboutWorkout()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('controls_chat_about') }}</span>
               <span class="sm:hidden">{{ t('controls_chat') }}</span>
@@ -162,7 +190,11 @@
             size="sm"
             class="shrink-0 whitespace-nowrap px-3 sm:px-4"
             :aria-label="section.label"
-            @click="scrollToSection(section.anchorId)"
+            @click="
+              () => {
+                void scrollToSection(section.anchorId)
+              }
+            "
           >
             <UIcon :name="section.icon" class="h-4 w-4 sm:mr-2" />
             <span class="hidden sm:inline">{{ section.label }}</span>
@@ -221,7 +253,11 @@
                       variant="subtle"
                       size="xs"
                       class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
-                      @click="navigateDate(-1)"
+                      @click="
+                        () => {
+                          void navigateDate(-1)
+                        }
+                      "
                     />
                     <UButton
                       icon="i-heroicons-chevron-right"
@@ -229,7 +265,11 @@
                       variant="subtle"
                       size="xs"
                       class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
-                      @click="navigateDate(1)"
+                      @click="
+                        () => {
+                          void navigateDate(1)
+                        }
+                      "
                     />
 
                     <!-- Data Attribution (Desktop) -->
@@ -324,7 +364,11 @@
                       size="xs"
                       icon="i-heroicons-hashtag"
                       class="hover:text-primary-500 p-0 h-auto font-black"
-                      @click="showTagEditor = !showTagEditor"
+                      @click="
+                        () => {
+                          showTagEditor = !showTagEditor
+                        }
+                      "
                     >
                       <span v-if="workout.tags?.length" class="ml-1"
                         >{{ workout.tags.length }} TAGS</span
@@ -367,7 +411,11 @@
                     variant="subtle"
                     size="sm"
                     class="bg-white/5 border-white/5 hover:bg-white/10 font-bold"
-                    @click="isEditModalOpen = true"
+                    @click="
+                      () => {
+                        isEditModalOpen = true
+                      }
+                    "
                   >
                     Edit
                   </UButton>
@@ -377,7 +425,11 @@
                     variant="subtle"
                     size="sm"
                     class="bg-white/5 border-white/5 hover:bg-white/10 font-bold"
-                    @click="isShareModalOpen = true"
+                    @click="
+                      () => {
+                        isShareModalOpen = true
+                      }
+                    "
                   >
                     Share
                   </UButton>
@@ -387,7 +439,11 @@
                     variant="subtle"
                     size="sm"
                     class="bg-red-500/5 border-red-500/10 hover:bg-red-500/10 font-bold"
-                    @click="isDeleteModalOpen = true"
+                    @click="
+                      () => {
+                        isDeleteModalOpen = true
+                      }
+                    "
                   >
                     Delete
                   </UButton>
@@ -422,7 +478,11 @@
                       variant="ghost"
                       size="sm"
                       :disabled="!hasLocalTagChanges || savingTags"
-                      @click="resetLocalTags"
+                      @click="
+                        () => {
+                          void resetLocalTags()
+                        }
+                      "
                       >Reset</UButton
                     >
                     <UButton
@@ -432,7 +492,11 @@
                       icon="i-heroicons-tag"
                       :loading="savingTags"
                       :disabled="!hasLocalTagChanges"
-                      @click="saveLocalTags"
+                      @click="
+                        () => {
+                          void saveLocalTags()
+                        }
+                      "
                       >Save</UButton
                     >
                   </div>
@@ -647,10 +711,12 @@
                 <div
                   class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer hover:bg-[#00DC82]/[0.05] transition-all group"
                   @click="
-                    handleOpenMetric({
-                      key: 'Fitness (CTL)',
-                      value: workout.ctl ? Math.round(workout.ctl) : 0
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'Fitness (CTL)',
+                        value: workout.ctl ? Math.round(workout.ctl) : 0
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60">
@@ -677,10 +743,12 @@
                 <div
                   class="p-4 rounded-xl border border-orange-500/10 bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer hover:bg-orange-500/[0.05] transition-all group"
                   @click="
-                    handleOpenMetric({
-                      key: 'Fatigue (ATL)',
-                      value: workout.atl ? Math.round(workout.atl) : 0
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'Fatigue (ATL)',
+                        value: workout.atl ? Math.round(workout.atl) : 0
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60">
@@ -707,10 +775,12 @@
                 <div
                   class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer hover:bg-[#00DC82]/[0.05] transition-all group"
                   @click="
-                    handleOpenMetric({
-                      key: 'TSS (Load)',
-                      value: Math.round(workout.tss || workout.trainingLoad || 0)
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'TSS (Load)',
+                        value: Math.round(workout.tss || workout.trainingLoad || 0)
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60">
@@ -737,7 +807,9 @@
                 <div
                   class="p-4 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer hover:bg-blue-500/[0.05] transition-all group"
                   @click="
-                    handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                    () => {
+                      handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60">
@@ -794,7 +866,11 @@
                     variant="subtle"
                     size="xs"
                     class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10"
-                    @click="navigateDate(-1)"
+                    @click="
+                      () => {
+                        void navigateDate(-1)
+                      }
+                    "
                   />
                   <div class="flex flex-col">
                     <span
@@ -814,7 +890,11 @@
                     variant="subtle"
                     size="xs"
                     class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10"
-                    @click="navigateDate(1)"
+                    @click="
+                      () => {
+                        void navigateDate(1)
+                      }
+                    "
                   />
                 </div>
 
@@ -1030,7 +1110,11 @@
                 size="sm"
                 icon="i-heroicons-hashtag"
                 class="bg-white/5 border-white/10 font-bold uppercase tracking-widest text-[9px] py-2"
-                @click="showTagEditor = !showTagEditor"
+                @click="
+                  () => {
+                    showTagEditor = !showTagEditor
+                  }
+                "
               >
                 {{
                   showTagEditor
@@ -1053,7 +1137,15 @@
                   size="sm"
                 />
                 <div class="flex items-center justify-end gap-2 mt-3">
-                  <UButton color="neutral" variant="ghost" size="xs" @click="resetLocalTags"
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    @click="
+                      () => {
+                        void resetLocalTags()
+                      }
+                    "
                     >Reset</UButton
                   >
                   <UButton
@@ -1061,7 +1153,11 @@
                     variant="solid"
                     size="xs"
                     :loading="savingTags"
-                    @click="saveLocalTags"
+                    @click="
+                      () => {
+                        void saveLocalTags()
+                      }
+                    "
                     >Save</UButton
                   >
                 </div>
@@ -1126,10 +1222,12 @@
                 <div
                   class="p-4 rounded-xl border border-[#00DC82]/10 bg-white dark:bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-[#00DC82]/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
-                    handleOpenMetric({
-                      key: 'Fitness (CTL)',
-                      value: workout.ctl ? Math.round(workout.ctl) : 0
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'Fitness (CTL)',
+                        value: workout.ctl ? Math.round(workout.ctl) : 0
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
@@ -1147,10 +1245,12 @@
                 <div
                   class="p-4 rounded-xl border border-orange-500/10 bg-white dark:bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-orange-500/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
-                    handleOpenMetric({
-                      key: 'Fatigue (ATL)',
-                      value: workout.atl ? Math.round(workout.atl) : 0
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'Fatigue (ATL)',
+                        value: workout.atl ? Math.round(workout.atl) : 0
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
@@ -1168,10 +1268,12 @@
                 <div
                   class="p-4 rounded-xl border border-[#00DC82]/10 bg-white dark:bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-[#00DC82]/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
-                    handleOpenMetric({
-                      key: 'TSS (Load)',
-                      value: Math.round(workout.tss || workout.trainingLoad || 0)
-                    })
+                    () => {
+                      handleOpenMetric({
+                        key: 'TSS (Load)',
+                        value: Math.round(workout.tss || workout.trainingLoad || 0)
+                      })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
@@ -1189,7 +1291,9 @@
                 <div
                   class="p-4 rounded-xl border border-blue-500/10 bg-white dark:bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-blue-500/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
-                    handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                    () => {
+                      handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                    }
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
@@ -1318,7 +1422,11 @@
                       variant="subtle"
                       size="sm"
                       class="rounded-lg"
-                      @click="navigateDate(-1)"
+                      @click="
+                        () => {
+                          void navigateDate(-1)
+                        }
+                      "
                     />
                     <div class="flex flex-col">
                       <div
@@ -1338,7 +1446,11 @@
                       variant="subtle"
                       size="sm"
                       class="rounded-lg"
-                      @click="navigateDate(1)"
+                      @click="
+                        () => {
+                          void navigateDate(1)
+                        }
+                      "
                     />
 
                     <!-- Map Analysis shortcut -->
@@ -1426,7 +1538,11 @@
                           icon="i-heroicons-hashtag"
                           class="ml-1"
                           :ui="{ base: 'px-1.5' }"
-                          @click="showTagEditor = !showTagEditor"
+                          @click="
+                            () => {
+                              showTagEditor = !showTagEditor
+                            }
+                          "
                         >
                           <span v-if="workout.tags?.length" class="text-[9px] font-black">
                             {{ workout.tags.length }}
@@ -1480,7 +1596,11 @@
                             variant="ghost"
                             size="sm"
                             :disabled="!hasLocalTagChanges || savingTags"
-                            @click="resetLocalTags"
+                            @click="
+                              () => {
+                                void resetLocalTags()
+                              }
+                            "
                           >
                             Reset
                           </UButton>
@@ -1491,7 +1611,11 @@
                             icon="i-heroicons-tag"
                             :loading="savingTags"
                             :disabled="!hasLocalTagChanges"
-                            @click="saveLocalTags"
+                            @click="
+                              () => {
+                                void saveLocalTags()
+                              }
+                            "
                           >
                             Save Tags
                           </UButton>
@@ -1530,11 +1654,13 @@
                     v-if="workout.trainingLoad"
                     class="group cursor-pointer rounded-xl border border-blue-100 bg-blue-50 p-3.5 transition-all hover:border-blue-500/50 active:scale-[0.98] dark:border-blue-800/50 dark:bg-blue-900/20 sm:p-4"
                     @click="
-                      handleOpenMetric({
-                        key: t('metrics_tss'),
-                        value: Math.round(workout.trainingLoad),
-                        unit: ''
-                      })
+                      () => {
+                        handleOpenMetric({
+                          key: t('metrics_tss'),
+                          value: Math.round(workout.trainingLoad),
+                          unit: ''
+                        })
+                      }
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -1567,11 +1693,13 @@
                     v-if="workout.averageHr"
                     class="group cursor-pointer rounded-xl border border-pink-100 bg-pink-50 p-3.5 transition-all hover:border-pink-500/50 active:scale-[0.98] dark:border-pink-800/50 dark:bg-pink-900/20 sm:p-4"
                     @click="
-                      handleOpenMetric({
-                        key: t('metrics_avg_hr'),
-                        value: workout.averageHr,
-                        unit: 'BPM'
-                      })
+                      () => {
+                        handleOpenMetric({
+                          key: t('metrics_avg_hr'),
+                          value: workout.averageHr,
+                          unit: 'BPM'
+                        })
+                      }
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -1605,11 +1733,13 @@
                     v-if="workout.averageWatts"
                     class="group cursor-pointer rounded-xl border border-purple-100 bg-purple-50 p-3.5 transition-all hover:border-purple-500/50 active:scale-[0.98] dark:border-purple-800/50 dark:bg-purple-900/20 sm:p-4"
                     @click="
-                      handleOpenMetric({
-                        key: t('metrics_avg_power'),
-                        value: workout.averageWatts,
-                        unit: 'W'
-                      })
+                      () => {
+                        handleOpenMetric({
+                          key: t('metrics_avg_power'),
+                          value: workout.averageWatts,
+                          unit: 'W'
+                        })
+                      }
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -1643,11 +1773,13 @@
                     v-if="workout.normalizedPower"
                     class="group cursor-pointer rounded-xl border border-indigo-100 bg-indigo-50 p-3.5 transition-all hover:border-indigo-500/50 active:scale-[0.98] dark:border-indigo-800/50 dark:bg-indigo-900/20 sm:p-4"
                     @click="
-                      handleOpenMetric({
-                        key: t('metrics_np'),
-                        value: workout.normalizedPower,
-                        unit: 'W'
-                      })
+                      () => {
+                        handleOpenMetric({
+                          key: t('metrics_np'),
+                          value: workout.normalizedPower,
+                          unit: 'W'
+                        })
+                      }
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -1745,7 +1877,11 @@
                   variant="subtle"
                   size="xs"
                   class="mt-6 font-black uppercase tracking-widest text-[9px]"
-                  @click="scrollToSection('analysis')"
+                  @click="
+                    () => {
+                      void scrollToSection('analysis')
+                    }
+                  "
                 >
                   {{ t('analysis_required_button') }}
                 </UButton>
@@ -1811,7 +1947,11 @@
                         variant="solid"
                         class="font-black px-6 shadow-lg shadow-primary-500/20"
                         :label="t('level_up_update_now')"
-                        @click="openThresholdUpdate(detection)"
+                        @click="
+                          () => {
+                            void openThresholdUpdate(detection)
+                          }
+                        "
                       />
                       <UButton
                         size="md"
@@ -1819,7 +1959,11 @@
                         variant="ghost"
                         class="text-neutral-500 hover:text-neutral-900 dark:text-gray-400 dark:hover:text-white font-bold"
                         :label="t('level_up_later')"
-                        @click="dismissedThresholds.push(detection.type)"
+                        @click="
+                          () => {
+                            void dismissedThresholds.push(detection.type)
+                          }
+                        "
                       />
                     </div>
                     <p class="text-[9px] text-neutral-400 dark:text-gray-500 italic leading-tight">
@@ -2044,7 +2188,11 @@
                           ? 'bg-[#00DC82] text-black scale-110 shadow-[0_0_20px_rgba(0,220,130,0.4)] z-20'
                           : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-white/10'
                       ]"
-                      @click="updateStomachFeel(i)"
+                      @click="
+                        () => {
+                          void updateStomachFeel(i)
+                        }
+                      "
                     >
                       {{ i }}
                     </button>
@@ -2137,7 +2285,11 @@
                     class="font-black uppercase tracking-widest text-[11px] px-6"
                     :loading="analyzingWorkout"
                     :disabled="analyzingWorkout"
-                    @click="analyzeWorkout"
+                    @click="
+                      () => {
+                        void analyzeWorkout()
+                      }
+                    "
                   >
                     {{ t('analysis_button_analyze') }}
                   </UButton>
@@ -2150,7 +2302,11 @@
                     class="font-black uppercase tracking-widest text-[10px] bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
                     :loading="analyzingWorkout"
                     :disabled="analyzingWorkout"
-                    @click="analyzeWorkout"
+                    @click="
+                      () => {
+                        void analyzeWorkout()
+                      }
+                    "
                   >
                     {{ t('analysis_button_regenerate') }}
                   </UButton>
@@ -2163,7 +2319,11 @@
                     class="font-black uppercase tracking-widest text-[10px] hidden sm:flex"
                     :loading="publishingSummary"
                     :disabled="publishingSummary || analyzingWorkout"
-                    @click="publishSummaryToIntervals"
+                    @click="
+                      () => {
+                        void publishSummaryToIntervals()
+                      }
+                    "
                   >
                     {{ t('analysis_button_publish') }}
                   </UButton>
@@ -2415,7 +2575,11 @@
                   color="primary"
                   variant="solid"
                   class="mt-10 font-black uppercase tracking-[0.2em] text-[11px] px-10 py-4 shadow-[0_0_30px_rgba(0,220,130,0.2)] rounded-xl"
-                  @click="analyzeWorkout"
+                  @click="
+                    () => {
+                      void analyzeWorkout()
+                    }
+                  "
                 >
                   {{ t('analysis_button_analyze') }}
                 </UButton>
@@ -2644,7 +2808,11 @@
                 v-for="metric in availableMetrics"
                 :key="metric.key"
                 class="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 group cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/50 px-2 -mx-2 transition-colors"
-                @click="handleOpenMetric({ key: metric.label, value: metric.value })"
+                @click="
+                  () => {
+                    void handleOpenMetric({ key: metric.label, value: metric.value })
+                  }
+                "
               >
                 <div class="flex items-center gap-2">
                   <UTooltip
@@ -2741,7 +2909,11 @@
                         analysisFactsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'
                       "
                       :label="analysisFactsOpen ? 'Hide Facts' : 'Show Facts'"
-                      @click="analysisFactsOpen = !analysisFactsOpen"
+                      @click="
+                        () => {
+                          analysisFactsOpen = !analysisFactsOpen
+                        }
+                      "
                     />
                   </div>
                 </div>
@@ -2857,12 +3029,14 @@
                 size="sm"
                 class="cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors uppercase font-black tracking-widest text-[9px] px-2.5 py-1"
                 @click="
-                  openStreamModal({
-                    ...stream,
-                    label: stream.label || '',
-                    color: stream.color || '#000000',
-                    unit: stream.unit || ''
-                  })
+                  () => {
+                    void openStreamModal({
+                      ...stream,
+                      label: stream.label || '',
+                      color: stream.color || '#000000',
+                      unit: stream.unit || ''
+                    })
+                  }
                 "
               >
                 {{ stream.label }}
@@ -2874,7 +3048,11 @@
                 variant="soft"
                 size="sm"
                 class="uppercase font-black tracking-widest text-[9px] px-2.5 py-1"
-                @click="isExtrasMetaModalOpen = true"
+                @click="
+                  () => {
+                    isExtrasMetaModalOpen = true
+                  }
+                "
               >
                 {{ t('modal_extras_title') }}
               </UButton>
@@ -2990,7 +3168,12 @@
                             class="font-bold shrink-0"
                             :loading="unlinkingDuplicateId === workout.id"
                             @click="
-                              openDuplicateUnlinkConfirm(workout.id, workout.canonicalWorkout.title)
+                              () => {
+                                void openDuplicateUnlinkConfirm(
+                                  workout.id,
+                                  workout.canonicalWorkout.title
+                                )
+                              }
                             "
                           >
                             Unlink
@@ -3007,7 +3190,11 @@
                         icon="i-heroicons-arrow-path-rounded-square"
                         class="font-bold"
                         :loading="promoting"
-                        @click="promoteWorkout"
+                        @click="
+                          () => {
+                            void promoteWorkout()
+                          }
+                        "
                       >
                         {{ t('version_promote_button') }}
                       </UButton>
@@ -3109,7 +3296,11 @@
                         icon="i-heroicons-link-slash"
                         class="font-bold shrink-0"
                         :loading="unlinkingDuplicateId === dup.id"
-                        @click="openDuplicateUnlinkConfirm(dup.id, dup.title)"
+                        @click="
+                          () => {
+                            void openDuplicateUnlinkConfirm(dup.id, dup.title)
+                          }
+                        "
                       >
                         Unlink
                       </UButton>
@@ -3263,14 +3454,22 @@
           :label="t('banner_exit')"
           color="neutral"
           variant="ghost"
-          @click="isPromoteModalOpen = false"
+          @click="
+            () => {
+              isPromoteModalOpen = false
+            }
+          "
         />
         <UButton
           :label="t('modal_promote_confirm')"
           color="warning"
           variant="solid"
           :loading="promoting"
-          @click="confirmPromoteWorkout"
+          @click="
+            () => {
+              void confirmPromoteWorkout()
+            }
+          "
         />
       </div>
     </template>
@@ -3301,7 +3500,11 @@
         :label="t('banner_exit')"
         color="neutral"
         variant="ghost"
-        @click="isShareModalOpen = false"
+        @click="
+          () => {
+            isShareModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>
@@ -3341,7 +3544,11 @@
         :label="t('banner_exit')"
         color="neutral"
         variant="ghost"
-        @click="isExtrasMetaModalOpen = false"
+        @click="
+          () => {
+            isExtrasMetaModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>
@@ -3415,13 +3622,21 @@
           :label="t('banner_exit')"
           color="neutral"
           variant="ghost"
-          @click="isDeleteModalOpen = false"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
         />
         <UButton
           :label="t('controls_delete')"
           color="error"
           :loading="deleting"
-          @click="deleteWorkout"
+          @click="
+            () => {
+              void deleteWorkout()
+            }
+          "
         />
       </div>
     </template>
@@ -3438,13 +3653,25 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="isDuplicateUnlinkModalOpen = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDuplicateUnlinkModalOpen = false
+            }
+          "
+        >
           Cancel
         </UButton>
         <UButton
           color="warning"
           :loading="Boolean(unlinkingDuplicateId)"
-          @click="unlinkDuplicateWorkout"
+          @click="
+            () => {
+              void unlinkDuplicateWorkout()
+            }
+          "
         >
           Unlink
         </UButton>

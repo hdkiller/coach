@@ -20,12 +20,14 @@
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getDriftColor(data.advanced.decoupling)"
           @click="
-            data.advanced.decoupling !== null &&
-            emit('open-metric', {
-              key: 'Aerobic Decoupling',
-              value: data.advanced.decoupling.toFixed(1),
-              unit: '%'
-            })
+            () => {
+              data.advanced.decoupling !== null &&
+                emit('open-metric', {
+                  key: 'Aerobic Decoupling',
+                  value: data.advanced.decoupling.toFixed(1),
+                  unit: '%'
+                })
+            }
           "
         >
           <div class="flex items-center justify-between mb-6">
@@ -93,11 +95,13 @@
         <div
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-purple-500 cursor-pointer hover:border-purple-500/50 transition-all active:scale-[0.98] group"
           @click="
-            emit('open-metric', {
-              key: 'W\' Bal Depletion',
-              value: Math.round(data.advanced.wPrime?.minWPrimeBalance / 1000) || 0,
-              unit: 'kJ'
-            })
+            () => {
+              emit('open-metric', {
+                key: 'W\' Bal Depletion',
+                value: Math.round(data.advanced.wPrime?.minWPrimeBalance / 1000) || 0,
+                unit: 'kJ'
+              })
+            }
           "
         >
           <div class="flex items-center justify-between mb-6">
@@ -168,7 +172,11 @@
         <!-- 3. Quadrant Analysis (Pedaling Style) -->
         <div
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-orange-500 cursor-pointer hover:border-orange-500/50 transition-all active:scale-[0.98] group"
-          @click="emit('open-metric', { key: 'Force / Velocity Profile', value: '' })"
+          @click="
+            () => {
+              void emit('open-metric', { key: 'Force / Velocity Profile', value: '' })
+            }
+          "
         >
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
@@ -265,13 +273,15 @@
         <div
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-blue-500 cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
           @click="
-            data.advanced.coasting &&
-            data.advanced.coasting.percentTime !== null &&
-            emit('open-metric', {
-              key: 'Coasting Efficiency',
-              value: data.advanced.coasting.percentTime.toFixed(1),
-              unit: '%'
-            })
+            () => {
+              data.advanced.coasting &&
+                data.advanced.coasting.percentTime !== null &&
+                emit('open-metric', {
+                  key: 'Coasting Efficiency',
+                  value: data.advanced.coasting.percentTime.toFixed(1),
+                  unit: '%'
+                })
+            }
           "
         >
           <div class="flex items-center justify-between mb-6">
@@ -335,7 +345,12 @@
         <div
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-red-500 cursor-pointer hover:border-red-500/50 transition-all active:scale-[0.98] group"
           @click="
-            emit('open-metric', { key: 'Sustained Surges', value: data.advanced.surges.length })
+            () => {
+              void emit('open-metric', {
+                key: 'Sustained Surges',
+                value: data.advanced.surges.length
+              })
+            }
           "
         >
           <div class="flex items-center justify-between mb-6">
@@ -404,13 +419,15 @@
           class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getFadeColor(data.advanced.fatigueSensitivity?.decay)"
           @click="
-            data.advanced.fatigueSensitivity &&
-            data.advanced.fatigueSensitivity.decay !== null &&
-            emit('open-metric', {
-              key: 'Durability (Late Fade)',
-              value: data.advanced.fatigueSensitivity.decay.toFixed(1),
-              unit: '%'
-            })
+            () => {
+              data.advanced.fatigueSensitivity &&
+                data.advanced.fatigueSensitivity.decay !== null &&
+                emit('open-metric', {
+                  key: 'Durability (Late Fade)',
+                  value: data.advanced.fatigueSensitivity.decay.toFixed(1),
+                  unit: '%'
+                })
+            }
           "
         >
           <div class="flex items-center justify-between mb-6">
@@ -583,7 +600,11 @@
       <div v-if="data.advanced.surges && data.advanced.surges.length > 0" class="space-y-4">
         <div
           class="flex justify-between items-center group cursor-pointer"
-          @click="showMatches = !showMatches"
+          @click="
+            () => {
+              showMatches = !showMatches
+            }
+          "
         >
           <div class="flex items-center gap-2">
             <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">

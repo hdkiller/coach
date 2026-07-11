@@ -36,7 +36,15 @@
             class="w-12 h-12 text-red-500 mx-auto mb-4"
           />
           <p class="text-red-500 font-bold">{{ error }}</p>
-          <UButton color="error" variant="outline" class="mt-4" @click="fetchData"
+          <UButton
+            color="error"
+            variant="outline"
+            class="mt-4"
+            @click="
+              () => {
+                void fetchData()
+              }
+            "
             >Retry Audit</UButton
           >
         </div>

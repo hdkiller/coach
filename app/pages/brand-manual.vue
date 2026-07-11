@@ -171,7 +171,11 @@
                   ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20'
                   : 'hover:bg-white/5 text-zinc-400 hover:text-white'
               "
-              @click="scrollTo(s.id)"
+              @click="
+                () => {
+                  void scrollTo(s.id)
+                }
+              "
             >
               {{ s.label }}
             </button>
@@ -205,7 +209,11 @@
                 ? 'bg-primary-500/10 text-primary-500 ring-1 ring-primary-500/20'
                 : 'hover:bg-white/5 text-zinc-500 hover:text-white'
             "
-            @click="scrollTo(s.id)"
+            @click="
+              () => {
+                void scrollTo(s.id)
+              }
+            "
           >
             <UIcon :name="s.icon" class="w-5 h-5" />
             <span class="text-[11px] font-black uppercase tracking-widest">{{ s.label }}</span>

@@ -11,7 +11,11 @@
             variant="ghost"
             icon="i-heroicons-arrow-left"
             class="hidden sm:flex"
-            @click="goBack"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
           >
             Back
           </UButton>
@@ -29,7 +33,11 @@
             :icon="isLocalWorkout ? 'i-heroicons-cloud-arrow-up' : 'i-heroicons-arrow-path'"
             :disabled="!canPublishWorkout"
             :title="publishBlockedReason || undefined"
-            @click="openPublishModal"
+            @click="
+              () => {
+                void openPublishModal()
+              }
+            "
           >
             <span class="hidden sm:inline">{{ isLocalWorkout ? 'Publish' : 'Update' }}</span>
           </UButton>
@@ -56,7 +64,11 @@
             size="sm"
             class="font-bold"
             :loading="savingToLibrary"
-            @click="saveToLibrary"
+            @click="
+              () => {
+                void saveToLibrary()
+              }
+            "
           >
             <span class="hidden sm:inline">Save to Library</span>
           </UButton>
@@ -68,7 +80,11 @@
             variant="solid"
             size="sm"
             class="font-bold"
-            @click="chatAboutWorkout"
+            @click="
+              () => {
+                void chatAboutWorkout()
+              }
+            "
           >
             <span class="hidden sm:inline">Chat</span>
           </UButton>
@@ -118,14 +134,22 @@
                   size="xs"
                   color="neutral"
                   variant="soft"
-                  @click="resolveStructureConflict('keep_local')"
+                  @click="
+                    () => {
+                      void resolveStructureConflict('keep_local')
+                    }
+                  "
                 >
                   Keep local
                 </UButton>
                 <UButton
                   size="xs"
                   color="warning"
-                  @click="resolveStructureConflict('accept_remote')"
+                  @click="
+                    () => {
+                      void resolveStructureConflict('accept_remote')
+                    }
+                  "
                 >
                   Accept remote
                 </UButton>
@@ -133,7 +157,11 @@
                   size="xs"
                   color="neutral"
                   variant="ghost"
-                  @click="resolveStructureConflict('regenerate')"
+                  @click="
+                    () => {
+                      void resolveStructureConflict('regenerate')
+                    }
+                  "
                 >
                   Regenerate
                 </UButton>
@@ -214,7 +242,11 @@
                   icon="i-heroicons-chevron-left"
                   class="rounded-lg"
                   :disabled="!previousWorkout"
-                  @click="navigateToNeighbor('previous')"
+                  @click="
+                    () => {
+                      void navigateToNeighbor('previous')
+                    }
+                  "
                 />
                 <div class="flex flex-col">
                   <div class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">
@@ -233,7 +265,11 @@
                   icon="i-heroicons-chevron-right"
                   class="rounded-lg"
                   :disabled="!nextWorkout"
-                  @click="navigateToNeighbor('next')"
+                  @click="
+                    () => {
+                      void navigateToNeighbor('next')
+                    }
+                  "
                 />
               </div>
             </div>
@@ -282,7 +318,11 @@
                     variant="ghost"
                     size="xs"
                     class="font-black uppercase tracking-widest text-[10px] py-0"
-                    @click="openTimeModal"
+                    @click="
+                      () => {
+                        void openTimeModal()
+                      }
+                    "
                   >
                     <span class="inline-flex items-center gap-1">
                       <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />
@@ -311,7 +351,11 @@
                 size="xs"
                 class="mt-2 font-bold"
                 :label="showFullDescription ? 'Show less' : 'Show more'"
-                @click="showFullDescription = !showFullDescription"
+                @click="
+                  () => {
+                    showFullDescription = !showFullDescription
+                  }
+                "
               />
             </div>
 
@@ -330,7 +374,11 @@
                   size="xs"
                   class="font-bold"
                   :label="showTrainingContextDetails ? 'Hide Details' : 'Show Details'"
-                  @click="showTrainingContextDetails = !showTrainingContextDetails"
+                  @click="
+                    () => {
+                      showTrainingContextDetails = !showTrainingContextDetails
+                    }
+                  "
                 />
               </div>
               <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
@@ -410,7 +458,11 @@
                     size="xs"
                     icon="i-heroicons-pencil-square"
                     class="rounded-full"
-                    @click="kpi.onEdit?.()"
+                    @click="
+                      () => {
+                        void kpi.onEdit?.()
+                      }
+                    "
                   />
                   <span
                     class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
@@ -516,7 +568,11 @@
                   class="font-black uppercase tracking-widest text-[10px]"
                   :loading="generating"
                   :disabled="generating"
-                  @click="generateStructure"
+                  @click="
+                    () => {
+                      void generateStructure()
+                    }
+                  "
                 >
                   {{ generating ? 'Generating...' : 'Build Structure' }}
                 </UButton>
@@ -645,7 +701,11 @@
                         variant="soft"
                         icon="i-heroicons-eye"
                         class="font-bold whitespace-nowrap"
-                        @click="openViewModal"
+                        @click="
+                          () => {
+                            void openViewModal()
+                          }
+                        "
                       >
                         View Generation Details
                       </UButton>
@@ -708,11 +768,20 @@
             <UButton
               v-if="loadError && loadError.statusCode !== 404"
               color="primary"
-              @click="fetchWorkout"
+              @click="() => fetchWorkout()"
             >
               Retry
             </UButton>
-            <UButton color="neutral" variant="outline" @click="goBack">Go Back</UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="
+                () => {
+                  void goBack()
+                }
+              "
+              >Go Back</UButton
+            >
           </div>
         </div>
       </div>
@@ -754,7 +823,11 @@
               variant="soft"
               icon="i-heroicons-clipboard-document"
               :disabled="!intervalsPreviewText"
-              @click="copyViewContent('intervals')"
+              @click="
+                () => {
+                  void copyViewContent('intervals')
+                }
+              "
             >
               Copy Text
             </UButton>
@@ -771,7 +844,11 @@
               color="neutral"
               variant="soft"
               icon="i-heroicons-clipboard-document"
-              @click="copyViewContent('raw')"
+              @click="
+                () => {
+                  void copyViewContent('raw')
+                }
+              "
             >
               Copy JSON
             </UButton>
@@ -825,8 +902,23 @@
         </div>
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showAdjustModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="adjusting" @click="submitAdjustment"
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showAdjustModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="adjusting"
+            @click="
+              () => {
+                void submitAdjustment()
+              }
+            "
             >Apply Changes</UButton
           >
         </div>
@@ -866,8 +958,23 @@
         </div>
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showMessageModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="generatingMessages" @click="submitMessages"
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showMessageModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="generatingMessages"
+            @click="
+              () => {
+                void submitMessages()
+              }
+            "
             >Generate Messages</UButton
           >
         </div>
@@ -889,7 +996,11 @@
           variant="soft"
           icon="i-heroicons-document-text"
           label="Zwift (.zwo)"
-          @click="downloadWorkout('zwo')"
+          @click="
+            () => {
+              void downloadWorkout('zwo')
+            }
+          "
         />
         <UButton
           block
@@ -897,12 +1008,25 @@
           variant="soft"
           icon="i-heroicons-cpu-chip"
           label="Garmin (.fit)"
-          @click="downloadWorkout('fit')"
+          @click="
+            () => {
+              void downloadWorkout('fit')
+            }
+          "
         />
       </div>
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="showDownloadModal = false" />
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            showDownloadModal = false
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -968,13 +1092,26 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton label="Cancel" color="neutral" variant="ghost" @click="showPublishModal = false" />
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showPublishModal = false
+            }
+          "
+        />
         <UButton
           :label="isLocalWorkout ? 'Publish Workout' : 'Update Workout'"
           color="primary"
           :loading="publishing"
           :disabled="!canPublishWorkout"
-          @click="publishWorkout"
+          @click="
+            () => {
+              void publishWorkout()
+            }
+          "
         />
         <UButton
           v-if="rouvyConnected"
@@ -983,7 +1120,11 @@
           variant="outline"
           :loading="publishingRouvy"
           :disabled="!canPublishWorkout"
-          @click="publishWorkoutToRouvy"
+          @click="
+            () => {
+              void publishWorkoutToRouvy()
+            }
+          "
         />
         <UButton
           v-if="garminConnected"
@@ -992,7 +1133,11 @@
           variant="outline"
           :loading="publishingGarminTraining"
           :disabled="!canPublishWorkout"
-          @click="publishWorkoutToGarmin('training')"
+          @click="
+            () => {
+              void publishWorkoutToGarmin('training')
+            }
+          "
         />
       </div>
     </template>
@@ -1021,7 +1166,16 @@
       </div>
     </template>
     <template #footer>
-      <UButton label="Eject Workout" color="error" :loading="ejecting" @click="ejectWorkout" />
+      <UButton
+        label="Eject Workout"
+        color="error"
+        :loading="ejecting"
+        @click="
+          () => {
+            void ejectWorkout()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1049,8 +1203,26 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton label="Cancel" color="neutral" variant="ghost" @click="showDeleteModal = false" />
-        <UButton label="Delete Workout" color="error" :loading="deleting" @click="deleteWorkout" />
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showDeleteModal = false
+            }
+          "
+        />
+        <UButton
+          label="Delete Workout"
+          color="error"
+          :loading="deleting"
+          @click="
+            () => {
+              void deleteWorkout()
+            }
+          "
+        />
       </div>
     </template>
   </UModal>
@@ -1077,7 +1249,16 @@
       />
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isShareModalOpen = false
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1104,8 +1285,23 @@
         </div>
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showTimeModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="updatingTime" @click="submitTime"
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showTimeModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="updatingTime"
+            @click="
+              () => {
+                void submitTime()
+              }
+            "
             >Update Schedule</UButton
           >
         </div>
@@ -1133,8 +1329,25 @@
         </div>
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showTssModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="updatingTss" @click="submitTss">Update TSS</UButton>
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showTssModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="updatingTss"
+            @click="
+              () => {
+                void submitTss()
+              }
+            "
+            >Update TSS</UButton
+          >
         </div>
       </div>
     </template>
@@ -1170,8 +1383,23 @@
         />
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showStructureModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="isSavingStructure" @click="saveStructure"
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showStructureModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="isSavingStructure"
+            @click="
+              () => {
+                void saveStructure()
+              }
+            "
             >Save Structure</UButton
           >
         </div>
@@ -1213,7 +1441,15 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showGenerationWarningModal = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showGenerationWarningModal = false
+            }
+          "
+        >
           Go Back
         </UButton>
         <UButton
@@ -1227,7 +1463,11 @@
         <UButton
           color="warning"
           :loading="pendingStructureAction === 'adjust' ? adjusting : generating"
-          @click="confirmStructureAction"
+          @click="
+            () => {
+              void confirmStructureAction()
+            }
+          "
         >
           {{ pendingStructureAction === 'adjust' ? 'Adjust Anyway' : 'Generate Anyway' }}
         </UButton>
@@ -1403,6 +1643,79 @@
   ])
   const structureFailureNotifiedIds = new Set<string>()
   const pageSetupTime = Date.now()
+  const STRUCTURE_POLL_INTERVAL_MS = 3000
+  const STRUCTURE_POLL_TIMEOUT_MS = 180_000
+  let structurePollTimer: ReturnType<typeof setInterval> | null = null
+  let structurePollStartedAt = 0
+
+  function stopStructurePolling() {
+    if (structurePollTimer) {
+      clearInterval(structurePollTimer)
+      structurePollTimer = null
+    }
+  }
+
+  function isWaitingForStructure() {
+    return Boolean(
+      workout.value?.id &&
+      !workout.value?.structuredWorkout &&
+      (generating.value ||
+        adjusting.value ||
+        structureGenerationInFlight.value ||
+        activeStructureRun.value)
+    )
+  }
+
+  async function refreshWorkoutAfterStructureJob() {
+    await fetchWorkout({ silent: true })
+    generating.value = false
+    adjusting.value = false
+    stopStructurePolling()
+  }
+
+  function startStructurePolling() {
+    if (structurePollTimer || !workout.value?.id) return
+
+    structurePollStartedAt = Date.now()
+    structurePollTimer = setInterval(async () => {
+      if (!workout.value?.id) {
+        stopStructurePolling()
+        return
+      }
+
+      if (Date.now() - structurePollStartedAt > STRUCTURE_POLL_TIMEOUT_MS) {
+        generating.value = false
+        adjusting.value = false
+        stopStructurePolling()
+        return
+      }
+
+      await fetchWorkout({ silent: true })
+
+      if (workout.value?.structuredWorkout) {
+        generating.value = false
+        adjusting.value = false
+        stopStructurePolling()
+        return
+      }
+
+      if (
+        !structureGenerationInFlight.value &&
+        !activeStructureRun.value &&
+        (generating.value || adjusting.value)
+      ) {
+        generating.value = false
+        adjusting.value = false
+        stopStructurePolling()
+      }
+    }, STRUCTURE_POLL_INTERVAL_MS)
+  }
+
+  function ensureStructurePolling() {
+    if (isWaitingForStructure()) {
+      startStructurePolling()
+    }
+  }
 
   function isStructureRunForWorkout(
     run: { taskIdentifier?: string; tags?: string[] },
@@ -1621,8 +1934,9 @@
   onTaskCompleted('adjust-structured-workout', async (run) => {
     if (!isStructureRunForWorkout(run, workout.value?.id)) return
 
-    await fetchWorkout()
+    await fetchWorkout({ silent: true })
     adjusting.value = false
+    stopStructurePolling()
     toast.add({
       title: 'Adjustment Complete',
       description: 'Your workout has been updated based on your feedback.',
@@ -1634,8 +1948,9 @@
   onTaskCompleted('generate-structured-workout', async (run) => {
     if (!isStructureRunForWorkout(run, workout.value?.id)) return
 
-    await fetchWorkout()
+    await fetchWorkout({ silent: true })
     generating.value = false
+    stopStructurePolling()
 
     const output = run.output as any
     if (output?.skipped || output?.reason === 'FREE_TIER_LIMIT') {
@@ -1773,15 +2088,22 @@
 
   watch(
     activeStructureRun,
-    (run) => {
-      if (!run) return
-      if (run.taskIdentifier === 'adjust-structured-workout') {
-        adjusting.value = true
-        generating.value = false
+    (run, previousRun) => {
+      if (run) {
+        if (run.taskIdentifier === 'adjust-structured-workout') {
+          adjusting.value = true
+          generating.value = false
+        } else {
+          generating.value = true
+          adjusting.value = false
+        }
+        startStructurePolling()
         return
       }
-      generating.value = true
-      adjusting.value = false
+
+      if (previousRun && (generating.value || adjusting.value)) {
+        void refreshWorkoutAfterStructureJob()
+      }
     },
     { immediate: true }
   )
@@ -2322,10 +2644,16 @@
     }
   })
 
-  async function fetchWorkout() {
-    loading.value = true
+  async function fetchWorkout(options: { silent?: boolean } = {}) {
+    if (!options.silent) {
+      loading.value = true
+    }
     loadError.value = null
-    workoutFuelingPlan.value = null
+    if (!options.silent) {
+      workoutFuelingPlan.value = null
+      dayNutrition.value = null
+      nutritionSettings.value = null
+    }
     try {
       const data: any = await ($fetch as any)(`/api/workouts/planned/${route.params.id}`)
       workout.value = data.workout
@@ -2337,11 +2665,9 @@
       settingsStaleness.value = data.settingsStaleness
       structureGenerationInFlight.value = Boolean(data.structureGenerationInFlight)
       workoutHasRenderableStructure.value = data.hasRenderableStructure !== false
-      dayNutrition.value = null
-      nutritionSettings.value = null
 
       // Fetch nutrition for the workout date
-      if (nutritionEnabled.value && workout.value?.date) {
+      if (!options.silent && nutritionEnabled.value && workout.value?.date) {
         try {
           const dateStr = formatDateUTC(new Date(workout.value.date), 'yyyy-MM-dd')
           const [nData, sData, wFueling] = (await Promise.all([
@@ -2365,7 +2691,7 @@
       }
 
       // Init form
-      if (workout.value) {
+      if (!options.silent && workout.value) {
         showFullDescription.value = false
         showTrainingContextDetails.value = false
         adjustForm.durationMinutes = Math.round(workout.value.durationSec / 60)
@@ -2376,6 +2702,12 @@
               ? 'moderate'
               : 'easy'
       }
+
+      if (structureGenerationInFlight.value && !workout.value?.structuredWorkout) {
+        generating.value = true
+      }
+
+      ensureStructurePolling()
     } catch (error) {
       console.error('Failed to fetch workout', error)
       workout.value = null
@@ -2383,7 +2715,9 @@
       const message = (error as any)?.data?.message || (error as any)?.message
       loadError.value = { statusCode, message }
     } finally {
-      loading.value = false
+      if (!options.silent) {
+        loading.value = false
+      }
     }
   }
 
@@ -2683,7 +3017,9 @@
       await ($fetch as any)(`/api/workouts/planned/${route.params.id}/generate-structure`, {
         method: 'POST'
       })
+      structureGenerationInFlight.value = true
       refreshRuns()
+      startStructurePolling()
 
       toast.add({
         title: 'Generation Started',
@@ -2723,7 +3059,9 @@
         method: 'POST',
         body: adjustForm
       })
+      structureGenerationInFlight.value = true
       refreshRuns()
+      startStructurePolling()
 
       toast.add({
         title: 'Adjustment Started',
@@ -2902,10 +3240,15 @@
     refreshRuns()
   })
 
+  onUnmounted(() => {
+    stopStructurePolling()
+  })
+
   watch(
     () => route.params.id,
     (newId, oldId) => {
       if (!newId || newId === oldId) return
+      stopStructurePolling()
       generating.value = false
       adjusting.value = false
       generatingMessages.value = false

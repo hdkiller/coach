@@ -16,7 +16,11 @@
           <button
             :disabled="isRunning"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-            @click="syncAllCategories"
+            @click="
+              () => {
+                void syncAllCategories()
+              }
+            "
           >
             <svg
               v-if="isRunning"
@@ -118,7 +122,11 @@
                   'cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed'
                 ]"
                 :title="'Click to run all ' + category.name + ' tasks'"
-                @click="runCategoryTasks(category.id)"
+                @click="
+                  () => {
+                    void runCategoryTasks(category.id)
+                  }
+                "
               >
                 {{ getCategoryStatus(category.id) }}
               </button>
@@ -199,7 +207,11 @@
                   :disabled="isRunning"
                   class="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   :title="'Click to run ' + task.name"
-                  @click="triggerSingleTask(task.id)"
+                  @click="
+                    () => {
+                      void triggerSingleTask(task.id)
+                    }
+                  "
                 >
                   <div class="w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-500" />
                 </button>
@@ -222,7 +234,11 @@
                       'cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed'
                     ]"
                     :title="'Click to run ' + task.name"
-                    @click="triggerSingleTask(task.id)"
+                    @click="
+                      () => {
+                        void triggerSingleTask(task.id)
+                      }
+                    "
                   >
                     {{ getTaskStatusLabel(task.id) }}
                   </button>

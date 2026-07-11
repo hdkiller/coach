@@ -9,7 +9,11 @@
           :variant="activeGroupId === group.id ? 'solid' : 'ghost'"
           size="sm"
           class="font-black uppercase tracking-tight whitespace-nowrap"
-          @click="$emit('update:activeGroupId', group.id)"
+          @click="
+            () => {
+              void $emit('update:activeGroupId', group.id)
+            }
+          "
         >
           {{ group.name }}
           <span v-if="group.id !== 'all'" class="ml-1 opacity-50 text-[10px]">
@@ -24,7 +28,11 @@
         icon="i-heroicons-cog-6-tooth"
         size="sm"
         label="Manage Groups"
-        @click="isGroupListModalOpen = true"
+        @click="
+          () => {
+            isGroupListModalOpen = true
+          }
+        "
       />
     </div>
 
@@ -64,14 +72,22 @@
                   variant="ghost"
                   icon="i-heroicons-user-group"
                   size="xs"
-                  @click="openMemberManager(group)"
+                  @click="
+                    () => {
+                      void openMemberManager(group)
+                    }
+                  "
                 />
                 <UButton
                   color="error"
                   variant="ghost"
                   icon="i-heroicons-trash"
                   size="xs"
-                  @click="confirmDeleteGroup(group)"
+                  @click="
+                    () => {
+                      void confirmDeleteGroup(group)
+                    }
+                  "
                 />
               </div>
             </div>
@@ -83,7 +99,11 @@
             variant="soft"
             label="Create New Group"
             icon="i-heroicons-plus"
-            @click="isCreateModalOpen = true"
+            @click="
+              () => {
+                isCreateModalOpen = true
+              }
+            "
           />
         </div>
       </template>
@@ -122,9 +142,22 @@
           label="Cancel"
           color="neutral"
           variant="ghost"
-          @click="isCreateModalOpen = false"
+          @click="
+            () => {
+              isCreateModalOpen = false
+            }
+          "
         />
-        <UButton label="Create Group" color="primary" :loading="creating" @click="createGroup" />
+        <UButton
+          label="Create Group"
+          color="primary"
+          :loading="creating"
+          @click="
+            () => {
+              void createGroup()
+            }
+          "
+        />
       </template>
     </UModal>
 
@@ -150,7 +183,11 @@
                 icon="i-heroicons-plus"
                 :disabled="!selectedAthleteId"
                 :loading="addingMember"
-                @click="addMember"
+                @click="
+                  () => {
+                    void addMember()
+                  }
+                "
               />
             </div>
           </UFormField>
@@ -181,7 +218,11 @@
                   variant="ghost"
                   icon="i-heroicons-x-mark"
                   size="xs"
-                  @click="removeMember(member.athleteId)"
+                  @click="
+                    () => {
+                      void removeMember(member.athleteId)
+                    }
+                  "
                 />
               </div>
             </div>

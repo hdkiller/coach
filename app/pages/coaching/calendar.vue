@@ -15,7 +15,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="railCollapsed = !railCollapsed"
+              @click="
+                () => {
+                  railCollapsed = !railCollapsed
+                }
+              "
             >
               {{
                 railCollapsed
@@ -28,7 +32,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="toggleLibraryPanel"
+              @click="
+                () => {
+                  void toggleLibraryPanel()
+                }
+              "
             >
               {{
                 isLibraryPanelVisible
@@ -41,7 +49,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="toggleDrawer"
+              @click="
+                () => {
+                  void toggleDrawer()
+                }
+              "
             >
               {{
                 isWorkoutDrawerVisible
@@ -70,7 +82,11 @@
                 :color="leftRailTab === 'roster' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'roster' ? 'soft' : 'ghost'"
                 class="flex-1 rounded-xl"
-                @click="leftRailTab = 'roster'"
+                @click="
+                  () => {
+                    leftRailTab = 'roster'
+                  }
+                "
               >
                 {{ tr('calendar_roster', 'Roster') }}
               </UButton>
@@ -79,7 +95,11 @@
                 :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
                 class="flex-1 rounded-xl"
-                @click="leftRailTab = 'library'"
+                @click="
+                  () => {
+                    leftRailTab = 'library'
+                  }
+                "
               >
                 {{ tr('calendar_workouts', 'Workouts') }}
               </UButton>
@@ -88,7 +108,11 @@
                 :color="leftRailTab === 'plans' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'plans' ? 'soft' : 'ghost'"
                 class="flex-1 rounded-xl"
-                @click="leftRailTab = 'plans'"
+                @click="
+                  () => {
+                    leftRailTab = 'plans'
+                  }
+                "
               >
                 {{ tr('calendar_plans', 'Plans') }}
               </UButton>
@@ -120,7 +144,11 @@
                     ? 'border-primary/60 bg-primary/5'
                     : 'border-default/70 bg-default'
                 "
-                @click="setPrimaryAthlete(rel.athleteId)"
+                @click="
+                  () => {
+                    void setPrimaryAthlete(rel.athleteId)
+                  }
+                "
               >
                 <div class="flex items-center gap-3">
                   <UAvatar :src="rel.athlete.image" :alt="rel.athlete.name" size="md" />
@@ -192,15 +220,32 @@
                   icon="i-heroicons-chevron-left"
                   color="neutral"
                   variant="soft"
-                  @click="movePanel('primary', -1)"
+                  @click="
+                    () => {
+                      void movePanel('primary', -1)
+                    }
+                  "
                 />
                 <UButton
                   icon="i-heroicons-chevron-right"
                   color="neutral"
                   variant="soft"
-                  @click="movePanel('primary', 1)"
+                  @click="
+                    () => {
+                      void movePanel('primary', 1)
+                    }
+                  "
                 />
-                <UButton color="neutral" variant="ghost" @click="goToToday()">Today</UButton>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      void goToToday()
+                    }
+                  "
+                  >Today</UButton
+                >
                 <span class="text-sm font-bold text-highlighted">{{ toolbarLabel }}</span>
               </div>
 
@@ -213,7 +258,11 @@
                     :color="viewMode === 'week-board' ? 'primary' : 'neutral'"
                     :variant="viewMode === 'week-board' ? 'soft' : 'ghost'"
                     icon="i-heroicons-calendar-days"
-                    @click="viewMode = 'week-board'"
+                    @click="
+                      () => {
+                        viewMode = 'week-board'
+                      }
+                    "
                   >
                     Week board
                   </UButton>
@@ -222,7 +271,11 @@
                     :color="viewMode === 'month-grid' ? 'primary' : 'neutral'"
                     :variant="viewMode === 'month-grid' ? 'soft' : 'ghost'"
                     icon="i-heroicons-squares-2x2"
-                    @click="viewMode = 'month-grid'"
+                    @click="
+                      () => {
+                        viewMode = 'month-grid'
+                      }
+                    "
                   >
                     Month grid
                   </UButton>
@@ -235,7 +288,11 @@
                   color="neutral"
                   variant="outline"
                   size="sm"
-                  @click="toggleSplitView"
+                  @click="
+                    () => {
+                      void toggleSplitView()
+                    }
+                  "
                 >
                   {{ isSplitView ? 'Split on' : 'Split off' }}
                 </UButton>
@@ -246,7 +303,11 @@
                   color="neutral"
                   variant="outline"
                   size="sm"
-                  @click="isNavigationSynced = !isNavigationSynced"
+                  @click="
+                    () => {
+                      isNavigationSynced = !isNavigationSynced
+                    }
+                  "
                 >
                   {{ isNavigationSynced ? 'Synced' : 'Unlocked' }}
                 </UButton>
@@ -257,7 +318,11 @@
                   color="neutral"
                   variant="ghost"
                   size="sm"
-                  @click="swapAthletes"
+                  @click="
+                    () => {
+                      void swapAthletes()
+                    }
+                  "
                 >
                   Swap
                 </UButton>
@@ -314,7 +379,11 @@
                 color="neutral"
                 variant="outline"
                 size="sm"
-                @click="enableCompareLane"
+                @click="
+                  () => {
+                    void enableCompareLane()
+                  }
+                "
               >
                 Add athlete lane
               </UButton>
@@ -363,13 +432,25 @@
         </template>
         <template #footer>
           <div class="flex w-full justify-end gap-2">
-            <UButton color="neutral" variant="ghost" @click="showTemplateCalendarPicker = false">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  showTemplateCalendarPicker = false
+                }
+              "
+            >
               Cancel
             </UButton>
             <UButton
               color="primary"
               :disabled="!calendarPickerTemplate || !calendarPickerDate || !calendarPickerAthleteId"
-              @click="confirmTemplateCalendarPicker"
+              @click="
+                () => {
+                  void confirmTemplateCalendarPicker()
+                }
+              "
             >
               Schedule
             </UButton>

@@ -42,7 +42,11 @@
         :key="item.key"
         type="button"
         class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:border-primary-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
-        @click="openLegendModal(item.key)"
+        @click="
+          () => {
+            void openLegendModal(item.key)
+          }
+        "
       >
         <UIcon :name="item.icon" class="size-3.5" :class="item.iconColor" />
         <span>{{ item.label }}</span>
@@ -105,7 +109,11 @@
           variant="soft"
           block
           class="font-bold uppercase tracking-tight text-xs"
-          @click="isLegendModalOpen = false"
+          @click="
+            () => {
+              isLegendModalOpen = false
+            }
+          "
         >
           Close
         </UButton>

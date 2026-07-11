@@ -80,8 +80,7 @@ export default defineEventHandler(async (event) => {
       messages: [
         {
           role: 'user',
-
-          parts: [
+          content: [
             {
               type: 'text',
               text: 'Transcribe this voice note for a chat composer. Return only the transcript text. Do not summarize, interpret, add formatting, or answer the user.'
@@ -114,8 +113,7 @@ export default defineEventHandler(async (event) => {
       const promptTokens = usage?.inputTokens || 0
       const completionTokens = usage?.outputTokens || 0
       const cachedTokens = usage?.inputTokenDetails?.cacheReadTokens || 0
-      const reasoningTokens =
-        (usage as any)?.outputTokenDetails.outputTokenDetails.reasoningTokens || 0
+      const reasoningTokens = usage?.outputTokenDetails?.reasoningTokens || 0
 
       await prisma.llmUsage.create({
         data: {
@@ -124,8 +122,8 @@ export default defineEventHandler(async (event) => {
           model: modelName,
           modelType: 'flash',
           operation: 'chat_transcription',
-          inputTokens,
-          outputTokens,
+          promptTokens,
+          completionTokens,
           cachedTokens,
           reasoningTokens,
           totalTokens: promptTokens + completionTokens,

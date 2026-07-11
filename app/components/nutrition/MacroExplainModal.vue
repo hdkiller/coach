@@ -100,7 +100,11 @@
           variant="soft"
           block
           class="font-bold uppercase tracking-tight text-xs"
-          @click="isOpen = false"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
         >
           Close
         </UButton>

@@ -19,7 +19,11 @@
               icon="i-heroicons-user-plus"
               size="sm"
               class="font-bold"
-              @click="openInviteModal('email')"
+              @click="
+                () => {
+                  void openInviteModal('email')
+                }
+              "
             >
               {{ tr('athletes_invite', 'Invite Athlete') }}
             </UButton>
@@ -136,7 +140,11 @@
                     color="primary"
                     size="sm"
                     :loading="reviewingRequestId === request.id && reviewingAction === 'approve'"
-                    @click="approveRequest(request.id)"
+                    @click="
+                      () => {
+                        void approveRequest(request.id)
+                      }
+                    "
                   >
                     {{ tr('athletes_approve', 'Approve') }}
                   </UButton>
@@ -145,7 +153,11 @@
                     variant="outline"
                     size="sm"
                     :loading="reviewingRequestId === request.id && reviewingAction === 'decline'"
-                    @click="declineRequest(request.id)"
+                    @click="
+                      () => {
+                        void declineRequest(request.id)
+                      }
+                    "
                   >
                     {{ tr('athletes_decline', 'Decline') }}
                   </UButton>
@@ -191,21 +203,33 @@
               color="primary"
               :label="tr('athletes_create_share_link', 'Create Share Link')"
               icon="i-heroicons-link"
-              @click="openInviteModal('share')"
+              @click="
+                () => {
+                  void openInviteModal('share')
+                }
+              "
             />
             <UButton
               color="neutral"
               variant="outline"
               :label="tr('athletes_invite_email', 'Invite by Email')"
               icon="i-heroicons-envelope"
-              @click="openInviteModal('email')"
+              @click="
+                () => {
+                  void openInviteModal('email')
+                }
+              "
             />
             <UButton
               color="neutral"
               variant="outline"
               :label="tr('athletes_connect_code', 'Connect by Code')"
               icon="i-heroicons-ticket"
-              @click="openInviteModal('code')"
+              @click="
+                () => {
+                  void openInviteModal('code')
+                }
+              "
             />
           </div>
         </div>
@@ -263,21 +287,33 @@
                 variant="solid"
                 icon="i-heroicons-link"
                 :label="tr('athletes_create_share_link', 'Create Share Link')"
-                @click="openInviteModal('share')"
+                @click="
+                  () => {
+                    void openInviteModal('share')
+                  }
+                "
               />
               <UButton
                 color="neutral"
                 variant="outline"
                 icon="i-heroicons-envelope"
                 :label="tr('athletes_invite_email', 'Invite by Email')"
-                @click="openInviteModal('email')"
+                @click="
+                  () => {
+                    void openInviteModal('email')
+                  }
+                "
               />
               <UButton
                 color="neutral"
                 variant="outline"
                 icon="i-heroicons-ticket"
                 :label="tr('athletes_connect_code', 'Connect by Code')"
-                @click="openInviteModal('code')"
+                @click="
+                  () => {
+                    void openInviteModal('code')
+                  }
+                "
               />
             </div>
           </div>
@@ -305,7 +341,11 @@
               label="New Invite"
               size="xs"
               class="font-bold"
-              @click="openInviteModal('share')"
+              @click="
+                () => {
+                  void openInviteModal('share')
+                }
+              "
             />
           </div>
 
@@ -346,7 +386,9 @@
                   :icon="invite.email ? 'i-heroicons-envelope' : 'i-heroicons-link'"
                   :label="invite.email ? 'Invite Another' : 'New Share Link'"
                   @click="
-                    invite.email ? prefillInviteEmail(invite.email) : openInviteModal('share')
+                    () => {
+                      invite.email ? prefillInviteEmail(invite.email) : openInviteModal('share')
+                    }
                   "
                 />
                 <UButton
@@ -355,7 +397,11 @@
                   size="xs"
                   icon="i-heroicons-trash"
                   :loading="revokingInviteId === invite.id"
-                  @click="revokeInvite(invite.id)"
+                  @click="
+                    () => {
+                      void revokeInvite(invite.id)
+                    }
+                  "
                 />
               </div>
             </div>
@@ -379,21 +425,33 @@
             icon="i-heroicons-link"
             :color="inviteTab === 'share' ? 'primary' : 'neutral'"
             :variant="inviteTab === 'share' ? 'solid' : 'outline'"
-            @click="inviteTab = 'share'"
+            @click="
+              () => {
+                inviteTab = 'share'
+              }
+            "
           />
           <UButton
             label="Invite by Email"
             icon="i-heroicons-envelope"
             :color="inviteTab === 'email' ? 'primary' : 'neutral'"
             :variant="inviteTab === 'email' ? 'solid' : 'outline'"
-            @click="inviteTab = 'email'"
+            @click="
+              () => {
+                inviteTab = 'email'
+              }
+            "
           />
           <UButton
             label="Connect by Code"
             icon="i-heroicons-ticket"
             :color="inviteTab === 'code' ? 'primary' : 'neutral'"
             :variant="inviteTab === 'code' ? 'solid' : 'outline'"
-            @click="inviteTab = 'code'"
+            @click="
+              () => {
+                inviteTab = 'code'
+              }
+            "
           />
         </div>
 
@@ -453,14 +511,27 @@
       </div>
     </template>
     <template #footer>
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="isConnectModalOpen = false" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isConnectModalOpen = false
+          }
+        "
+      />
       <UButton
         v-if="inviteTab === 'share'"
         label="Create Share Link"
         color="primary"
         icon="i-heroicons-link"
         :loading="creatingInvite"
-        @click="createShareInvite"
+        @click="
+          () => {
+            void createShareInvite()
+          }
+        "
       />
       <UButton
         v-else-if="inviteTab === 'email'"
@@ -469,7 +540,11 @@
         icon="i-heroicons-envelope"
         :loading="creatingInvite"
         :disabled="!inviteEmail"
-        @click="createInvite"
+        @click="
+          () => {
+            void createInvite()
+          }
+        "
       />
       <UButton
         v-else
@@ -478,7 +553,11 @@
         icon="i-heroicons-ticket"
         :loading="connecting"
         :disabled="!connectCode || connectCode.length < 6"
-        @click="connectAthlete"
+        @click="
+          () => {
+            void connectAthlete()
+          }
+        "
       />
     </template>
   </UModal>

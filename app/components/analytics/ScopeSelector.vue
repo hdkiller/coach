@@ -165,7 +165,11 @@
             :color="!compareMode ? 'primary' : 'neutral'"
             :variant="!compareMode ? 'soft' : 'ghost'"
             class="flex-1"
-            @click="compareMode = false"
+            @click="
+              () => {
+                compareMode = false
+              }
+            "
           >
             Single
           </UButton>
@@ -174,7 +178,11 @@
             :color="compareMode ? 'primary' : 'neutral'"
             :variant="compareMode ? 'soft' : 'ghost'"
             class="flex-1"
-            @click="compareMode = true"
+            @click="
+              () => {
+                compareMode = true
+              }
+            "
           >
             Compare
           </UButton>
@@ -194,7 +202,11 @@
               ? 'border-primary/60 bg-primary/5'
               : 'border-default/70 bg-default'
           "
-          @click="selectSelf"
+          @click="
+            () => {
+              void selectSelf()
+            }
+          "
         >
           <UAvatar icon="i-lucide-user" size="md" />
           <div class="min-w-0 flex-1">
@@ -218,9 +230,11 @@
                 : 'border-default/70 bg-default'
             "
             @click="
-              compareMode
-                ? toggleCompareAthlete(relationship.athleteId)
-                : selectSingleAthlete(relationship.athleteId)
+              () => {
+                compareMode
+                  ? toggleCompareAthlete(relationship.athleteId)
+                  : selectSingleAthlete(relationship.athleteId)
+              }
             "
           >
             <UAvatar :src="relationship.athlete.image" :alt="relationship.athlete.name" size="md" />

@@ -415,7 +415,11 @@
                       ? 'bg-primary-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)]'
                       : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/10'
                   ]"
-                  @click="activeCategory = cat.id"
+                  @click="
+                    () => {
+                      activeCategory = cat.id
+                    }
+                  "
                 >
                   {{ cat.label }}
                 </button>

@@ -13,7 +13,11 @@
               ? 'border-primary bg-primary/5 dark:bg-primary/10'
               : 'border-gray-200 dark:border-gray-800'
           "
-          @click="selectType(type.id)"
+          @click="
+            () => {
+              void selectType(type.id)
+            }
+          "
         >
           <div class="p-2 rounded-lg w-fit mb-3" :class="type.color">
             <UIcon :name="type.icon" class="w-6 h-6" />
@@ -28,7 +32,16 @@
     <div v-else-if="step === 2" class="space-y-6">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 1" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 1
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Configure {{ selectedTypeLabel }} Goal</h3>
         </div>
         <UButton
@@ -38,7 +51,11 @@
           color="primary"
           variant="soft"
           :loading="generatingSuggestion"
-          @click="generateAiSuggestion"
+          @click="
+            () => {
+              void generateAiSuggestion()
+            }
+          "
         >
           AI Suggest
         </UButton>
@@ -200,7 +217,11 @@
                   ? 'border-error bg-error/5'
                   : 'border-gray-200 dark:border-gray-800 hover:border-error/50'
               "
-              @click="form.priority = 'HIGH'"
+              @click="
+                () => {
+                  form.priority = 'HIGH'
+                }
+              "
             >
               <span class="text-error font-semibold">High</span>
               <span class="text-sm text-muted">Primary focus</span>
@@ -213,7 +234,11 @@
                   ? 'border-warning bg-warning/5'
                   : 'border-gray-200 dark:border-gray-800 hover:border-warning/50'
               "
-              @click="form.priority = 'MEDIUM'"
+              @click="
+                () => {
+                  form.priority = 'MEDIUM'
+                }
+              "
             >
               <span class="text-warning font-semibold">Medium</span>
               <span class="text-sm text-muted">Important</span>
@@ -226,7 +251,11 @@
                   ? 'border-success bg-success/5'
                   : 'border-gray-200 dark:border-gray-800 hover:border-success/50'
               "
-              @click="form.priority = 'LOW'"
+              @click="
+                () => {
+                  form.priority = 'LOW'
+                }
+              "
             >
               <span class="text-success font-semibold">Low</span>
               <span class="text-sm text-muted">Nice to have</span>
@@ -252,7 +281,11 @@
             :loading="saving"
             icon="i-heroicons-check"
             class="px-8"
-            @click="saveGoal"
+            @click="
+              () => {
+                void saveGoal()
+              }
+            "
           >
             {{ isEditMode ? 'Update Goal' : 'Create Goal' }}
           </UButton>

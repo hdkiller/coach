@@ -46,12 +46,25 @@
 
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">Cancel</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
         <UButton
           color="primary"
           :loading="saving"
           :disabled="visibility === 'TEAM' && !teamId"
-          @click="save"
+          @click="
+            () => {
+              void save()
+            }
+          "
         >
           Save Changes
         </UButton>

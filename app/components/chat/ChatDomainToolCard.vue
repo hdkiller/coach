@@ -923,7 +923,11 @@
       type="button"
       class="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50/70 dark:hover:bg-gray-900/30"
       :class="{ 'border-b border-gray-200 dark:border-gray-800': isExpanded }"
-      @click="isExpanded = !isExpanded"
+      @click="
+        () => {
+          isExpanded = !isExpanded
+        }
+      "
     >
       <div class="min-w-0 flex items-start gap-2">
         <UIcon
@@ -1061,7 +1065,11 @@
         <button
           type="button"
           class="text-xs font-medium text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          @click="showRaw = !showRaw"
+          @click="
+            () => {
+              showRaw = !showRaw
+            }
+          "
         >
           {{ showRaw ? 'Hide raw response' : 'Show raw response' }}
         </button>

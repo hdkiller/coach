@@ -488,7 +488,11 @@
             size="sm"
             class="font-bold uppercase tracking-wide"
             :loading="loadingPortal"
-            @click="handleManageSubscription"
+            @click="
+              () => {
+                void handleManageSubscription()
+              }
+            "
           >
             {{ t('billing_past_due_action') }}
           </UButton>
@@ -531,7 +535,11 @@
               variant="ghost"
               icon="i-heroicons-x-mark"
               :aria-label="t('billing_dismiss')"
-              @click="dismissSuccessMessage"
+              @click="
+                () => {
+                  void dismissSuccessMessage()
+                }
+              "
             />
           </div>
 
@@ -571,7 +579,15 @@
             >
               {{ t('billing_success_open_ai_settings') }}
             </UButton>
-            <UButton color="neutral" variant="ghost" @click="dismissSuccessMessage">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  void dismissSuccessMessage()
+                }
+              "
+            >
               {{ t('billing_dismiss') }}
             </UButton>
           </div>
@@ -733,7 +749,11 @@
                   color="primary"
                   variant="solid"
                   :loading="loadingPortal"
-                  @click="handleManageSubscription"
+                  @click="
+                    () => {
+                      void handleManageSubscription()
+                    }
+                  "
                 >
                   <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4" />
                   {{ t('billing_button_portal_manage') }}
@@ -744,7 +764,11 @@
                   v-if="isPremium"
                   color="primary"
                   variant="soft"
-                  @click="showPlansModal = true"
+                  @click="
+                    () => {
+                      showPlansModal = true
+                    }
+                  "
                 >
                   <UIcon name="i-heroicons-arrow-path-rounded-square" class="w-4 h-4" />
                   {{ t('billing_button_change_plan') }}
@@ -755,13 +779,26 @@
                   color="neutral"
                   variant="outline"
                   :loading="loadingPortal"
-                  @click="handleViewInvoices"
+                  @click="
+                    () => {
+                      void handleViewInvoices()
+                    }
+                  "
                 >
                   <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
                   {{ t('billing_button_invoices') }}
                 </UButton>
 
-                <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync()">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  :loading="syncing"
+                  @click="
+                    () => {
+                      void handleSync()
+                    }
+                  "
+                >
                   <UIcon name="i-heroicons-arrow-path" class="w-4 h-4" />
                   {{ t('billing_button_sync') }}
                 </UButton>
@@ -784,7 +821,11 @@
                   variant="link"
                   class="px-0"
                   :loading="loadingPortal"
-                  @click="handleManageSubscription"
+                  @click="
+                    () => {
+                      void handleManageSubscription()
+                    }
+                  "
                 >
                   {{ t('billing_button_portal') }}
                 </UButton>
@@ -983,7 +1024,11 @@
                   color="neutral"
                   variant="ghost"
                   icon="i-heroicons-x-mark"
-                  @click="showPlansModal = false"
+                  @click="
+                    () => {
+                      showPlansModal = false
+                    }
+                  "
                 />
               </div>
             </template>

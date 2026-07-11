@@ -237,7 +237,11 @@
                       :variant="isDaySelected(day.value) ? 'solid' : 'outline'"
                       :color="isDaySelected(day.value) ? 'primary' : 'neutral'"
                       size="xs"
-                      @click="toggleDay(day.value)"
+                      @click="
+                        () => {
+                          void toggleDay(day.value)
+                        }
+                      "
                     >
                       {{ day.label }}
                     </UButton>

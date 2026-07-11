@@ -7,7 +7,11 @@
             icon="i-heroicons-arrow-left"
             color="neutral"
             variant="ghost"
-            @click="navigateTo('/developer')"
+            @click="
+              () => {
+                void navigateTo('/developer')
+              }
+            "
           />
         </template>
         <template #right>
@@ -16,7 +20,11 @@
             icon="i-heroicons-trash"
             color="error"
             variant="ghost"
-            @click="isDeleteModalOpen = true"
+            @click="
+              () => {
+                isDeleteModalOpen = true
+              }
+            "
           />
         </template>
       </UDashboardNavbar>
@@ -51,7 +59,11 @@
                   icon="i-heroicons-camera"
                   size="xs"
                   variant="outline"
-                  @click="triggerLogoUpload"
+                  @click="
+                    () => {
+                      void triggerLogoUpload()
+                    }
+                  "
                 />
                 <p class="text-[10px] text-gray-500 mt-2 max-w-[120px]">
                   PNG, JPG, GIF up to 5MB. Will be resized to 512x512px.
@@ -144,7 +156,11 @@
                 readonly
                 icon="i-heroicons-clipboard"
                 class="w-full font-mono"
-                @click="copyToClipboard(app.clientId, 'Client ID')"
+                @click="
+                  () => {
+                    void copyToClipboard(app.clientId, 'Client ID')
+                  }
+                "
               />
             </UFormField>
 
@@ -164,14 +180,22 @@
                   icon="i-heroicons-clipboard"
                   color="neutral"
                   variant="ghost"
-                  @click="copyToClipboard(generatedSecret, 'Client Secret')"
+                  @click="
+                    () => {
+                      void copyToClipboard(generatedSecret, 'Client Secret')
+                    }
+                  "
                 />
                 <UButton
                   label="Regenerate"
                   icon="i-heroicons-arrow-path"
                   color="warning"
                   variant="outline"
-                  @click="isRegenerateModalOpen = true"
+                  @click="
+                    () => {
+                      isRegenerateModalOpen = true
+                    }
+                  "
                 />
               </div>
               <div
@@ -194,7 +218,11 @@
                   size="xs"
                   variant="soft"
                   :loading="updating"
-                  @click="onUpdateSubmit"
+                  @click="
+                    () => {
+                      void onUpdateSubmit()
+                    }
+                  "
                 />
               </div>
             </UFormField>
@@ -252,7 +280,11 @@
                 readonly
                 icon="i-heroicons-link"
                 class="w-full font-mono"
-                @click="copyToClipboard(webhookUrl, 'Webhook URL')"
+                @click="
+                  () => {
+                    void copyToClipboard(webhookUrl, 'Webhook URL')
+                  }
+                "
               />
             </UFormField>
 
@@ -277,7 +309,12 @@
                   color="neutral"
                   variant="ghost"
                   @click="
-                    copyToClipboard(generatedWebhookSecret || app.webhookSecret, 'Webhook Secret')
+                    () => {
+                      void copyToClipboard(
+                        generatedWebhookSecret || app.webhookSecret,
+                        'Webhook Secret'
+                      )
+                    }
                   "
                 />
                 <UButton
@@ -285,7 +322,11 @@
                   :icon="app.webhookSecret ? 'i-heroicons-arrow-path' : 'i-heroicons-plus'"
                   color="neutral"
                   variant="outline"
-                  @click="isRegenerateWebhookModalOpen = true"
+                  @click="
+                    () => {
+                      isRegenerateWebhookModalOpen = true
+                    }
+                  "
                 />
               </div>
             </UFormField>
@@ -296,7 +337,11 @@
                 icon="i-heroicons-list-bullet"
                 color="primary"
                 variant="soft"
-                @click="isLogsModalOpen = true"
+                @click="
+                  () => {
+                    isLogsModalOpen = true
+                  }
+                "
               />
             </div>
           </div>
@@ -360,7 +405,11 @@
                       label="Inspect"
                       variant="ghost"
                       size="xs"
-                      @click="selectedLog = selectedLog?.id === log.id ? null : log"
+                      @click="
+                        () => {
+                          selectedLog = selectedLog?.id === log.id ? null : log
+                        }
+                      "
                     />
                   </td>
                 </tr>
@@ -415,7 +464,16 @@
     <template #footer>
       <div class="flex justify-between items-center w-full">
         <p class="text-[10px] text-gray-500">Showing last 50 requests</p>
-        <UButton label="Close" color="neutral" variant="ghost" @click="isLogsModalOpen = false" />
+        <UButton
+          label="Close"
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isLogsModalOpen = false
+            }
+          "
+        />
       </div>
     </template>
   </UModal>
@@ -439,13 +497,21 @@
           label="Cancel"
           color="neutral"
           variant="ghost"
-          @click="isRegenerateModalOpen = false"
+          @click="
+            () => {
+              isRegenerateModalOpen = false
+            }
+          "
         />
         <UButton
           label="Regenerate"
           color="warning"
           :loading="regenerating"
-          @click="onRegenerateSecret"
+          @click="
+            () => {
+              void onRegenerateSecret()
+            }
+          "
         />
       </div>
     </template>
@@ -472,13 +538,21 @@
           label="Cancel"
           color="neutral"
           variant="ghost"
-          @click="isRegenerateWebhookModalOpen = false"
+          @click="
+            () => {
+              isRegenerateWebhookModalOpen = false
+            }
+          "
         />
         <UButton
           :label="app?.webhookSecret ? 'Regenerate' : 'Generate'"
           color="warning"
           :loading="regeneratingWebhook"
-          @click="onRegenerateWebhookSecret"
+          @click="
+            () => {
+              void onRegenerateWebhookSecret()
+            }
+          "
         />
       </div>
     </template>
@@ -503,13 +577,21 @@
           label="Cancel"
           color="neutral"
           variant="ghost"
-          @click="isDeleteModalOpen = false"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
         />
         <UButton
           label="Delete Permanently"
           color="error"
           :loading="deleting"
-          @click="onDeleteApp"
+          @click="
+            () => {
+              void onDeleteApp()
+            }
+          "
         />
       </div>
     </template>

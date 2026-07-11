@@ -1,7 +1,11 @@
 <template>
   <div
     class="group flex items-center gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-800/50 last:border-0"
-    @click="$emit('click')"
+    @click="
+      () => {
+        void $emit('click')
+      }
+    "
   >
     <!-- Icon -->
     <div

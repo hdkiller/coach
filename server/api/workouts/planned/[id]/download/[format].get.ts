@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
         workout,
         liveUserFtp: workout.user.ftp,
         format
-      })
+      }) as string | Uint8Array
       contentType = 'application/xml'
       fileExt = 'zwo'
       break
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
         workout,
         liveUserFtp: workout.user.ftp,
         format
-      })
+      }) as string | Uint8Array
       contentType = 'application/octet-stream'
       fileExt = 'fit'
       break
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
         workout,
         liveUserFtp: workout.user.ftp,
         format
-      })
+      }) as string | Uint8Array
       contentType = 'text/plain'
       fileExt = 'mrc'
       break
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
         workout,
         liveUserFtp: workout.user.ftp,
         format
-      })
+      }) as string | Uint8Array
       contentType = 'text/plain'
       fileExt = 'erg'
       break

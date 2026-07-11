@@ -172,7 +172,11 @@
               :loading="isUnlinking"
               title="Unlink from Plan"
               class="font-black uppercase tracking-widest text-[8px]"
-              @click="unlinkWorkout"
+              @click="
+                () => {
+                  void unlinkWorkout()
+                }
+              "
             />
           </div>
 
@@ -337,7 +341,11 @@
             icon="i-heroicons-trash"
             size="lg"
             aria-label="Delete workout"
-            @click="showDeleteConfirm = true"
+            @click="
+              () => {
+                showDeleteConfirm = true
+              }
+            "
           />
           <UButton
             color="neutral"
@@ -345,7 +353,11 @@
             icon="i-heroicons-clipboard"
             size="lg"
             aria-label="Copy workout ID"
-            @click="copyWorkoutId"
+            @click="
+              () => {
+                void copyWorkoutId()
+              }
+            "
           />
         </div>
         <div class="flex gap-2">
@@ -353,7 +365,11 @@
             color="neutral"
             variant="soft"
             class="font-black uppercase tracking-widest text-[10px] px-5 py-2.5"
-            @click="closeModal"
+            @click="
+              () => {
+                void closeModal()
+              }
+            "
           >
             Dismiss
           </UButton>
@@ -361,7 +377,11 @@
             color="primary"
             variant="solid"
             class="font-black uppercase tracking-widest text-[10px] px-8 py-2.5"
-            @click="viewFullWorkout"
+            @click="
+              () => {
+                void viewFullWorkout()
+              }
+            "
           >
             View Full Details
           </UButton>
@@ -378,10 +398,28 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showDeleteConfirm = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="error" :loading="isDeleting" @click="deleteWorkout"> Delete </UButton>
+        <UButton
+          color="error"
+          :loading="isDeleting"
+          @click="
+            () => {
+              void deleteWorkout()
+            }
+          "
+        >
+          Delete
+        </UButton>
       </div>
     </template>
   </UModal>
@@ -394,10 +432,28 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showUnlinkConfirm = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showUnlinkConfirm = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="warning" :loading="isUnlinking" @click="executeUnlink"> Unlink </UButton>
+        <UButton
+          color="warning"
+          :loading="isUnlinking"
+          @click="
+            () => {
+              void executeUnlink()
+            }
+          "
+        >
+          Unlink
+        </UButton>
       </div>
     </template>
   </UModal>

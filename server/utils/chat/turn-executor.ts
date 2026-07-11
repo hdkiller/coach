@@ -657,7 +657,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       approvedContinuation.args,
       {
         toolCallId: approvedContinuation.toolCallId,
-        experimental_context: {
+        context: {
           turnId: activeTurn.id,
           lineageId: turn.lineageId,
           roomId: turn.roomId,
@@ -1081,12 +1081,6 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       },
       stopWhen: isStepCount(opSettings.maxSteps),
       providerOptions: attemptProviderOptions,
-      experimental_context: {
-        turnId: activeTurn.id,
-        lineageId: activeTurn.lineageId,
-        roomId: activeTurn.roomId,
-        userId: activeTurn.userId
-      },
       onChunk: async ({ chunk }) => {
         if (chunk.type === 'text-delta') {
           const deltaText = chunk.text

@@ -763,7 +763,17 @@
     <div v-if="error" class="flex h-full flex-col items-center justify-center p-4 text-center">
       <UIcon name="i-heroicons-exclamation-triangle" class="mb-2 h-8 w-8 text-error-500" />
       <p class="text-sm font-bold text-error-600 dark:text-error-400">{{ error }}</p>
-      <UButton color="neutral" variant="link" size="xs" @click="fetchData">Retry</UButton>
+      <UButton
+        color="neutral"
+        variant="link"
+        size="xs"
+        @click="
+          () => {
+            void fetchData()
+          }
+        "
+        >Retry</UButton
+      >
     </div>
 
     <template v-else-if="chartData">

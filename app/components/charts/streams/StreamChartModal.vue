@@ -40,7 +40,11 @@
             variant="outline"
             icon="i-heroicons-document-arrow-down"
             :loading="isExporting"
-            @click="downloadGPX"
+            @click="
+              () => {
+                void downloadGPX()
+              }
+            "
           >
             Download GPX
           </UButton>
@@ -85,7 +89,16 @@
     </template>
     <template #footer>
       <div class="flex justify-end">
-        <UButton color="neutral" variant="ghost" label="Close" @click="isOpen = false" />
+        <UButton
+          color="neutral"
+          variant="ghost"
+          label="Close"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+        />
       </div>
     </template>
   </UModal>

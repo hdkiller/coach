@@ -109,16 +109,38 @@
             v-if="status === 'Disconnected' || status === 'Error'"
             icon="i-heroicons-bolt"
             color="primary"
-            @click="connect"
+            @click="
+              () => {
+                void connect()
+              }
+            "
           >
             Connect
           </UButton>
 
-          <UButton v-else icon="i-heroicons-x-mark" color="neutral" @click="disconnect">
+          <UButton
+            v-else
+            icon="i-heroicons-x-mark"
+            color="neutral"
+            @click="
+              () => {
+                void disconnect()
+              }
+            "
+          >
             Disconnect
           </UButton>
 
-          <UButton icon="i-heroicons-trash" color="neutral" variant="ghost" @click="clearLogs">
+          <UButton
+            icon="i-heroicons-trash"
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                void clearLogs()
+              }
+            "
+          >
             Clear Logs
           </UButton>
         </div>
@@ -131,10 +153,25 @@
             :disabled="status !== 'Connected'"
             @keyup.enter="sendMessage"
           />
-          <UButton :disabled="status !== 'Connected' || !inputMessage" @click="sendMessage">
+          <UButton
+            :disabled="status !== 'Connected' || !inputMessage"
+            @click="
+              () => {
+                void sendMessage()
+              }
+            "
+          >
             Send
           </UButton>
-          <UButton color="neutral" :disabled="status !== 'Connected'" @click="sendPing">
+          <UButton
+            color="neutral"
+            :disabled="status !== 'Connected'"
+            @click="
+              () => {
+                void sendPing()
+              }
+            "
+          >
             Ping
           </UButton>
         </div>

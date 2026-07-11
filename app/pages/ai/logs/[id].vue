@@ -178,7 +178,15 @@
             />
             <h2 class="text-xl font-semibold mb-2">Record Not Found</h2>
             <p class="text-muted mb-4">The requested usage record could not be found.</p>
-            <UButton @click="$router.back()"> Go Back </UButton>
+            <UButton
+              @click="
+                () => {
+                  void $router.back()
+                }
+              "
+            >
+              Go Back
+            </UButton>
           </div>
         </UCard>
       </div>

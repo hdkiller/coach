@@ -27,7 +27,11 @@
             variant="soft"
             icon="i-heroicons-speaker-wave"
             :label="t('coach_voice_button')"
-            @click="isVoiceSettingsOpen = true"
+            @click="
+              () => {
+                isVoiceSettingsOpen = true
+              }
+            "
           />
         </div>
       </div>
@@ -45,7 +49,11 @@
               'border-primary bg-primary/5': localSettings.aiModelPreference === model.value,
               'opacity-60 grayscale-[0.5]': !isModelAvailable(model)
             }"
-            @click="handleModelClick(model)"
+            @click="
+              () => {
+                void handleModelClick(model)
+              }
+            "
           >
             <input
               type="radio"
@@ -57,7 +65,9 @@
               <div class="flex items-center gap-2">
                 <div class="font-medium">{{ model.label }}</div>
                 <div v-if="shouldShowLock(model)" class="flex items-center gap-2">
-                  <UBadge color="primary" variant="subtle" size="sm">{{ t('billing_tier_pro') }}</UBadge>
+                  <UBadge color="primary" variant="subtle" size="sm">{{
+                    t('billing_tier_pro')
+                  }}</UBadge>
                   <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-500" />
                 </div>
               </div>
@@ -103,7 +113,16 @@
 
       <!-- Save Button -->
       <div class="flex justify-end">
-        <UButton :loading="saving" @click="saveSettings"> {{ t('settings_save_changes') }} </UButton>
+        <UButton
+          :loading="saving"
+          @click="
+            () => {
+              void saveSettings()
+            }
+          "
+        >
+          {{ t('settings_save_changes') }}
+        </UButton>
       </div>
     </div>
   </UCard>

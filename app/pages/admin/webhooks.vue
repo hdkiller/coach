@@ -161,7 +161,11 @@
                 variant="ghost"
                 icon="i-heroicons-eye"
                 size="xs"
-                @click="openDetails(row.original)"
+                @click="
+                  () => {
+                    void openDetails(row.original)
+                  }
+                "
               />
             </template>
           </UTable>
@@ -214,8 +218,7 @@
               <span class="font-bold text-red-500">Error:</span>
               <pre
                 class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-xs overflow-x-auto"
-                >{{ selectedLog.error }}</pre
-              >
+                >{{ selectedLog.error }}</pre>
             </div>
 
             <div>

@@ -84,7 +84,11 @@
               color="neutral"
               variant="ghost"
               icon="i-lucide-pencil"
-              @click="$emit('open-ai-helper', feed.nextWindow)"
+              @click="
+                () => {
+                  void $emit('open-ai-helper', feed.nextWindow)
+                }
+              "
             />
           </div>
 
@@ -160,7 +164,11 @@
             color="primary"
             variant="outline"
             icon="i-lucide-utensils"
-            @click="$emit('open-ai-helper', displayRecommendation)"
+            @click="
+              () => {
+                void $emit('open-ai-helper', displayRecommendation)
+              }
+            "
           >
             Get Meal Ideas
           </UButton>

@@ -17,7 +17,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-eye"
-          @click="$emit('view')"
+          @click="
+            () => {
+              void $emit('view')
+            }
+          "
         >
           View
         </UButton>
@@ -26,7 +30,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-adjustments-horizontal"
-          @click="$emit('adjust')"
+          @click="
+            () => {
+              void $emit('adjust')
+            }
+          "
         >
           Adjust
         </UButton>
@@ -36,7 +44,11 @@
           variant="ghost"
           icon="i-heroicons-pencil-square"
           :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
-          @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
+          @click="
+            () => {
+              activeTab = activeTab === 'edit' ? 'view' : 'edit'
+            }
+          "
         >
           Edit
         </UButton>
@@ -46,7 +58,11 @@
           variant="ghost"
           icon="i-heroicons-arrow-path"
           :loading="generating"
-          @click="$emit('regenerate')"
+          @click="
+            () => {
+              void $emit('regenerate')
+            }
+          "
         >
           Regenerate
         </UButton>
@@ -139,7 +155,11 @@
             :key="step.id"
             class="rounded-none bg-gray-50 px-3 py-4 transition-colors dark:bg-gray-950 sm:rounded-xl sm:p-4"
             :class="allowEdit ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900' : ''"
-            @click="openStepDetails(blockIndex, stepIndex)"
+            @click="
+              () => {
+                void openStepDetails(blockIndex, stepIndex)
+              }
+            "
           >
             <div class="space-y-4 xl:grid xl:grid-cols-[320px_minmax(0,1fr)] xl:gap-6 xl:space-y-0">
               <div class="space-y-4">

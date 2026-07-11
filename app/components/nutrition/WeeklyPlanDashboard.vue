@@ -17,14 +17,22 @@
                   variant="ghost"
                   size="xs"
                   icon="i-lucide-chevron-left"
-                  @click="emit('prev-week')"
+                  @click="
+                    () => {
+                      void emit('prev-week')
+                    }
+                  "
                 />
                 <UButton
                   color="neutral"
                   variant="ghost"
                   size="xs"
                   icon="i-lucide-chevron-right"
-                  @click="emit('next-week')"
+                  @click="
+                    () => {
+                      void emit('next-week')
+                    }
+                  "
                 />
               </div>
             </div>
@@ -41,7 +49,11 @@
             size="xs"
             icon="i-lucide-sparkles"
             :loading="generating"
-            @click="emit('generate-draft')"
+            @click="
+              () => {
+                void emit('generate-draft')
+              }
+            "
           >
             Generate Draft
           </UButton>
@@ -50,7 +62,11 @@
             variant="soft"
             size="xs"
             icon="i-lucide-shopping-cart"
-            @click="emit('open-grocery')"
+            @click="
+              () => {
+                void emit('open-grocery')
+              }
+            "
           >
             Grocery List
           </UButton>
@@ -60,7 +76,11 @@
             size="xs"
             icon="i-lucide-refresh-cw"
             :loading="loading"
-            @click="refresh"
+            @click="
+              () => {
+                void refresh()
+              }
+            "
           >
             Sync
           </UButton>
@@ -124,7 +144,11 @@
             v-for="day in planDays"
             :key="day.date"
             class="cursor-pointer transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
-            @click="openDayDrawer(day)"
+            @click="
+              () => {
+                void openDayDrawer(day)
+              }
+            "
           >
             <td class="p-3">
               <p class="text-[10px] font-black uppercase text-gray-400">
@@ -343,7 +367,11 @@
                   variant="ghost"
                   class="mt-1"
                   :icon="isMealExpanded(win, idx) ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-                  @click="toggleMealDetails(win, idx)"
+                  @click="
+                    () => {
+                      void toggleMealDetails(win, idx)
+                    }
+                  "
                 >
                   {{ isMealExpanded(win, idx) ? 'Hide meal details' : 'View meal details' }}
                 </UButton>
@@ -397,7 +425,11 @@
                     color="success"
                     variant="soft"
                     icon="i-lucide-check"
-                    @click="updateMealStatus(win, 'complete')"
+                    @click="
+                      () => {
+                        void updateMealStatus(win, 'complete')
+                      }
+                    "
                   >
                     Mark done
                   </UButton>
@@ -407,7 +439,11 @@
                     color="warning"
                     variant="soft"
                     icon="i-lucide-skip-forward"
-                    @click="updateMealStatus(win, 'skip')"
+                    @click="
+                      () => {
+                        void updateMealStatus(win, 'skip')
+                      }
+                    "
                   >
                     Skip
                   </UButton>
@@ -417,7 +453,11 @@
                     color="neutral"
                     variant="ghost"
                     icon="i-lucide-refresh-cw"
-                    @click="emitSuggestWindow(activeDay.date, win)"
+                    @click="
+                      () => {
+                        if (activeDay) void emitSuggestWindow(activeDay.date, win)
+                      }
+                    "
                   >
                     Replace
                   </UButton>
@@ -427,7 +467,11 @@
                     color="neutral"
                     variant="ghost"
                     icon="i-lucide-unlock"
-                    @click="updateMealStatus(win, 'unlock')"
+                    @click="
+                      () => {
+                        void updateMealStatus(win, 'unlock')
+                      }
+                    "
                   >
                     Unlock
                   </UButton>
@@ -438,7 +482,11 @@
                   size="xs"
                   variant="ghost"
                   color="primary"
-                  @click="emitSuggestWindow(activeDay.date, win)"
+                  @click="
+                    () => {
+                      if (activeDay) void emitSuggestWindow(activeDay.date, win)
+                    }
+                  "
                 >
                   Suggest meal
                 </UButton>
@@ -452,7 +500,11 @@
             size="sm"
             color="primary"
             icon="i-lucide-sparkles"
-            @click="emit('generate-draft')"
+            @click="
+              () => {
+                void emit('generate-draft')
+              }
+            "
           >
             Regenerate Missing
           </UButton>
@@ -461,7 +513,11 @@
             color="neutral"
             variant="soft"
             icon="i-lucide-shopping-cart"
-            @click="emit('open-grocery')"
+            @click="
+              () => {
+                void emit('open-grocery')
+              }
+            "
           >
             Grocery List
           </UButton>

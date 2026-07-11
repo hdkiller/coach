@@ -30,6 +30,19 @@ export const activityRecommendationRepository = {
     })
   },
 
+  async createProcessingPlaceholder(userId: string, date: Date) {
+    return prisma.activityRecommendation.create({
+      data: {
+        user: { connect: { id: userId } },
+        date,
+        recommendation: 'proceed',
+        confidence: 0,
+        reasoning: 'Analysis in progress...',
+        status: 'PROCESSING'
+      }
+    })
+  },
+
   async update(id: string, userId: string, data: Prisma.ActivityRecommendationUpdateInput) {
     return prisma.activityRecommendation.update({
       where: { id, userId },

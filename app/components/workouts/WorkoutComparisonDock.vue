@@ -38,7 +38,11 @@
       size="sm"
       icon="i-lucide-trash"
       aria-label="Clear workout comparison basket"
-      @click="comparisonStore.clear()"
+      @click="
+        () => {
+          void comparisonStore.clear()
+        }
+      "
     />
 
     <UModal v-model:open="isOpen" title="Workout Comparison">
@@ -48,7 +52,11 @@
         size="sm"
         icon="i-lucide-git-compare-arrows"
         :disabled="!canCompare"
-        @click="isOpen = true"
+        @click="
+          () => {
+            isOpen = true
+          }
+        "
       >
         Compare
       </UButton>
@@ -68,7 +76,11 @@
           <div class="space-y-2">
             <button
               class="flex w-full items-start gap-3 rounded-2xl border border-default/70 bg-default p-3 text-left transition hover:border-primary/50"
-              @click="openComparison('summary')"
+              @click="
+                () => {
+                  void openComparison('summary')
+                }
+              "
             >
               <UIcon name="i-lucide-bar-chart-3" class="mt-0.5 h-4 w-4 text-primary-500" />
               <div>
@@ -81,7 +93,11 @@
 
             <button
               class="flex w-full items-start gap-3 rounded-2xl border border-default/70 bg-default p-3 text-left transition hover:border-primary/50"
-              @click="openComparison('stream')"
+              @click="
+                () => {
+                  void openComparison('stream')
+                }
+              "
             >
               <UIcon name="i-lucide-waveform" class="mt-0.5 h-4 w-4 text-primary-500" />
               <div>
@@ -94,7 +110,11 @@
 
             <button
               class="flex w-full items-start gap-3 rounded-2xl border border-default/70 bg-default p-3 text-left transition hover:border-primary/50"
-              @click="openComparison('interval')"
+              @click="
+                () => {
+                  void openComparison('interval')
+                }
+              "
             >
               <UIcon name="i-lucide-split" class="mt-0.5 h-4 w-4 text-primary-500" />
               <div>
@@ -129,7 +149,11 @@
                   variant="ghost"
                   size="xs"
                   icon="i-lucide-x"
-                  @click="comparisonStore.removeWorkout(workout.id)"
+                  @click="
+                    () => {
+                      void comparisonStore.removeWorkout(workout.id)
+                    }
+                  "
                 />
               </div>
             </div>

@@ -279,8 +279,25 @@
       <div class="flex justify-end gap-3 w-full">
         <!-- Idle Footer -->
         <template v-if="state === 'idle'">
-          <UButton color="neutral" variant="ghost" @click="isOpen = false">Cancel</UButton>
-          <UButton color="primary" @click="startScan">Scan for Duplicates</UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                void startScan()
+              }
+            "
+            >Scan for Duplicates</UButton
+          >
         </template>
 
         <!-- Scanning/Processing Footer -->
@@ -290,21 +307,51 @@
 
         <!-- Review Footer -->
         <template v-else-if="state === 'review'">
-          <UButton color="neutral" variant="ghost" @click="isOpen = false">Cancel</UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+            >Cancel</UButton
+          >
           <UButton
             v-if="duplicateGroups.length > 0"
             color="primary"
             :disabled="selectedGroups.size === 0"
-            @click="confirmDeduplication"
+            @click="
+              () => {
+                void confirmDeduplication()
+              }
+            "
           >
             Merge {{ selectedGroups.size }} Groups
           </UButton>
-          <UButton v-else color="primary" @click="isOpen = false">Done</UButton>
+          <UButton
+            v-else
+            color="primary"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+            >Done</UButton
+          >
         </template>
 
         <!-- Success Footer -->
         <template v-else-if="state === 'success'">
-          <UButton color="primary" @click="finish">Close</UButton>
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                void finish()
+              }
+            "
+            >Close</UButton
+          >
         </template>
       </div>
     </template>

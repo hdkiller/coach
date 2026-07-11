@@ -52,7 +52,11 @@
       color="neutral"
       variant="ghost"
       class="text-gray-500 hover:text-gray-900 dark:hover:text-white"
-      @click="isOpen = true"
+      @click="
+        () => {
+          isOpen = true
+        }
+      "
     >
       <span class="hidden sm:inline-block">Search documentation...</span>
       <UKbd class="hidden sm:inline-flex ml-2">K</UKbd>

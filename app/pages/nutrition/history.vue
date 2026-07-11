@@ -27,7 +27,11 @@
               icon="i-heroicons-sparkles"
               size="sm"
               class="font-bold"
-              @click="generateExplanations"
+              @click="
+                () => {
+                  void generateExplanations()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('history_nav_insights') }}</span>
               <span class="sm:hidden">{{ t('history_nav_insights_short') }}</span>
@@ -39,7 +43,11 @@
               size="sm"
               icon="i-heroicons-cpu-chip"
               class="font-bold"
-              @click="analyzeAllNutrition"
+              @click="
+                () => {
+                  void analyzeAllNutrition()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('history_nav_analyze') }}</span>
               <span class="sm:hidden">{{ t('history_nav_analyze_short') }}</span>
@@ -181,7 +189,11 @@
                 variant="soft"
                 size="xs"
                 icon="i-heroicons-arrow-path"
-                @click="refreshNutritionTrends()"
+                @click="
+                  () => {
+                    void refreshNutritionTrends()
+                  }
+                "
               >
                 {{ t('history_retry') }}
               </UButton>
@@ -560,7 +572,11 @@
                   v-for="nutrition in paginatedNutrition"
                   :key="nutrition.id"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  @click="navigateToNutrition(nutrition.id)"
+                  @click="
+                    () => {
+                      void navigateToNutrition(nutrition.id)
+                    }
+                  "
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(nutrition.date) }}

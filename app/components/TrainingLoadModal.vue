@@ -17,7 +17,11 @@
             size="sm"
             aria-label="Close"
             class="-mr-2"
-            @click="isOpen = false"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
           />
 
           <div v-if="isGarminConnected" class="flex items-center gap-1.5 whitespace-nowrap">

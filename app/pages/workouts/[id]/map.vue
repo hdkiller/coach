@@ -8,7 +8,11 @@
             color="neutral"
             variant="ghost"
             aria-label="Back to Workout"
-            @click="goBack"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
           >
             <span class="hidden sm:inline">Back to Workout</span>
           </UButton>
@@ -21,7 +25,11 @@
               variant="outline"
               size="xs"
               :loading="isExporting"
-              @click="downloadGPX"
+              @click="
+                () => {
+                  void downloadGPX()
+                }
+              "
             >
               Download GPX
             </UButton>
@@ -72,7 +80,11 @@
                   :variant="layoutMode === 'default' ? 'soft' : 'ghost'"
                   icon="i-heroicons-rectangle-group"
                   class="whitespace-nowrap"
-                  @click="layoutMode = 'default'"
+                  @click="
+                    () => {
+                      layoutMode = 'default'
+                    }
+                  "
                 >
                   Default
                 </UButton>
@@ -82,7 +94,11 @@
                   :variant="layoutMode === 'chart-focus' ? 'soft' : 'ghost'"
                   icon="i-heroicons-chart-bar-square"
                   class="whitespace-nowrap"
-                  @click="layoutMode = 'chart-focus'"
+                  @click="
+                    () => {
+                      layoutMode = 'chart-focus'
+                    }
+                  "
                 >
                   Charts Wide
                 </UButton>
@@ -275,7 +291,11 @@
                         ? 'bg-primary-50/80 dark:bg-primary-950/30'
                         : ''
                     ]"
-                    @click="selectPeakWindow(peak)"
+                    @click="
+                      () => {
+                        void selectPeakWindow(peak)
+                      }
+                    "
                   >
                     <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
                       {{ peak.durationLabel }}
@@ -437,7 +457,11 @@
                     size="xs"
                     color="neutral"
                     variant="outline"
-                    @click="resetZoom"
+                    @click="
+                      () => {
+                        void resetZoom()
+                      }
+                    "
                   >
                     Reset Zoom
                   </UButton>
@@ -447,7 +471,11 @@
                     size="xs"
                     color="neutral"
                     variant="outline"
-                    @click="clearSelectedSegment"
+                    @click="
+                      () => {
+                        void clearSelectedSegment()
+                      }
+                    "
                   >
                     Clear Selection
                   </UButton>
@@ -611,9 +639,11 @@
                         color="neutral"
                         variant="ghost"
                         @click="
-                          selectedStreamObjects = selectedStreamObjects.filter(
-                            (s) => s.value !== streamObject.value
-                          )
+                          () => {
+                            selectedStreamObjects = selectedStreamObjects.filter(
+                              (s) => s.value !== streamObject.value
+                            )
+                          }
                         "
                       />
                     </div>
@@ -962,21 +992,17 @@
   })
 
   // useFetch forwards the SSR request cookies; raw $fetch inside useAsyncData does not.
-  const { data: workoutData, error: workoutError } = (await useFetch<any>(
-    `/api/workouts/${workoutId}`,
-    {
-      key: `workout-map-${workoutId}`,
-      query: { includeStreams: false },
-      lazy: true
-    }
-  )) as any
-  const { data: streamsData, error: streamsError } = (await useFetch<any>(
-    `/api/workouts/${workoutId}/streams`,
-    {
-      key: `workout-streams-${workoutId}`,
-      lazy: true
-    }
-  )) as any
+  const workoutEndpoint: string = `/api/workouts/${workoutId}`
+  const streamsEndpoint: string = `/api/workouts/${workoutId}/streams`
+  const { data: workoutData, error: workoutError } = (await useFetch(workoutEndpoint as any, {
+    key: `workout-map-${workoutId}`,
+    query: { includeStreams: false },
+    lazy: true
+  })) as any
+  const { data: streamsData, error: streamsError } = (await useFetch(streamsEndpoint as any, {
+    key: `workout-streams-${workoutId}`,
+    lazy: true
+  })) as any
 
   watch(
     [workoutData, streamsData],

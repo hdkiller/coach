@@ -8,7 +8,11 @@
             icon="i-heroicons-plus"
             label="New Plan"
             :loading="isCreating"
-            @click="createNewPlanTemplate"
+            @click="
+              () => {
+                void createNewPlanTemplate()
+              }
+            "
           />
         </template>
       </UDashboardNavbar>
@@ -33,7 +37,11 @@
                 :color="librarySource === option.value ? 'primary' : 'neutral'"
                 :variant="librarySource === option.value ? 'solid' : 'ghost'"
                 class="shrink-0 rounded-xl px-3"
-                @click="librarySource = option.value"
+                @click="
+                  () => {
+                    librarySource = option.value
+                  }
+                "
               >
                 {{ option.label }}
               </UButton>
@@ -45,7 +53,11 @@
                 variant="soft"
                 icon="i-heroicons-folder-open"
                 class="min-w-0 flex-1 justify-start rounded-xl px-3 lg:hidden"
-                @click="showContextModal = true"
+                @click="
+                  () => {
+                    showContextModal = true
+                  }
+                "
               >
                 <span class="truncate text-xs">{{ contextButtonLabel }}</span>
               </UButton>
@@ -68,7 +80,11 @@
                 variant="soft"
                 icon="i-heroicons-folder-open"
                 class="w-full justify-start rounded-xl px-3"
-                @click="showContextModal = true"
+                @click="
+                  () => {
+                    showContextModal = true
+                  }
+                "
               >
                 <span class="truncate">{{ selectedTabLabel }}</span>
               </UButton>
@@ -113,11 +129,24 @@
                   color="primary"
                   variant="soft"
                   icon="i-heroicons-folder-open"
-                  @click="openMovePlansModal(selectedPlanIds)"
+                  @click="
+                    () => {
+                      void openMovePlansModal(selectedPlanIds)
+                    }
+                  "
                 >
                   Move to folder
                 </UButton>
-                <UButton size="sm" color="neutral" variant="ghost" @click="selectedPlanIds = []">
+                <UButton
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      selectedPlanIds = []
+                    }
+                  "
+                >
                   Clear
                 </UButton>
               </div>
@@ -150,7 +179,15 @@
                     : 'Start by creating your first training plan template.'
                 }}
               </p>
-              <UButton color="primary" @click="createNewPlanTemplate">Create Plan Template</UButton>
+              <UButton
+                color="primary"
+                @click="
+                  () => {
+                    void createNewPlanTemplate()
+                  }
+                "
+                >Create Plan Template</UButton
+              >
             </div>
 
             <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -159,7 +196,11 @@
                 :key="plan.id"
                 class="group relative flex cursor-pointer flex-col transition-all hover:border-primary/50"
                 :draggable="selectedTab === 'my'"
-                @click="editPlan(plan)"
+                @click="
+                  () => {
+                    void editPlan(plan)
+                  }
+                "
                 @dragstart="onPlanDragStart(plan)"
                 @dragend="draggedItem = null"
               >
@@ -295,8 +336,25 @@
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isFolderModalOpen = false">Cancel</UButton>
-        <UButton color="primary" :loading="savingFolder" @click="submitFolderForm">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isFolderModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          :loading="savingFolder"
+          @click="
+            () => {
+              void submitFolderForm()
+            }
+          "
+        >
           {{ folderModalMode === 'rename' ? 'Save' : 'Create Folder' }}
         </UButton>
       </div>
@@ -310,10 +368,27 @@
   >
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isDeleteFolderModalOpen = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeleteFolderModalOpen = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="error" :loading="savingFolder" @click="deleteFolder">Delete Folder</UButton>
+        <UButton
+          color="error"
+          :loading="savingFolder"
+          @click="
+            () => {
+              void deleteFolder()
+            }
+          "
+          >Delete Folder</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -334,10 +409,27 @@
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isMovePlansModalOpen = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isMovePlansModalOpen = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="primary" :loading="movingPlans" @click="moveSelectedPlans">Move</UButton>
+        <UButton
+          color="primary"
+          :loading="movingPlans"
+          @click="
+            () => {
+              void moveSelectedPlans()
+            }
+          "
+          >Move</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -358,7 +450,11 @@
             :color="selectedTab === tab.value ? 'primary' : 'neutral'"
             :variant="selectedTab === tab.value ? 'soft' : 'ghost'"
             :icon="tab.icon"
-            @click="selectPlanTab(tab.value)"
+            @click="
+              () => {
+                void selectPlanTab(tab.value)
+              }
+            "
           >
             <span class="flex-1 text-sm font-medium">{{ tab.label }}</span>
           </UButton>
@@ -377,7 +473,11 @@
                 :color="librarySource === option.value ? 'primary' : 'neutral'"
                 :variant="librarySource === option.value ? 'soft' : 'ghost'"
                 class="rounded-xl px-3"
-                @click="librarySource = option.value"
+                @click="
+                  () => {
+                    librarySource = option.value
+                  }
+                "
               >
                 {{ option.label }}
               </UButton>
@@ -410,7 +510,16 @@
     </template>
     <template #footer>
       <div class="flex w-full justify-end">
-        <UButton color="primary" variant="soft" @click="showContextModal = false">Done</UButton>
+        <UButton
+          color="primary"
+          variant="soft"
+          @click="
+            () => {
+              showContextModal = false
+            }
+          "
+          >Done</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -671,7 +780,7 @@
     draggedItem.value = { type: 'plans', ids }
   }
 
-  function getPlanActions(plan: any) {
+  function getPlanActions(plan: any): any {
     if (!canEditPlan(plan)) {
       return [
         [

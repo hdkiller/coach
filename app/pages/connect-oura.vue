@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Oura')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -105,7 +114,15 @@
               </div>
               <div class="flex justify-end gap-3">
                 <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
-                <UButton :loading="connecting" color="primary" @click="connect">
+                <UButton
+                  :loading="connecting"
+                  color="primary"
+                  @click="
+                    () => {
+                      void connect()
+                    }
+                  "
+                >
                   {{ p('button', 'Connect Oura') }}
                 </UButton>
               </div>

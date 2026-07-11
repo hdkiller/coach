@@ -9,7 +9,11 @@
           color="neutral"
           icon="i-heroicons-arrow-path"
           :loading="integrationStore.syncingData"
-          @click="handleSyncAll"
+          @click="
+            () => {
+              void handleSyncAll()
+            }
+          "
         >
           {{ t('data_sync_sync_all') }}
         </UButton>

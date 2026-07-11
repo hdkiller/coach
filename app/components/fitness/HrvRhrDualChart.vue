@@ -41,7 +41,11 @@
               variant="subtle"
               size="sm"
               class="font-black uppercase text-[10px] cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
-              @click="showStatusModal = true"
+              @click="
+                () => {
+                  showStatusModal = true
+                }
+              "
             >
               {{ latestStats.status }}
             </UBadge>
@@ -51,7 +55,11 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            @click="$emit('settings')"
+            @click="
+              () => {
+                void $emit('settings')
+              }
+            "
           />
         </div>
       </div>

@@ -27,7 +27,11 @@
               size="sm"
               icon="i-heroicons-cpu-chip"
               class="font-bold"
-              @click="analyzeAllWorkouts"
+              @click="
+                () => {
+                  void analyzeAllWorkouts()
+                }
+              "
             >
               <span class="hidden sm:inline">Analyze Last 10</span>
               <span class="sm:hidden">Sync</span>
@@ -40,7 +44,11 @@
               icon="i-heroicons-sparkles"
               size="sm"
               class="font-bold"
-              @click="generateExplanations"
+              @click="
+                () => {
+                  void generateExplanations()
+                }
+              "
             >
               <span class="hidden sm:inline">Generate Insights</span>
               <span class="sm:hidden">AI</span>
@@ -232,11 +240,13 @@
                 compact
                 explanation="Cross-metric average"
                 @click="
-                  openWorkoutModal(
-                    'Overall Workout Performance',
-                    workoutTrendsData?.summary?.avgOverall ?? null,
-                    'yellow'
-                  )
+                  () => {
+                    void openWorkoutModal(
+                      'Overall Workout Performance',
+                      workoutTrendsData?.summary?.avgOverall ?? null,
+                      'yellow'
+                    )
+                  }
                 "
               />
               <ScoreCard
@@ -247,11 +257,13 @@
                 compact
                 explanation="Efficiency & Form"
                 @click="
-                  openWorkoutModal(
-                    'Technical Execution',
-                    workoutTrendsData?.summary?.avgTechnical ?? null,
-                    'blue'
-                  )
+                  () => {
+                    void openWorkoutModal(
+                      'Technical Execution',
+                      workoutTrendsData?.summary?.avgTechnical ?? null,
+                      'blue'
+                    )
+                  }
                 "
               />
               <ScoreCard
@@ -262,11 +274,13 @@
                 compact
                 explanation="Intensity vs Plan"
                 @click="
-                  openWorkoutModal(
-                    'Effort Management',
-                    workoutTrendsData?.summary?.avgEffort ?? null,
-                    'red'
-                  )
+                  () => {
+                    void openWorkoutModal(
+                      'Effort Management',
+                      workoutTrendsData?.summary?.avgEffort ?? null,
+                      'red'
+                    )
+                  }
                 "
               />
               <ScoreCard
@@ -277,11 +291,13 @@
                 compact
                 explanation="Target adherence"
                 @click="
-                  openWorkoutModal(
-                    'Workout Execution',
-                    workoutTrendsData?.summary?.avgExecution ?? null,
-                    'purple'
-                  )
+                  () => {
+                    void openWorkoutModal(
+                      'Workout Execution',
+                      workoutTrendsData?.summary?.avgExecution ?? null,
+                      'purple'
+                    )
+                  }
                 "
               />
             </div>
@@ -420,7 +436,15 @@
               </div>
 
               <div class="flex justify-end">
-                <UButton color="neutral" variant="soft" @click="showRelativeEffortExplain = false">
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  @click="
+                    () => {
+                      showRelativeEffortExplain = false
+                    }
+                  "
+                >
                   Close
                 </UButton>
               </div>
@@ -486,7 +510,15 @@
               </div>
 
               <div class="flex justify-end">
-                <UButton color="neutral" variant="soft" @click="showSummaryMetricModal = false">
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  @click="
+                    () => {
+                      showSummaryMetricModal = false
+                    }
+                  "
+                >
                   Close
                 </UButton>
               </div>

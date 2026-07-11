@@ -979,7 +979,11 @@
               class="font-bold"
               :loading="saving"
               :disabled="!selectedWorkoutId"
-              @click="pinToDashboard"
+              @click="
+                () => {
+                  void pinToDashboard()
+                }
+              "
             >
               Pin to Dashboard
             </UButton>
@@ -1000,7 +1004,11 @@
                 :color="leftRailTab === 'workout' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'workout' ? 'soft' : 'ghost'"
                 class="flex-1"
-                @click="leftRailTab = 'workout'"
+                @click="
+                  () => {
+                    leftRailTab = 'workout'
+                  }
+                "
               >
                 Workout
               </UButton>
@@ -1009,7 +1017,11 @@
                 :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
                 class="flex-1"
-                @click="leftRailTab = 'library'"
+                @click="
+                  () => {
+                    leftRailTab = 'library'
+                  }
+                "
               >
                 Library
               </UButton>
@@ -1044,11 +1056,24 @@
                     size="xs"
                     color="neutral"
                     variant="ghost"
-                    @click="showAdvanced = !showAdvanced"
+                    @click="
+                      () => {
+                        showAdvanced = !showAdvanced
+                      }
+                    "
                   >
                     {{ showAdvanced ? 'Hide Filters' : 'More Filters' }}
                   </UButton>
-                  <UButton size="xs" color="neutral" variant="ghost" @click="resetWorkoutFilters">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        void resetWorkoutFilters()
+                      }
+                    "
+                  >
                     Reset
                   </UButton>
                 </div>
@@ -1063,7 +1088,11 @@
                         ? 'border-primary/60 bg-primary/5'
                         : 'border-default/70 bg-default'
                     "
-                    @click="selectWorkout(workout)"
+                    @click="
+                      () => {
+                        void selectWorkout(workout)
+                      }
+                    "
                   >
                     <div class="flex items-center gap-3">
                       <UAvatar :icon="workoutTypeIcon(workout.type)" size="md" />
@@ -1129,7 +1158,11 @@
                     :color="activeCategory === 'all' ? 'primary' : 'neutral'"
                     :variant="activeCategory === 'all' ? 'soft' : 'outline'"
                     class="rounded-full"
-                    @click="activeCategory = 'all'"
+                    @click="
+                      () => {
+                        activeCategory = 'all'
+                      }
+                    "
                   >
                     All
                   </UButton>
@@ -1140,7 +1173,11 @@
                     :color="activeCategory === category.value ? 'primary' : 'neutral'"
                     :variant="activeCategory === category.value ? 'soft' : 'outline'"
                     class="rounded-full"
-                    @click="activeCategory = category.value"
+                    @click="
+                      () => {
+                        activeCategory = category.value
+                      }
+                    "
                   >
                     {{ category.label }}
                   </UButton>
@@ -1162,7 +1199,11 @@
                         ? 'border-primary/60 bg-primary/5'
                         : 'border-default/70 bg-default'
                     "
-                    @click="applyPreset(preset)"
+                    @click="
+                      () => {
+                        void applyPreset(preset)
+                      }
+                    "
                   >
                     <div class="flex items-start gap-3">
                       <div class="rounded-xl border border-default/70 bg-muted/20 p-2">
@@ -1215,7 +1256,11 @@
                       size="xs"
                       icon="i-lucide-git-compare-arrows"
                       class="ml-auto font-bold"
-                      @click="toggleComparison(selectedWorkout)"
+                      @click="
+                        () => {
+                          void toggleComparison(selectedWorkout)
+                        }
+                      "
                     >
                       {{
                         comparisonStore.isSelected(selectedWorkoutId!)
@@ -1360,7 +1405,11 @@
                 size="xs"
                 :color="summaryChartType === 'bar' ? 'primary' : 'neutral'"
                 :variant="summaryChartType === 'bar' ? 'soft' : 'outline'"
-                @click="summaryChartType = 'bar'"
+                @click="
+                  () => {
+                    summaryChartType = 'bar'
+                  }
+                "
               >
                 Bar
               </UButton>
@@ -1368,7 +1417,11 @@
                 size="xs"
                 :color="summaryChartType === 'line' ? 'primary' : 'neutral'"
                 :variant="summaryChartType === 'line' ? 'soft' : 'outline'"
-                @click="summaryChartType = 'line'"
+                @click="
+                  () => {
+                    summaryChartType = 'line'
+                  }
+                "
               >
                 Line
               </UButton>
@@ -1418,7 +1471,11 @@
                 color="neutral"
                 variant="soft"
                 icon="i-lucide-x"
-                @click="activeRange = null"
+                @click="
+                  () => {
+                    activeRange = null
+                  }
+                "
               >
                 Clear Selection
               </UButton>
@@ -1458,7 +1515,11 @@
                     variant="soft"
                     icon="i-lucide-plus"
                     :disabled="!selectedWorkoutId"
-                    @click="pinCurrentChartToExplorer"
+                    @click="
+                      () => {
+                        void pinCurrentChartToExplorer()
+                      }
+                    "
                   >
                     Pin to Explorer
                   </UButton>
@@ -1506,7 +1567,11 @@
                       size="xs"
                       color="neutral"
                       variant="ghost"
-                      @click="clearPinnedCharts"
+                      @click="
+                        () => {
+                          void clearPinnedCharts()
+                        }
+                      "
                     >
                       Clear
                     </UButton>
@@ -1537,7 +1602,11 @@
                           variant="outline"
                           icon="i-lucide-arrow-up"
                           :disabled="index === 0"
-                          @click="movePinnedChart(entry.chart.id, -1)"
+                          @click="
+                            () => {
+                              void movePinnedChart(entry.chart.id, -1)
+                            }
+                          "
                         >
                           Up
                         </UButton>
@@ -1547,7 +1616,11 @@
                           variant="outline"
                           icon="i-lucide-arrow-down"
                           :disabled="index === pinnedChartConfigs.length - 1"
-                          @click="movePinnedChart(entry.chart.id, 1)"
+                          @click="
+                            () => {
+                              void movePinnedChart(entry.chart.id, 1)
+                            }
+                          "
                         >
                           Down
                         </UButton>
@@ -1556,7 +1629,11 @@
                           color="error"
                           variant="ghost"
                           icon="i-lucide-trash-2"
-                          @click="removePinnedChart(entry.chart.id)"
+                          @click="
+                            () => {
+                              void removePinnedChart(entry.chart.id)
+                            }
+                          "
                         >
                           Remove
                         </UButton>

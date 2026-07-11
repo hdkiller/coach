@@ -17,7 +17,11 @@
               variant="outline"
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
-              @click="isShareModalOpen = true"
+              @click="
+                () => {
+                  isShareModalOpen = true
+                }
+              "
             >
               <span class="hidden sm:inline">Share</span>
             </UButton>
@@ -29,7 +33,11 @@
               variant="outline"
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
-              @click="isEditModalOpen = true"
+              @click="
+                () => {
+                  isEditModalOpen = true
+                }
+              "
             >
               <span class="hidden sm:inline">Edit</span>
             </UButton>
@@ -40,7 +48,11 @@
               variant="solid"
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
-              @click="chatAboutWellness"
+              @click="
+                () => {
+                  void chatAboutWellness()
+                }
+              "
             >
               <span class="hidden sm:inline">New Chat</span>
               <span class="sm:hidden">Chat</span>
@@ -256,7 +268,11 @@
                 size="xs"
                 class="font-bold uppercase text-[10px] tracking-widest"
                 :loading="analyzingWellness"
-                @click="analyzeWellness"
+                @click="
+                  () => {
+                    void analyzeWellness()
+                  }
+                "
               >
                 {{ wellness.aiAnalysisJson ? 'Re-analyze' : 'Analyze Wellness' }}
               </UButton>
@@ -403,7 +419,11 @@
               color="primary"
               variant="solid"
               class="font-black uppercase tracking-widest text-[10px] px-6"
-              @click="analyzeWellness"
+              @click="
+                () => {
+                  void analyzeWellness()
+                }
+              "
               >Analyze Wellness</UButton
             >
           </div>
@@ -640,7 +660,11 @@
         variant="ghost"
         block
         class="font-black uppercase tracking-widest text-[10px]"
-        @click="isShareModalOpen = false"
+        @click="
+          () => {
+            isShareModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>

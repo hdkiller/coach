@@ -56,7 +56,11 @@
               :class="{
                 'bg-primary-50/30 dark:bg-primary-950/10': expandedAthleteId === athlete.id
               }"
-              @click="toggleExpand(athlete.id)"
+              @click="
+                () => {
+                  void toggleExpand(athlete.id)
+                }
+              "
             >
               <td
                 class="py-3 px-4 sticky left-0 bg-white dark:bg-gray-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]"

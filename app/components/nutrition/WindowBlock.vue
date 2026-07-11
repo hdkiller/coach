@@ -27,7 +27,11 @@
                 color="neutral"
                 size="xs"
                 class="opacity-40 hover:opacity-100 transition-opacity"
-                @click="$emit('add', { type, meals })"
+                @click="
+                  () => {
+                    void $emit('add', { type, meals })
+                  }
+                "
               />
               <UButton
                 icon="i-heroicons-sparkles"
@@ -35,7 +39,11 @@
                 color="primary"
                 size="xs"
                 class="opacity-40 hover:opacity-100 transition-opacity"
-                @click="$emit('addAi', { type, meals })"
+                @click="
+                  () => {
+                    void $emit('addAi', { type, meals })
+                  }
+                "
               />
             </div>
           </div>
@@ -52,7 +60,11 @@
             class="flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors"
             :class="carbChipClass"
             title="Explain this carb target"
-            @click="showCarbExplainModal = true"
+            @click="
+              () => {
+                showCarbExplainModal = true
+              }
+            "
           >
             <UIcon name="i-tabler-bread" class="w-3.5 h-3.5" :class="carbChipTextClass" />
             <span class="text-xs font-black" :class="carbChipTextClass">
@@ -272,7 +284,11 @@
               }"
               :role="!isLocked ? 'button' : undefined"
               :tabindex="!isLocked ? 0 : undefined"
-              @click="handleItemEdit(item)"
+              @click="
+                () => {
+                  void handleItemEdit(item)
+                }
+              "
               @keydown.enter.prevent="handleItemEdit(item)"
               @keydown.space.prevent="handleItemEdit(item)"
             >
@@ -423,7 +439,16 @@
           </p>
         </div>
 
-        <UButton block color="neutral" variant="soft" @click="showCarbExplainModal = false">
+        <UButton
+          block
+          color="neutral"
+          variant="soft"
+          @click="
+            () => {
+              showCarbExplainModal = false
+            }
+          "
+        >
           Close
         </UButton>
       </div>

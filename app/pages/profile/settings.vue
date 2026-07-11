@@ -15,7 +15,11 @@
             :variant="activeTab === tab.id ? 'solid' : 'ghost'"
             :color="activeTab === tab.id ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="setActiveTab(tab.id)"
+            @click="
+              () => {
+                void setActiveTab(tab.id)
+              }
+            "
           >
             <UIcon :name="tab.icon" class="w-4 h-4 mr-2" />
             {{ tab.label }}
@@ -153,10 +157,26 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="dismissSportSettingsWarning">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              void dismissSportSettingsWarning()
+            }
+          "
+        >
           Continue Editing
         </UButton>
-        <UButton color="warning" :loading="savingSportSettings" @click="confirmSaveSportSettings">
+        <UButton
+          color="warning"
+          :loading="savingSportSettings"
+          @click="
+            () => {
+              void confirmSaveSportSettings()
+            }
+          "
+        >
           Save Anyway
         </UButton>
       </div>

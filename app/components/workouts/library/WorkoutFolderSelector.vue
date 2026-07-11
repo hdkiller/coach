@@ -10,7 +10,11 @@
         color="primary"
         variant="soft"
         icon="i-heroicons-folder-plus"
-        @click="$emit('create-folder', null)"
+        @click="
+          () => {
+            void $emit('create-folder', null)
+          }
+        "
       >
         New Folder
       </UButton>
@@ -24,7 +28,11 @@
             ? 'border-primary/40 bg-primary/10 text-highlighted'
             : 'border-default/60 bg-default/70 hover:border-primary/20 hover:bg-muted/10'
         "
-        @click="$emit('select-scope', 'all')"
+        @click="
+          () => {
+            void $emit('select-scope', 'all')
+          }
+        "
       >
         <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 shrink-0 text-primary" />
         <span class="flex-1 text-sm font-medium">Show all</span>
@@ -38,7 +46,11 @@
             ? 'border-primary/40 bg-primary/10 text-highlighted'
             : 'border-default/60 bg-default/70 hover:border-primary/20 hover:bg-muted/10'
         "
-        @click="$emit('select-scope', 'unfiled')"
+        @click="
+          () => {
+            void $emit('select-scope', 'unfiled')
+          }
+        "
         @dragover.prevent="canDropTemplates && $emit('hover-drop-scope', 'unfiled')"
         @dragleave="$emit('hover-drop-scope', null)"
         @drop.prevent="emitTemplateDrop(null)"

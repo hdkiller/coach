@@ -19,7 +19,11 @@
             variant="ghost"
             size="xs"
             icon="i-heroicons-presentation-chart-line"
-            @click="$emit('open-training-load')"
+            @click="
+              () => {
+                void $emit('open-training-load')
+              }
+            "
           >
             <span class="hidden sm:inline">{{ t('performance_scores_load_button') }}</span>
             <span class="sm:hidden">{{ t('performance_scores_load_badge') }}</span>
@@ -29,7 +33,11 @@
             variant="ghost"
             size="xs"
             icon="i-heroicons-cog-6-tooth"
-            @click="showSettingsModal = true"
+            @click="
+              () => {
+                showSettingsModal = true
+              }
+            "
           />
         </div>
       </div>
@@ -59,7 +67,11 @@
         <button
           class="flex flex-col items-start p-3 rounded-xl ring-1 ring-inset hover:ring-primary-500/50 transition-all duration-200 text-left h-full w-full"
           :class="score.color"
-          @click="openScoreModal(key as string)"
+          @click="
+            () => {
+              void openScoreModal(key as string)
+            }
+          "
         >
           <div class="mb-auto">
             <span
@@ -133,7 +145,11 @@
         size="sm"
         block
         class="font-bold"
-        @click="$emit('open-training-load')"
+        @click="
+          () => {
+            void $emit('open-training-load')
+          }
+        "
       >
         {{ t('performance_scores_view_analysis') }}
       </UButton>

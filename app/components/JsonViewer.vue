@@ -12,7 +12,11 @@
               variant="ghost"
               :icon="isExpandedAll ? 'i-heroicons-minus-circle' : 'i-heroicons-plus-circle'"
               title="Expand All"
-              @click="isExpandedAll = !isExpandedAll"
+              @click="
+                () => {
+                  isExpandedAll = !isExpandedAll
+                }
+              "
             />
             <UButton
               v-if="collapsible"
@@ -21,13 +25,21 @@
               :icon="
                 isOpen ? 'i-heroicons-chevron-up-20-solid' : 'i-heroicons-chevron-down-20-solid'
               "
-              @click="isOpen = !isOpen"
+              @click="
+                () => {
+                  isOpen = !isOpen
+                }
+              "
             />
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-heroicons-arrow-down-tray-20-solid"
-              @click="downloadJson"
+              @click="
+                () => {
+                  void downloadJson()
+                }
+              "
             />
           </div>
         </div>

@@ -137,7 +137,11 @@
                   variant="solid"
                   class="relative overflow-hidden group shadow-[0_0_30px_rgba(0,220,130,0.1)] py-5 rounded-2xl h-14 min-w-full"
                   :loading="loading || isInitializing"
-                  @click="handleGoogleLogin"
+                  @click="
+                    () => {
+                      void handleGoogleLogin()
+                    }
+                  "
                 >
                   <span class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px]">{{
                     isInitializing ? 'CONNECTING...' : t('login.google')
@@ -159,7 +163,11 @@
                 variant="outline"
                 class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(252,76,2,0.1)] transition-all duration-300"
                 :loading="loadingStrava || isInitializing"
-                @click="handleStravaLogin"
+                @click="
+                  () => {
+                    void handleStravaLogin()
+                  }
+                "
                 @mouseenter="isHovering = true"
                 @mouseleave="isHovering = false"
               >
@@ -187,7 +195,11 @@
                 variant="outline"
                 class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full hover:shadow-[0_0_20px_rgba(0,220,130,0.1)] transition-all duration-300"
                 :loading="loadingIntervals || isInitializing"
-                @click="handleIntervalsLogin"
+                @click="
+                  () => {
+                    void handleIntervalsLogin()
+                  }
+                "
                 @mouseenter="isHovering = true"
                 @mouseleave="isHovering = false"
               >

@@ -13,7 +13,11 @@
               icon="i-heroicons-plus"
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
-              @click="openCreateModal"
+              @click="
+                () => {
+                  void openCreateModal()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ tr('events_add', 'Add Event') }}</span>
               <span class="sm:hidden">{{ tr('events_add_short', 'Add') }}</span>
@@ -86,10 +90,25 @@
               >?
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isDeleteModalOpen = false
+                  }
+                "
                 >Cancel</UButton
               >
-              <UButton color="error" variant="solid" :loading="deleting" @click="deleteEvent"
+              <UButton
+                color="error"
+                variant="solid"
+                :loading="deleting"
+                @click="
+                  () => {
+                    void deleteEvent()
+                  }
+                "
                 >Delete</UButton
               >
             </div>

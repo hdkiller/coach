@@ -11,7 +11,11 @@
         root: 'overflow-visible',
         body: 'p-4 flex flex-col gap-2'
       }"
-      @click="navigateTo('/performance/bests')"
+      @click="
+        () => {
+          void navigateTo('/performance/bests')
+        }
+      "
     >
       <div
         class="absolute top-4 right-4 flex flex-col items-end gap-1 opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
@@ -22,10 +26,7 @@
         <div
           class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary-500/20"
         >
-          <UIcon
-            name="i-heroicons-arrow-right"
-            class="w-3.5 h-3.5"
-          />
+          <UIcon name="i-heroicons-arrow-right" class="w-3.5 h-3.5" />
         </div>
       </div>
 
@@ -65,7 +66,11 @@
     <UCard
       class="floating-card-base grain-overlay rounded-[24px] border-dashed group hover:border-primary-500/50 transition-all duration-500 cursor-pointer text-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] min-h-[132px] !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/10"
       :ui="{ root: 'overflow-visible', body: 'p-4 h-full flex items-center gap-3' }"
-      @click="navigateTo('/performance/bests')"
+      @click="
+        () => {
+          void navigateTo('/performance/bests')
+        }
+      "
     >
       <div
         class="w-10 h-10 rounded-[14px] bg-gray-100 dark:bg-gray-950 border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:border-primary-500/30 transition-all duration-500"
@@ -76,7 +81,9 @@
         />
       </div>
       <div class="min-w-0 text-left">
-        <div class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.28em]">
+        <div
+          class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.28em]"
+        >
           Explore
         </div>
         <span

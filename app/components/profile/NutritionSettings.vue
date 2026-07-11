@@ -86,7 +86,11 @@
               icon="i-heroicons-calculator"
               color="neutral"
               variant="subtle"
-              @click="calculateBMR"
+              @click="
+                () => {
+                  void calculateBMR()
+                }
+              "
             >
               {{ t('nutrition_button_set_bmr') }}
             </UButton>
@@ -281,7 +285,11 @@
             color="primary"
             variant="soft"
             :label="t('nutrition_button_add_meal')"
-            @click="addMeal"
+            @click="
+              () => {
+                void addMeal()
+              }
+            "
           />
         </div>
       </template>
@@ -303,7 +311,11 @@
             color="error"
             variant="ghost"
             size="sm"
-            @click="removeMeal(index)"
+            @click="
+              () => {
+                void removeMeal(index)
+              }
+            "
           />
         </div>
         <p v-if="!localSettings.mealPattern?.length" class="text-sm text-gray-500 italic">
@@ -902,7 +914,11 @@
         :loading="loading"
         :label="t('nutrition_button_save')"
         color="primary"
-        @click="saveSettings"
+        @click="
+          () => {
+            void saveSettings()
+          }
+        "
       />
     </div>
   </div>

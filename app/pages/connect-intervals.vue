@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Intervals.icu')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -85,7 +94,15 @@
           <template #footer>
             <div class="flex justify-end gap-3">
               <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
-              <UButton :loading="connecting" :disabled="!apiKey || !athleteId" @click="connect">
+              <UButton
+                :loading="connecting"
+                :disabled="!apiKey || !athleteId"
+                @click="
+                  () => {
+                    void connect()
+                  }
+                "
+              >
                 {{ p('button', 'Connect') }}
               </UButton>
             </div>

@@ -28,11 +28,13 @@
         <div
           class="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50 group transition-all cursor-pointer hover:border-blue-500/50 active:scale-[0.98]"
           @click="
-            emit('open-metric', {
-              key: primaryMetricKey,
-              value: primaryMetricValue,
-              unit: primaryMetricUnit
-            })
+            () => {
+              void emit('open-metric', {
+                key: primaryMetricKey,
+                value: primaryMetricValue,
+                unit: primaryMetricUnit
+              })
+            }
           "
         >
           <div class="flex items-center justify-between mb-4">
@@ -53,11 +55,13 @@
         <div
           class="p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/50 group transition-all cursor-pointer hover:border-indigo-500/50 active:scale-[0.98]"
           @click="
-            emit('open-metric', {
-              key: 'Consistency Variance',
-              value: formattedVariabilityValue,
-              unit: variabilityUnit
-            })
+            () => {
+              void emit('open-metric', {
+                key: 'Consistency Variance',
+                value: formattedVariabilityValue,
+                unit: variabilityUnit
+              })
+            }
           "
         >
           <div class="flex items-center justify-between mb-4">
@@ -85,10 +89,12 @@
           v-if="streams.pacingStrategy"
           class="p-5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50 md:col-span-2 lg:col-span-1 group transition-all cursor-pointer hover:border-emerald-500/50 active:scale-[0.98]"
           @click="
-            emit('open-metric', {
-              key: 'Execution Strategy',
-              value: formatStrategy(streams.pacingStrategy.strategy)
-            })
+            () => {
+              emit('open-metric', {
+                key: 'Execution Strategy',
+                value: formatStrategy(streams?.pacingStrategy?.strategy ?? '')
+              })
+            }
           "
         >
           <div class="flex items-center justify-between mb-4">
@@ -116,7 +122,11 @@
       <div v-if="streams.lapSplits && streams.lapSplits.length > 0">
         <div
           class="flex items-center justify-between mb-4 group cursor-pointer"
-          @click="showSplits = !showSplits"
+          @click="
+            () => {
+              showSplits = !showSplits
+            }
+          "
         >
           <div class="flex items-center gap-2">
             <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
@@ -295,7 +305,11 @@
           variant="ghost"
           size="xs"
           class="mt-6 font-black uppercase tracking-widest text-[9px]"
-          @click="showAllSurges = true"
+          @click="
+            () => {
+              showAllSurges = true
+            }
+          "
         >
           Audit {{ streams.surges.length - 12 }} Additional Surges
         </UButton>

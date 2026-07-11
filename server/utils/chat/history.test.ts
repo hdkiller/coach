@@ -38,8 +38,8 @@ describe('chat history helpers', () => {
       }
     ])
 
-    expect(expanded.role).toBe('assistant')
-    expect(expanded.parts).toEqual(
+    expect(expanded!.role).toBe('assistant')
+    expect(expanded!.parts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'tool-get_planned_workouts',
@@ -139,7 +139,7 @@ describe('chat history helpers', () => {
       }
     ])
 
-    expect(expanded.parts).toEqual([])
+    expect(expanded!.parts).toEqual([])
   })
 
   it('keeps interrupted assistant drafts visible when they have tool approval artifacts', () => {
@@ -165,7 +165,7 @@ describe('chat history helpers', () => {
       }
     ])
 
-    expect(expanded.parts).toEqual([
+    expect(expanded!.parts).toEqual([
       expect.objectContaining({
         type: 'tool-ticket_update',
         toolCallId: 'call-1',
@@ -174,6 +174,6 @@ describe('chat history helpers', () => {
         approval: { id: 'approval-1' }
       })
     ])
-    expect(expanded.metadata.updatedAt).toEqual(new Date('2026-03-10T20:15:10.000Z'))
+    expect(expanded!.metadata.updatedAt).toEqual(new Date('2026-03-10T20:15:10.000Z'))
   })
 })

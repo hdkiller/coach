@@ -21,7 +21,11 @@
               :loading="autodetecting"
               :label="t('basic_personal_info_autodetect')"
               class="w-full sm:w-auto justify-center"
-              @click="autodetectProfile"
+              @click="
+                () => {
+                  void autodetectProfile()
+                }
+              "
             />
           </div>
         </div>
@@ -77,7 +81,11 @@
             variant="soft"
             size="sm"
             class="w-full sm:w-auto justify-center"
-            @click="emit('navigate', 'measurements')"
+            @click="
+              () => {
+                void emit('navigate', 'measurements')
+              }
+            "
           >
             {{ t('settings_tabs_measurements') }}
           </UButton>
@@ -362,7 +370,11 @@
                 size="xs"
                 color="neutral"
                 variant="ghost"
-                @click="copyUserId"
+                @click="
+                  () => {
+                    void copyUserId()
+                  }
+                "
               />
             </div>
           </div>
@@ -420,7 +432,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="linkAccount(method.id)"
+              @click="
+                () => {
+                  void linkAccount(method.id)
+                }
+              "
             >
               {{
                 method.isIntegrated
@@ -443,7 +459,11 @@
         color="primary"
         size="lg"
         :loading="loading"
-        @click="saveProfile"
+        @click="
+          () => {
+            void saveProfile()
+          }
+        "
       />
     </div>
 
@@ -499,10 +519,25 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="showConfirmModal = false"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                showConfirmModal = false
+              }
+            "
             >Cancel</UButton
           >
-          <UButton color="primary" @click="confirmAutodetect">Apply Changes</UButton>
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                void confirmAutodetect()
+              }
+            "
+            >Apply Changes</UButton
+          >
         </div>
       </template>
     </UModal>

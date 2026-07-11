@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Wahoo')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -64,7 +73,15 @@
           <template #footer>
             <div class="flex justify-end gap-3">
               <UButton to="/dashboard" color="neutral" variant="outline">{{ cancel() }}</UButton>
-              <UButton :loading="connecting" icon="i-heroicons-bolt" @click="connect">
+              <UButton
+                :loading="connecting"
+                icon="i-heroicons-bolt"
+                @click="
+                  () => {
+                    void connect()
+                  }
+                "
+              >
                 {{ p('button', 'Connect with Wahoo') }}
               </UButton>
             </div>

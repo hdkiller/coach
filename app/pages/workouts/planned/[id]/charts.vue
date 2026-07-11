@@ -9,7 +9,11 @@
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-arrow-left"
-                @click="navigateTo(`/workouts/planned/${route.params.id}`)"
+                @click="
+                  () => {
+                    void navigateTo(`/workouts/planned/${route.params.id}`)
+                  }
+                "
               >
                 Back
               </UButton>
@@ -25,7 +29,11 @@
               variant="outline"
               size="sm"
               icon="i-heroicons-eye"
-              @click="openViewModal"
+              @click="
+                () => {
+                  void openViewModal()
+                }
+              "
             >
               View
             </UButton>
@@ -63,14 +71,22 @@
               <UButton
                 v-if="loadError && loadError.statusCode !== 404"
                 color="primary"
-                @click="refreshWorkout()"
+                @click="
+                  () => {
+                    void refreshWorkout()
+                  }
+                "
               >
                 Retry
               </UButton>
               <UButton
                 color="neutral"
                 variant="outline"
-                @click="navigateTo(`/workouts/planned/${route.params.id}`)"
+                @click="
+                  () => {
+                    void navigateTo(`/workouts/planned/${route.params.id}`)
+                  }
+                "
               >
                 Go Back
               </UButton>
@@ -92,7 +108,11 @@
                     icon="i-heroicons-chevron-left"
                     class="rounded-lg"
                     :disabled="!previousWorkout"
-                    @click="navigateToNeighbor('previous')"
+                    @click="
+                      () => {
+                        void navigateToNeighbor('previous')
+                      }
+                    "
                   />
                   <div
                     class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-center min-w-[132px]"
@@ -113,7 +133,11 @@
                     icon="i-heroicons-chevron-right"
                     class="rounded-lg"
                     :disabled="!nextWorkout"
-                    @click="navigateToNeighbor('next')"
+                    @click="
+                      () => {
+                        void navigateToNeighbor('next')
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -368,7 +392,11 @@
                 variant="soft"
                 icon="i-heroicons-clipboard-document"
                 :disabled="!intervalsPreviewText"
-                @click="copyViewContent('intervals')"
+                @click="
+                  () => {
+                    void copyViewContent('intervals')
+                  }
+                "
               >
                 Copy Text
               </UButton>
@@ -385,7 +413,11 @@
                 color="neutral"
                 variant="soft"
                 icon="i-heroicons-clipboard-document"
-                @click="copyViewContent('raw')"
+                @click="
+                  () => {
+                    void copyViewContent('raw')
+                  }
+                "
               >
                 Copy JSON
               </UButton>

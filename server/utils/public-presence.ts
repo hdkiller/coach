@@ -385,7 +385,7 @@ function normalizeStructuredSectionContent<
       )
       content = {
         ...parsed,
-        methods: parsed.methods.map((method) => ({
+        methods: (parsed.methods ?? []).map((method) => ({
           ...method,
           label: method.label || ''
         })),
@@ -458,10 +458,11 @@ function normalizeStructuredSectionContent<
         rawContent,
         'Pricing section is invalid.'
       )
-      const firstHighlightedIndex = parsed.offers.findIndex((offer) => offer.highlighted)
+      const parsedOffers = parsed.offers ?? []
+      const firstHighlightedIndex = parsedOffers.findIndex((offer) => offer.highlighted)
       content = {
         note: parsed.note || null,
-        offers: parsed.offers.map((offer, index) => ({
+        offers: parsedOffers.map((offer, index) => ({
           ...offer,
           billingLabel: offer.billingLabel || null,
           summary: offer.summary || null,
@@ -525,11 +526,12 @@ export function normalizeCoachPublicProfile(input: unknown) {
     }))
   )
   delete (parsed.settings as any).featuredPlanIds
+  const mergedSections = mergeSectionsWithDefaults(
+    parsed.sections ?? [],
+    defaultProfile.sections as any
+  )
   parsed.sections = normalizeSectionOrder(
-    normalizeStructuredSectionContent(
-      mergeSectionsWithDefaults(parsed.sections, defaultProfile.sections as any),
-      'coach'
-    )
+    normalizeStructuredSectionContent(mergedSections, 'coach')
   )
   const parsedStartPage = parseOrThrow(
     coachStartPageSchema,
@@ -556,42 +558,47 @@ export function normalizeCoachPublicProfile(input: unknown) {
     },
     'Coach start page is invalid.'
   )
+  const startSettings = parsedStartPage.settings ?? defaultProfile.startPage.settings
+  const startSections = parsedStartPage.sections ?? defaultProfile.startPage.sections
+  const startSteps = parsedStartPage.steps ?? defaultProfile.startPage.steps
+  const startFaq = parsedStartPage.faq ?? []
+  const startForm = parsedStartPage.form ?? defaultProfile.startPage.form
+  const startFormFields = startForm.fields ?? defaultProfile.startPage.form.fields
+  const startPricing = parsedStartPage.pricing ?? defaultProfile.startPage.pricing
+  const startPricingOffers = startPricing.offers ?? []
   parsed.startPage = {
     ...defaultProfile.startPage,
     ...parsedStartPage,
     settings: {
       ...defaultProfile.startPage.settings,
-      ...parsedStartPage.settings,
-      headline: parsedStartPage.settings.headline || null,
-      intro: parsedStartPage.settings.intro || null,
-      heroImageUrl: parsedStartPage.settings.heroImageUrl || null,
-      heroImageAlt: parsedStartPage.settings.heroImageAlt || null,
-      submitLabel: parsedStartPage.settings.submitLabel || null,
-      loginLabel: parsedStartPage.settings.loginLabel || null,
-      successTitle: parsedStartPage.settings.successTitle || null,
-      successMessage: parsedStartPage.settings.successMessage || null
+      ...startSettings,
+      headline: startSettings.headline || null,
+      intro: startSettings.intro || null,
+      heroImageUrl: startSettings.heroImageUrl || null,
+      heroImageAlt: startSettings.heroImageAlt || null,
+      submitLabel: startSettings.submitLabel || null,
+      loginLabel: startSettings.loginLabel || null,
+      successTitle: startSettings.successTitle || null,
+      successMessage: startSettings.successMessage || null
     },
     sections: normalizeSectionOrder(
       normalizeStructuredSectionContent(
-        mergeSectionsWithDefaults(
-          parsedStartPage.sections,
-          defaultProfile.startPage.sections as any
-        ),
+        mergeSectionsWithDefaults(startSections, defaultProfile.startPage.sections as any),
         'coach-start'
       )
     ),
     introBody: parsedStartPage.introBody || null,
     trustNote: parsedStartPage.trustNote || null,
-    faq: parsedStartPage.faq || [],
-    steps: parsedStartPage.steps.map((step) => ({
+    faq: startFaq,
+    steps: startSteps.map((step) => ({
       id: step.id,
       title: step.title,
       description: step.description
     })),
     form: {
-      title: parsedStartPage.form.title || null,
-      intro: parsedStartPage.form.intro || null,
-      fields: parsedStartPage.form.fields.map((field) => ({
+      title: startForm.title || null,
+      intro: startForm.intro || null,
+      fields: startFormFields.map((field) => ({
         id: field.id,
         type: field.type,
         label: field.label,
@@ -611,8 +618,8 @@ export function normalizeCoachPublicProfile(input: unknown) {
     noCommitmentBody: parsedStartPage.noCommitmentBody || null,
     noCommitmentBullets: parsedStartPage.noCommitmentBullets || [],
     pricing: {
-      note: parsedStartPage.pricing.note || null,
-      offers: parsedStartPage.pricing.offers.map((offer) => ({
+      note: startPricing.note || null,
+      offers: startPricingOffers.map((offer) => ({
         ...offer,
         billingLabel: offer.billingLabel || null,
         summary: offer.summary || null,
@@ -636,6 +643,7 @@ export function normalizeCoachPublicProfile(input: unknown) {
     },
     'Coach join page is invalid.'
   )
+  const joinSteps = parsedJoinPage.steps ?? defaultJoinPage.steps
   parsed.joinPage = {
     ...defaultJoinPage,
     ...parsedJoinPage,
@@ -648,14 +656,14 @@ export function normalizeCoachPublicProfile(input: unknown) {
     trustNote: parsedJoinPage.trustNote || null,
     unavailableMessage: parsedJoinPage.unavailableMessage || null,
     faq: parsedJoinPage.faq || [],
-    steps: parsedJoinPage.steps.map((step) => ({
+    steps: joinSteps.map((step) => ({
       id: step.id,
       title: step.title,
       description: step.description
     }))
   }
-  ensureMandatorySection(parsed.sections, 'hero')
-  ensureMandatorySection(parsed.startPage.sections, 'hero')
+  ensureMandatorySection(parsed.sections ?? [], 'hero')
+  ensureMandatorySection(parsed.startPage.sections ?? [], 'hero')
   return parsed
 }
 
@@ -669,13 +677,13 @@ export function normalizeAthletePublicProfile(input: unknown) {
   parsed.sections = normalizeSectionOrder(
     normalizeStructuredSectionContent(
       mergeSectionsWithDefaults(
-        parsed.sections,
+        parsed.sections ?? [],
         buildDefaultAthletePublicProfile().sections as any
       ),
       'athlete'
     )
   )
-  ensureMandatorySection(parsed.sections, 'hero')
+  ensureMandatorySection(parsed.sections ?? [], 'hero')
   return parsed
 }
 

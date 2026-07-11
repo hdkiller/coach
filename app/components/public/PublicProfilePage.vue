@@ -54,7 +54,11 @@
               v-if="viewer?.isOwner && ownerMode"
               color="neutral"
               variant="outline"
-              @click="previewMode = previewMode === 'desktop' ? 'mobile' : 'desktop'"
+              @click="
+                () => {
+                  previewMode = previewMode === 'desktop' ? 'mobile' : 'desktop'
+                }
+              "
             >
               {{ previewMode === 'desktop' ? 'Mobile preview' : 'Desktop preview' }}
             </UButton>
@@ -777,18 +781,16 @@
                                 'Credentials'
                               ),
                               ...(showCredentials && credentials.length
-                                ? credentials
-                                    .slice(0, 4)
-                                    .map((credential: string) =>
-                                      h(
-                                        'div',
-                                        {
-                                          class:
-                                            'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200'
-                                        },
-                                        credential
-                                      )
+                                ? credentials.slice(0, 4).map((credential: string) =>
+                                    h(
+                                      'div',
+                                      {
+                                        class:
+                                          'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200'
+                                      },
+                                      credential
                                     )
+                                  )
                                 : ownerMode.value && showCredentials
                                   ? [
                                       h(

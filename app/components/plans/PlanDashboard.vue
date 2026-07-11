@@ -25,7 +25,11 @@
             color="neutral"
             variant="ghost"
             icon="i-heroicons-list-bullet"
-            @click="showOverview = true"
+            @click="
+              () => {
+                showOverview = true
+              }
+            "
           >
             <span class="hidden sm:inline">Overview</span>
           </UButton>
@@ -34,7 +38,11 @@
             color="primary"
             variant="ghost"
             icon="i-heroicons-squares-plus"
-            @click="showTimelineEditor = true"
+            @click="
+              () => {
+                showTimelineEditor = true
+              }
+            "
           >
             <span class="hidden sm:inline">Edit Structure</span>
           </UButton>
@@ -43,7 +51,11 @@
             color="neutral"
             variant="ghost"
             icon="i-heroicons-adjustments-horizontal"
-            @click="showAdaptModal = true"
+            @click="
+              () => {
+                showAdaptModal = true
+              }
+            "
           >
             <span class="hidden sm:inline">Adapt</span>
           </UButton>
@@ -53,7 +65,11 @@
             color="neutral"
             variant="ghost"
             icon="i-heroicons-bookmark"
-            @click="showSaveTemplateModal = true"
+            @click="
+              () => {
+                showSaveTemplateModal = true
+              }
+            "
           >
             <span class="hidden sm:inline">Save</span>
           </UButton>
@@ -62,7 +78,11 @@
             color="error"
             variant="ghost"
             icon="i-heroicons-trash"
-            @click="showAbandonModal = true"
+            @click="
+              () => {
+                showAbandonModal = true
+              }
+            "
           />
         </div>
       </div>
@@ -90,10 +110,24 @@
           </div>
 
           <div class="flex justify-end gap-2 mt-4">
-            <UButton color="neutral" variant="ghost" @click="showAbandonModal = false"
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  showAbandonModal = false
+                }
+              "
               >Cancel</UButton
             >
-            <UButton color="error" :loading="abandoning" @click="confirmAbandon"
+            <UButton
+              color="error"
+              :loading="abandoning"
+              @click="
+                () => {
+                  void confirmAbandon()
+                }
+              "
               >Abandon Plan</UButton
             >
           </div>
@@ -122,10 +156,26 @@
           </UFormField>
 
           <div class="flex justify-end gap-2 mt-4">
-            <UButton color="neutral" variant="ghost" @click="showSaveTemplateModal = false"
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  showSaveTemplateModal = false
+                }
+              "
               >Cancel</UButton
             >
-            <UButton color="primary" :loading="savingTemplate" @click="saveTemplate">Save</UButton>
+            <UButton
+              color="primary"
+              :loading="savingTemplate"
+              @click="
+                () => {
+                  void saveTemplate()
+                }
+              "
+              >Save</UButton
+            >
           </div>
         </div>
       </template>
@@ -169,7 +219,11 @@
               color="primary"
               icon="i-heroicons-forward"
               :loading="adapting === 'RECALCULATE_WEEK'"
-              @click="adaptPlan('RECALCULATE_WEEK')"
+              @click="
+                () => {
+                  void adaptPlan('RECALCULATE_WEEK')
+                }
+              "
             >
               Recalculate Remaining Week
             </UButton>
@@ -184,7 +238,11 @@
               color="primary"
               icon="i-heroicons-arrow-right-circle"
               :loading="adapting === 'PUSH_FORWARD'"
-              @click="adaptPlan('PUSH_FORWARD')"
+              @click="
+                () => {
+                  void adaptPlan('PUSH_FORWARD')
+                }
+              "
             >
               Push Schedule Forward 1 Day
             </UButton>
@@ -229,7 +287,11 @@
           class="h-full relative border-r last:border-r-0 border-gray-200/50 dark:border-gray-800/50 transition-all cursor-pointer group bg-white/40 dark:bg-gray-800/20 hover:bg-white/60 dark:hover:bg-gray-800/40"
           :style="{ flex: block.durationWeeks }"
           :class="[selectedBlockId === block.id ? 'z-10' : '']"
-          @click="selectedBlockId = block.id"
+          @click="
+            () => {
+              selectedBlockId = block.id
+            }
+          "
         >
           <!-- Content Container (Side-by-side) -->
           <div class="absolute inset-0 flex items-center justify-between px-2 pb-2">
@@ -384,7 +446,11 @@
               size="xs"
               class="sm:flex-none justify-center"
               :loading="fetchingIndependent"
-              @click="showIndependentWorkouts = !showIndependentWorkouts"
+              @click="
+                () => {
+                  showIndependentWorkouts = !showIndependentWorkouts
+                }
+              "
             >
               <template #leading>
                 <UIcon
@@ -400,7 +466,11 @@
             color="primary"
             variant="soft"
             class="sm:flex-none justify-center"
-            @click="showAIPlanModal = true"
+            @click="
+              () => {
+                showAIPlanModal = true
+              }
+            "
           >
             <template #leading>
               <UIcon name="i-heroicons-sparkles" class="w-4 h-4" />
@@ -414,7 +484,11 @@
               size="xs"
               :variant="selectedWeekId === week.id ? 'solid' : 'ghost'"
               class="whitespace-nowrap"
-              @click="selectedWeekId = week.id"
+              @click="
+                () => {
+                  selectedWeekId = week.id
+                }
+              "
             >
               Week {{ week.weekNumber }}
             </UButton>
@@ -445,7 +519,11 @@
             color="primary"
             icon="i-heroicons-sparkles"
             :loading="generatingWorkouts"
-            @click="generateWorkoutsForBlock"
+            @click="
+              () => {
+                void generateWorkoutsForBlock()
+              }
+            "
           >
             Initialize Phase Structure
           </UButton>
@@ -570,7 +648,11 @@
             <!-- 4. Type Tuning -->
             <div
               class="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg cursor-pointer hover:ring-1 hover:ring-primary-500/50 transition-all group select-none"
-              @click="toggleWeekRecovery"
+              @click="
+                () => {
+                  void toggleWeekRecovery()
+                }
+              "
             >
               <div class="flex justify-between items-center mb-0.5">
                 <div class="text-[10px] uppercase font-bold text-muted tracking-wider">Type</div>
@@ -622,7 +704,11 @@
                         icon="i-heroicons-sparkles"
                         title="Generate structure for all workouts in this week"
                         :loading="generatingAllStructures"
-                        @click="generateAllStructureForWeek"
+                        @click="
+                          () => {
+                            void generateAllStructureForWeek()
+                          }
+                        "
                       />
                     </div>
                   </th>
@@ -644,7 +730,11 @@
                   @dragstart="onDragStart($event, workout)"
                   @dragover.prevent
                   @drop="onDrop($event, workout)"
-                  @click="navigateToWorkout(workout.id)"
+                  @click="
+                    () => {
+                      void navigateToWorkout(workout.id)
+                    }
+                  "
                 >
                   <td class="pl-2 text-center cursor-move text-gray-300 group-hover:text-gray-500">
                     <UTooltip v-if="workout.isIndependent" text="Link to Plan">
@@ -781,7 +871,11 @@
                 'ring-2 ring-primary-500/40': mobileDropTargetId === workout.id && draggingId,
                 'opacity-50': draggingId === workout.id
               }"
-              @click="navigateToWorkout(workout.id)"
+              @click="
+                () => {
+                  void navigateToWorkout(workout.id)
+                }
+              "
             >
               <div class="flex items-start gap-3">
                 <!-- Sport Icon & Color Strip -->
@@ -934,7 +1028,11 @@
                   color="primary"
                   variant="soft"
                   :loading="generatingWorkouts"
-                  @click="generateWorkoutsForBlock"
+                  @click="
+                    () => {
+                      void generateWorkoutsForBlock()
+                    }
+                  "
                 >
                   Generate Workouts
                 </UButton>

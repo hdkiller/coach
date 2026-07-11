@@ -207,7 +207,11 @@
               variant="solid"
               icon="i-heroicons-paper-airplane"
               :loading="submitting"
-              @click="handleDeny"
+              @click="
+                () => {
+                  void handleDeny()
+                }
+              "
             >
               Cancel Action
             </UButton>
@@ -216,7 +220,11 @@
               color="neutral"
               variant="ghost"
               :disabled="submitting"
-              @click="closeDenyEditor"
+              @click="
+                () => {
+                  void closeDenyEditor()
+                }
+              "
             >
               Back
             </UButton>
@@ -231,7 +239,11 @@
             icon="i-heroicons-check"
             :loading="submitting"
             :disabled="submitting || Boolean(resultText)"
-            @click="handleApprove"
+            @click="
+              () => {
+                void handleApprove()
+              }
+            "
           >
             Approve
           </UButton>
@@ -241,7 +253,11 @@
             variant="ghost"
             icon="i-heroicons-x-mark"
             :loading="submitting"
-            @click="handleDenyClick"
+            @click="
+              () => {
+                void handleDenyClick()
+              }
+            "
           >
             Cancel
           </UButton>

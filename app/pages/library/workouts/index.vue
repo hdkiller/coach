@@ -7,7 +7,11 @@
             color="primary"
             icon="i-heroicons-plus"
             label="New Workout"
-            @click="createNewTemplate"
+            @click="
+              () => {
+                void createNewTemplate()
+              }
+            "
           />
         </template>
       </UDashboardNavbar>
@@ -31,7 +35,11 @@
                 :color="librarySource === option.value ? 'primary' : 'neutral'"
                 :variant="librarySource === option.value ? 'solid' : 'ghost'"
                 class="shrink-0 rounded-xl px-3"
-                @click="librarySource = option.value"
+                @click="
+                  () => {
+                    librarySource = option.value
+                  }
+                "
               >
                 {{ option.label }}
               </UButton>
@@ -43,7 +51,11 @@
                 icon="i-heroicons-folder-open"
                 class="lg:hidden"
                 :disabled="librarySource === 'all'"
-                @click="showFolderSlideover = true"
+                @click="
+                  () => {
+                    showFolderSlideover = true
+                  }
+                "
               >
                 Folders
               </UButton>
@@ -75,7 +87,11 @@
                     variant="soft"
                     size="xs"
                     icon="i-heroicons-arrow-path"
-                    @click="refreshFolders()"
+                    @click="
+                      () => {
+                        void refreshFolders()
+                      }
+                    "
                   >
                     Retry
                   </UButton>
@@ -113,7 +129,11 @@
                     :color="selectedType === 'all' ? 'primary' : 'neutral'"
                     :variant="selectedType === 'all' ? 'solid' : 'ghost'"
                     icon="i-heroicons-squares-2x2"
-                    @click="selectedType = 'all'"
+                    @click="
+                      () => {
+                        selectedType = 'all'
+                      }
+                    "
                   />
                 </UTooltip>
                 <UTooltip v-for="type in workoutTypes" :key="type.value" :text="type.label">
@@ -122,7 +142,11 @@
                     :color="selectedType === type.value ? 'primary' : 'neutral'"
                     :variant="selectedType === type.value ? 'solid' : 'ghost'"
                     :icon="type.icon"
-                    @click="selectedType = type.value"
+                    @click="
+                      () => {
+                        selectedType = type.value
+                      }
+                    "
                   />
                 </UTooltip>
               </div>
@@ -137,7 +161,11 @@
                   :color="selectedDuration === range.value ? 'primary' : 'neutral'"
                   :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
                   class="text-[10px] font-bold uppercase tracking-wider px-2"
-                  @click="selectedDuration = range.value"
+                  @click="
+                    () => {
+                      selectedDuration = range.value
+                    }
+                  "
                 >
                   {{ range.label }}
                 </UButton>
@@ -169,7 +197,11 @@
                   color="primary"
                   variant="soft"
                   icon="i-heroicons-folder-open"
-                  @click="openMoveTemplatesModal(selectedTemplateIds)"
+                  @click="
+                    () => {
+                      void openMoveTemplatesModal(selectedTemplateIds)
+                    }
+                  "
                 >
                   Move to folder
                 </UButton>
@@ -177,7 +209,11 @@
                   size="sm"
                   color="neutral"
                   variant="ghost"
-                  @click="selectedTemplateIds = []"
+                  @click="
+                    () => {
+                      selectedTemplateIds = []
+                    }
+                  "
                 >
                   Clear
                 </UButton>
@@ -217,7 +253,15 @@
                     : 'Save any workout from your calendar or create a new session to start building your library.'
                 }}
               </p>
-              <UButton color="primary" variant="soft" @click="createNewTemplate">
+              <UButton
+                color="primary"
+                variant="soft"
+                @click="
+                  () => {
+                    void createNewTemplate()
+                  }
+                "
+              >
                 Create First Template
               </UButton>
             </div>
@@ -236,7 +280,11 @@
                   footer: 'px-4 py-2 sm:px-4'
                 }"
                 draggable="true"
-                @click="previewTemplateId = template.id"
+                @click="
+                  () => {
+                    previewTemplateId = template.id
+                  }
+                "
                 @dragstart="onTemplateDragStart(template)"
                 @dragend="draggedItem = null"
               >
@@ -407,7 +455,11 @@
                       footer: 'px-4 py-2 sm:px-4'
                     }"
                     draggable="true"
-                    @click="previewTemplateId = template.id"
+                    @click="
+                      () => {
+                        previewTemplateId = template.id
+                      }
+                    "
                     @dragstart="onTemplateDragStart(template)"
                     @dragend="draggedItem = null"
                   >
@@ -518,8 +570,26 @@
   >
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">Cancel</UButton>
-        <UButton color="error" :loading="deleting" @click="deleteTemplate">Delete Template</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="error"
+          :loading="deleting"
+          @click="
+            () => {
+              void deleteTemplate()
+            }
+          "
+          >Delete Template</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -537,8 +607,25 @@
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isFolderModalOpen = false">Cancel</UButton>
-        <UButton color="primary" :loading="savingFolder" @click="submitFolderForm">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isFolderModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          :loading="savingFolder"
+          @click="
+            () => {
+              void submitFolderForm()
+            }
+          "
+        >
           {{ folderModalMode === 'rename' ? 'Save' : 'Create Folder' }}
         </UButton>
       </div>
@@ -552,10 +639,26 @@
   >
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isDeleteFolderModalOpen = false"
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeleteFolderModalOpen = false
+            }
+          "
           >Cancel</UButton
         >
-        <UButton color="error" :loading="savingFolder" @click="deleteFolder">Delete Folder</UButton>
+        <UButton
+          color="error"
+          :loading="savingFolder"
+          @click="
+            () => {
+              void deleteFolder()
+            }
+          "
+          >Delete Folder</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -576,10 +679,25 @@
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-3">
-        <UButton color="neutral" variant="ghost" @click="isMoveTemplatesModalOpen = false"
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isMoveTemplatesModalOpen = false
+            }
+          "
           >Cancel</UButton
         >
-        <UButton color="primary" :loading="movingTemplates" @click="moveSelectedTemplates">
+        <UButton
+          color="primary"
+          :loading="movingTemplates"
+          @click="
+            () => {
+              void moveSelectedTemplates()
+            }
+          "
+        >
           Move
         </UButton>
       </div>

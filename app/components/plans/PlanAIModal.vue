@@ -44,7 +44,11 @@
               v-for="workout in workouts"
               :key="workout.id"
               class="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer"
-              @click="toggleAnchor(workout.id)"
+              @click="
+                () => {
+                  void toggleAnchor(workout.id)
+                }
+              "
             >
               <UCheckbox
                 :model-value="selectedIds.includes(workout.id)"
@@ -63,14 +67,25 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
-          <UButton color="neutral" variant="ghost" @click="$emit('update:modelValue', false)"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                void $emit('update:modelValue', false)
+              }
+            "
             >Cancel</UButton
           >
           <UButton
             color="primary"
             :loading="loading"
             icon="i-heroicons-sparkles"
-            @click="generatePlan"
+            @click="
+              () => {
+                void generatePlan()
+              }
+            "
           >
             Generate Plan
           </UButton>

@@ -12,7 +12,11 @@
         variant="ghost"
         color="neutral"
         icon="i-lucide-shopping-cart"
-        @click="$emit('export-grocery')"
+        @click="
+          () => {
+            void $emit('export-grocery')
+          }
+        "
       >
         <span class="hidden sm:inline">Export to Grocery List</span>
         <span class="sm:hidden">Export</span>
@@ -78,7 +82,11 @@
               color="neutral"
               variant="ghost"
               :icon="window.isLocked ? 'i-lucide-pencil' : 'i-lucide-sparkles'"
-              @click="emitSuggestion(day, window)"
+              @click="
+                () => {
+                  void emitSuggestion(day, window)
+                }
+              "
             />
           </div>
 
@@ -245,7 +253,11 @@
                   color="neutral"
                   variant="ghost"
                   :icon="window.isLocked ? 'i-lucide-pencil' : 'i-lucide-sparkles'"
-                  @click="emitSuggestion(day, window)"
+                  @click="
+                    () => {
+                      void emitSuggestion(day, window)
+                    }
+                  "
                 />
               </td>
             </tr>

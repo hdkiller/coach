@@ -20,18 +20,22 @@
           />
         </div>
         <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">{{ t('billing_tier_supporter') }}</UBadge>
+          <UBadge color="primary" variant="subtle" size="xs">{{
+            t('billing_tier_supporter')
+          }}</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
             color="neutral"
             variant="ghost"
             size="xs"
             @click="
-              upgradeModal.show({
-                featureTitle: t('automation_readiness_label'),
-                featureDescription: t('automation_readiness_upgrade_desc'),
-                recommendedTier: 'supporter'
-              })
+              () => {
+                upgradeModal.show({
+                  featureTitle: t('automation_readiness_label'),
+                  featureDescription: t('automation_readiness_upgrade_desc'),
+                  recommendedTier: 'supporter'
+                })
+              }
             "
           />
         </div>
@@ -49,18 +53,22 @@
           />
         </div>
         <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">{{ t('billing_tier_supporter') }}</UBadge>
+          <UBadge color="primary" variant="subtle" size="xs">{{
+            t('billing_tier_supporter')
+          }}</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
             color="neutral"
             variant="ghost"
             size="xs"
             @click="
-              upgradeModal.show({
-                featureTitle: t('automation_workouts_label'),
-                featureDescription: t('automation_workouts_upgrade_desc'),
-                recommendedTier: 'supporter'
-              })
+              () => {
+                upgradeModal.show({
+                  featureTitle: t('automation_workouts_label'),
+                  featureDescription: t('automation_workouts_upgrade_desc'),
+                  recommendedTier: 'supporter'
+                })
+              }
             "
           />
         </div>
@@ -78,18 +86,22 @@
           />
         </div>
         <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">{{ t('billing_tier_supporter') }}</UBadge>
+          <UBadge color="primary" variant="subtle" size="xs">{{
+            t('billing_tier_supporter')
+          }}</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
             color="neutral"
             variant="ghost"
             size="xs"
             @click="
-              upgradeModal.show({
-                featureTitle: t('automation_nutrition_label'),
-                featureDescription: t('automation_nutrition_upgrade_desc'),
-                recommendedTier: 'supporter'
-              })
+              () => {
+                upgradeModal.show({
+                  featureTitle: t('automation_nutrition_label'),
+                  featureDescription: t('automation_nutrition_upgrade_desc'),
+                  recommendedTier: 'supporter'
+                })
+              }
             "
           />
         </div>
@@ -114,11 +126,13 @@
             variant="ghost"
             size="xs"
             @click="
-              upgradeModal.show({
-                featureTitle: t('automation_thoughtful_label'),
-                featureDescription: t('automation_thoughtful_upgrade_desc'),
-                recommendedTier: 'pro'
-              })
+              () => {
+                upgradeModal.show({
+                  featureTitle: t('automation_thoughtful_label'),
+                  featureDescription: t('automation_thoughtful_upgrade_desc'),
+                  recommendedTier: 'pro'
+                })
+              }
             "
           />
         </div>
@@ -143,11 +157,13 @@
             variant="ghost"
             size="xs"
             @click="
-              upgradeModal.show({
-                featureTitle: t('automation_proactive_label'),
-                featureDescription: t('automation_proactive_upgrade_desc'),
-                recommendedTier: 'pro'
-              })
+              () => {
+                upgradeModal.show({
+                  featureTitle: t('automation_proactive_label'),
+                  featureDescription: t('automation_proactive_upgrade_desc'),
+                  recommendedTier: 'pro'
+                })
+              }
             "
           />
         </div>
@@ -170,7 +186,16 @@
 
       <!-- Save Button -->
       <div class="flex justify-end pt-4">
-        <UButton :loading="saving" @click="saveSettings"> {{ t('settings_save_changes') }} </UButton>
+        <UButton
+          :loading="saving"
+          @click="
+            () => {
+              void saveSettings()
+            }
+          "
+        >
+          {{ t('settings_save_changes') }}
+        </UButton>
       </div>
     </div>
   </UCard>

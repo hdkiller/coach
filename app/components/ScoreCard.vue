@@ -6,7 +6,11 @@
         ? 'hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer shadow-md'
         : ''
     ]"
-    @click="handleClick"
+    @click="
+      () => {
+        void handleClick()
+      }
+    "
   >
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">

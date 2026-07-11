@@ -16,6 +16,7 @@ import { workoutStreamRepository } from '../server/utils/repositories/workoutStr
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
+import { buildAuthFailureResult } from '../server/utils/ingestion-failure'
 import type { IngestionResult } from './types'
 
 export const ingestWhoopTask = task({
@@ -223,6 +224,15 @@ export const ingestWhoopTask = task({
         endDate
       }
     } catch (error) {
+      const authFailure = buildAuthFailureResult(error, { userId, startDate, endDate })
+      if (authFailure) {
+        logger.warn('[Whoop Ingest] Authorization expired or revoked', {
+          integrationId: integration.id,
+          message: authFailure.message
+        })
+        return authFailure
+      }
+
       logger.error('[Whoop Ingest] Error ingesting data', { error })
 
       // Update error status

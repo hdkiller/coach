@@ -241,7 +241,13 @@ export function createZoneProfileSnapshot(settings: any): ZoneProfileSnapshot {
   }
 }
 
-function normalizeStepPaceTargets(step: any, snapshot: ZoneProfileSnapshot, path: string) {
+type NormalizedStepPaceResult = { step: any; issues: WorkoutContractIssue[] }
+
+function normalizeStepPaceTargets(
+  step: any,
+  snapshot: ZoneProfileSnapshot,
+  path: string
+): NormalizedStepPaceResult {
   if (!step || typeof step !== 'object') return { step, issues: [] as WorkoutContractIssue[] }
   const copy: any = { ...step }
   const issues: WorkoutContractIssue[] = []
@@ -264,8 +270,8 @@ function normalizeStepPaceTargets(step: any, snapshot: ZoneProfileSnapshot, path
     const nested = copy.steps.map((child: any, index: number) =>
       normalizeStepPaceTargets(child, snapshot, `${path}.steps[${index}]`)
     )
-    copy.steps = nested.map((entry) => entry.step)
-    issues.push(...nested.flatMap((entry) => entry.issues))
+    copy.steps = nested.map((entry: NormalizedStepPaceResult) => entry.step)
+    issues.push(...nested.flatMap((entry: NormalizedStepPaceResult) => entry.issues))
   }
   return { step: copy, issues }
 }
@@ -288,7 +294,7 @@ export function adaptStructuredWorkout(
         normalizeStepPaceTargets(step, snapshot, `steps[${index}]`)
       )
     : []
-  const diagnostics = normalized.flatMap((entry) => entry.issues)
+  const diagnostics = normalized.flatMap((entry: NormalizedStepPaceResult) => entry.issues)
   if (input.steps && !Array.isArray(input.steps)) {
     diagnostics.push({
       code: 'legacy_structure',
@@ -301,7 +307,7 @@ export function adaptStructuredWorkout(
     source: options.source || 'LEGACY_ADAPTER',
     targetUnits: { pace: 'm/s', duration: 'seconds', distance: 'meters' },
     zoneProfileSnapshot: snapshot,
-    steps: normalized.map((entry) => entry.step),
+    steps: normalized.map((entry: NormalizedStepPaceResult) => entry.step),
     ...(Array.isArray(input.exercises) ? { exercises: input.exercises } : {}),
     ...(Array.isArray(input.blocks) ? { blocks: input.blocks } : {}),
     ...(Array.isArray(input.messages) ? { messages: input.messages } : {}),

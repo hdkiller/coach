@@ -123,7 +123,16 @@
     </UFormField>
 
     <div class="flex justify-end gap-3 pt-4">
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="$emit('cancel')" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            void $emit('cancel')
+          }
+        "
+      />
       <UButton
         type="submit"
         :label="isEditing ? 'Update Event' : 'Create Event'"

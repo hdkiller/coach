@@ -101,7 +101,11 @@
                     variant="link"
                     icon="i-lucide-x"
                     :padded="false"
-                    @click="search = ''"
+                    @click="
+                      () => {
+                        search = ''
+                      }
+                    "
                   />
                 </template>
               </UInput>
@@ -272,7 +276,11 @@
                           label="Impersonate"
                           size="xs"
                           :loading="impersonating === user.id"
-                          @click="impersonateUser(user.id)"
+                          @click="
+                            () => {
+                              void impersonateUser(user.id)
+                            }
+                          "
                         />
                       </div>
                     </td>

@@ -143,7 +143,11 @@
             variant="soft"
             size="sm"
             class="w-full sm:w-auto justify-center"
-            @click="addLink"
+            @click="
+              () => {
+                void addLink()
+              }
+            "
           >
             Add link
           </UButton>
@@ -170,7 +174,11 @@
               variant="ghost"
               icon="i-heroicons-trash"
               class="w-full md:w-auto justify-center"
-              @click="removeLink(index)"
+              @click="
+                () => {
+                  void removeLink(index)
+                }
+              "
             />
           </div>
         </div>
@@ -185,7 +193,16 @@
     </UCard>
 
     <div class="flex justify-end">
-      <UButton color="primary" :loading="loading" @click="save">Save Public Profile</UButton>
+      <UButton
+        color="primary"
+        :loading="loading"
+        @click="
+          () => {
+            void save()
+          }
+        "
+        >Save Public Profile</UButton
+      >
     </div>
   </div>
 </template>

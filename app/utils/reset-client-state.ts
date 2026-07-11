@@ -47,7 +47,6 @@ export function resetClientState() {
   recommendationStore.loadingWorkout = false
   recommendationStore.generating = false
   recommendationStore.generatingAdHoc = false
-  recommendationStore.currentRecommendationId = null
 
   const notificationStore = useNotificationStore()
   notificationStore.notifications = []

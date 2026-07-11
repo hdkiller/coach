@@ -371,7 +371,11 @@
             icon="i-heroicons-plus"
             size="sm"
             class="font-bold"
-            @click="openNewGoal"
+            @click="
+              () => {
+                void openNewGoal()
+              }
+            "
           >
             <span class="hidden sm:inline">Add Goal</span>
             <span class="sm:hidden">Add</span>
@@ -404,7 +408,11 @@
               size="sm"
               class="font-bold"
               :loading="suggestionsLoading"
-              @click="generateSuggestions"
+              @click="
+                () => {
+                  void generateSuggestions()
+                }
+              "
             >
               AI Suggest
             </UButton>
@@ -416,7 +424,11 @@
               size="sm"
               class="font-bold"
               :loading="reviewLoading"
-              @click="reviewGoals"
+              @click="
+                () => {
+                  void reviewGoals()
+                }
+              "
             >
               Review
             </UButton>
@@ -438,7 +450,11 @@
                   icon="i-heroicons-x-mark"
                   variant="ghost"
                   size="sm"
-                  @click="showSuggestions = false"
+                  @click="
+                    () => {
+                      showSuggestions = false
+                    }
+                  "
                 />
               </div>
             </template>
@@ -529,7 +545,11 @@
                           variant="solid"
                           icon="i-heroicons-plus"
                           :loading="isAcceptingSuggestion(suggestion, index)"
-                          @click="acceptSuggestion(suggestion, index)"
+                          @click="
+                            () => {
+                              void acceptSuggestion(suggestion, index)
+                            }
+                          "
                         >
                           Accept
                         </UButton>
@@ -652,7 +672,11 @@
                   icon="i-heroicons-x-mark"
                   variant="ghost"
                   size="sm"
-                  @click="showReview = false"
+                  @click="
+                    () => {
+                      showReview = false
+                    }
+                  "
                 />
               </div>
             </template>
@@ -1044,7 +1068,16 @@
             <p class="text-gray-500 dark:text-gray-400 mt-2 mb-6 max-w-md mx-auto">
               Set your first goal to get personalized AI coaching advice and track your progress.
             </p>
-            <UButton color="primary" size="lg" icon="i-heroicons-plus" @click="openNewGoal">
+            <UButton
+              color="primary"
+              size="lg"
+              icon="i-heroicons-plus"
+              @click="
+                () => {
+                  void openNewGoal()
+                }
+              "
+            >
               Create First Goal
             </UButton>
           </div>
@@ -1067,8 +1100,25 @@
             :ui="{ footer: 'justify-end' }"
           >
             <template #footer="{ close }">
-              <UButton label="Cancel" variant="outline" color="neutral" @click="close" />
-              <UButton label="Delete Goal" color="error" @click="confirmDelete" />
+              <UButton
+                label="Cancel"
+                variant="outline"
+                color="neutral"
+                @click="
+                  () => {
+                    void close()
+                  }
+                "
+              />
+              <UButton
+                label="Delete Goal"
+                color="error"
+                @click="
+                  () => {
+                    void confirmDelete()
+                  }
+                "
+              />
             </template>
           </UModal>
         </div>

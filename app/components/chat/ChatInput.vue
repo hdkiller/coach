@@ -795,7 +795,11 @@
           <button
             type="button"
             class="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white"
-            @click="removeAttachment(attachment.id)"
+            @click="
+              () => {
+                void removeAttachment(attachment.id)
+              }
+            "
           >
             <UIcon name="i-heroicons-x-mark" class="h-3.5 w-3.5" />
           </button>
@@ -857,7 +861,11 @@
           class="shrink-0"
           :disabled="props.disabled || isTranscribing"
           :aria-label="isRecording ? 'Stop dictation' : 'Start dictation'"
-          @click="toggleRecording"
+          @click="
+            () => {
+              void toggleRecording()
+            }
+          "
         />
         <UChatPromptSubmit
           v-if="hasAttachmentOnlyMessage"
@@ -917,7 +925,11 @@
           variant="ghost"
           :label="t('banner_exit')"
           :disabled="isCapturingWebcam || isRecordingWebcamVideo"
-          @click="isWebcamModalOpen = false"
+          @click="
+            () => {
+              isWebcamModalOpen = false
+            }
+          "
         />
         <UButton
           v-if="webcamMode === 'photo'"
@@ -927,7 +939,11 @@
           :label="t('modal_webcam_capture')"
           :loading="isCapturingWebcam || isOpeningWebcam"
           :disabled="isOpeningWebcam"
-          @click="captureDesktopPhoto"
+          @click="
+            () => {
+              void captureDesktopPhoto()
+            }
+          "
         />
         <UButton
           v-else-if="!isRecordingWebcamVideo"
@@ -937,7 +953,11 @@
           :label="t('modal_webcam_start_recording')"
           :loading="isOpeningWebcam"
           :disabled="isOpeningWebcam"
-          @click="startDesktopVideoRecording"
+          @click="
+            () => {
+              void startDesktopVideoRecording()
+            }
+          "
         />
         <UButton
           v-else
@@ -945,7 +965,11 @@
           variant="solid"
           icon="i-heroicons-stop-circle"
           :label="t('modal_webcam_stop_recording')"
-          @click="stopDesktopVideoRecording"
+          @click="
+            () => {
+              void stopDesktopVideoRecording()
+            }
+          "
         />
       </div>
     </template>

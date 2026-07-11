@@ -20,7 +20,11 @@
               :loading="autodetecting"
               :label="t('sports_autodetect')"
               class="flex-1 sm:flex-none justify-center"
-              @click="autodetectProfile"
+              @click="
+                () => {
+                  void autodetectProfile()
+                }
+              "
             />
             <UButton
               icon="i-lucide-plus"
@@ -29,7 +33,11 @@
               color="primary"
               :label="t('sports_add_sport')"
               class="flex-1 sm:flex-none justify-center"
-              @click="openAddModal"
+              @click="
+                () => {
+                  void openAddModal()
+                }
+              "
             />
           </div>
         </div>
@@ -51,7 +59,16 @@
         <p class="text-gray-500 mt-2 max-w-sm mx-auto mb-6">
           {{ t('sports_empty_desc') }}
         </p>
-        <UButton icon="i-lucide-plus" size="md" color="primary" @click="openAddModal">
+        <UButton
+          icon="i-lucide-plus"
+          size="md"
+          color="primary"
+          @click="
+            () => {
+              void openAddModal()
+            }
+          "
+        >
           {{ t('sports_empty_button') }}
         </UButton>
       </div>
@@ -104,7 +121,11 @@
                       size="xs"
                       variant="ghost"
                       color="error"
-                      @click="deleteSport(index)"
+                      @click="
+                        () => {
+                          void deleteSport(index)
+                        }
+                      "
                     >
                       {{ t('sports_button_delete') }}
                     </UButton>
@@ -126,7 +147,11 @@
                       variant="ghost"
                       color="neutral"
                       :loading="detectingSportId === item.content.id"
-                      @click="detectFromWorkouts(item.content)"
+                      @click="
+                        () => {
+                          void detectFromWorkouts(item.content)
+                        }
+                      "
                     >
                       Detect from Workouts
                     </UButton>
@@ -136,7 +161,11 @@
                       size="xs"
                       variant="ghost"
                       color="primary"
-                      @click="startEdit(index, item.content)"
+                      @click="
+                        () => {
+                          void startEdit(index, item.content)
+                        }
+                      "
                     >
                       {{ t('sports_button_edit') }}
                     </UButton>
@@ -147,7 +176,11 @@
                       size="xs"
                       variant="ghost"
                       color="neutral"
-                      @click="cancelEdit"
+                      @click="
+                        () => {
+                          void cancelEdit()
+                        }
+                      "
                     >
                       Cancel
                     </UButton>
@@ -156,7 +189,11 @@
                       size="xs"
                       variant="solid"
                       color="primary"
-                      @click="saveEdit(index)"
+                      @click="
+                        () => {
+                          void saveEdit(index)
+                        }
+                      "
                     >
                       {{ t('sports_button_save') }}
                     </UButton>
@@ -656,7 +693,14 @@
                     icon-color="text-yellow-500"
                   >
                     <template #actions>
-                      <UButton size="xs" variant="soft" @click="recalculateZones('power', 'edit')"
+                      <UButton
+                        size="xs"
+                        variant="soft"
+                        @click="
+                          () => {
+                            void recalculateZones('power', 'edit')
+                          }
+                        "
                         >Calculate Default</UButton
                       >
                     </template>
@@ -822,9 +866,16 @@
                     icon-color="text-red-500"
                   >
                     <template #actions>
-                      <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'edit')">{{
-                        t('sports_button_recalculate')
-                      }}</UButton>
+                      <UButton
+                        size="xs"
+                        variant="soft"
+                        @click="
+                          () => {
+                            void recalculateZones('hr', 'edit')
+                          }
+                        "
+                        >{{ t('sports_button_recalculate') }}</UButton
+                      >
                     </template>
                   </ProfileZoneEditor>
                 </div>
@@ -926,7 +977,15 @@
                           (val) => onThresholdPaceUnitChange('edit', val as PaceDisplayUnit)
                         "
                       />
-                      <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'edit')">
+                      <UButton
+                        size="xs"
+                        variant="soft"
+                        @click="
+                          () => {
+                            void recalculateZones('pace', 'edit')
+                          }
+                        "
+                      >
                         {{ t('sports_button_recalculate') }}
                       </UButton>
                     </template>
@@ -1028,10 +1087,25 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="showConfirmModal = false"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                showConfirmModal = false
+              }
+            "
             >Cancel</UButton
           >
-          <UButton color="primary" @click="confirmAutodetect">Apply Changes</UButton>
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                void confirmAutodetect()
+              }
+            "
+            >Apply Changes</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -1121,10 +1195,26 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="showWorkoutDetectModal = false">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                showWorkoutDetectModal = false
+              }
+            "
+          >
             Cancel
           </UButton>
-          <UButton color="primary" @click="applyWorkoutDetection">Apply Selected</UButton>
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                void applyWorkoutDetection()
+              }
+            "
+            >Apply Selected</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -1214,9 +1304,16 @@
                   icon-color="text-yellow-500"
                 >
                   <template #actions>
-                    <UButton size="xs" variant="soft" @click="recalculateZones('power', 'add')">{{
-                      t('sports_button_recalculate')
-                    }}</UButton>
+                    <UButton
+                      size="xs"
+                      variant="soft"
+                      @click="
+                        () => {
+                          void recalculateZones('power', 'add')
+                        }
+                      "
+                      >{{ t('sports_button_recalculate') }}</UButton
+                    >
                   </template>
                 </ProfileZoneEditor>
               </div>
@@ -1269,9 +1366,16 @@
                   icon-color="text-red-500"
                 >
                   <template #actions>
-                    <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'add')">{{
-                      t('sports_button_recalculate')
-                    }}</UButton>
+                    <UButton
+                      size="xs"
+                      variant="soft"
+                      @click="
+                        () => {
+                          void recalculateZones('hr', 'add')
+                        }
+                      "
+                      >{{ t('sports_button_recalculate') }}</UButton
+                    >
                   </template>
                 </ProfileZoneEditor>
               </div>
@@ -1509,7 +1613,15 @@
                           (val) => onThresholdPaceUnitChange('add', val as PaceDisplayUnit)
                         "
                       />
-                      <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'add')">
+                      <UButton
+                        size="xs"
+                        variant="soft"
+                        @click="
+                          () => {
+                            void recalculateZones('pace', 'add')
+                          }
+                        "
+                      >
                         {{ t('sports_button_recalculate') }}
                       </UButton>
                     </template>
@@ -1521,7 +1633,14 @@
             <div
               class="pt-6 flex justify-end gap-3 border-t dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900 pb-2 z-10"
             >
-              <UButton color="neutral" variant="ghost" @click="showAddModal = false"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    showAddModal = false
+                  }
+                "
                 >Cancel</UButton
               >
               <UButton type="submit" color="primary">{{ t('sports_button_create') }}</UButton>

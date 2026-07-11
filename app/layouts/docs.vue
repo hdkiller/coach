@@ -20,7 +20,11 @@
             color="neutral"
             variant="ghost"
             class="lg:hidden"
-            @click="isMobileMenuOpen = true"
+            @click="
+              () => {
+                isMobileMenuOpen = true
+              }
+            "
           />
 
           <NuxtLink to="/" class="flex items-center gap-2 shrink-0">

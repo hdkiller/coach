@@ -199,7 +199,16 @@
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <UButton color="primary" @click="isOpen = false"> Done </UButton>
+        <UButton
+          color="primary"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+        >
+          Done
+        </UButton>
       </div>
     </template>
   </UModal>

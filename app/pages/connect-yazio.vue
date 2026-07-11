@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Yazio')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -89,12 +98,25 @@
 
           <template #footer>
             <div class="flex justify-end gap-3">
-              <UButton color="neutral" variant="outline" @click="goBack">{{ cancel() }}</UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                @click="
+                  () => {
+                    void goBack()
+                  }
+                "
+                >{{ cancel() }}</UButton
+              >
               <UButton
                 :loading="loading"
                 :disabled="!username || !password"
                 color="success"
-                @click="handleConnect"
+                @click="
+                  () => {
+                    void handleConnect()
+                  }
+                "
               >
                 {{ p('button', 'Connect Yazio') }}
               </UButton>

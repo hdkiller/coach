@@ -2,7 +2,11 @@
   <div
     :id="'workout-' + workout.id"
     class="group cursor-pointer bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-all duration-500 overflow-hidden w-full max-w-full relative min-h-[340px] flex flex-col"
-    @click="$emit('click')"
+    @click="
+      () => {
+        void $emit('click')
+      }
+    "
   >
     <!-- GHOST BACKGROUND ROUTE -->
     <UiWorkoutRoutePreview

@@ -19,7 +19,16 @@
           <UInput v-model="plan.slug" placeholder="8-week-marathon-base" class="w-full" />
         </UFormField>
         <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <UButton color="neutral" variant="soft" class="w-full sm:w-auto" @click="generateSlug">
+          <UButton
+            color="neutral"
+            variant="soft"
+            class="w-full sm:w-auto"
+            @click="
+              () => {
+                void generateSlug()
+              }
+            "
+          >
             Generate from name
           </UButton>
           <UButton

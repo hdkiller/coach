@@ -51,7 +51,11 @@
               color="neutral"
               variant="ghost"
               size="xs"
-              @click="closeChat"
+              @click="
+                () => {
+                  void closeChat()
+                }
+              "
             />
           </div>
         </div>
@@ -145,7 +149,11 @@
               :class="[
                 shouldBeWide ? 'animate-pulse text-primary-500' : 'text-gray-400 dark:text-gray-500'
               ]"
-              @click="toggleExpand"
+              @click="
+                () => {
+                  void toggleExpand()
+                }
+              "
             />
           </template>
           <template #trailing>
@@ -164,7 +172,11 @@
                 size="sm"
                 class="rounded-xl px-2.5 sm:px-4 font-bold"
                 :loading="chatStatus === 'streaming'"
-                @click="handleSubmit"
+                @click="
+                  () => {
+                    void handleSubmit()
+                  }
+                "
               />
             </div>
           </template>

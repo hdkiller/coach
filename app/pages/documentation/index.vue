@@ -25,7 +25,11 @@
       <!-- Athlete Card -->
       <UCard
         class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group flex flex-col h-full"
-        @click="navigateTo('/documentation/athletes')"
+        @click="
+          () => {
+            void navigateTo('/documentation/athletes')
+          }
+        "
       >
         <template #header>
           <div class="flex items-center gap-3">
@@ -56,7 +60,11 @@
       <!-- Coach Card -->
       <UCard
         class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group flex flex-col h-full"
-        @click="navigateTo('/documentation/coaches')"
+        @click="
+          () => {
+            void navigateTo('/documentation/coaches')
+          }
+        "
       >
         <template #header>
           <div class="flex items-center gap-3">
@@ -90,7 +98,11 @@
       <!-- Developer Card -->
       <UCard
         class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group flex flex-col h-full"
-        @click="navigateTo('/documentation/developers')"
+        @click="
+          () => {
+            void navigateTo('/documentation/developers')
+          }
+        "
       >
         <template #header>
           <div class="flex items-center gap-3">

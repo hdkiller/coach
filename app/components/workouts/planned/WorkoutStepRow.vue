@@ -137,7 +137,11 @@
                 size="xs"
                 class="p-0 h-auto text-[8px] font-black uppercase tracking-tighter"
                 :color="localIsRamp ? 'primary' : 'neutral'"
-                @click="toggleRamp"
+                @click="
+                  () => {
+                    void toggleRamp()
+                  }
+                "
               >
                 {{ localIsRamp ? 'Ramp On' : 'Set Ramp' }}
               </UButton>
@@ -226,7 +230,11 @@
               variant="ghost"
               size="xs"
               icon="i-heroicons-trash"
-              @click="$emit('remove')"
+              @click="
+                () => {
+                  void $emit('remove')
+                }
+              "
             />
           </div>
         </div>
@@ -265,7 +273,11 @@
               size="xs"
               class="p-0 h-auto text-[8px] font-black uppercase"
               :color="localIsRamp ? 'primary' : 'neutral'"
-              @click="toggleRamp"
+              @click="
+                () => {
+                  void toggleRamp()
+                }
+              "
             >
               {{ localIsRamp ? 'Ramp' : '+ Ramp' }}
             </UButton>

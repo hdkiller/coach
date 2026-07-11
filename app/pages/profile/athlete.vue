@@ -32,7 +32,11 @@
               icon="i-heroicons-share"
               size="sm"
               class="font-bold"
-              @click="isShareModalOpen = true"
+              @click="
+                () => {
+                  isShareModalOpen = true
+                }
+              "
             >
               <span class="hidden sm:inline">Share</span>
             </UButton>
@@ -56,7 +60,16 @@
                     @update:model-value="(val) => handleDateChange(val as any)"
                   />
                   <div class="mt-2 pt-2 border-t flex justify-end">
-                    <UButton size="xs" color="neutral" variant="ghost" @click="resetToLatest">
+                    <UButton
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      @click="
+                        () => {
+                          void resetToLatest()
+                        }
+                      "
+                    >
                       View Latest
                     </UButton>
                   </div>
@@ -534,12 +547,28 @@
           <!-- Actions -->
           <div class="actions mt-6 flex justify-between items-center">
             <div class="flex gap-4">
-              <UButton color="neutral" variant="outline" @click="handlePrint">
+              <UButton
+                color="neutral"
+                variant="outline"
+                @click="
+                  () => {
+                    void handlePrint()
+                  }
+                "
+              >
                 <UIcon name="i-heroicons-printer" class="w-4 h-4 mr-2" />
                 Print / Save as PDF
               </UButton>
 
-              <UButton v-if="isViewingHistorical" color="primary" @click="resetToLatest">
+              <UButton
+                v-if="isViewingHistorical"
+                color="primary"
+                @click="
+                  () => {
+                    void resetToLatest()
+                  }
+                "
+              >
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-2" />
                 View Latest Profile
               </UButton>
@@ -549,7 +578,11 @@
                 color="primary"
                 :loading="userStore.generating"
                 :disabled="userStore.generating"
-                @click="generateNewProfile"
+                @click="
+                  () => {
+                    void generateNewProfile()
+                  }
+                "
               >
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-2" />
                 {{ userStore.generating ? 'Generating...' : 'Regenerate Profile' }}
@@ -574,10 +607,26 @@
             }}
           </p>
           <div v-if="isViewingHistorical" class="mt-4">
-            <UButton color="primary" @click="resetToLatest"> View Latest Profile </UButton>
+            <UButton
+              color="primary"
+              @click="
+                () => {
+                  void resetToLatest()
+                }
+              "
+            >
+              View Latest Profile
+            </UButton>
           </div>
           <div v-else class="mt-4">
-            <UButton :loading="userStore.generating" @click="generateNewProfile">
+            <UButton
+              :loading="userStore.generating"
+              @click="
+                () => {
+                  void generateNewProfile()
+                }
+              "
+            >
               Generate Profile
             </UButton>
           </div>
@@ -606,7 +655,11 @@
                 icon="i-heroicons-clipboard"
                 color="neutral"
                 variant="outline"
-                @click="copyToClipboard"
+                @click="
+                  () => {
+                    void copyToClipboard()
+                  }
+                "
               >
                 Copy
               </UButton>
@@ -630,7 +683,16 @@
       </div>
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isShareModalOpen = false
+          }
+        "
+      />
     </template>
   </UModal>
 </template>

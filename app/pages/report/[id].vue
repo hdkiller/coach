@@ -626,7 +626,11 @@
                 v-for="rn in report.nutrition"
                 :key="rn.id"
                 class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                @click="navigateTo(`/nutrition/${rn.nutrition.id}`)"
+                @click="
+                  () => {
+                    void navigateTo(`/nutrition/${rn.nutrition.id}`)
+                  }
+                "
               >
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
@@ -683,7 +687,11 @@
                 v-for="rw in report.workouts"
                 :key="rw.id"
                 class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                @click="navigateTo(`/workouts/${rw.workout.id}`)"
+                @click="
+                  () => {
+                    void navigateTo(`/workouts/${rw.workout.id}`)
+                  }
+                "
               >
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
@@ -752,7 +760,15 @@
           <!-- Actions -->
           <div class="mt-6 flex justify-between items-center">
             <div class="flex gap-4">
-              <UButton color="neutral" variant="outline" @click="handlePrint">
+              <UButton
+                color="neutral"
+                variant="outline"
+                @click="
+                  () => {
+                    void handlePrint()
+                  }
+                "
+              >
                 <UIcon name="i-heroicons-printer" class="w-4 h-4 mr-2" />
                 {{ tr('print_pdf', 'Print / Save as PDF') }}
               </UButton>

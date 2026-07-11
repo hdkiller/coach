@@ -52,7 +52,11 @@
           :variant="selectedZoneType === type ? 'solid' : 'ghost'"
           size="xs"
           class="font-black uppercase tracking-widest text-[9px] px-3"
-          @click="selectedZoneType = type as 'hr' | 'power'"
+          @click="
+            () => {
+              selectedZoneType = type as 'hr' | 'power'
+            }
+          "
         >
           {{ type === 'hr' ? 'Heart Rate' : 'Power Output' }}
         </UButton>

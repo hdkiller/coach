@@ -104,7 +104,15 @@
       </div>
 
       <div class="pt-4 flex justify-end">
-        <UButton :loading="saving" color="primary" @click="saveMeasurement">
+        <UButton
+          :loading="saving"
+          color="primary"
+          @click="
+            () => {
+              void saveMeasurement()
+            }
+          "
+        >
           {{ t('measurements_button_add') }}
         </UButton>
       </div>
@@ -224,7 +232,11 @@
                 icon="i-heroicons-pencil-square"
                 class="text-gray-400 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                 :loading="editingId === row.original.id"
-                @click="openEditModal(row.original)"
+                @click="
+                  () => {
+                    void openEditModal(row.original)
+                  }
+                "
               />
             </div>
           </template>
@@ -254,7 +266,11 @@
                 icon="i-heroicons-pencil-square"
                 class="text-gray-400 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                 :loading="editingId === row.original.id"
-                @click="openEditModal(row.original)"
+                @click="
+                  () => {
+                    void openEditModal(row.original)
+                  }
+                "
               />
             </div>
           </template>
@@ -268,7 +284,11 @@
                 icon="i-heroicons-trash"
                 class="opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                 :loading="deletingId === row.original.id"
-                @click="deleteMeasurement(row.original)"
+                @click="
+                  () => {
+                    void deleteMeasurement(row.original)
+                  }
+                "
               >
                 {{ t('measurements_button_delete') }}
               </UButton>
@@ -281,7 +301,11 @@
             color="neutral"
             variant="soft"
             :loading="loadingMore"
-            @click="loadMoreMeasurements"
+            @click="
+              () => {
+                void loadMoreMeasurements()
+              }
+            "
           >
             {{ tr('measurements_button_load_more', 'Load Older Entries') }}
           </UButton>
@@ -354,12 +378,26 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="showEditModal = false">{{
-            t('measurements_button_cancel')
-          }}</UButton>
-          <UButton color="primary" :loading="savingEdit" @click="saveEdit">{{
-            t('measurements_button_save')
-          }}</UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                showEditModal = false
+              }
+            "
+            >{{ t('measurements_button_cancel') }}</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="savingEdit"
+            @click="
+              () => {
+                void saveEdit()
+              }
+            "
+            >{{ t('measurements_button_save') }}</UButton
+          >
         </div>
       </template>
     </UModal>

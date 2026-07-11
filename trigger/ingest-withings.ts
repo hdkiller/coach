@@ -25,6 +25,7 @@ import { roundToTwoDecimals } from '../server/utils/number'
 import { triggerReadinessCheckIfNeeded } from '../server/utils/services/wellness-analysis'
 import { athleteMetricsService } from '../server/utils/athleteMetricsService'
 import { bodyMeasurementService } from '../server/utils/services/bodyMeasurementService'
+import { buildAuthFailureResult } from '../server/utils/ingestion-failure'
 import type { IngestionResult } from './types'
 
 export const ingestWithingsTask = task({
@@ -459,6 +460,15 @@ export const ingestWithingsTask = task({
         endDate
       }
     } catch (error) {
+      const authFailure = buildAuthFailureResult(error, { userId, startDate, endDate })
+      if (authFailure) {
+        logger.warn('[Withings Ingest] Authorization expired or revoked', {
+          integrationId: integration.id,
+          message: authFailure.message
+        })
+        return authFailure
+      }
+
       logger.error('[Withings Ingest] Error ingesting data', { error })
 
       // Update error status

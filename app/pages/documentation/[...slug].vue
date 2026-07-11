@@ -60,7 +60,16 @@
           Back to Index
         </UButton>
 
-        <UButton variant="link" color="neutral" icon="i-lucide-arrow-up" @click="scrollToTop">
+        <UButton
+          variant="link"
+          color="neutral"
+          icon="i-lucide-arrow-up"
+          @click="
+            () => {
+              void scrollToTop()
+            }
+          "
+        >
           Back to top
         </UButton>
       </div>

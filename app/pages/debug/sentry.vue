@@ -69,23 +69,61 @@
           Use these buttons to verify your Sentry configuration.
         </p>
 
-        <UButton color="info" @click="triggerSentryLogger">
+        <UButton
+          color="info"
+          @click="
+            () => {
+              void triggerSentryLogger()
+            }
+          "
+        >
           Trigger Sentry.logger.info (As requested)
         </UButton>
 
-        <UButton color="primary" @click="triggerCaptureMessage">
+        <UButton
+          color="primary"
+          @click="
+            () => {
+              void triggerCaptureMessage()
+            }
+          "
+        >
           Trigger Sentry.captureMessage
         </UButton>
 
-        <UButton color="neutral" @click="triggerConsoleLog">
+        <UButton
+          color="neutral"
+          @click="
+            () => {
+              void triggerConsoleLog()
+            }
+          "
+        >
           Trigger console.log (Caught by consoleLoggingIntegration)
         </UButton>
 
-        <UButton color="error" @click="triggerError"> Trigger and Capture Exception </UButton>
+        <UButton
+          color="error"
+          @click="
+            () => {
+              void triggerError()
+            }
+          "
+        >
+          Trigger and Capture Exception
+        </UButton>
 
         <USeparator label="Server Side" />
 
-        <UButton color="neutral" :loading="loadingServer" @click="triggerServerLog">
+        <UButton
+          color="neutral"
+          :loading="loadingServer"
+          @click="
+            () => {
+              void triggerServerLog()
+            }
+          "
+        >
           Trigger Server-Side Logs
         </UButton>
       </div>

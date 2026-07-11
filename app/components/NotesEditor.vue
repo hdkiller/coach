@@ -16,7 +16,11 @@
         variant="ghost"
         size="sm"
         class="font-black uppercase tracking-widest text-[10px]"
-        @click="startEditing"
+        @click="
+          () => {
+            void startEditing()
+          }
+        "
       >
         {{ hasNotes ? 'Edit' : 'Add Notes' }}
       </UButton>
@@ -28,7 +32,11 @@
           class="font-black uppercase tracking-widest text-[10px]"
           :loading="saving"
           :disabled="saving"
-          @click="saveNotes"
+          @click="
+            () => {
+              void saveNotes()
+            }
+          "
         >
           Save
         </UButton>
@@ -39,7 +47,11 @@
           size="sm"
           class="font-black uppercase tracking-widest text-[10px]"
           :disabled="saving"
-          @click="cancelEditing"
+          @click="
+            () => {
+              void cancelEditing()
+            }
+          "
         >
           Cancel
         </UButton>
@@ -68,7 +80,11 @@
           color="primary"
           variant="soft"
           class="mt-6 font-black uppercase tracking-widest text-[9px]"
-          @click="startEditing"
+          @click="
+            () => {
+              void startEditing()
+            }
+          "
         >
           Initialize Note
         </UButton>
@@ -114,9 +130,13 @@
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :class="{
               'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
-                editor.isActive('bold')
+                editor?.isActive('bold')
             }"
-            @click="editor.chain().focus().toggleBold().run()"
+            @click="
+              () => {
+                editor?.chain().focus().toggleBold().run()
+              }
+            "
           />
           <!-- Italic -->
           <UButton
@@ -127,9 +147,13 @@
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :class="{
               'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
-                editor.isActive('italic')
+                editor?.isActive('italic')
             }"
-            @click="editor.chain().focus().toggleItalic().run()"
+            @click="
+              () => {
+                editor?.chain().focus().toggleItalic().run()
+              }
+            "
           />
 
           <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 align-middle" />
@@ -143,9 +167,13 @@
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :class="{
               'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
-                editor.isActive('heading', { level: 2 })
+                editor?.isActive('heading', { level: 2 })
             }"
-            @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
+            @click="
+              () => {
+                editor?.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+            "
           />
 
           <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1" />
@@ -159,9 +187,13 @@
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :class="{
               'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
-                editor.isActive('bulletList')
+                editor?.isActive('bulletList')
             }"
-            @click="editor.chain().focus().toggleBulletList().run()"
+            @click="
+              () => {
+                editor?.chain().focus().toggleBulletList().run()
+              }
+            "
           />
           <!-- Ordered List -->
           <UButton
@@ -172,9 +204,13 @@
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :class="{
               'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
-                editor.isActive('orderedList')
+                editor?.isActive('orderedList')
             }"
-            @click="editor.chain().focus().toggleOrderedList().run()"
+            @click="
+              () => {
+                editor?.chain().focus().toggleOrderedList().run()
+              }
+            "
           />
 
           <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1" />
@@ -186,8 +222,12 @@
             color="neutral"
             variant="ghost"
             class="hover:bg-primary-50 dark:hover:bg-primary-950"
-            :disabled="!editor.can().undo()"
-            @click="editor.chain().focus().undo().run()"
+            :disabled="!editor?.can().undo()"
+            @click="
+              () => {
+                editor?.chain().focus().undo().run()
+              }
+            "
           />
         </div>
 

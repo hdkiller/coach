@@ -7,7 +7,11 @@
       body: 'flex-1 py-3 px-4',
       footer: 'h-12 flex items-center shrink-0 border-t border-gray-100 dark:border-gray-800 px-4'
     }"
-    @click="navigateTo(`/recommendations/${recommendation.id}`)"
+    @click="
+      () => {
+        void navigateTo(`/recommendations/${recommendation.id}`)
+      }
+    "
   >
     <template #header>
       <div class="flex justify-between items-center">
@@ -29,7 +33,11 @@
               variant="ghost"
               size="sm"
               class="hover:text-primary-500 p-1"
-              @click="$emit('toggle-pin', recommendation)"
+              @click="
+                () => {
+                  void $emit('toggle-pin', recommendation)
+                }
+              "
             />
           </UTooltip>
           <UDropdownMenu :items="menuItems">
@@ -76,7 +84,11 @@
               variant="ghost"
               size="xs"
               class="group/btn"
-              @click="$emit('update-status', recommendation, 'COMPLETED')"
+              @click="
+                () => {
+                  void $emit('update-status', recommendation, 'COMPLETED')
+                }
+              "
             >
               <template #leading>
                 <UIcon name="i-heroicons-check" class="w-5 h-5 group-hover/btn:hidden" />
@@ -94,7 +106,11 @@
               variant="ghost"
               size="xs"
               class="group/btn"
-              @click="$emit('update-status', recommendation, 'DISMISSED')"
+              @click="
+                () => {
+                  void $emit('update-status', recommendation, 'DISMISSED')
+                }
+              "
             >
               <template #leading>
                 <UIcon name="i-heroicons-eye-slash" class="w-5 h-5 group-hover/btn:hidden" />

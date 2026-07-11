@@ -32,7 +32,11 @@
               v-for="plan in templates"
               :key="plan.id"
               class="relative group hover:border-primary/50 transition-colors cursor-pointer"
-              @click="viewPlan(plan.id)"
+              @click="
+                () => {
+                  void viewPlan(plan.id)
+                }
+              "
             >
               <template #header>
                 <div class="flex justify-between items-start gap-2">
@@ -131,7 +135,11 @@
               v-for="plan in paginatedHistory"
               :key="plan.id"
               class="cursor-pointer hover:border-primary/50 transition-colors"
-              @click="viewPlan(plan.id)"
+              @click="
+                () => {
+                  void viewPlan(plan.id)
+                }
+              "
             >
               <div class="flex items-center justify-between p-3 sm:p-4">
                 <div>
@@ -152,7 +160,11 @@
                 color="neutral"
                 variant="ghost"
                 size="sm"
-                @click="showAllHistory = true"
+                @click="
+                  () => {
+                    showAllHistory = true
+                  }
+                "
               >
                 Show All ({{ history.length }})
               </UButton>
@@ -163,7 +175,11 @@
                   variant="ghost"
                   size="sm"
                   icon="i-heroicons-chevron-left"
-                  @click="previousPage"
+                  @click="
+                    () => {
+                      void previousPage()
+                    }
+                  "
                 />
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                   Page {{ currentHistoryPage }} of {{ totalHistoryPages }}
@@ -174,7 +190,11 @@
                   variant="ghost"
                   size="sm"
                   icon="i-heroicons-chevron-right"
-                  @click="nextPage"
+                  @click="
+                    () => {
+                      void nextPage()
+                    }
+                  "
                 />
               </div>
             </div>
@@ -197,8 +217,26 @@
     </template>
 
     <template #footer>
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="isModalOpen = false" />
-      <UButton label="Start Plan" color="primary" :loading="activating" @click="confirmUse" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isModalOpen = false
+          }
+        "
+      />
+      <UButton
+        label="Start Plan"
+        color="primary"
+        :loading="activating"
+        @click="
+          () => {
+            void confirmUse()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -215,9 +253,22 @@
           label="Use Template"
           color="primary"
           icon="i-heroicons-play"
-          @click="useTemplateFromDetail"
+          @click="
+            () => {
+              void useTemplateFromDetail()
+            }
+          "
         />
-        <UButton label="Close" color="neutral" variant="ghost" @click="isPlanDetailOpen = false" />
+        <UButton
+          label="Close"
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isPlanDetailOpen = false
+            }
+          "
+        />
       </div>
     </template>
   </PlanOverviewModal>
@@ -230,10 +281,26 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2 w-full">
-        <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="error" :loading="deletingId !== null" @click="executeDeleteTemplate">
+        <UButton
+          color="error"
+          :loading="deletingId !== null"
+          @click="
+            () => {
+              void executeDeleteTemplate()
+            }
+          "
+        >
           Delete
         </UButton>
       </div>

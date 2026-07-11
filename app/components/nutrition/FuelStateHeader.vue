@@ -58,7 +58,11 @@
         v-for="macro in macros"
         :key="macro.label"
         class="bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
-        @click="showMacroExplain(macro)"
+        @click="
+          () => {
+            void showMacroExplain(macro)
+          }
+        "
       >
         <div class="flex items-center justify-between mb-2 sm:mb-3">
           <div class="flex items-center gap-1.5 sm:gap-2">

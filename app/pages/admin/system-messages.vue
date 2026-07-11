@@ -13,7 +13,11 @@
           icon="i-heroicons-plus"
           label="New Message"
           color="primary"
-          @click="openCreateModal"
+          @click="
+            () => {
+              void openCreateModal()
+            }
+          "
         />
       </div>
     </div>
@@ -103,13 +107,21 @@
                       color="neutral"
                       variant="ghost"
                       icon="i-heroicons-pencil-square-20-solid"
-                      @click="openEditModal(msg)"
+                      @click="
+                        () => {
+                          void openEditModal(msg)
+                        }
+                      "
                     />
                     <UButton
                       color="error"
                       variant="ghost"
                       icon="i-heroicons-trash-20-solid"
-                      @click="deleteMessage(msg.id)"
+                      @click="
+                        () => {
+                          void deleteMessage(msg.id)
+                        }
+                      "
                     />
                   </div>
                 </td>
@@ -209,7 +221,14 @@
               <div
                 class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200 dark:border-gray-800"
               >
-                <UButton color="neutral" variant="ghost" @click="isModalOpen = false"
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      isModalOpen = false
+                    }
+                  "
                   >Cancel</UButton
                 >
                 <UButton type="submit" color="primary" :loading="saving">Save Message</UButton>

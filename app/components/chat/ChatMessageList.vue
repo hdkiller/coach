@@ -820,7 +820,16 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
           {{ loadError }}
         </p>
-        <UButton color="primary" variant="outline" class="mt-4" @click="emit('retry-load')">
+        <UButton
+          color="primary"
+          variant="outline"
+          class="mt-4"
+          @click="
+            () => {
+              void emit('retry-load')
+            }
+          "
+        >
           Retry
         </UButton>
       </div>
@@ -870,13 +879,21 @@
                   color="neutral"
                   variant="ghost"
                   :disabled="savingEditedMessage"
-                  @click="cancelEdit"
+                  @click="
+                    () => {
+                      void cancelEdit()
+                    }
+                  "
                 />
                 <UButton
                   label="Update"
                   color="neutral"
                   :loading="savingEditedMessage"
-                  @click="saveEdit"
+                  @click="
+                    () => {
+                      void saveEdit()
+                    }
+                  "
                 />
               </div>
             </div>
@@ -926,7 +943,11 @@
                     square
                     aria-label="Remember this message"
                     icon="i-heroicons-bookmark"
-                    @click="rememberMessage(message)"
+                    @click="
+                      () => {
+                        void rememberMessage(message)
+                      }
+                    "
                   />
                   <UButton
                     color="neutral"
@@ -935,7 +956,11 @@
                     square
                     aria-label="Forget this message"
                     icon="i-heroicons-bookmark-slash"
-                    @click="forgetMessage(message)"
+                    @click="
+                      () => {
+                        void forgetMessage(message)
+                      }
+                    "
                   />
                   <UButton
                     color="neutral"
@@ -949,7 +974,11 @@
                         : `Read aloud with ${selectedGeminiVoice.name}, ${selectedVoicePreset.label}, at ${voiceSpeed} speed`
                     "
                     :icon="isTtsPlaying(message) ? 'i-heroicons-stop' : 'i-heroicons-speaker-wave'"
-                    @click="playAssistantMessage(message, defaultVoicePreset)"
+                    @click="
+                      () => {
+                        void playAssistantMessage(message, defaultVoicePreset)
+                      }
+                    "
                   />
                   <UDropdownMenu
                     :items="getTtsMenuItems(message)"
@@ -970,7 +999,11 @@
               <ChatMessageContent
                 :message="message"
                 :all-messages="messages"
-                @click="handleMessageTap(message)"
+                @click="
+                  () => {
+                    void handleMessageTap(message)
+                  }
+                "
                 @tool-approval="handleToolApproval"
               />
             </div>
@@ -994,7 +1027,11 @@
                 color="neutral"
                 variant="ghost"
                 label="Resume"
-                @click="resumeTurn(getMessageTurnId(message))"
+                @click="
+                  () => {
+                    resumeTurn(getMessageTurnId(message))
+                  }
+                "
               />
               <UButton
                 v-if="['INTERRUPTED', 'FAILED'].includes(getMessageTurnStatus(message) || '')"
@@ -1002,7 +1039,11 @@
                 color="neutral"
                 variant="ghost"
                 label="Retry"
-                @click="retryTurn(getMessageTurnId(message))"
+                @click="
+                  () => {
+                    retryTurn(getMessageTurnId(message))
+                  }
+                "
               />
             </div>
           </template>
@@ -1027,7 +1068,11 @@
                   square
                   aria-label="Copy message"
                   icon="i-heroicons-clipboard-document"
-                  @click="copyMessage(message)"
+                  @click="
+                    () => {
+                      void copyMessage(message)
+                    }
+                  "
                 />
                 <UButton
                   color="neutral"
@@ -1036,7 +1081,11 @@
                   square
                   aria-label="Remember this message"
                   icon="i-heroicons-bookmark"
-                  @click="rememberMessage(message)"
+                  @click="
+                    () => {
+                      void rememberMessage(message)
+                    }
+                  "
                 />
                 <UButton
                   color="neutral"
@@ -1045,7 +1094,11 @@
                   square
                   aria-label="Forget this message"
                   icon="i-heroicons-bookmark-slash"
-                  @click="forgetMessage(message)"
+                  @click="
+                    () => {
+                      void forgetMessage(message)
+                    }
+                  "
                 />
                 <UButton
                   color="neutral"
@@ -1054,7 +1107,11 @@
                   square
                   aria-label="Edit message"
                   icon="i-heroicons-pencil-square"
-                  @click="handleEditMessage(message)"
+                  @click="
+                    () => {
+                      void handleEditMessage(message)
+                    }
+                  "
                 />
               </div>
             </template>

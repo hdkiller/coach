@@ -10,7 +10,11 @@
         variant="soft"
         size="sm"
         icon="i-heroicons-plus"
-        @click="showWizard = true"
+        @click="
+          () => {
+            showWizard = true
+          }
+        "
       >
         Add Goal
       </UButton>
@@ -25,7 +29,11 @@
               icon="i-heroicons-x-mark"
               variant="ghost"
               size="sm"
-              @click="showWizard = false"
+              @click="
+                () => {
+                  showWizard = false
+                }
+              "
             />
           </div>
         </template>
@@ -55,7 +63,15 @@
       <p class="text-gray-500 dark:text-gray-400 mt-1 mb-6">
         Create a goal to get personalized AI coaching advice.
       </p>
-      <UButton color="primary" @click="showWizard = true">Create First Goal</UButton>
+      <UButton
+        color="primary"
+        @click="
+          () => {
+            showWizard = true
+          }
+        "
+        >Create First Goal</UButton
+      >
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -76,8 +92,25 @@
       :ui="{ footer: 'justify-end' }"
     >
       <template #footer="{ close }">
-        <UButton label="Cancel" variant="outline" color="neutral" @click="close" />
-        <UButton label="Delete Goal" color="error" @click="confirmDelete" />
+        <UButton
+          label="Cancel"
+          variant="outline"
+          color="neutral"
+          @click="
+            () => {
+              void close()
+            }
+          "
+        />
+        <UButton
+          label="Delete Goal"
+          color="error"
+          @click="
+            () => {
+              void confirmDelete()
+            }
+          "
+        />
       </template>
     </UModal>
   </div>

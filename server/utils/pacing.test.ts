@@ -27,15 +27,15 @@ describe('Pacing Utils', () => {
       expect(splits).toHaveLength(3)
 
       // Check first split
-      expect(splits[0].lap).toBe(1)
-      expect(splits[0].distance).toBe(1000)
-      expect(splits[0].time).toBe(240) // 4:00
-      expect(splits[0].pace).toBe('4:00/km')
+      expect(splits[0]!.lap).toBe(1)
+      expect(splits[0]!.distance).toBe(1000)
+      expect(splits[0]!.time).toBe(240) // 4:00
+      expect(splits[0]!.pace).toBe('4:00/km')
 
       // Check last split
-      expect(splits[2].lap).toBe(3)
-      expect(splits[2].distance).toBe(1000)
-      expect(splits[2].time).toBe(240)
+      expect(splits[2]!.lap).toBe(3)
+      expect(splits[2]!.distance).toBe(1000)
+      expect(splits[2]!.time).toBe(240)
     })
 
     it('handles partial final lap', () => {
@@ -53,14 +53,14 @@ describe('Pacing Utils', () => {
       expect(splits).toHaveLength(2)
 
       // Full lap
-      expect(splits[0].distance).toBe(1000)
-      expect(splits[0].time).toBe(240)
+      expect(splits[0]!.distance).toBe(1000)
+      expect(splits[0]!.time).toBe(240)
 
       // Partial lap
-      expect(splits[1].lap).toBe(2)
-      expect(splits[1].distance).toBe(500)
-      expect(splits[1].time).toBe(120)
-      expect(splits[1].pace).toBe('4:00/km')
+      expect(splits[1]!.lap).toBe(2)
+      expect(splits[1]!.distance).toBe(500)
+      expect(splits[1]!.time).toBe(120)
+      expect(splits[1]!.pace).toBe('4:00/km')
     })
 
     it('ignores very short remaining distance (<100m)', () => {
@@ -80,7 +80,7 @@ describe('Pacing Utils', () => {
       const splits = calculateLapSplits(timeData, distanceData, 1000)
 
       expect(splits).toHaveLength(1) // Should ignore the 50m lap
-      expect(splits[0].distance).toBe(1000)
+      expect(splits[0]!.distance).toBe(1000)
     })
   })
 
@@ -182,13 +182,13 @@ describe('Pacing Utils', () => {
 
       const result = calculateTimeInPaceZones(velocityData, timeData, zones)
 
-      expect(result[0].zone).toBe('Easy')
-      expect(result[0].timeInZone).toBe(2)
-      expect(result[0].percentage).toBe(50)
+      expect(result[0]!.zone).toBe('Easy')
+      expect(result[0]!.timeInZone).toBe(2)
+      expect(result[0]!.percentage).toBe(50)
 
-      expect(result[1].zone).toBe('Fast')
-      expect(result[1].timeInZone).toBe(2)
-      expect(result[1].percentage).toBe(50)
+      expect(result[1]!.zone).toBe('Fast')
+      expect(result[1]!.timeInZone).toBe(2)
+      expect(result[1]!.percentage).toBe(50)
     })
   })
 
@@ -203,7 +203,7 @@ describe('Pacing Utils', () => {
       const surges = detectSurges(velocity, time, 1.0)
 
       expect(surges.length).toBeGreaterThan(0)
-      expect(surges[0].increase).toBeGreaterThan(1.0)
+      expect(surges[0]!.increase).toBeGreaterThan(1.0)
     })
   })
 })

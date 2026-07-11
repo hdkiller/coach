@@ -49,7 +49,11 @@
         v-if="heroItem"
         :item="heroItem"
         :date-label="getDateLabel(heroItem.date, heroItem.type)"
-        @click="navigateActivity(heroItem)"
+        @click="
+          () => {
+            void navigateActivity(heroItem)
+          }
+        "
       />
 
       <!-- Activity List -->
@@ -66,7 +70,11 @@
           :key="item.id"
           :item="item"
           :date-label="getDateLabel(item.date, item.type)"
-          @click="navigateActivity(item)"
+          @click="
+            () => {
+              void navigateActivity(item)
+            }
+          "
         />
       </div>
     </div>

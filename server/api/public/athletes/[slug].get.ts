@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     },
     profile: {
       ...profile,
-      sections: [...profile.sections]
+      sections: [...(Array.isArray(profile.sections) ? profile.sections : [])]
         .filter((section) => section.enabled)
         .sort((a, b) => a.order - b.order)
     },

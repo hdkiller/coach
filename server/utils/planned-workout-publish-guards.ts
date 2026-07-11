@@ -24,7 +24,7 @@ export type PlannedWorkoutPublishContext = {
     tss: number | null
     managedBy: string | null
     externalId: string | null
-    syncStatus: string
+    syncStatus: string | null
     syncConflict: boolean
     structuredWorkout: unknown
     lastGenerationSettingsSnapshot: unknown

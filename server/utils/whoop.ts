@@ -1,6 +1,7 @@
 import type { Integration } from '@prisma/client'
 import { prisma } from './db'
 import { normalizeWhoopSport } from './activity-mapping'
+import { IntegrationAuthError, IntegrationProviderError } from './integration-errors'
 
 interface WhoopTokenResponse {
   access_token: string
@@ -15,7 +16,12 @@ interface WhoopTokenResponse {
  */
 export async function refreshWhoopToken(integration: Integration): Promise<Integration> {
   if (!integration.refreshToken) {
-    throw new Error('No refresh token available for Whoop integration')
+    throw new IntegrationAuthError({
+      provider: 'whoop',
+      integrationId: integration.id,
+      code: 'AUTH_MISSING',
+      message: 'No refresh token available for Whoop integration'
+    })
   }
 
   const clientId = process.env.WHOOP_CLIENT_ID
@@ -45,14 +51,29 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
     const errorText = await response.text()
     console.error('Whoop token refresh failed:', errorText)
 
-    // If we get a 400 Bad Request during refresh, it typically means the refresh token is invalid/revoked
-    if (response.status === 400) {
+    if (response.status === 400 || response.status === 401) {
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
           syncStatus: 'FAILED',
           errorMessage: `Refresh token revoked or invalid: ${errorText}`
         }
+      })
+
+      throw new IntegrationAuthError({
+        provider: 'whoop',
+        integrationId: integration.id,
+        statusCode: response.status,
+        message: 'Whoop authorization expired or was revoked. Please reconnect Whoop.'
+      })
+    }
+
+    if (response.status >= 500) {
+      throw new IntegrationProviderError({
+        provider: 'whoop',
+        integrationId: integration.id,
+        statusCode: response.status,
+        message: `Whoop token refresh unavailable: ${response.status} ${response.statusText}`
       })
     }
 

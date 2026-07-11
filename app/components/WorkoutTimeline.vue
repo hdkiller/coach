@@ -50,7 +50,11 @@
           :variant="selectedMetrics.includes(metric.key) ? 'solid' : 'ghost'"
           size="xs"
           class="font-black uppercase tracking-widest text-[9px] px-3"
-          @click="toggleMetric(metric.key)"
+          @click="
+            () => {
+              void toggleMetric(metric.key)
+            }
+          "
         >
           {{ metric.label }}
         </UButton>

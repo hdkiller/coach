@@ -119,13 +119,27 @@
           Accepted: {{ recommendation?.userAccepted }}
         </div> -->
 
-        <UButton color="neutral" variant="outline" @click="isOpen = false"> Close </UButton>
+        <UButton
+          color="neutral"
+          variant="outline"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+        >
+          Close
+        </UButton>
         <UButton
           v-if="canAccept"
           color="primary"
           variant="solid"
           :loading="accepting"
-          @click="handleAccept"
+          @click="
+            () => {
+              void handleAccept()
+            }
+          "
         >
           Accept Changes
         </UButton>

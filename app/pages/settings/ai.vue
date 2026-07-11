@@ -39,7 +39,11 @@
             color="neutral"
             variant="ghost"
             size="sm"
-            @click="showUpgradeBanner = false"
+            @click="
+              () => {
+                showUpgradeBanner = false
+              }
+            "
           />
         </div>
       </div>

@@ -15,7 +15,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="isPerformanceSettingsModalOpen = true"
+              @click="
+                () => {
+                  isPerformanceSettingsModalOpen = true
+                }
+              "
             >
               {{ t('nav_customize') }}
             </UButton>
@@ -26,7 +30,11 @@
               icon="i-heroicons-sparkles"
               size="sm"
               class="font-bold"
-              @click="generateExplanations"
+              @click="
+                () => {
+                  void generateExplanations()
+                }
+              "
             >
               <span class="sm:hidden">{{ t('nav_generate') }}</span>
               <span class="hidden sm:inline">{{ t('nav_generate_insights') }}</span>

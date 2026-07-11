@@ -63,7 +63,11 @@
         :color="leftRailTab === 'roster' ? 'primary' : 'neutral'"
         :variant="leftRailTab === 'roster' ? 'soft' : 'ghost'"
         class="flex-1"
-        @click="emit('update:leftRailTab', 'roster')"
+        @click="
+          () => {
+            void emit('update:leftRailTab', 'roster')
+          }
+        "
       >
         Roster
       </UButton>
@@ -72,7 +76,11 @@
         :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
         :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
         class="flex-1"
-        @click="emit('update:leftRailTab', 'library')"
+        @click="
+          () => {
+            void emit('update:leftRailTab', 'library')
+          }
+        "
       >
         Library
       </UButton>
@@ -100,7 +108,11 @@
             :variant="rosterMode === 'single' ? 'soft' : 'ghost'"
             class="rounded-full px-3"
             icon="i-lucide-user"
-            @click="emit('update:rosterMode', 'single')"
+            @click="
+              () => {
+                void emit('update:rosterMode', 'single')
+              }
+            "
           >
             Single
           </UButton>
@@ -110,7 +122,11 @@
             :variant="rosterMode === 'compare' ? 'soft' : 'ghost'"
             class="rounded-full px-3"
             icon="i-lucide-users"
-            @click="emit('update:rosterMode', 'compare')"
+            @click="
+              () => {
+                void emit('update:rosterMode', 'compare')
+              }
+            "
           >
             Compare
           </UButton>
@@ -129,7 +145,11 @@
             ? 'border-primary/60 bg-primary/5'
             : 'border-default/70 bg-default'
         "
-        @click="emit('selectSingleAthlete', null)"
+        @click="
+          () => {
+            void emit('selectSingleAthlete', null)
+          }
+        "
       >
         <div class="flex items-center gap-3">
           <UAvatar icon="i-lucide-user" size="md" />
@@ -161,9 +181,11 @@
             : 'border-default/70 bg-default'
         "
         @click="
-          rosterMode === 'compare'
-            ? emit('toggleCompareAthlete', rel.athleteId)
-            : emit('selectSingleAthlete', rel.athleteId)
+          () => {
+            rosterMode === 'compare'
+              ? emit('toggleCompareAthlete', rel.athleteId)
+              : emit('selectSingleAthlete', rel.athleteId)
+          }
         "
       >
         <div class="flex items-center gap-3">
@@ -201,7 +223,11 @@
           :color="activeCategory === 'all' ? 'primary' : 'neutral'"
           :variant="activeCategory === 'all' ? 'soft' : 'outline'"
           class="rounded-full"
-          @click="emit('update:activeCategory', 'all')"
+          @click="
+            () => {
+              void emit('update:activeCategory', 'all')
+            }
+          "
         >
           All
         </UButton>
@@ -212,7 +238,11 @@
           :color="activeCategory === category.value ? 'primary' : 'neutral'"
           :variant="activeCategory === category.value ? 'soft' : 'outline'"
           class="rounded-full"
-          @click="emit('update:activeCategory', category.value)"
+          @click="
+            () => {
+              void emit('update:activeCategory', category.value)
+            }
+          "
         >
           {{ category.label }}
         </UButton>
@@ -242,7 +272,11 @@
               ? 'border-primary/60 bg-primary/5'
               : 'border-default/70 bg-default'
           "
-          @click="emit('selectWidget', widget)"
+          @click="
+            () => {
+              void emit('selectWidget', widget)
+            }
+          "
         >
           <div class="flex items-start gap-3">
             <div
@@ -287,7 +321,11 @@
               ? 'border-primary/60 bg-primary/5'
               : 'border-default/70 bg-default'
           "
-          @click="emit('selectWidget', widget)"
+          @click="
+            () => {
+              void emit('selectWidget', widget)
+            }
+          "
         >
           <div class="flex items-start gap-3">
             <div

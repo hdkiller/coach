@@ -13,7 +13,11 @@
             :variant="isActive('/settings/apps') ? 'solid' : 'ghost'"
             :color="isActive('/settings/apps') ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="navigateTo('/settings/apps')"
+            @click="
+              () => {
+                void navigateTo('/settings/apps')
+              }
+            "
           >
             <UIcon name="i-lucide-plug" class="w-4 h-4 mr-2" />
             Connected Apps
@@ -22,7 +26,11 @@
             :variant="isActive('/settings/ai') ? 'solid' : 'ghost'"
             :color="isActive('/settings/ai') ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="navigateTo('/settings/ai')"
+            @click="
+              () => {
+                void navigateTo('/settings/ai')
+              }
+            "
           >
             <UIcon name="i-heroicons-sparkles" class="w-4 h-4 mr-2" />
             AI Coach
@@ -31,7 +39,11 @@
             :variant="isActive('/settings/billing') ? 'solid' : 'ghost'"
             :color="isActive('/settings/billing') ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="navigateTo('/settings/billing')"
+            @click="
+              () => {
+                void navigateTo('/settings/billing')
+              }
+            "
           >
             <UIcon name="i-heroicons-credit-card" class="w-4 h-4 mr-2" />
             Billing
@@ -40,7 +52,11 @@
             :variant="isActive('/settings/developer') ? 'solid' : 'ghost'"
             :color="isActive('/settings/developer') ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="navigateTo('/settings/developer')"
+            @click="
+              () => {
+                void navigateTo('/settings/developer')
+              }
+            "
           >
             <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 mr-2" />
             Developer
@@ -49,7 +65,11 @@
             :variant="isActive('/settings/danger') ? 'solid' : 'ghost'"
             :color="isActive('/settings/danger') ? 'primary' : 'neutral'"
             class="whitespace-nowrap"
-            @click="navigateTo('/settings/danger')"
+            @click="
+              () => {
+                void navigateTo('/settings/danger')
+              }
+            "
           >
             <UIcon name="i-lucide-alert-triangle" class="w-4 h-4 mr-2" />
             Danger Zone

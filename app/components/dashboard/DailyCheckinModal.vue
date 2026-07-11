@@ -50,7 +50,11 @@
             variant="link"
             size="xs"
             color="neutral"
-            @click="fetchToday()"
+            @click="
+              () => {
+                void fetchToday()
+              }
+            "
           />
         </div>
 
@@ -69,7 +73,11 @@
             color="error"
             variant="soft"
             class="mt-4"
-            @click="generate(true)"
+            @click="
+              () => {
+                void generate(true)
+              }
+            "
           />
         </div>
 
@@ -99,7 +107,11 @@
                 size="xs"
                 icon="i-lucide-trash"
                 :loading="deleting"
-                @click="deleteCheckin"
+                @click="
+                  () => {
+                    void deleteCheckin()
+                  }
+                "
               >
                 {{ tr('daily_checkin_delete', 'Delete') }}
               </UButton>
@@ -134,7 +146,11 @@
             :ui="{ body: 'p-3 sm:p-6' }"
             class="cursor-pointer transition-all hover:ring-2 hover:ring-primary-500/20"
             :class="{ 'ring-2 ring-primary-500/10': isExpanded(q.id) }"
-            @click="toggleExpand(q.id)"
+            @click="
+              () => {
+                void toggleExpand(q.id)
+              }
+            "
           >
             <div class="flex items-start justify-between gap-3">
               <label
@@ -220,7 +236,11 @@
             :label="tr('daily_checkin_generate', 'Generate')"
             color="primary"
             class="mt-4"
-            @click="generate(true)"
+            @click="
+              () => {
+                void generate(true)
+              }
+            "
           />
         </div>
 
@@ -247,7 +267,11 @@
               variant="ghost"
               size="xs"
               :icon="showRecentCheckins ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-              @click="showRecentCheckins = !showRecentCheckins"
+              @click="
+                () => {
+                  showRecentCheckins = !showRecentCheckins
+                }
+              "
             >
               {{
                 showRecentCheckins
@@ -262,7 +286,11 @@
               :key="entry.id"
               type="button"
               class="w-full rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:border-primary-300 dark:border-gray-800"
-              @click="loadCheckinIntoEditor(entry)"
+              @click="
+                () => {
+                  void loadCheckinIntoEditor(entry)
+                }
+              "
             >
               <div class="flex items-center justify-between gap-2">
                 <p class="text-sm font-medium text-gray-900 dark:text-white">
@@ -296,10 +324,22 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-arrow-path"
-          @click="generate(true)"
+          @click="
+            () => {
+              void generate(true)
+            }
+          "
         />
         <div class="flex gap-2 ml-auto">
-          <UButton color="neutral" variant="outline" @click="isOpen = false">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+          >
             {{ tr('daily_checkin_close', 'Close') }}
           </UButton>
           <UButton
@@ -307,7 +347,11 @@
             :label="tr('daily_checkin_save', 'Save Answers')"
             color="primary"
             :loading="submitting"
-            @click="submit"
+            @click="
+              () => {
+                void submit()
+              }
+            "
           />
         </div>
       </div>
@@ -462,7 +506,7 @@
     }
     toast.add({
       title: tr('daily_checkin_failed_toast', 'Check-in Failed'),
-      description: error.value,
+      description: error.value ?? undefined,
       color: 'error',
       icon: 'i-heroicons-exclamation-circle'
     })

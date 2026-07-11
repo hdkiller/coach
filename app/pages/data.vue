@@ -14,31 +14,87 @@
 
       <UDashboardToolbar>
         <div class="flex gap-2 overflow-x-auto">
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('summary')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('summary')
+              }
+            "
+          >
             <UIcon name="i-lucide-bar-chart-3" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_summary', 'Summary') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('fitness')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('fitness')
+              }
+            "
+          >
             <UIcon name="i-lucide-heart-pulse" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_fitness', 'Fitness') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('planned')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('planned')
+              }
+            "
+          >
             <UIcon name="i-lucide-calendar" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_planned', 'Planned') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('events')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('events')
+              }
+            "
+          >
             <UIcon name="i-lucide-trophy" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_events', 'Events') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('workouts')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('workouts')
+              }
+            "
+          >
             <UIcon name="i-lucide-bike" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_workouts', 'Workouts') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('nutrition')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('nutrition')
+              }
+            "
+          >
             <UIcon name="i-lucide-utensils" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_nutrition', 'Nutrition') }}
           </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('pipeline')">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void scrollToSection('pipeline')
+              }
+            "
+          >
             <UIcon name="i-lucide-workflow" class="w-4 h-4 mr-2" />
             {{ tr('data_nav_pipeline', 'Pipeline') }}
           </UButton>
@@ -504,7 +560,11 @@
               <button
                 :disabled="analyzingWorkouts"
                 class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-3 rounded transition-colors text-sm"
-                @click="analyzeAllWorkouts"
+                @click="
+                  () => {
+                    void analyzeAllWorkouts()
+                  }
+                "
               >
                 <span v-if="analyzingWorkouts">Analyzing...</span>
                 <span v-else>Analyze Last 10</span>
@@ -596,7 +656,11 @@
                   :aria-label="
                     tr('data_open_workout', 'Open workout: {title}', { title: workout.title })
                   "
-                  @click="navigateToWorkout(workout.id)"
+                  @click="
+                    () => {
+                      void navigateToWorkout(workout.id)
+                    }
+                  "
                   @keydown="activateRowNavigation($event, () => navigateToWorkout(workout.id))"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -700,7 +764,11 @@
               <button
                 :disabled="analyzingNutrition"
                 class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-3 rounded transition-colors text-sm"
-                @click="analyzeAllNutrition"
+                @click="
+                  () => {
+                    void analyzeAllNutrition()
+                  }
+                "
               >
                 <span v-if="analyzingNutrition">Analyzing...</span>
                 <span v-else>Analyze Last 10</span>
@@ -784,7 +852,11 @@
                       date: formatDate(nutrition.date)
                     })
                   "
-                  @click="navigateToNutrition(nutrition.id)"
+                  @click="
+                    () => {
+                      void navigateToNutrition(nutrition.id)
+                    }
+                  "
                   @keydown="activateRowNavigation($event, () => navigateToNutrition(nutrition.id))"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">

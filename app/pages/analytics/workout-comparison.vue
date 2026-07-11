@@ -744,7 +744,11 @@
               class="font-bold"
               :loading="saving"
               :disabled="workoutIds.length < 2"
-              @click="pinToDashboard"
+              @click="
+                () => {
+                  void pinToDashboard()
+                }
+              "
             >
               Pin to Dashboard
             </UButton>
@@ -765,7 +769,11 @@
                 :color="leftRailTab === 'selected' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'selected' ? 'soft' : 'ghost'"
                 class="flex-1"
-                @click="leftRailTab = 'selected'"
+                @click="
+                  () => {
+                    leftRailTab = 'selected'
+                  }
+                "
               >
                 Selected
               </UButton>
@@ -774,7 +782,11 @@
                 :color="leftRailTab === 'workouts' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'workouts' ? 'soft' : 'ghost'"
                 class="flex-1"
-                @click="leftRailTab = 'workouts'"
+                @click="
+                  () => {
+                    leftRailTab = 'workouts'
+                  }
+                "
               >
                 Workouts
               </UButton>
@@ -783,7 +795,11 @@
                 :color="leftRailTab === 'library' ? 'primary' : 'neutral'"
                 :variant="leftRailTab === 'library' ? 'soft' : 'ghost'"
                 class="flex-1"
-                @click="leftRailTab = 'library'"
+                @click="
+                  () => {
+                    leftRailTab = 'library'
+                  }
+                "
               >
                 Library
               </UButton>
@@ -815,7 +831,11 @@
                       variant="soft"
                       size="xs"
                       icon="i-heroicons-arrow-path"
-                      @click="refreshSelectedWorkouts()"
+                      @click="
+                        () => {
+                          void refreshSelectedWorkouts()
+                        }
+                      "
                     >
                       Retry
                     </UButton>
@@ -859,7 +879,11 @@
                       variant="ghost"
                       size="xs"
                       icon="i-lucide-x"
-                      @click="comparisonStore.removeWorkout(workout.id)"
+                      @click="
+                        () => {
+                          void comparisonStore.removeWorkout(workout.id)
+                        }
+                      "
                     />
                   </div>
 
@@ -869,7 +893,11 @@
                     size="sm"
                     icon="i-lucide-plus"
                     class="w-full font-bold"
-                    @click="leftRailTab = 'workouts'"
+                    @click="
+                      () => {
+                        leftRailTab = 'workouts'
+                      }
+                    "
                   >
                     Add Workouts
                   </UButton>
@@ -897,7 +925,11 @@
                     size="sm"
                     icon="i-lucide-sparkles"
                     class="shrink-0 font-bold"
-                    @click="applySimilarWorkoutFilters"
+                    @click="
+                      () => {
+                        void applySimilarWorkoutFilters()
+                      }
+                    "
                   >
                     Find Similar
                   </UButton>
@@ -931,7 +963,11 @@
                   variant="outline"
                   size="sm"
                   class="font-bold"
-                  @click="resetWorkoutFilters"
+                  @click="
+                    () => {
+                      void resetWorkoutFilters()
+                    }
+                  "
                 >
                   Reset
                 </UButton>
@@ -962,7 +998,11 @@
                         ? 'border-primary bg-primary/8 shadow-sm'
                         : 'border-default bg-default hover:border-primary/40 hover:bg-muted/20'
                     "
-                    @click="toggleWorkout(workout)"
+                    @click="
+                      () => {
+                        void toggleWorkout(workout)
+                      }
+                    "
                   >
                     <div class="flex items-start justify-between gap-3">
                       <div
@@ -1026,7 +1066,11 @@
                   size="xs"
                   :color="activeCategory === 'all' ? 'primary' : 'neutral'"
                   :variant="activeCategory === 'all' ? 'soft' : 'outline'"
-                  @click="activeCategory = 'all'"
+                  @click="
+                    () => {
+                      activeCategory = 'all'
+                    }
+                  "
                 >
                   All
                 </UButton>
@@ -1036,7 +1080,11 @@
                   size="xs"
                   :color="activeCategory === category.value ? 'primary' : 'neutral'"
                   :variant="activeCategory === category.value ? 'soft' : 'outline'"
-                  @click="activeCategory = category.value"
+                  @click="
+                    () => {
+                      activeCategory = category.value
+                    }
+                  "
                 >
                   {{ category.label }}
                 </UButton>
@@ -1128,7 +1176,11 @@
                     variant="outline"
                     size="sm"
                     icon="i-lucide-list-filter"
-                    @click="showAdvanced = !showAdvanced"
+                    @click="
+                      () => {
+                        showAdvanced = !showAdvanced
+                      }
+                    "
                   >
                     {{ showAdvanced ? 'Hide Advanced' : 'Advanced' }}
                   </UButton>
@@ -1139,7 +1191,11 @@
                     icon="i-lucide-pin"
                     :disabled="workoutIds.length < 2"
                     :loading="saving"
-                    @click="pinToDashboard"
+                    @click="
+                      () => {
+                        void pinToDashboard()
+                      }
+                    "
                   >
                     Pin to Dashboard
                   </UButton>

@@ -37,7 +37,11 @@
             icon="i-heroicons-arrow-right-on-rectangle"
             class="font-bold mt-6"
             :loading="loading"
-            @click="login"
+            @click="
+              () => {
+                void login()
+              }
+            "
           >
             Connect with Coach Watts
           </UButton>
@@ -75,7 +79,11 @@
               color="gray"
               variant="ghost"
               icon="i-heroicons-arrow-right-on-rectangle"
-              @click="logout"
+              @click="
+                () => {
+                  void logout()
+                }
+              "
             />
           </div>
         </div>
@@ -127,7 +135,11 @@
               color="gray"
               variant="ghost"
               :loading="loadingWorkouts"
-              @click="fetchWorkouts"
+              @click="
+                () => {
+                  void fetchWorkouts()
+                }
+              "
             >
               Refresh
             </UButton>
@@ -217,7 +229,16 @@
                 <UFormField label="Weight (kg)">
                   <UInput v-model="wellnessForm.weight" type="number" step="0.1" />
                 </UFormField>
-                <UButton block color="neutral" :loading="syncingWellness" @click="syncWellness">
+                <UButton
+                  block
+                  color="neutral"
+                  :loading="syncingWellness"
+                  @click="
+                    () => {
+                      void syncWellness()
+                    }
+                  "
+                >
                   Sync to Coach Watts
                 </UButton>
 
@@ -256,7 +277,16 @@
                 <UFormField label="Carbs (g)">
                   <UInput v-model="nutritionForm.carbs" type="number" />
                 </UFormField>
-                <UButton block color="neutral" :loading="syncingNutrition" @click="syncNutrition">
+                <UButton
+                  block
+                  color="neutral"
+                  :loading="syncingNutrition"
+                  @click="
+                    () => {
+                      void syncNutrition()
+                    }
+                  "
+                >
                   Add to Timeline
                 </UButton>
 
@@ -299,7 +329,15 @@
                 class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                 @change="handleFileChange"
               />
-              <UButton :disabled="!selectedFile" :loading="uploadingFit" @click="uploadFitFile">
+              <UButton
+                :disabled="!selectedFile"
+                :loading="uploadingFit"
+                @click="
+                  () => {
+                    void uploadFitFile()
+                  }
+                "
+              >
                 Upload File
               </UButton>
             </div>

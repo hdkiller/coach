@@ -1,6 +1,7 @@
 import type { Integration } from '@prisma/client'
 import { prisma } from './db'
 import { formatUserDate } from './date'
+import { IntegrationAuthError, IntegrationProviderError } from './integration-errors'
 
 interface WithingsTokenResponse {
   access_token: string
@@ -106,7 +107,12 @@ export const WITHINGS_MEASURE_TYPES = {
  */
 export async function refreshWithingsToken(integration: Integration): Promise<Integration> {
   if (!integration.refreshToken) {
-    throw new Error('No refresh token available for Withings integration')
+    throw new IntegrationAuthError({
+      provider: 'withings',
+      integrationId: integration.id,
+      code: 'AUTH_MISSING',
+      message: 'No refresh token available for Withings integration'
+    })
   }
 
   const clientId = process.env.WITHINGS_CLIENT_ID
@@ -137,7 +143,6 @@ export async function refreshWithingsToken(integration: Integration): Promise<In
   if (data.status !== 0) {
     console.error('Withings token refresh failed:', data)
 
-    // Status 601 (Unauthorized) usually means the refresh token is invalid or revoked
     if (data.status === 601 || data.status === 401) {
       await prisma.integration.update({
         where: { id: integration.id },
@@ -145,6 +150,22 @@ export async function refreshWithingsToken(integration: Integration): Promise<In
           syncStatus: 'FAILED',
           errorMessage: `Refresh token revoked or invalid (Status ${data.status})`
         }
+      })
+
+      throw new IntegrationAuthError({
+        provider: 'withings',
+        integrationId: integration.id,
+        statusCode: data.status,
+        message: 'Withings authorization expired or was revoked. Please reconnect Withings.'
+      })
+    }
+
+    if (data.status === 503 || data.status >= 500) {
+      throw new IntegrationProviderError({
+        provider: 'withings',
+        integrationId: integration.id,
+        statusCode: data.status,
+        message: `Withings token refresh unavailable (Status ${data.status})`
       })
     }
 
@@ -391,19 +412,6 @@ export function normalizeWithingsActivity(activity: WithingsActivity, userId: st
     (!activity.data.steps && !activity.data.active && !activity.data.totalcalories)
   ) {
     return null
-  }
-
-  // Parse dates
-  const startDate = new Date(activity.startdate * 1000)
-  const endDate = new Date(activity.enddate * 1000)
-
-  // If enddate is missing or invalid, default to startdate + active time or just same day
-  const effectiveEndDate = isNaN(endDate.getTime()) ? startDate : endDate
-
-  // Duration: Use 'active' time if available (seconds), otherwise calculate from dates
-  let durationSec = activity.data.active || 0
-  if (durationSec === 0 && effectiveEndDate.getTime() > startDate.getTime()) {
-    durationSec = Math.round((effectiveEndDate.getTime() - startDate.getTime()) / 1000)
   }
 
   // Activity type mapping (Withings 'category' is undocumented in public API docs as specific sport,

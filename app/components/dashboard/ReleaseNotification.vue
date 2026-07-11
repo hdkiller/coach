@@ -47,7 +47,11 @@
         size="sm"
         :aria-label="t('navbar_whats_new')"
         class="font-bold"
-        @click="openReleaseModal"
+        @click="
+          () => {
+            void openReleaseModal()
+          }
+        "
       >
         <span class="hidden sm:inline">{{ t('navbar_whats_new') }}</span>
       </UButton>
@@ -84,9 +88,21 @@
             :label="t('common_close')"
             color="neutral"
             variant="ghost"
-            @click="isReleaseModalOpen = false"
+            @click="
+              () => {
+                isReleaseModalOpen = false
+              }
+            "
           />
-          <UButton :label="t('release_modal_ack')" color="primary" @click="markAsSeen" />
+          <UButton
+            :label="t('release_modal_ack')"
+            color="primary"
+            @click="
+              () => {
+                void markAsSeen()
+              }
+            "
+          />
         </div>
       </template>
     </UModal>

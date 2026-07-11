@@ -15,7 +15,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-eye"
-          @click="$emit('view')"
+          @click="
+            () => {
+              void $emit('view')
+            }
+          "
         >
           View
         </UButton>
@@ -24,7 +28,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-adjustments-horizontal"
-          @click="$emit('adjust')"
+          @click="
+            () => {
+              void $emit('adjust')
+            }
+          "
         >
           Adjust
         </UButton>
@@ -34,7 +42,11 @@
           variant="ghost"
           icon="i-heroicons-pencil-square"
           :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
-          @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
+          @click="
+            () => {
+              activeTab = activeTab === 'edit' ? 'view' : 'edit'
+            }
+          "
         >
           Edit
         </UButton>
@@ -44,7 +56,11 @@
           variant="ghost"
           icon="i-heroicons-arrow-path"
           :loading="generating"
-          @click="$emit('regenerate')"
+          @click="
+            () => {
+              void $emit('regenerate')
+            }
+          "
         >
           Regenerate
         </UButton>

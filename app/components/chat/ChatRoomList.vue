@@ -258,7 +258,11 @@
         <button
           type="button"
           class="flex min-w-0 flex-1 items-center gap-2 text-left"
-          @click="emit('select', room.roomId)"
+          @click="
+            () => {
+              void emit('select', room.roomId)
+            }
+          "
         >
           <UAvatar :src="room.avatar" size="sm" />
           <div class="min-w-0 flex-1">
@@ -299,7 +303,11 @@
         variant="ghost"
         color="neutral"
         class="mt-2 w-full justify-center"
-        @click="showAllRooms = !showAllRooms"
+        @click="
+          () => {
+            showAllRooms = !showAllRooms
+          }
+        "
       >
         {{ showAllRooms ? 'Show fewer' : `Show more (${rooms.length - ROOM_PREVIEW_LIMIT})` }}
       </UButton>
@@ -329,10 +337,25 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UButton color="neutral" variant="ghost" @click="isRenameModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isRenameModalOpen = false
+              }
+            "
+          >
             {{ t('banner_exit') }}
           </UButton>
-          <UButton :disabled="!newRoomName.trim()" @click="handleRename">
+          <UButton
+            :disabled="!newRoomName.trim()"
+            @click="
+              () => {
+                void handleRename()
+              }
+            "
+          >
             {{ t('modal_rename_save') }}
           </UButton>
         </div>
@@ -356,7 +379,11 @@
               icon="i-heroicons-clipboard"
               color="neutral"
               variant="outline"
-              @click="copyToClipboard(shareLink)"
+              @click="
+                () => {
+                  void copyToClipboard(shareLink)
+                }
+              "
             >
               {{ t('modal_share_copy') }}
             </UButton>
@@ -372,7 +399,11 @@
             :label="t('banner_exit')"
             color="neutral"
             variant="ghost"
-            @click="isShareModalOpen = false"
+            @click="
+              () => {
+                isShareModalOpen = false
+              }
+            "
           />
         </div>
       </template>
@@ -406,10 +437,27 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isDeleteModalOpen = false
+              }
+            "
+          >
             {{ t('banner_exit') }}
           </UButton>
-          <UButton color="error" @click="handleDelete"> {{ t('sidebar_delete_room') }} </UButton>
+          <UButton
+            color="error"
+            @click="
+              () => {
+                void handleDelete()
+              }
+            "
+          >
+            {{ t('sidebar_delete_room') }}
+          </UButton>
         </div>
       </template>
     </UModal>

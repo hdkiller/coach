@@ -69,7 +69,8 @@ export default defineEventHandler(async (event) => {
   if (plan.isTemplate) {
     const settingsByType = new Map<string, any>()
     for (const block of plan.blocks) {
-      for (const week of block.weeks) {
+      const blockWeeks = 'weeks' in block && Array.isArray(block.weeks) ? block.weeks : []
+      for (const week of blockWeeks) {
         for (const workout of week.workouts) {
           const type = workout.type || 'Ride'
           if (!settingsByType.has(type)) {

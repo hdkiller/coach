@@ -42,7 +42,16 @@
           <span>Source: {{ note?.source }}</span>
           <span>External ID: {{ note?.externalId }}</span>
         </div>
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">Close</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+          >Close</UButton
+        >
       </div>
     </template>
   </UModal>

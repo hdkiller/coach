@@ -9,7 +9,11 @@
           variant="ghost"
           color="neutral"
           size="sm"
-          @click="emit('close')"
+          @click="
+            () => {
+              void emit('close')
+            }
+          "
         />
       </div>
 
@@ -23,7 +27,11 @@
               ? 'border-primary bg-primary/5 dark:bg-primary/10'
               : 'border-gray-200 dark:border-gray-800'
           "
-          @click="selectType(type.id)"
+          @click="
+            () => {
+              void selectType(type.id)
+            }
+          "
         >
           <div class="p-2 rounded-lg w-fit mb-3" :class="type.color">
             <UIcon :name="type.icon" class="w-6 h-6" />
@@ -42,7 +50,11 @@
             icon="i-heroicons-arrow-left"
             variant="ghost"
             size="sm"
-            @click="isEditMode ? (step = 3) : (step = 1)"
+            @click="
+              () => {
+                isEditMode ? (step = 3) : (step = 1)
+              }
+            "
           />
           <h3 class="text-xl font-semibold">Select your target event</h3>
         </div>
@@ -51,7 +63,11 @@
           variant="ghost"
           color="neutral"
           size="sm"
-          @click="emit('close')"
+          @click="
+            () => {
+              void emit('close')
+            }
+          "
         />
       </div>
 
@@ -99,7 +115,11 @@
                 ? 'border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary'
                 : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
             "
-            @click="toggleUserEvent(event)"
+            @click="
+              () => {
+                void toggleUserEvent(event)
+              }
+            "
           >
             <div>
               <div
@@ -137,7 +157,11 @@
               color="primary"
               icon="i-heroicons-arrow-right"
               :disabled="form.eventIds.length === 0"
-              @click="step = 3"
+              @click="
+                () => {
+                  step = 3
+                }
+              "
             >
               {{
                 isEditMode
@@ -158,7 +182,11 @@
             icon="i-heroicons-arrow-left"
             variant="ghost"
             size="sm"
-            @click="isEditMode ? emit('close') : selectedType === 'EVENT' ? (step = 2) : (step = 1)"
+            @click="
+              () => {
+                isEditMode ? emit('close') : selectedType === 'EVENT' ? (step = 2) : (step = 1)
+              }
+            "
           />
           <h3 class="text-xl font-semibold">
             {{ isEditMode ? 'Edit Goal' : `Configure ${selectedTypeLabel}` }}
@@ -169,7 +197,11 @@
           variant="ghost"
           color="neutral"
           size="sm"
-          @click="emit('close')"
+          @click="
+            () => {
+              void emit('close')
+            }
+          "
         />
       </div>
 
@@ -376,7 +408,11 @@
                 color="primary"
                 size="xs"
                 icon="i-heroicons-pencil-square"
-                @click="step = 2"
+                @click="
+                  () => {
+                    step = 2
+                  }
+                "
               >
                 Manage Events
               </UButton>
@@ -385,7 +421,11 @@
               v-for="event in selectedEvents"
               :key="event.id"
               class="p-4 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer transition-colors group/event"
-              @click="openEventUrl(event.id)"
+              @click="
+                () => {
+                  void openEventUrl(event.id)
+                }
+              "
             >
               <div class="absolute top-0 right-0 p-2 opacity-10">
                 <UIcon name="i-heroicons-calendar" class="w-12 h-12" />
@@ -457,7 +497,11 @@
             :loading="saving"
             icon="i-heroicons-check"
             class="px-10 font-bold"
-            @click="saveGoal"
+            @click="
+              () => {
+                void saveGoal()
+              }
+            "
           >
             {{ isEditMode ? 'Update Goal' : 'Create Goal' }}
           </UButton>

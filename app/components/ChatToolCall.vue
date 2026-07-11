@@ -182,7 +182,11 @@
     <button
       class="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       :class="{ 'border-b border-gray-200 dark:border-gray-700': isExpanded && !isLoading }"
-      @click="isExpanded = !isExpanded"
+      @click="
+        () => {
+          isExpanded = !isExpanded
+        }
+      "
     >
       <!-- Icon -->
       <UIcon

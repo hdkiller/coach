@@ -2,6 +2,7 @@ import { analyticsRepository } from './repositories/analyticsRepository'
 import { coachingRepository } from './repositories/coachingRepository'
 import { teamRepository } from './repositories/teamRepository'
 import { prisma } from './db'
+import type { Prisma, Workout } from '@prisma/client'
 
 export interface AnalyticsScopeInput {
   target: 'self' | 'athlete' | 'athletes' | 'athlete_group' | 'team'
@@ -105,10 +106,24 @@ export async function assertSingleWorkoutAccess(
 
 export async function getAccessibleWorkout(
   userId: string,
+  workoutId: string
+): Promise<Workout | null>
+export async function getAccessibleWorkout(
+  userId: string,
+  workoutId: string,
+  options: { select: Prisma.WorkoutSelect }
+): Promise<Prisma.WorkoutGetPayload<{ select: Prisma.WorkoutSelect }> | null>
+export async function getAccessibleWorkout(
+  userId: string,
+  workoutId: string,
+  options: { include: Prisma.WorkoutInclude }
+): Promise<Prisma.WorkoutGetPayload<{ include: Prisma.WorkoutInclude }> | null>
+export async function getAccessibleWorkout(
+  userId: string,
   workoutId: string,
   options: {
-    include?: Record<string, unknown>
-    select?: Record<string, unknown>
+    include?: Prisma.WorkoutInclude
+    select?: Prisma.WorkoutSelect
   } = {}
 ) {
   const resolvedWorkoutId = await assertSingleWorkoutAccess(userId, workoutId)
@@ -131,7 +146,7 @@ export async function getAccessibleWorkout(
         id: workoutRef.id,
         userId: workoutRef.userId
       },
-      select: options.select as any
+      select: options.select
     })
   }
 
@@ -140,7 +155,7 @@ export async function getAccessibleWorkout(
       id: workoutRef.id,
       userId: workoutRef.userId
     },
-    include: options.include as any
+    include: options.include
   })
 }
 

@@ -72,7 +72,11 @@
                     ? 'bg-white dark:bg-gray-900 shadow-sm text-primary-600 dark:text-primary-400'
                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
                 "
-                @click="billingInterval = interval"
+                @click="
+                  () => {
+                    billingInterval = interval
+                  }
+                "
               >
                 {{ interval }}
                 <span v-if="interval === 'annual'" class="ml-1 text-green-500">(-33%)</span>
@@ -89,7 +93,11 @@
                     ? 'bg-white dark:bg-gray-900 shadow-sm text-primary-600 dark:text-primary-400'
                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
                 "
-                @click="setCurrency(curr)"
+                @click="
+                  () => {
+                    void setCurrency(curr)
+                  }
+                "
               >
                 {{ curr }}
               </button>
@@ -113,10 +121,27 @@
 
     <template #footer>
       <div class="flex justify-between items-center w-full">
-        <UButton variant="ghost" color="neutral" @click="close">
+        <UButton
+          variant="ghost"
+          color="neutral"
+          @click="
+            () => {
+              void close()
+            }
+          "
+        >
           {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
         </UButton>
-        <UButton variant="link" color="primary" :to="'/settings/billing'" @click="close">
+        <UButton
+          variant="link"
+          color="primary"
+          :to="'/settings/billing'"
+          @click="
+            () => {
+              void close()
+            }
+          "
+        >
           View Full Pricing Details
           <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
         </UButton>

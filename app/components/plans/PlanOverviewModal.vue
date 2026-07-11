@@ -150,7 +150,11 @@
             label="Close"
             color="neutral"
             variant="ghost"
-            @click="$emit('update:open', false)"
+            @click="
+              () => {
+                void $emit('update:open', false)
+              }
+            "
           />
         </slot>
       </div>

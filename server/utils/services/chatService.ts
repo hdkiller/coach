@@ -144,10 +144,10 @@ export class ChatService {
     messageId: string
   }) {
     try {
-      const promptTokens = data.usage.inputTokens || 0
-      const completionTokens = data.usage.outputTokens || 0
-      const cachedTokens = data.usage.inputTokenDetails?.cacheReadTokens || 0
-      const reasoningTokens = data.usage.outputTokenDetails.outputTokenDetails.reasoningTokens || 0
+      const promptTokens = data.usage?.inputTokens || 0
+      const completionTokens = data.usage?.outputTokens || 0
+      const cachedTokens = data.usage?.inputTokenDetails?.cacheReadTokens || 0
+      const reasoningTokens = data.usage?.outputTokenDetails?.reasoningTokens || 0
       const totalTokens = promptTokens + completionTokens
 
       const estimatedCost = calculateLlmCost(
@@ -170,8 +170,8 @@ export class ChatService {
           operation: 'chat',
           entityType: 'ChatMessage',
           entityId: data.messageId,
-          inputTokens,
-          outputTokens,
+          promptTokens,
+          completionTokens,
           cachedTokens,
           reasoningTokens,
           totalTokens,

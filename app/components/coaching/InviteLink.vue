@@ -71,7 +71,11 @@
             variant="ghost"
             icon="i-heroicons-link"
             size="xs"
-            @click="copyUrl"
+            @click="
+              () => {
+                void copyUrl()
+              }
+            "
           />
         </UTooltip>
         <UTooltip text="Show QR Code">
@@ -80,7 +84,11 @@
             variant="ghost"
             icon="i-heroicons-qr-code"
             size="xs"
-            @click="isQrModalOpen = true"
+            @click="
+              () => {
+                isQrModalOpen = true
+              }
+            "
           />
         </UTooltip>
         <UTooltip text="Copy Code Only">
@@ -89,7 +97,11 @@
             variant="ghost"
             icon="i-heroicons-clipboard"
             size="xs"
-            @click="copyCode"
+            @click="
+              () => {
+                void copyCode()
+              }
+            "
           />
         </UTooltip>
       </div>
@@ -135,7 +147,11 @@
           variant="ghost"
           label="Close"
           block
-          @click="isQrModalOpen = false"
+          @click="
+            () => {
+              isQrModalOpen = false
+            }
+          "
         />
       </template>
     </UModal>

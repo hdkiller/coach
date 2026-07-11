@@ -17,7 +17,11 @@
             variant="ghost"
             icon="i-heroicons-ellipsis-horizontal"
             class="h-8 w-8 shrink-0 p-0"
-            @click="refreshPlanTemplates"
+            @click="
+              () => {
+                void refreshPlanTemplates()
+              }
+            "
           />
         </div>
 
@@ -28,7 +32,11 @@
             variant="soft"
             icon="i-heroicons-folder-open"
             class="h-8 min-w-0 flex-1 justify-start rounded-xl px-3"
-            @click="showScopeModal = true"
+            @click="
+              () => {
+                showScopeModal = true
+              }
+            "
           >
             <span class="truncate text-xs">{{ selectedFolderLabel }}</span>
           </UButton>
@@ -39,7 +47,11 @@
             variant="soft"
             icon="i-heroicons-funnel"
             class="h-8 shrink-0 rounded-xl px-3"
-            @click="cycleTabs"
+            @click="
+              () => {
+                void cycleTabs()
+              }
+            "
           >
             <span class="text-[10px] font-bold uppercase">{{ selectedTab }}</span>
           </UButton>
@@ -63,7 +75,11 @@
           v-else
           :key="plan.id"
           class="w-full text-left p-3 rounded-2xl border border-default/70 bg-default transition hover:border-primary/50 group"
-          @click="selectPlan(plan.id)"
+          @click="
+            () => {
+              void selectPlan(plan.id)
+            }
+          "
         >
           <div class="flex items-center justify-between gap-2">
             <div class="font-bold text-highlighted group-hover:text-primary truncate">
@@ -106,7 +122,11 @@
           variant="ghost"
           icon="i-heroicons-chevron-left"
           class="rounded-xl"
-          @click="selectedPlanId = null"
+          @click="
+            () => {
+              selectedPlanId = null
+            }
+          "
         >
           Back to templates
         </UButton>
@@ -117,7 +137,11 @@
           icon="i-heroicons-arrow-top-right-on-square"
           class="rounded-xl"
           title="Open in Library"
-          @click="openInLibrary"
+          @click="
+            () => {
+              void openInLibrary()
+            }
+          "
         />
       </div>
 
@@ -145,7 +169,11 @@
             <!-- Block Header -->
             <div
               class="flex items-center justify-between bg-muted/10 px-3 py-2.5 cursor-pointer border-b border-default/40"
-              @click="toggleBlock(block.id)"
+              @click="
+                () => {
+                  void toggleBlock(block.id)
+                }
+              "
             >
               <div class="flex items-center gap-2 min-w-0">
                 <UIcon
@@ -173,7 +201,11 @@
                 <div
                   class="flex items-center justify-between px-6 py-2 cursor-pointer hover:bg-muted/10 transition-colors"
                   :class="{ 'bg-primary/5': expandedWeekIds.includes(week.id) }"
-                  @click="toggleWeek(week.id)"
+                  @click="
+                    () => {
+                      void toggleWeek(week.id)
+                    }
+                  "
                 >
                   <div class="flex items-center gap-2">
                     <UIcon

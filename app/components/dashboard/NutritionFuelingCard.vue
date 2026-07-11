@@ -55,7 +55,11 @@
             size="xs"
             icon="i-heroicons-sparkles"
             title="Regenerate Plan"
-            @click="handleGenerate"
+            @click="
+              () => {
+                void handleGenerate()
+              }
+            "
           />
           <UButton
             v-if="!loading"
@@ -113,7 +117,11 @@
           color="primary"
           size="xs"
           icon="i-heroicons-sparkles"
-          @click="handleGenerate"
+          @click="
+            () => {
+              void handleGenerate()
+            }
+          "
         >
           Generate Plan
         </UButton>
@@ -128,7 +136,14 @@
         <div class="space-y-6">
           <!-- Fuel Tank Visualization -->
 
-          <div class="space-y-2 group cursor-pointer" @click="showExplainModal = true">
+          <div
+            class="space-y-2 group cursor-pointer"
+            @click="
+              () => {
+                showExplainModal = true
+              }
+            "
+          >
             <div class="flex justify-between text-xs font-bold uppercase tracking-wider">
               <span class="text-gray-500 flex items-center gap-1">
                 Glycogen "Fuel Tank"
@@ -280,7 +295,11 @@
           >
             <div
               class="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-primary-300 transition-colors group"
-              @click="showMacroExplain('Calories')"
+              @click="
+                () => {
+                  void showMacroExplain('Calories')
+                }
+              "
             >
               <div class="flex items-center justify-center gap-1 mb-1">
                 <UIcon name="i-tabler-flame" class="w-3.5 h-3.5 text-orange-500" />
@@ -295,7 +314,11 @@
             </div>
             <div
               class="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-primary-300 transition-colors group"
-              @click="showMacroExplain('Carbs')"
+              @click="
+                () => {
+                  void showMacroExplain('Carbs')
+                }
+              "
             >
               <div class="flex items-center justify-center gap-1 mb-1">
                 <UIcon name="i-tabler-bread" class="w-3.5 h-3.5 text-yellow-500" />
@@ -310,7 +333,11 @@
             </div>
             <div
               class="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-primary-300 transition-colors group"
-              @click="showMacroExplain('Protein')"
+              @click="
+                () => {
+                  void showMacroExplain('Protein')
+                }
+              "
             >
               <div class="flex items-center justify-center gap-1 mb-1">
                 <UIcon name="i-tabler-egg" class="w-3.5 h-3.5 text-blue-500" />
@@ -325,7 +352,11 @@
             </div>
             <div
               class="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-primary-300 transition-colors group"
-              @click="showMacroExplain('Fat')"
+              @click="
+                () => {
+                  void showMacroExplain('Fat')
+                }
+              "
             >
               <div class="flex items-center justify-center gap-1 mb-1">
                 <UIcon name="i-tabler-droplet" class="w-3.5 h-3.5 text-green-500" />
@@ -340,7 +371,11 @@
             </div>
             <div
               class="bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-primary-300 transition-colors group"
-              @click="isHydrationExplainOpen = true"
+              @click="
+                () => {
+                  isHydrationExplainOpen = true
+                }
+              "
             >
               <div class="flex items-center justify-center gap-1 mb-1">
                 <UIcon name="i-tabler-droplet" class="w-3.5 h-3.5 text-blue-400" />

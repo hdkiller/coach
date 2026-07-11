@@ -385,7 +385,11 @@
                       size="xs"
                       color="neutral"
                       variant="ghost"
-                      @click="openOverrideModal(level)"
+                      @click="
+                        () => {
+                          void openOverrideModal(level)
+                        }
+                      "
                     />
                   </div>
                 </template>
@@ -504,14 +508,22 @@
                                 size="xs"
                                 color="neutral"
                                 variant="ghost"
-                                @click="openOverrideModal(level, override)"
+                                @click="
+                                  () => {
+                                    void openOverrideModal(level, override)
+                                  }
+                                "
                               />
                               <UButton
                                 icon="i-lucide-trash-2"
                                 size="xs"
                                 color="error"
                                 variant="ghost"
-                                @click="deleteOverride(override.id)"
+                                @click="
+                                  () => {
+                                    void deleteOverride(override.id)
+                                  }
+                                "
                               />
                             </div>
                           </td>
@@ -651,7 +663,14 @@
                 </UFormField>
 
                 <div class="flex justify-end gap-3 mt-8">
-                  <UButton color="neutral" variant="ghost" @click="isModalOpen = false"
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        isModalOpen = false
+                      }
+                    "
                     >Cancel</UButton
                   >
                   <UButton type="submit" color="primary" :loading="saving">Save Override</UButton>

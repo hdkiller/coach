@@ -148,7 +148,11 @@
                         ? 'bg-default text-primary shadow-sm'
                         : 'text-muted hover:text-highlighted'
                     "
-                    @click="chartMetric = 'tss'"
+                    @click="
+                      () => {
+                        chartMetric = 'tss'
+                      }
+                    "
                   >
                     TSS
                   </button>
@@ -159,7 +163,11 @@
                         ? 'bg-default text-primary shadow-sm'
                         : 'text-muted hover:text-highlighted'
                     "
-                    @click="chartMetric = 'minutes'"
+                    @click="
+                      () => {
+                        chartMetric = 'minutes'
+                      }
+                    "
                   >
                     Duration
                   </button>
@@ -194,10 +202,28 @@
                   </p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <UButton size="xs" color="neutral" variant="ghost" @click="expandAllBlocks">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        void expandAllBlocks()
+                      }
+                    "
+                  >
                     Expand all
                   </UButton>
-                  <UButton size="xs" color="neutral" variant="ghost" @click="collapseAllBlocks">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        void collapseAllBlocks()
+                      }
+                    "
+                  >
                     Collapse all
                   </UButton>
                   <UBadge color="neutral" variant="soft">{{ visibleWeekCount }} weeks shown</UBadge>
@@ -217,7 +243,11 @@
                         ? 'bg-muted/5 border-b border-default/70'
                         : 'bg-default'
                     "
-                    @click="toggleBlock(block.id)"
+                    @click="
+                      () => {
+                        void toggleBlock(block.id)
+                      }
+                    "
                   >
                     <div class="flex items-center gap-4">
                       <div

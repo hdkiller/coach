@@ -140,6 +140,7 @@
     "generate": "nuxt generate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
     "format": "prettier --write .",
     "postinstall": "prisma generate",
     "preview": "nuxt preview",

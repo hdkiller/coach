@@ -34,7 +34,16 @@
 
       <!-- Save Button -->
       <div class="flex justify-end">
-        <UButton :loading="saving" @click="saveSettings"> {{ t('settings_save_changes') }} </UButton>
+        <UButton
+          :loading="saving"
+          @click="
+            () => {
+              void saveSettings()
+            }
+          "
+        >
+          {{ t('settings_save_changes') }}
+        </UButton>
       </div>
     </div>
   </UCard>
@@ -56,7 +65,13 @@
     save: [settings: any]
   }>()
 
-  const localSettings = ref({ ...props.settings })
+  const localSettings = ref<{
+    nickname?: string
+    aiContext?: string
+  }>({
+    nickname: props.settings.nickname ?? undefined,
+    aiContext: props.settings.aiContext ?? undefined
+  })
   const saving = ref(false)
 
   function handleChange() {
@@ -75,7 +90,11 @@
   watch(
     () => props.settings,
     (newSettings) => {
-      localSettings.value = { ...localSettings.value, ...newSettings }
+      localSettings.value = {
+        ...localSettings.value,
+        nickname: newSettings.nickname ?? undefined,
+        aiContext: newSettings.aiContext ?? undefined
+      }
     },
     { deep: true }
   )

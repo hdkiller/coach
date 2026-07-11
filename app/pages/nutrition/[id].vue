@@ -22,7 +22,11 @@
               size="sm"
               class="font-bold"
               :loading="generatingPlan"
-              @click="handleGeneratePlan"
+              @click="
+                () => {
+                  void handleGeneratePlan()
+                }
+              "
             >
               {{ t('detail_regenerate_plan') }}
             </UButton>
@@ -33,7 +37,11 @@
               variant="solid"
               size="sm"
               class="font-bold"
-              @click="chatAboutNutrition"
+              @click="
+                () => {
+                  void chatAboutNutrition()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('detail_chat_about') }}</span>
               <span class="sm:hidden">{{ t('detail_chat_short') }}</span>
@@ -91,7 +99,11 @@
                 color="neutral"
                 variant="ghost"
                 class="shrink-0"
-                @click="navigateDate(-1)"
+                @click="
+                  () => {
+                    void navigateDate(-1)
+                  }
+                "
               />
 
               <div
@@ -167,7 +179,11 @@
                 color="neutral"
                 variant="ghost"
                 class="shrink-0"
-                @click="navigateDate(1)"
+                @click="
+                  () => {
+                    void navigateDate(1)
+                  }
+                "
               />
             </div>
           </UCard>
@@ -268,7 +284,11 @@
                   color="neutral"
                   variant="ghost"
                   size="xs"
-                  @click="isDetailSettingsModalOpen = true"
+                  @click="
+                    () => {
+                      isDetailSettingsModalOpen = true
+                    }
+                  "
                 />
               </div>
             </div>
@@ -373,7 +393,11 @@
                     color="primary"
                     variant="ghost"
                     size="xs"
-                    @click="openAiModal()"
+                    @click="
+                      () => {
+                        void openAiModal()
+                      }
+                    "
                   >
                     <span class="hidden sm:inline">Log with AI</span>
                     <span class="sm:hidden">Log</span>
@@ -383,7 +407,11 @@
                     color="neutral"
                     variant="ghost"
                     size="xs"
-                    @click="isTimelineSettingsModalOpen = true"
+                    @click="
+                      () => {
+                        isTimelineSettingsModalOpen = true
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -434,7 +462,11 @@
                     icon="i-heroicons-arrow-path"
                     size="xs"
                     :loading="analyzingNutrition"
-                    @click="analyzeNutrition"
+                    @click="
+                      () => {
+                        void analyzeNutrition()
+                      }
+                    "
                     >{{ t('detail_analyze_refresh') }}</UButton
                   >
                 </div>
@@ -498,7 +530,11 @@
                   color="primary"
                   icon="i-heroicons-sparkles"
                   :loading="analyzingNutrition"
-                  @click="analyzeNutrition"
+                  @click="
+                    () => {
+                      void analyzeNutrition()
+                    }
+                  "
                 >
                   {{ t('detail_analyze_cta') }}
                 </UButton>

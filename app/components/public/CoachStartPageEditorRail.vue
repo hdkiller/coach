@@ -19,7 +19,11 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-x-mark"
-              @click="emit('close')"
+              @click="
+                () => {
+                  void emit('close')
+                }
+              "
             />
           </div>
         </div>
@@ -45,7 +49,11 @@
                     type="button"
                     class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition"
                     :class="sectionButtonClass(heroSection?.id)"
-                    @click="selectSection(heroSection?.id)"
+                    @click="
+                      () => {
+                        void selectSection(heroSection?.id)
+                      }
+                    "
                   >
                     <UIcon name="i-heroicons-sparkles" class="h-5 w-5 shrink-0 text-primary" />
                     <div class="min-w-0 flex-1">
@@ -67,7 +75,11 @@
                       type="button"
                       class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition"
                       :class="sectionButtonClass(element.id)"
-                      @click="selectSection(element.id)"
+                      @click="
+                        () => {
+                          void selectSection(element.id)
+                        }
+                      "
                     >
                       <UIcon
                         name="i-heroicons-bars-3"
@@ -170,7 +182,14 @@
                             class="w-full"
                           />
                           <div class="flex flex-wrap gap-2">
-                            <UButton color="neutral" variant="soft" @click="setStartHeroFromUrl"
+                            <UButton
+                              color="neutral"
+                              variant="soft"
+                              @click="
+                                () => {
+                                  void setStartHeroFromUrl()
+                                }
+                              "
                               >Use URL</UButton
                             >
                             <label class="inline-flex">
@@ -190,7 +209,11 @@
                               v-if="startHeroImageUrl"
                               color="error"
                               variant="ghost"
-                              @click="removeStartHeroImage"
+                              @click="
+                                () => {
+                                  void removeStartHeroImage()
+                                }
+                              "
                             >
                               Remove
                             </UButton>
@@ -277,7 +300,16 @@
                           Show a few clear offers so athletes understand what you sell before they
                           request coaching.
                         </div>
-                        <UButton color="neutral" variant="soft" size="sm" @click="addPricingOffer">
+                        <UButton
+                          color="neutral"
+                          variant="soft"
+                          size="sm"
+                          @click="
+                            () => {
+                              void addPricingOffer()
+                            }
+                          "
+                        >
                           Add offer
                         </UButton>
                       </div>
@@ -344,7 +376,11 @@
                               color="error"
                               variant="ghost"
                               size="sm"
-                              @click="removePricingOffer(offer.id)"
+                              @click="
+                                () => {
+                                  void removePricingOffer(offer.id)
+                                }
+                              "
                             >
                               Remove offer
                             </UButton>
@@ -386,7 +422,15 @@
                       <div class="text-sm text-muted">
                         Answer the practical objections athletes have before they commit.
                       </div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addFaqItem"
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addFaqItem()
+                          }
+                        "
                         >Add question</UButton
                       >
                     </div>
@@ -406,7 +450,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeFaqItem(item.id)"
+                            @click="
+                              () => {
+                                void removeFaqItem(item.id)
+                              }
+                            "
                             >Remove</UButton
                           >
                         </div>
@@ -444,7 +492,15 @@
                       <div class="text-sm text-muted">
                         Keep the form short. A few strong questions work best.
                       </div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addFormField"
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addFormField()
+                          }
+                        "
                         >Add field</UButton
                       >
                     </div>
@@ -486,7 +542,11 @@
                               color="neutral"
                               variant="soft"
                               size="xs"
-                              @click="addFieldOption(field)"
+                              @click="
+                                () => {
+                                  void addFieldOption(field)
+                                }
+                              "
                               >Add option</UButton
                             >
                           </div>
@@ -501,7 +561,11 @@
                               color="error"
                               variant="ghost"
                               icon="i-heroicons-trash"
-                              @click="removeFieldOption(field, option.id)"
+                              @click="
+                                () => {
+                                  void removeFieldOption(field, option.id)
+                                }
+                              "
                             />
                           </div>
                         </div>
@@ -516,7 +580,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeFormField(field.id)"
+                            @click="
+                              () => {
+                                void removeFormField(field.id)
+                              }
+                            "
                             >Remove field</UButton
                           >
                         </div>
@@ -543,8 +611,26 @@
 
         <div class="border-t border-default/70 px-5 py-4">
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="ghost" @click="emit('close')">Close</UButton>
-            <UButton color="primary" :loading="saving" @click="emit('save')">Save changes</UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  void emit('close')
+                }
+              "
+              >Close</UButton
+            >
+            <UButton
+              color="primary"
+              :loading="saving"
+              @click="
+                () => {
+                  void emit('save')
+                }
+              "
+              >Save changes</UButton
+            >
           </div>
         </div>
       </div>

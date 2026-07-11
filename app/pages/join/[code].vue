@@ -207,7 +207,11 @@
               block
               class="font-black uppercase tracking-wide"
               :loading="joining"
-              @click="acceptJoin"
+              @click="
+                () => {
+                  void acceptJoin()
+                }
+              "
             >
               {{ session ? 'Accept Invitation' : 'Login to Join' }}
             </UButton>

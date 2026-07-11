@@ -34,7 +34,11 @@
             size="xs"
             icon="i-heroicons-arrow-path"
             class="font-bold uppercase tracking-widest text-[9px]"
-            @click="resetSteps"
+            @click="
+              () => {
+                void resetSteps()
+              }
+            "
           >
             Reset
           </UButton>
@@ -66,7 +70,11 @@
           size="xs"
           icon="i-heroicons-plus"
           class="font-bold uppercase tracking-widest text-[9px]"
-          @click="addStep"
+          @click="
+            () => {
+              void addStep()
+            }
+          "
         >
           Add Root Step
         </UButton>
@@ -85,10 +93,28 @@
         </template>
         <template #footer>
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="ghost" size="sm" @click="cancelMetricChange">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="
+                () => {
+                  void cancelMetricChange()
+                }
+              "
+            >
               Cancel
             </UButton>
-            <UButton color="primary" size="sm" @click="confirmMetricChange">Apply change</UButton>
+            <UButton
+              color="primary"
+              size="sm"
+              @click="
+                () => {
+                  void confirmMetricChange()
+                }
+              "
+              >Apply change</UButton
+            >
           </div>
         </template>
       </UModal>
@@ -124,7 +150,11 @@
         variant="ghost"
         size="sm"
         class="font-bold uppercase tracking-widest text-[10px]"
-        @click="$emit('cancel')"
+        @click="
+          () => {
+            void $emit('cancel')
+          }
+        "
       >
         Cancel
       </UButton>
@@ -133,7 +163,11 @@
         size="sm"
         class="font-black uppercase tracking-widest text-[10px] px-6"
         :loading="saving"
-        @click="saveChanges"
+        @click="
+          () => {
+            void saveChanges()
+          }
+        "
       >
         Save Structure
       </UButton>
@@ -219,7 +253,8 @@
     }
   }
 
-  function requestMetricChange(newMetric: 'power' | 'hr' | 'pace') {
+  function requestMetricChange(newMetric: string) {
+    if (newMetric !== 'power' && newMetric !== 'hr' && newMetric !== 'pace') return
     if (newMetric === activeMetric.value) return
     const report = buildMetricChangeReport(activeMetric.value, newMetric)
     if (report.requiresConfirmation) {

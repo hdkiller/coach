@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Coach start page not found.' })
   }
 
-  const configuredFields = profile.startPage.form.fields || []
+  const configuredFields = profile.startPage?.form?.fields || []
   const answerMap = new Map(body.answers.map((answer) => [answer.fieldId, answer]))
 
   for (const field of configuredFields) {

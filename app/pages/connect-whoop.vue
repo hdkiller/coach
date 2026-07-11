@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect WHOOP')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -108,7 +117,11 @@
                 :loading="connecting"
                 color="primary"
                 :disabled="isWhoopDisabled"
-                @click="connect"
+                @click="
+                  () => {
+                    void connect()
+                  }
+                "
               >
                 {{
                   isWhoopDisabled

@@ -25,7 +25,11 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            @click="$emit('settings')"
+            @click="
+              () => {
+                void $emit('settings')
+              }
+            "
           />
         </div>
       </div>
@@ -47,7 +51,11 @@
             class="rounded border border-gray-200 dark:border-gray-700 px-3 py-2 bg-gray-50/70 dark:bg-gray-800/40 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
             role="button"
             tabindex="0"
-            @click="$emit('explain', 'week')"
+            @click="
+              () => {
+                void $emit('explain', 'week')
+              }
+            "
           >
             <p class="text-[10px] uppercase tracking-wider text-gray-500">This Week</p>
             <p class="text-lg font-black text-gray-900 dark:text-white">
@@ -58,7 +66,11 @@
             class="rounded border border-gray-200 dark:border-gray-700 px-3 py-2 bg-gray-50/70 dark:bg-gray-800/40 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
             role="button"
             tabindex="0"
-            @click="$emit('explain', 'range')"
+            @click="
+              () => {
+                void $emit('explain', 'range')
+              }
+            "
           >
             <p class="text-[10px] uppercase tracking-wider text-gray-500">Expected</p>
             <p class="text-lg font-black text-gray-900 dark:text-white">

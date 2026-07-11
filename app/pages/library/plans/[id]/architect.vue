@@ -9,7 +9,11 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-chevron-left"
-              @click="navigateTo('/library/plans')"
+              @click="
+                () => {
+                  void navigateTo('/library/plans')
+                }
+              "
             />
           </div>
         </template>
@@ -31,7 +35,11 @@
                 variant="outline"
                 size="sm"
                 icon="i-heroicons-squares-2x2"
-                @click="isUtilityPanelOpen = true"
+                @click="
+                  () => {
+                    isUtilityPanelOpen = true
+                  }
+                "
               >
                 <span class="sm:hidden">Tools</span>
                 <span class="hidden sm:inline">Utility panel</span>
@@ -44,7 +52,11 @@
                 variant="outline"
                 size="sm"
                 icon="i-heroicons-pencil-square"
-                @click="isPlanEditorOpen = true"
+                @click="
+                  () => {
+                    isPlanEditorOpen = true
+                  }
+                "
               >
                 <span class="sm:hidden">Edit</span>
                 <span class="hidden sm:inline">Edit details</span>
@@ -55,7 +67,11 @@
                 icon="i-heroicons-cloud-arrow-up"
                 :loading="saving"
                 :disabled="!hasUnsavedChanges"
-                @click="savePlan"
+                @click="
+                  () => {
+                    void savePlan()
+                  }
+                "
               >
                 <span class="sm:hidden">Save</span>
                 <span class="hidden sm:inline">Save changes</span>
@@ -89,11 +105,23 @@
                     color="primary"
                     icon="i-heroicons-plus"
                     :loading="isImportingPlan"
-                    @click="importPlanToLibrary"
+                    @click="
+                      () => {
+                        void importPlanToLibrary()
+                      }
+                    "
                   >
                     Add to my library
                   </UButton>
-                  <UButton color="neutral" variant="ghost" @click="navigateTo('/library/plans')">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        void navigateTo('/library/plans')
+                      }
+                    "
+                  >
                     Back to library
                   </UButton>
                 </div>
@@ -166,7 +194,11 @@
                           :variant="chartMetric === 'tss' ? 'soft' : 'ghost'"
                           size="sm"
                           class="flex-1 sm:flex-none"
-                          @click="chartMetric = 'tss'"
+                          @click="
+                            () => {
+                              chartMetric = 'tss'
+                            }
+                          "
                           >TSS</UButton
                         >
                         <UButton
@@ -174,7 +206,11 @@
                           :variant="chartMetric === 'minutes' ? 'soft' : 'ghost'"
                           size="sm"
                           class="flex-1 sm:flex-none"
-                          @click="chartMetric = 'minutes'"
+                          @click="
+                            () => {
+                              chartMetric = 'minutes'
+                            }
+                          "
                           >Minutes</UButton
                         >
                       </div>
@@ -191,7 +227,11 @@
                           size="sm"
                           icon="i-heroicons-calendar-days"
                           class="flex-1 sm:flex-none"
-                          @click="viewMode = 'board'"
+                          @click="
+                            () => {
+                              viewMode = 'board'
+                            }
+                          "
                         >
                           <span class="sm:hidden">Board</span>
                           <span class="hidden sm:inline">Weekly board</span>
@@ -202,7 +242,11 @@
                           size="sm"
                           icon="i-heroicons-table-cells"
                           class="flex-1 sm:flex-none"
-                          @click="viewMode = 'table'"
+                          @click="
+                            () => {
+                              viewMode = 'table'
+                            }
+                          "
                         >
                           <span class="sm:hidden">Table</span>
                           <span class="hidden sm:inline">Plan table</span>
@@ -271,7 +315,12 @@
                           size="sm"
                           icon="i-heroicons-arrow-right"
                           class="shrink-0"
-                          @click="scrollToWeek(selectedWeekAnalytics.weekId)"
+                          @click="
+                            () => {
+                              if (selectedWeekAnalytics)
+                                void scrollToWeek(selectedWeekAnalytics.weekId)
+                            }
+                          "
                         >
                           Board
                         </UButton>
@@ -454,10 +503,25 @@
         </div>
 
         <div class="p-6 border-t border-default/60 bg-muted/5 flex justify-end gap-3">
-          <UButton color="neutral" variant="ghost" @click="isPlanEditorOpen = false"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isPlanEditorOpen = false
+              }
+            "
             >Cancel</UButton
           >
-          <UButton color="primary" @click="isPlanEditorOpen = false">Apply changes</UButton>
+          <UButton
+            color="primary"
+            @click="
+              () => {
+                isPlanEditorOpen = false
+              }
+            "
+            >Apply changes</UButton
+          >
         </div>
       </div>
     </template>
@@ -479,7 +543,15 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="primary" @click="applyBlockEditor">Apply</UButton>
+        <UButton
+          color="primary"
+          @click="
+            () => {
+              void applyBlockEditor()
+            }
+          "
+          >Apply</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -500,7 +572,15 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="primary" @click="applyWeekEditor">Apply</UButton>
+        <UButton
+          color="primary"
+          @click="
+            () => {
+              void applyWeekEditor()
+            }
+          "
+          >Apply</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -619,15 +699,35 @@
           color="error"
           variant="ghost"
           icon="i-heroicons-trash"
-          @click="handleRemoveWorkout"
+          @click="
+            () => {
+              void handleRemoveWorkout()
+            }
+          "
         >
           {{ isEditingNote ? 'Delete note' : 'Remove workout' }}
         </UButton>
         <div class="flex flex-col gap-2 sm:flex-row">
-          <UButton color="neutral" variant="ghost" @click="saveEditingWorkoutToLibrary">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                void saveEditingWorkoutToLibrary()
+              }
+            "
+          >
             {{ isEditingNote ? 'Save note to library' : 'Save workout to library' }}
           </UButton>
-          <UButton color="primary" icon="i-heroicons-check" @click="applyWorkoutEditor">
+          <UButton
+            color="primary"
+            icon="i-heroicons-check"
+            @click="
+              () => {
+                void applyWorkoutEditor()
+              }
+            "
+          >
             {{ isEditingNote ? 'Save note' : 'Save workout' }}
           </UButton>
         </div>

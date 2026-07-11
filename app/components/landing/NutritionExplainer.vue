@@ -131,7 +131,11 @@
               size="sm"
               :color="selectedScenarioId === scenario.id ? 'primary' : 'neutral'"
               :variant="selectedScenarioId === scenario.id ? 'solid' : 'outline'"
-              @click="selectedScenarioId = scenario.id"
+              @click="
+                () => {
+                  selectedScenarioId = scenario.id
+                }
+              "
             >
               {{ t('scenario.' + scenario.id + '.name') }}
             </UButton>

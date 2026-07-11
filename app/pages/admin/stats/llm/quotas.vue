@@ -43,7 +43,11 @@
             :icon="showAll ? 'i-lucide-filter-x' : 'i-lucide-filter'"
             variant="ghost"
             color="neutral"
-            @click="showAll = !showAll"
+            @click="
+              () => {
+                showAll = !showAll
+              }
+            "
           />
         </template>
       </UDashboardNavbar>

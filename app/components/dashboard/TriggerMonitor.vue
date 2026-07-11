@@ -31,14 +31,22 @@
               size="xs"
               icon="i-heroicons-arrow-path"
               :loading="isLoading"
-              @click="refresh"
+              @click="
+                () => {
+                  void refresh()
+                }
+              "
             />
             <UButton
               color="neutral"
               variant="ghost"
               size="xs"
               icon="i-heroicons-x-mark"
-              @click="close"
+              @click="
+                () => {
+                  void close()
+                }
+              "
             />
           </div>
         </div>
@@ -104,7 +112,11 @@
                     size="xs"
                     icon="i-heroicons-stop"
                     :loading="cancellingId === run.id"
-                    @click="stopRun(run.id)"
+                    @click="
+                      () => {
+                        void stopRun(run.id)
+                      }
+                    "
                   />
                 </UTooltip>
               </div>
@@ -132,7 +144,16 @@
           v-if="hasMoreHistory"
           class="p-2 text-center border-t border-gray-100 dark:border-gray-800"
         >
-          <UButton variant="ghost" size="xs" color="neutral" @click="loadMore">
+          <UButton
+            variant="ghost"
+            size="xs"
+            color="neutral"
+            @click="
+              () => {
+                void loadMore()
+              }
+            "
+          >
             {{ t('trigger_monitor_load_more') }}
           </UButton>
         </div>

@@ -59,7 +59,7 @@ function getConnection() {
 function getWebhookQueueInstance() {
   const activeConnection = getConnection()
   if (!webhookQueueInstance) {
-    webhookQueueInstance = new Queue('webhookQueue', { connection: activeConnection })
+    webhookQueueInstance = new Queue('webhookQueue', { connection: activeConnection as any })
   }
   return webhookQueueInstance
 }
@@ -67,7 +67,7 @@ function getWebhookQueueInstance() {
 function getPingQueueInstance() {
   const activeConnection = getConnection()
   if (!pingQueueInstance) {
-    pingQueueInstance = new Queue('pingQueue', { connection: activeConnection })
+    pingQueueInstance = new Queue('pingQueue', { connection: activeConnection as any })
   }
   return pingQueueInstance
 }

@@ -135,7 +135,7 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.lrBalance.sourceSemantics).toBe('unknown')
     expect(facts.lrBalance.interpretationMode).toBe('disabled')
     // correctionReason is included because it's non-null and explains why it's disabled
-    expect(facts.debugMeta.promptDecisions['lrBalance.correctionReason'].include).toBe(true)
+    expect(facts.debugMeta.promptDecisions['lrBalance.correctionReason']!.include).toBe(true)
   })
 
   it('detects ERG from tightly locked target power intervals', () => {

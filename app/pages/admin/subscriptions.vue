@@ -315,7 +315,11 @@
                           label="Impersonate"
                           size="xs"
                           :loading="impersonating === user.id"
-                          @click="impersonateUser(user.id)"
+                          @click="
+                            () => {
+                              void impersonateUser(user.id)
+                            }
+                          "
                         />
                       </div>
                     </td>

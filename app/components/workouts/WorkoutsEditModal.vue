@@ -239,7 +239,11 @@
                       size="xs"
                       icon="i-heroicons-sparkles"
                       class="font-bold uppercase tracking-widest text-[9px]"
-                      @click="estimateTSS"
+                      @click="
+                        () => {
+                          void estimateTSS()
+                        }
+                      "
                     >
                       Estimate
                     </UButton>
@@ -267,7 +271,11 @@
                       size="xs"
                       icon="i-heroicons-sparkles"
                       class="font-bold uppercase tracking-widest text-[9px]"
-                      @click="estimateCalories"
+                      @click="
+                        () => {
+                          void estimateCalories()
+                        }
+                      "
                     >
                       Estimate
                     </UButton>
@@ -289,26 +297,26 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <UFormField 
-                v-for="field in customFieldDefinitions" 
-                :key="field.id" 
+              <UFormField
+                v-for="field in customFieldDefinitions"
+                :key="field.id"
                 :label="field.label"
                 :help="field.unit ? `Unit: ${field.unit}` : undefined"
               >
-                <UInput 
+                <UInput
                   v-if="field.dataType === 'NUMBER'"
                   v-model.number="customMetrics[field.fieldKey]"
                   type="number"
                   class="w-full"
                   size="lg"
                 />
-                <UInput 
+                <UInput
                   v-else-if="field.dataType === 'STRING'"
                   v-model="customMetrics[field.fieldKey]"
                   class="w-full"
                   size="lg"
                 />
-                <UCheckbox 
+                <UCheckbox
                   v-else-if="field.dataType === 'BOOLEAN'"
                   v-model="customMetrics[field.fieldKey]"
                 />
@@ -355,10 +363,23 @@
             variant="ghost"
             icon="i-heroicons-trash"
             class="font-bold"
-            @click="$emit('delete')"
+            @click="
+              () => {
+                void $emit('delete')
+              }
+            "
           />
           <div class="flex gap-3">
-            <UButton label="Cancel" color="neutral" variant="ghost" @click="isOpen = false" />
+            <UButton
+              label="Cancel"
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
+            />
             <UButton
               type="submit"
               label="Save Activity Changes"
@@ -521,7 +542,7 @@
   async function fetchCustomFields() {
     try {
       const fieldsData = await $fetch('/api/analytics/fields/definitions')
-      customFieldDefinitions.value = (fieldsData as any[]).filter(f => f.entityType === 'WORKOUT')
+      customFieldDefinitions.value = (fieldsData as any[]).filter((f) => f.entityType === 'WORKOUT')
     } catch (e) {
       console.error('Failed to fetch custom fields:', e)
     }

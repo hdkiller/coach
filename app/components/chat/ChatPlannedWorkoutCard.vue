@@ -606,7 +606,11 @@
     <button
       class="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       :class="{ 'border-b border-gray-200 dark:border-gray-700': isExpanded }"
-      @click="toggleExpanded"
+      @click="
+        () => {
+          void toggleExpanded()
+        }
+      "
     >
       <UIcon
         :name="hasVisualization ? 'i-heroicons-calendar-days' : 'i-heroicons-wrench-screwdriver'"
@@ -667,7 +671,11 @@
           color="neutral"
           variant="soft"
           icon="i-heroicons-list-bullet"
-          @click="showSteps = !showSteps"
+          @click="
+            () => {
+              showSteps = !showSteps
+            }
+          "
         >
           {{ showSteps ? 'Hide Steps' : 'Show Steps' }}
         </UButton>
@@ -677,7 +685,11 @@
           color="neutral"
           variant="soft"
           icon="i-heroicons-chat-bubble-left-right"
-          @click="showMessages = !showMessages"
+          @click="
+            () => {
+              showMessages = !showMessages
+            }
+          "
         >
           {{ showMessages ? 'Hide Cues' : 'Show Cues' }}
         </UButton>
@@ -686,7 +698,11 @@
           color="neutral"
           variant="soft"
           icon="i-heroicons-code-bracket-square"
-          @click="showRaw = !showRaw"
+          @click="
+            () => {
+              showRaw = !showRaw
+            }
+          "
         >
           {{ showRaw ? 'Hide Raw JSON' : 'Show Raw JSON' }}
         </UButton>

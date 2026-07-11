@@ -68,7 +68,11 @@
                 label="Generate Invite Code"
                 icon="i-heroicons-plus"
                 :loading="generatingInvite"
-                @click="createInvite"
+                @click="
+                  () => {
+                    void createInvite()
+                  }
+                "
               />
               <p v-else class="text-[10px] text-neutral-500 uppercase font-bold">
                 Expires {{ formatFullDate(invite.expiresAt) }}
@@ -89,7 +93,11 @@
                 icon="i-heroicons-ticket"
                 size="xs"
                 class="font-bold"
-                @click="isJoinTeamModalOpen = true"
+                @click="
+                  () => {
+                    isJoinTeamModalOpen = true
+                  }
+                "
               />
               <UButton
                 color="neutral"
@@ -98,7 +106,11 @@
                 icon="i-heroicons-plus"
                 size="xs"
                 class="font-bold"
-                @click="isCreateTeamModalOpen = true"
+                @click="
+                  () => {
+                    isCreateTeamModalOpen = true
+                  }
+                "
               />
             </div>
           </div>
@@ -120,14 +132,22 @@
                 color="primary"
                 variant="link"
                 label="Start a Team"
-                @click="isCreateTeamModalOpen = true"
+                @click="
+                  () => {
+                    isCreateTeamModalOpen = true
+                  }
+                "
               />
               <span class="text-neutral-400 text-xs">or</span>
               <UButton
                 color="primary"
                 variant="link"
                 label="Join with Code"
-                @click="isJoinTeamModalOpen = true"
+                @click="
+                  () => {
+                    isJoinTeamModalOpen = true
+                  }
+                "
               />
             </div>
           </div>
@@ -137,7 +157,11 @@
               v-for="membership in teams"
               :key="membership.id"
               class="hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer group"
-              @click="viewTeam(membership.team.id)"
+              @click="
+                () => {
+                  void viewTeam(membership.team.id)
+                }
+              "
             >
               <div class="flex items-start justify-between">
                 <div class="space-y-1">
@@ -210,7 +234,11 @@
                   size="xs"
                   icon="i-heroicons-trash"
                   label="Remove"
-                  @click="confirmRemoveCoach(rel.coach)"
+                  @click="
+                    () => {
+                      void confirmRemoveCoach(rel.coach)
+                    }
+                  "
                 />
               </div>
             </UCard>
@@ -227,8 +255,26 @@
     :description="`Are you sure you want to remove ${coachToRemove?.name} as your coach? They will no longer have access to your data.`"
   >
     <template #footer>
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="isRemoveModalOpen = false" />
-      <UButton label="Remove Coach" color="error" :loading="removingCoach" @click="removeCoach" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isRemoveModalOpen = false
+          }
+        "
+      />
+      <UButton
+        label="Remove Coach"
+        color="error"
+        :loading="removingCoach"
+        @click="
+          () => {
+            void removeCoach()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -261,9 +307,22 @@
         label="Cancel"
         color="neutral"
         variant="ghost"
-        @click="isCreateTeamModalOpen = false"
+        @click="
+          () => {
+            isCreateTeamModalOpen = false
+          }
+        "
       />
-      <UButton label="Create Team" color="primary" :loading="creatingTeam" @click="createTeam" />
+      <UButton
+        label="Create Team"
+        color="primary"
+        :loading="creatingTeam"
+        @click="
+          () => {
+            void createTeam()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -293,14 +352,22 @@
         label="Cancel"
         color="neutral"
         variant="ghost"
-        @click="isJoinTeamModalOpen = false"
+        @click="
+          () => {
+            isJoinTeamModalOpen = false
+          }
+        "
       />
       <UButton
         label="Join Team"
         color="primary"
         :loading="joiningTeam"
         :disabled="!joinCode"
-        @click="joinTeam"
+        @click="
+          () => {
+            void joinTeam()
+          }
+        "
       />
     </template>
   </UModal>

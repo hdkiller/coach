@@ -27,7 +27,11 @@
             variant="ghost"
             size="xs"
             class="rounded-full"
-            @click="showSettingsModal = true"
+            @click="
+              () => {
+                showSettingsModal = true
+              }
+            "
           />
         </div>
       </div>
@@ -198,7 +202,11 @@
       <!-- Training Load & Form Section -->
       <button
         class="group block w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
-        @click="$emit('open-training-load')"
+        @click="
+          () => {
+            void $emit('open-training-load')
+          }
+        "
       >
         <div class="flex items-center justify-between mb-3">
           <p
@@ -443,7 +451,11 @@
       <button
         v-if="hasWellnessSummary"
         class="group w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
-        @click="$emit('open-wellness')"
+        @click="
+          () => {
+            void $emit('open-wellness')
+          }
+        "
       >
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">

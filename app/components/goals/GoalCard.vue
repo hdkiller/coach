@@ -1,7 +1,11 @@
 <template>
   <UCard
     class="cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group"
-    @click="emit('edit', goal)"
+    @click="
+      () => {
+        void emit('edit', goal)
+      }
+    "
   >
     <div class="flex items-start justify-between">
       <div class="flex items-start gap-3">

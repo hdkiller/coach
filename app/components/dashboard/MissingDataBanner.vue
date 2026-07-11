@@ -38,7 +38,11 @@
           variant="ghost"
           size="sm"
           icon="i-heroicons-x-mark"
-          @click="dismiss"
+          @click="
+            () => {
+              void dismiss()
+            }
+          "
         />
       </div>
     </div>

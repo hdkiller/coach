@@ -1,7 +1,11 @@
 <template>
   <div
     class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-50 to-white dark:from-primary-950/30 dark:to-gray-900 border border-primary-100 dark:border-primary-900/50 p-4 cursor-pointer hover:shadow-md transition-all group"
-    @click="$emit('click')"
+    @click="
+      () => {
+        void $emit('click')
+      }
+    "
   >
     <div class="flex justify-between items-start">
       <div class="flex flex-col gap-1">

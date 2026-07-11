@@ -91,7 +91,11 @@
             v-for="workout in workouts"
             :key="workout.id"
             class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            @click="$emit('navigate', workout.id)"
+            @click="
+              () => {
+                void $emit('navigate', workout.id)
+              }
+            "
           >
             <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
               <div class="flex flex-col">

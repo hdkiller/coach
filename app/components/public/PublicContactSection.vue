@@ -100,7 +100,15 @@
 
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-xs text-slate-400">Your email is required so the coach can reply.</p>
-            <UButton color="primary" :loading="sending" @click="submitForm">
+            <UButton
+              color="primary"
+              :loading="sending"
+              @click="
+                () => {
+                  void submitForm()
+                }
+              "
+            >
               {{ submitLabel }}
             </UButton>
           </div>

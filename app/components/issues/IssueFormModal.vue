@@ -96,7 +96,11 @@
                 variant="ghost"
                 icon="i-heroicons-x-mark-20-solid"
                 class="-my-1"
-                @click="isOpen = false"
+                @click="
+                  () => {
+                    isOpen = false
+                  }
+                "
               />
             </div>
           </template>
@@ -133,7 +137,16 @@
             </UFormField>
 
             <div class="flex justify-end gap-3 pt-4">
-              <UButton label="Cancel" color="neutral" variant="ghost" @click="isOpen = false" />
+              <UButton
+                label="Cancel"
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isOpen = false
+                  }
+                "
+              />
               <UButton
                 type="submit"
                 color="primary"

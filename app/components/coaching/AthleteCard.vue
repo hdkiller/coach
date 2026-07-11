@@ -5,7 +5,11 @@
       'hover:ring-2 hover:ring-primary-500 cursor-pointer': !athlete.isMasked,
       'opacity-80 grayscale-[0.5]': athlete.isMasked
     }"
-    @click="athlete.isMasked ? null : $emit('view', athlete)"
+    @click="
+      () => {
+        athlete.isMasked ? null : $emit('view', athlete)
+      }
+    "
   >
     <template #header>
       <div class="flex items-start justify-between">

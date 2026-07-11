@@ -15,7 +15,11 @@
               icon="i-heroicons-x-mark"
               color="neutral"
               variant="ghost"
-              @click="isOpen = false"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
             />
           </div>
         </template>
@@ -221,8 +225,26 @@
 
         <template #footer>
           <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="resetDefaults">Reset</UButton>
-            <UButton color="primary" @click="isOpen = false"> Done </UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  void resetDefaults()
+                }
+              "
+              >Reset</UButton
+            >
+            <UButton
+              color="primary"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
+            >
+              Done
+            </UButton>
           </div>
         </template>
       </UCard>

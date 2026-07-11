@@ -1,5 +1,6 @@
 import pkg from './package.json'
 import { createHash } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 
 const TERMS = [
   'negative-split',
@@ -234,6 +235,15 @@ export default defineNuxtConfig({
     scheduledTasks: {
       '*/15 * * * *': ['shield:cleanBans'],
       '0 0 * * *': ['shield:cleanIpData']
+    },
+    imports: {
+      imports: [
+        {
+          from: fileURLToPath(new URL('./server/utils/define-route-meta', import.meta.url)),
+          name: 'defineRouteMeta',
+          priority: 100
+        }
+      ]
     }
   },
 
@@ -382,7 +392,6 @@ export default defineNuxtConfig({
       duration: parseInt(process.env.WEBHOOK_RATE_LIMIT_TTL || '60', 10),
       ban: 300
     },
-    // @ts-expect-error: Type definition mismatch in module
     security: {
       trustXForwardedFor: true
     },

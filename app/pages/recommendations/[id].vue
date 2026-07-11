@@ -18,7 +18,11 @@
               variant="solid"
               size="sm"
               class="font-bold"
-              @click="chatAboutRecommendation"
+              @click="
+                () => {
+                  void chatAboutRecommendation()
+                }
+              "
             >
               <span class="hidden sm:inline">Chat about this</span>
               <span class="sm:hidden">Chat</span>
@@ -27,7 +31,11 @@
               :icon="rec.isPinned ? 'i-heroicons-paper-clip-solid' : 'i-heroicons-paper-clip'"
               :color="rec.isPinned ? 'primary' : 'neutral'"
               variant="ghost"
-              @click="togglePin"
+              @click="
+                () => {
+                  void togglePin()
+                }
+              "
             />
           </div>
         </template>
@@ -84,7 +92,11 @@
                         color="primary"
                         variant="soft"
                         :loading="generatingGuide"
-                        @click="generateGuide"
+                        @click="
+                          () => {
+                            void generateGuide()
+                          }
+                        "
                       >
                         Generate Action Plan
                       </UButton>
@@ -96,7 +108,11 @@
                         v-if="rec.status === 'ACTIVE'"
                         color="neutral"
                         variant="ghost"
-                        @click="updateStatus('DISMISSED')"
+                        @click="
+                          () => {
+                            void updateStatus('DISMISSED')
+                          }
+                        "
                       >
                         Dismiss
                       </UButton>
@@ -106,7 +122,11 @@
                         variant="soft"
                         icon="i-heroicons-check"
                         class="font-bold"
-                        @click="updateStatus('COMPLETED')"
+                        @click="
+                          () => {
+                            void updateStatus('COMPLETED')
+                          }
+                        "
                       >
                         Mark Complete
                       </UButton>

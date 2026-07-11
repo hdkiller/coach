@@ -312,7 +312,11 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <UCard
               class="hover:border-primary-500 transition-colors cursor-pointer"
-              @click="navigateTo('/admin/emails')"
+              @click="
+                () => {
+                  void navigateTo('/admin/emails')
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
@@ -327,7 +331,11 @@
 
             <UCard
               class="hover:border-primary-500 transition-colors cursor-pointer"
-              @click="navigateTo('/admin/emails')"
+              @click="
+                () => {
+                  void navigateTo('/admin/emails')
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
@@ -342,7 +350,11 @@
 
             <UCard
               class="hover:border-primary-500 transition-colors cursor-pointer"
-              @click="navigateTo('/admin/emails')"
+              @click="
+                () => {
+                  void navigateTo('/admin/emails')
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-full">

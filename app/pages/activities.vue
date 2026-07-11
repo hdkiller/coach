@@ -39,7 +39,11 @@
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
               :loading="status === 'pending' || integrationStore.syncingData"
-              @click="handleRefresh"
+              @click="
+                () => {
+                  void handleRefresh()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('header_refresh') }}</span>
             </UButton>
@@ -157,7 +161,11 @@
               :color="isWorkoutDrawerVisible ? 'primary' : 'neutral'"
               variant="ghost"
               size="sm"
-              @click="toggleWorkoutDrawerFromHeader"
+              @click="
+                () => {
+                  void toggleWorkoutDrawerFromHeader()
+                }
+              "
             >
               <span class="hidden sm:inline">Library</span>
             </UButton>
@@ -168,7 +176,11 @@
               color="neutral"
               variant="ghost"
               size="sm"
-              @click="showCalendarSettingsModal = true"
+              @click="
+                () => {
+                  showCalendarSettingsModal = true
+                }
+              "
             />
 
             <!-- View Switcher -->
@@ -181,7 +193,11 @@
                 variant="ghost"
                 size="sm"
                 class="rounded-lg"
-                @click="viewMode = 'calendar'"
+                @click="
+                  () => {
+                    viewMode = 'calendar'
+                  }
+                "
               />
               <UButton
                 icon="i-heroicons-list-bullet"
@@ -189,7 +205,11 @@
                 variant="ghost"
                 size="sm"
                 class="rounded-lg"
-                @click="viewMode = 'list'"
+                @click="
+                  () => {
+                    viewMode = 'list'
+                  }
+                "
               />
             </div>
 
@@ -204,14 +224,22 @@
                 variant="ghost"
                 color="neutral"
                 class="font-black uppercase tracking-widest text-[10px] hidden sm:flex"
-                @click="goToToday"
+                @click="
+                  () => {
+                    void goToToday()
+                  }
+                "
               />
               <UButton
                 icon="i-heroicons-chevron-left"
                 variant="ghost"
                 size="sm"
                 class="rounded-lg"
-                @click="prevMonth"
+                @click="
+                  () => {
+                    void prevMonth()
+                  }
+                "
               />
               <span
                 class="px-3 text-[10px] font-black uppercase tracking-widest min-w-[80px] sm:min-w-[120px] text-center"
@@ -223,7 +251,11 @@
                 variant="ghost"
                 size="sm"
                 class="rounded-lg"
-                @click="nextMonth"
+                @click="
+                  () => {
+                    void nextMonth()
+                  }
+                "
               />
             </div>
           </div>
@@ -283,7 +315,11 @@
                   <!-- Week Summary Cell -->
                   <div
                     class="bg-gray-50 dark:bg-gray-800/50 p-2 flex flex-col justify-between border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    @click="openWeekZoneDetail(week)"
+                    @click="
+                      () => {
+                        void openWeekZoneDetail(week)
+                      }
+                    "
                   >
                     <div
                       class="text-xs font-bold"
@@ -490,7 +526,11 @@
                           <div
                             v-if="day.activities.find((a) => a.wellness)?.wellness?.recoveryScore"
                             class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-bold text-blue-600 dark:text-blue-400 cursor-pointer"
-                            @click="openWellnessModal(day.date)"
+                            @click="
+                              () => {
+                                void openWellnessModal(day.date)
+                              }
+                            "
                           >
                             {{ day.activities.find((a) => a.wellness)?.wellness?.recoveryScore }}%
                             REC
@@ -501,7 +541,11 @@
                               day.activities.find((a) => a.nutrition)?.nutrition?.calories
                             "
                             class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-[10px] font-bold text-amber-600 dark:text-amber-400 cursor-pointer"
-                            @click="openNutrition(day.date)"
+                            @click="
+                              () => {
+                                void openNutrition(day.date)
+                              }
+                            "
                           >
                             {{
                               Math.round(
@@ -522,7 +566,11 @@
                           :class="{
                             'opacity-50': mobileDraggingActivity?.id === activity.id
                           }"
-                          @click="openActivity(activity)"
+                          @click="
+                            () => {
+                              void openActivity(activity)
+                            }
+                          "
                         >
                           <div class="flex items-start gap-3 min-w-0 flex-1">
                             <UIcon
@@ -949,10 +997,23 @@
           color="neutral"
           variant="ghost"
           :disabled="isMerging"
-          @click="showMergeModal = false"
+          @click="
+            () => {
+              showMergeModal = false
+            }
+          "
           >Cancel</UButton
         >
-        <UButton color="primary" :loading="isMerging" @click="confirmMerge">Merge</UButton>
+        <UButton
+          color="primary"
+          :loading="isMerging"
+          @click="
+            () => {
+              void confirmMerge()
+            }
+          "
+          >Merge</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -977,10 +1038,23 @@
           color="neutral"
           variant="ghost"
           :disabled="isLinking"
-          @click="showLinkModal = false"
+          @click="
+            () => {
+              showLinkModal = false
+            }
+          "
           >Cancel</UButton
         >
-        <UButton color="primary" :loading="isLinking" @click="confirmLink">Link</UButton>
+        <UButton
+          color="primary"
+          :loading="isLinking"
+          @click="
+            () => {
+              void confirmLink()
+            }
+          "
+          >Link</UButton
+        >
       </div>
     </template>
   </UModal>
@@ -1051,13 +1125,25 @@
 
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showTemplateCalendarPicker = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showTemplateCalendarPicker = false
+            }
+          "
+        >
           Cancel
         </UButton>
         <UButton
           color="primary"
           :disabled="!calendarPickerTemplate || !calendarPickerDate"
-          @click="confirmTemplateCalendarPicker"
+          @click="
+            () => {
+              void confirmTemplateCalendarPicker()
+            }
+          "
         >
           Add to day
         </UButton>

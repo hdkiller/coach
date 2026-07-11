@@ -350,7 +350,7 @@
   function getStepColor(step: any): string {
     const intensity = getStepIntensity(step)
     const zone =
-      resolvedZoneRanges.value.find((range) => intensity <= range.end) ||
+      resolvedZoneRanges.value.find((range: { end: number }) => intensity <= range.end) ||
       resolvedZoneRanges.value[resolvedZoneRanges.value.length - 1]
     return zone?.color || FALLBACK_ZONE_COLOR
   }

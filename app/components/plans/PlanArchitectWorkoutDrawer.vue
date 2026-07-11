@@ -24,7 +24,11 @@
       <button
         v-if="isBottomSurface"
         class="hidden w-full items-center justify-between gap-3 border-b border-default/70 px-4 py-3 text-left sm:flex sm:py-3.5"
-        @click="$emit('toggle')"
+        @click="
+          () => {
+            void $emit('toggle')
+          }
+        "
       >
         <div class="flex min-w-0 items-center gap-3">
           <div
@@ -84,7 +88,11 @@
                 variant="soft"
                 icon="i-heroicons-folder-open"
                 class="h-9 min-w-0 flex-1 justify-start rounded-xl px-3"
-                @click="showFolderPicker = true"
+                @click="
+                  () => {
+                    showFolderPicker = true
+                  }
+                "
               >
                 <span class="truncate">{{ selectedScopeLabel }}</span>
               </UButton>
@@ -136,7 +144,11 @@
                         color="neutral"
                         variant="ghost"
                         :disabled="activeRailFilterCount === 0"
-                        @click="resetRailFilters"
+                        @click="
+                          () => {
+                            void resetRailFilters()
+                          }
+                        "
                       >
                         Reset filters
                       </UButton>
@@ -153,7 +165,11 @@
                 color="neutral"
                 variant="soft"
                 class="cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-bold"
-                @click="chip.clear"
+                @click="
+                  () => {
+                    void chip.clear()
+                  }
+                "
               >
                 {{ chip.label }}
               </UBadge>
@@ -169,7 +185,11 @@
                 :color="librarySource === option.value ? 'primary' : 'neutral'"
                 :variant="librarySource === option.value ? 'solid' : 'ghost'"
                 class="h-8 shrink-0 justify-start rounded-xl px-3"
-                @click="$emit('update:librarySource', option.value)"
+                @click="
+                  () => {
+                    void $emit('update:librarySource', option.value)
+                  }
+                "
               >
                 {{ option.label }}
               </UButton>
@@ -182,7 +202,11 @@
               icon="i-heroicons-squares-2x2"
               class="h-8 shrink-0 justify-start rounded-xl px-3"
               :disabled="librarySource === 'all'"
-              @click="setSelectedScope('all')"
+              @click="
+                () => {
+                  void setSelectedScope('all')
+                }
+              "
             >
               Show all
             </UButton>
@@ -194,7 +218,11 @@
               icon="i-heroicons-folder-open"
               class="min-w-0 max-w-[220px] shrink-0 justify-start rounded-xl px-3 h-8"
               :disabled="librarySource === 'all'"
-              @click="showFolderPicker = true"
+              @click="
+                () => {
+                  showFolderPicker = true
+                }
+              "
             >
               <span class="truncate">{{ selectedFolderLabel }}</span>
             </UButton>
@@ -209,7 +237,11 @@
                   :variant="selectedType === 'all' ? 'solid' : 'ghost'"
                   icon="i-heroicons-squares-2x2"
                   class="h-8 shrink-0 rounded-xl px-2.5"
-                  @click="selectedType = 'all'"
+                  @click="
+                    () => {
+                      selectedType = 'all'
+                    }
+                  "
                 />
               </UTooltip>
               <UTooltip v-for="type in workoutTypes" :key="type.value" :text="type.label">
@@ -219,7 +251,11 @@
                   :variant="selectedType === type.value ? 'solid' : 'ghost'"
                   :icon="type.icon"
                   class="h-8 shrink-0 rounded-xl px-2.5"
-                  @click="selectedType = type.value"
+                  @click="
+                    () => {
+                      selectedType = type.value
+                    }
+                  "
                 />
               </UTooltip>
 
@@ -232,7 +268,11 @@
                 :color="selectedDuration === range.value ? 'primary' : 'neutral'"
                 :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
                 class="h-8 shrink-0 rounded-xl px-3 text-[10px] font-bold uppercase tracking-wider"
-                @click="selectedDuration = range.value"
+                @click="
+                  () => {
+                    selectedDuration = range.value
+                  }
+                "
               >
                 {{ range.label }}
               </UButton>
@@ -246,7 +286,11 @@
                 icon="i-heroicons-plus"
                 class="h-8 w-8 shrink-0 justify-center rounded-xl p-0"
                 title="Create item"
-                @click="openCreateModal('workout')"
+                @click="
+                  () => {
+                    void openCreateModal('workout')
+                  }
+                "
               />
               <UButton
                 size="xs"
@@ -254,7 +298,11 @@
                 variant="ghost"
                 :icon="open ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
                 class="h-8 w-8 shrink-0 justify-center rounded-xl p-0"
-                @click="$emit('toggle')"
+                @click="
+                  () => {
+                    void $emit('toggle')
+                  }
+                "
               />
             </div>
           </div>
@@ -278,7 +326,11 @@
                   variant="ghost"
                   icon="i-heroicons-magnifying-glass"
                   class="h-9 w-9 rounded-xl p-0"
-                  @click="mobileSearchOpen = !mobileSearchOpen"
+                  @click="
+                    () => {
+                      mobileSearchOpen = !mobileSearchOpen
+                    }
+                  "
                 />
                 <UButton
                   size="sm"
@@ -286,7 +338,11 @@
                   variant="ghost"
                   icon="i-heroicons-folder-open"
                   class="h-9 w-9 rounded-xl p-0"
-                  @click="showFolderPicker = true"
+                  @click="
+                    () => {
+                      showFolderPicker = true
+                    }
+                  "
                 />
                 <UDropdownMenu :items="mobileActionMenuItems" :content="{ align: 'end' }">
                   <UButton
@@ -326,7 +382,11 @@
                   :variant="selectedType === 'all' ? 'solid' : 'ghost'"
                   icon="i-heroicons-squares-2x2"
                   class="h-9 shrink-0 rounded-xl px-2.5"
-                  @click="selectedType = 'all'"
+                  @click="
+                    () => {
+                      selectedType = 'all'
+                    }
+                  "
                 />
               </UTooltip>
               <UTooltip v-for="type in workoutTypes" :key="type.value" :text="type.label">
@@ -336,7 +396,11 @@
                   :variant="selectedType === type.value ? 'solid' : 'ghost'"
                   :icon="type.icon"
                   class="h-9 shrink-0 rounded-xl px-2.5"
-                  @click="selectedType = type.value"
+                  @click="
+                    () => {
+                      selectedType = type.value
+                    }
+                  "
                 />
               </UTooltip>
 
@@ -349,7 +413,11 @@
                 :color="selectedDuration === range.value ? 'primary' : 'neutral'"
                 :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
                 class="h-9 shrink-0 rounded-xl px-3 text-[10px] font-bold uppercase tracking-wider"
-                @click="selectedDuration = range.value"
+                @click="
+                  () => {
+                    selectedDuration = range.value
+                  }
+                "
               >
                 {{ range.label }}
               </UButton>
@@ -385,7 +453,11 @@
               class="group/card relative flex h-[12.5rem] cursor-grab flex-col rounded-[24px] border border-default/80 bg-muted/10 p-3.5 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing sm:h-[11.5rem] sm:rounded-2xl sm:p-4"
               @dragstart="onTemplateDragStart($event, template)"
               @dragend="onTemplateDragEnd"
-              @click="previewTemplateId = template.id"
+              @click="
+                () => {
+                  previewTemplateId = template.id
+                }
+              "
             >
               <div class="flex min-h-0 items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
@@ -520,8 +592,24 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2 p-4 pt-0">
-        <UButton color="neutral" variant="ghost" @click="isCreateModalOpen = false">Cancel</UButton>
-        <UButton color="primary" :loading="creatingTemplate" @click="createLibraryTemplate"
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isCreateModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          :loading="creatingTemplate"
+          @click="
+            () => {
+              void createLibraryTemplate()
+            }
+          "
           >Create</UButton
         >
       </div>

@@ -104,7 +104,16 @@
               </div>
 
               <div class="flex flex-wrap gap-3">
-                <UButton color="primary" size="xl" class="justify-center" @click="scrollToForm">
+                <UButton
+                  color="primary"
+                  size="xl"
+                  class="justify-center"
+                  @click="
+                    () => {
+                      void scrollToForm()
+                    }
+                  "
+                >
                   {{ submitButtonLabel }}
                 </UButton>
                 <UButton
@@ -575,18 +584,16 @@
                   h(
                     'div',
                     { class: 'mt-3 flex flex-wrap gap-2' },
-                    proof.specialties
-                      .slice(0, 6)
-                      .map((item: string) =>
-                        h(
-                          'span',
-                          {
-                            class:
-                              'rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-slate-200'
-                          },
-                          item
-                        )
+                    proof.specialties.slice(0, 6).map((item: string) =>
+                      h(
+                        'span',
+                        {
+                          class:
+                            'rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-slate-200'
+                        },
+                        item
                       )
+                    )
                   )
                 ])
               : null,
@@ -600,18 +607,16 @@
                   h(
                     'div',
                     { class: 'mt-3 space-y-2' },
-                    proof.credentials
-                      .slice(0, 4)
-                      .map((item: string) =>
-                        h(
-                          'div',
-                          {
-                            class:
-                              'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200'
-                          },
-                          item
-                        )
+                    proof.credentials.slice(0, 4).map((item: string) =>
+                      h(
+                        'div',
+                        {
+                          class:
+                            'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200'
+                        },
+                        item
                       )
+                    )
                   )
                 ])
               : null

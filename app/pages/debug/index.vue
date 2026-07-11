@@ -11,7 +11,11 @@
             color="primary"
             variant="solid"
             size="sm"
-            @click="copyReport"
+            @click="
+              () => {
+                void copyReport()
+              }
+            "
           >
             Copy Full Report
           </UButton>
@@ -210,19 +214,21 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <UCard :ui="{ body: 'p-3' }">
               <div class="text-xs text-gray-500">Platform</div>
-              <div class="font-bold">{{ data.system.platform }} ({{ data.system.arch }})</div>
+              <div class="font-bold">
+                {{ data.instructions.platform }} ({{ data.instructions.arch }})
+              </div>
             </UCard>
             <UCard :ui="{ body: 'p-3' }">
               <div class="text-xs text-gray-500">Node Version</div>
-              <div class="font-bold">{{ data.system.nodeVersion }}</div>
+              <div class="font-bold">{{ data.instructions.nodeVersion }}</div>
             </UCard>
             <UCard :ui="{ body: 'p-3' }">
               <div class="text-xs text-gray-500">Uptime</div>
-              <div class="font-bold">{{ formatUptime(data.system.uptime) }}</div>
+              <div class="font-bold">{{ formatUptime(data.instructions.uptime) }}</div>
             </UCard>
             <UCard :ui="{ body: 'p-3' }">
               <div class="text-xs text-gray-500">Memory (RSS)</div>
-              <div class="font-bold">{{ formatBytes(data.system.memoryUsage.rss) }}</div>
+              <div class="font-bold">{{ formatBytes(data.instructions.memoryUsage.rss) }}</div>
             </UCard>
           </div>
         </div>

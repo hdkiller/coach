@@ -194,7 +194,11 @@
             icon="i-heroicons-plus"
             size="sm"
             class="font-bold"
-            @click="isCreateModalOpen = true"
+            @click="
+              () => {
+                isCreateModalOpen = true
+              }
+            "
           >
             {{ t('dev_button_create_key') }}
           </UButton>
@@ -270,7 +274,11 @@
                   variant="ghost"
                   icon="i-heroicons-trash"
                   size="xs"
-                  @click="confirmDelete(key)"
+                  @click="
+                    () => {
+                      void confirmDelete(key)
+                    }
+                  "
                 />
               </td>
             </tr>
@@ -327,7 +335,11 @@
                   variant="ghost"
                   :icon="isKeyVisible ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'"
                   size="xs"
-                  @click="isKeyVisible = !isKeyVisible"
+                  @click="
+                    () => {
+                      isKeyVisible = !isKeyVisible
+                    }
+                  "
                 />
               </template>
             </UInput>
@@ -336,7 +348,11 @@
               variant="outline"
               icon="i-heroicons-clipboard"
               size="sm"
-              @click="copyKey"
+              @click="
+                () => {
+                  void copyKey()
+                }
+              "
             >
               {{ t('dev_copy') }}
             </UButton>
@@ -350,14 +366,22 @@
             :label="t('banner_exit')"
             color="neutral"
             variant="ghost"
-            @click="closeCreateModal"
+            @click="
+              () => {
+                void closeCreateModal()
+              }
+            "
           />
           <UButton
             v-if="!generatedKey"
             :label="t('dev_button_create_key')"
             color="primary"
             :loading="creating"
-            @click="createKey"
+            @click="
+              () => {
+                void createKey()
+              }
+            "
           />
         </div>
       </template>
@@ -374,13 +398,21 @@
           :label="t('banner_exit')"
           color="neutral"
           variant="ghost"
-          @click="isDeleteModalOpen = false"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
         />
         <UButton
           :label="t('dev_button_revoke')"
           color="error"
           :loading="deleting"
-          @click="deleteKey"
+          @click="
+            () => {
+              void deleteKey()
+            }
+          "
         />
       </template>
     </UModal>

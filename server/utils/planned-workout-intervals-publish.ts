@@ -235,7 +235,7 @@ export async function publishPlannedWorkoutToIntervals(
 
 export function throwPublishPlannedWorkoutHttpError(
   result: PublishPlannedWorkoutToIntervalsFailure
-) {
+): never {
   const statusByCode: Record<PublishPlannedWorkoutIntervalsCode, number> = {
     not_found: 404,
     no_integration: 400,
@@ -266,7 +266,7 @@ export function throwPublishPreconditionHttpError(
     | 'sync_conflict',
   error: string,
   data?: Partial<PublishPlannedWorkoutToIntervalsFailure>
-) {
+): never {
   throwPublishPlannedWorkoutHttpError({
     success: false,
     code: code as PublishPlannedWorkoutIntervalsCode,

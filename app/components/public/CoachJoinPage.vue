@@ -60,7 +60,11 @@
                 size="xl"
                 class="justify-center"
                 :loading="joining"
-                @click="emit('join')"
+                @click="
+                  () => {
+                    void emit('join')
+                  }
+                "
               >
                 {{ session ? joinPage.ctaLabel : 'Create account to join' }}
               </UButton>
@@ -259,7 +263,11 @@
                   size="lg"
                   class="justify-center"
                   :loading="joining"
-                  @click="emit('join')"
+                  @click="
+                    () => {
+                      void emit('join')
+                    }
+                  "
                 >
                   {{ session ? joinPage.ctaLabel : 'Create account to join' }}
                 </UButton>

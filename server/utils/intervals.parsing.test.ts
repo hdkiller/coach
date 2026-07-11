@@ -19,25 +19,25 @@ describe('Intervals.icu Parsing Logic', () => {
     it('should handle simple number cadence', () => {
       const event = createEvent([{ duration: 60, cadence: 90 }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].cadence).toBe(90)
+      expect(result.structuredWorkout!.steps[0].cadence).toBe(90)
     })
 
     it('should handle object cadence with value', () => {
       const event = createEvent([{ duration: 60, cadence: { value: 90, units: 'rpm' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].cadence).toBe(90)
+      expect(result.structuredWorkout!.steps[0].cadence).toBe(90)
     })
 
     it('should normalize cadence range to average', () => {
       const event = createEvent([{ duration: 60, cadence: { start: 80, end: 100, units: 'rpm' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].cadence).toBe(90) // (80+100)/2
+      expect(result.structuredWorkout!.steps[0].cadence).toBe(90) // (80+100)/2
     })
 
     it('should handle missing/invalid cadence gracefully', () => {
       const event = createEvent([{ duration: 60, cadence: { foo: 'bar' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].cadence).toBeUndefined()
+      expect(result.structuredWorkout!.steps[0].cadence).toBeUndefined()
     })
   })
 
@@ -45,19 +45,19 @@ describe('Intervals.icu Parsing Logic', () => {
     it('should normalize %ftp to ratio (value > 5)', () => {
       const event = createEvent([{ duration: 60, power: { value: 90, units: '%ftp' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].power.value).toBe(0.9)
+      expect(result.structuredWorkout!.steps[0].power.value).toBe(0.9)
     })
 
     it('should normalize %ftp to ratio (explicit units)', () => {
       const event = createEvent([{ duration: 60, power: { value: 0.9, units: '%ftp' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].power.value).toBeCloseTo(0.9) // Fixed: should not divide by 100 if already ratio
+      expect(result.structuredWorkout!.steps[0].power.value).toBeCloseTo(0.9) // Fixed: should not divide by 100 if already ratio
     })
 
     it('should normalize power range with %ftp', () => {
       const event = createEvent([{ duration: 60, power: { start: 80, end: 100, units: '%ftp' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const step = result.structuredWorkout.steps[0]
+      const step = result.structuredWorkout!.steps[0]
       expect(step.power.range.start).toBe(0.8)
       expect(step.power.range.end).toBe(1.0)
       expect(step.power.start).toBeUndefined() // Should clean up
@@ -66,13 +66,13 @@ describe('Intervals.icu Parsing Logic', () => {
     it('should keep watts as absolute values', () => {
       const event = createEvent([{ duration: 60, power: { value: 200, units: 'w' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].power.value).toBe(200)
+      expect(result.structuredWorkout!.steps[0].power.value).toBe(200)
     })
 
     it('should keep watts range as absolute values', () => {
       const event = createEvent([{ duration: 60, power: { start: 200, end: 300, units: 'w' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const step = result.structuredWorkout.steps[0]
+      const step = result.structuredWorkout!.steps[0]
       expect(step.power.range.start).toBe(200)
       expect(step.power.range.end).toBe(300)
     })
@@ -83,7 +83,7 @@ describe('Intervals.icu Parsing Logic', () => {
         'Run'
       )
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const step = result.structuredWorkout.steps[0]
+      const step = result.structuredWorkout!.steps[0]
 
       expect(step.pace.units).toBe('/km')
       expect(step.pace.range.start).toBeCloseTo(6.5)
@@ -93,7 +93,7 @@ describe('Intervals.icu Parsing Logic', () => {
     it('repairs malformed absolute %pace minute values from imported planned runs', () => {
       const event = createEvent([{ duration: 600, pace: { value: 7, units: '%pace' } }], 'Run')
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const step = result.structuredWorkout.steps[0]
+      const step = result.structuredWorkout!.steps[0]
 
       expect(step.pace.units).toBe('/km')
       expect(step.pace.value).toBeCloseTo(7)
@@ -113,7 +113,7 @@ describe('Intervals.icu Parsing Logic', () => {
       ])
 
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const parentStep = result.structuredWorkout.steps[0]
+      const parentStep = result.structuredWorkout!.steps[0]
       const activeStep = parentStep.steps[0]
       const restStep = parentStep.steps[1]
 
@@ -141,7 +141,7 @@ describe('Intervals.icu Parsing Logic', () => {
       ])
 
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const innerStep = result.structuredWorkout.steps[0].steps[0].steps[0]
+      const innerStep = result.structuredWorkout!.steps[0].steps[0].steps[0]
 
       expect(innerStep.power.value).toBe(1.5)
     })
@@ -165,7 +165,7 @@ describe('Intervals.icu Parsing Logic', () => {
 
       const event = createEvent(WorkoutParser.parseIntervalsICU(text))
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const offStep = result.structuredWorkout.steps[0].steps[1]
+      const offStep = result.structuredWorkout!.steps[0].steps[1]
 
       expect(offStep.name).toBe('OFF')
       expect(offStep.type).toBe('Rest')
@@ -200,7 +200,7 @@ describe('Intervals.icu Parsing Logic', () => {
 
       const event = createEvent(WorkoutParser.parseIntervalsICU(text), 'Run')
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const steps = result.structuredWorkout.steps[0].steps
+      const steps = result.structuredWorkout!.steps[0].steps
 
       expect(steps[0].name).toBe('Tempo')
       expect(steps[0].type).toBe('Active')
@@ -254,7 +254,7 @@ describe('Intervals.icu Parsing Logic', () => {
       )
 
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const reps = result.structuredWorkout.steps[0]
+      const reps = result.structuredWorkout!.steps[0]
 
       expect(reps.steps[0].distance).toBe(400)
       expect(reps.steps[0].name).toBe('Crawl Tempo')
@@ -284,9 +284,9 @@ describe('Intervals.icu Parsing Logic', () => {
       )
 
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      const reps = result.structuredWorkout.steps[1]
+      const reps = result.structuredWorkout!.steps[1]
 
-      expect(result.structuredWorkout.steps[0].durationSeconds).toBe(300)
+      expect(result.structuredWorkout!.steps[0].durationSeconds).toBe(300)
       expect(reps.steps[0].distance).toBe(400)
       expect(reps.steps[0].durationSeconds).toBe(480)
       expect(reps.steps[1].distance).toBe(100)
@@ -301,20 +301,20 @@ describe('Intervals.icu Parsing Logic', () => {
         { duration: 600, cooldown: true }
       ])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].type).toBe('Warmup')
-      expect(result.structuredWorkout.steps[1].type).toBe('Cooldown')
+      expect(result.structuredWorkout!.steps[0].type).toBe('Warmup')
+      expect(result.structuredWorkout!.steps[1].type).toBe('Cooldown')
     })
 
     it('should infer Rest based on low intensity (<60%)', () => {
       const event = createEvent([{ duration: 600, power: { value: 50, units: '%ftp' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].type).toBe('Rest')
+      expect(result.structuredWorkout!.steps[0].type).toBe('Rest')
     })
 
     it('should infer Active based on high intensity (>=60%)', () => {
       const event = createEvent([{ duration: 600, power: { value: 70, units: '%ftp' } }])
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
-      expect(result.structuredWorkout.steps[0].type).toBe('Active')
+      expect(result.structuredWorkout!.steps[0].type).toBe('Active')
     })
   })
 })

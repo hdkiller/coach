@@ -10,6 +10,9 @@ const prismaMock = vi.hoisted(() => ({
   }
 }))
 
+const resolveProviderSyncBlockMock = vi.hoisted(() => vi.fn())
+const resolveSyncAllBlockMock = vi.hoisted(() => vi.fn())
+
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
 vi.stubGlobal('defineRouteMeta', () => {})
 vi.stubGlobal('readBody', async (event: any) => event.body)
@@ -39,6 +42,11 @@ vi.mock('../../../../../server/utils/task-run-events', () => ({
   publishTaskRunStartedEvent: vi.fn()
 }))
 
+vi.mock('../../../../../server/utils/integration-sync-guard', () => ({
+  resolveProviderSyncBlock: resolveProviderSyncBlockMock,
+  resolveSyncAllBlock: resolveSyncAllBlockMock
+}))
+
 const getHandler = async () => {
   const mod = await import('../../../../../server/api/integrations/sync.post')
   return mod.default
@@ -49,9 +57,11 @@ describe('POST /api/integrations/sync', () => {
     vi.clearAllMocks()
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'user-1' } } as any)
     vi.mocked(tasks.trigger).mockResolvedValue({ id: 'job-1' } as any)
+    resolveProviderSyncBlockMock.mockResolvedValue({ blocked: false })
+    resolveSyncAllBlockMock.mockResolvedValue({ blocked: false })
   })
 
-  it('returns 409 when the provider integration is already syncing', async () => {
+  it('returns 409 when the provider integration is actively syncing', async () => {
     const handler = await getHandler()
 
     prismaMock.integration.findUnique.mockResolvedValue({
@@ -59,6 +69,7 @@ describe('POST /api/integrations/sync', () => {
       provider: 'strava',
       syncStatus: 'SYNCING'
     })
+    resolveProviderSyncBlockMock.mockResolvedValue({ blocked: true, provider: 'strava' })
 
     await expect(
       handler({
@@ -72,12 +83,10 @@ describe('POST /api/integrations/sync', () => {
     expect(tasks.trigger).not.toHaveBeenCalled()
   })
 
-  it('returns 409 for sync-all when any integration is syncing', async () => {
+  it('returns 409 for sync-all when any integration is actively syncing', async () => {
     const handler = await getHandler()
 
-    prismaMock.integration.findFirst.mockResolvedValue({
-      provider: 'garmin'
-    })
+    resolveSyncAllBlockMock.mockResolvedValue({ blocked: true, provider: 'oura' })
 
     await expect(
       handler({
@@ -85,9 +94,29 @@ describe('POST /api/integrations/sync', () => {
       } as any)
     ).rejects.toMatchObject({
       statusCode: 409,
-      message: 'Sync already in progress for garmin. Please wait for it to finish.'
+      message: 'Sync already in progress for oura. Please wait for it to finish.'
     })
 
     expect(tasks.trigger).not.toHaveBeenCalled()
+  })
+
+  it('starts sync-all after stale sync status is cleared', async () => {
+    const handler = await getHandler()
+
+    resolveSyncAllBlockMock.mockResolvedValue({ blocked: false })
+
+    const response = await handler({
+      body: { provider: 'all' }
+    } as any)
+
+    expect(response).toMatchObject({
+      success: true,
+      provider: 'all'
+    })
+    expect(tasks.trigger).toHaveBeenCalledWith(
+      'ingest-all',
+      expect.objectContaining({ userId: 'user-1', manualSync: true }),
+      expect.any(Object)
+    )
   })
 })

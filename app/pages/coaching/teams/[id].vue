@@ -67,7 +67,11 @@
                   icon="i-heroicons-user-plus"
                   size="xs"
                   class="font-bold"
-                  @click="openQuickAddModal"
+                  @click="
+                    () => {
+                      void openQuickAddModal()
+                    }
+                  "
                 />
               </div>
 
@@ -82,14 +86,22 @@
                     color="primary"
                     variant="link"
                     label="Invite with Code"
-                    @click="isInviteModalOpen = true"
+                    @click="
+                      () => {
+                        isInviteModalOpen = true
+                      }
+                    "
                   />
                   <span class="text-neutral-400 text-xs">or</span>
                   <UButton
                     color="primary"
                     variant="link"
                     label="Add Coached Athlete"
-                    @click="openQuickAddModal"
+                    @click="
+                      () => {
+                        void openQuickAddModal()
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -170,7 +182,11 @@
                       color="primary"
                       icon="i-heroicons-link"
                       :loading="creatingAthleteInvite"
-                      @click="createAthleteShareInvite"
+                      @click="
+                        () => {
+                          void createAthleteShareInvite()
+                        }
+                      "
                     />
                     <p
                       v-if="shareableAthleteInvite"
@@ -251,7 +267,11 @@
                     icon="i-heroicons-plus"
                     size="xs"
                     class="font-bold"
-                    @click="isInviteModalOpen = true"
+                    @click="
+                      () => {
+                        isInviteModalOpen = true
+                      }
+                    "
                   />
                 </div>
 
@@ -295,7 +315,11 @@
                       variant="ghost"
                       icon="i-heroicons-trash"
                       size="xs"
-                      @click="revokeInvite(inv.id)"
+                      @click="
+                        () => {
+                          void revokeInvite(inv.id)
+                        }
+                      "
                     />
                   </div>
                 </div>
@@ -319,7 +343,11 @@
                       color="error"
                       variant="soft"
                       label="Delete Team"
-                      @click="confirmDeleteTeam"
+                      @click="
+                        () => {
+                          void confirmDeleteTeam()
+                        }
+                      "
                     />
                   </div>
                 </UCard>
@@ -376,12 +404,25 @@
       </div>
     </template>
     <template #footer>
-      <UButton label="Cancel" color="neutral" variant="ghost" @click="isInviteModalOpen = false" />
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isInviteModalOpen = false
+          }
+        "
+      />
       <UButton
         label="Generate Invite"
         color="primary"
         :loading="creatingInvite"
-        @click="createInvite"
+        @click="
+          () => {
+            void createInvite()
+          }
+        "
       />
     </template>
   </UModal>
@@ -446,7 +487,11 @@
                 block
                 :loading="creatingAthleteInvite"
                 icon="i-heroicons-link"
-                @click="createAthleteShareInvite"
+                @click="
+                  () => {
+                    void createAthleteShareInvite()
+                  }
+                "
               />
             </div>
           </div>
@@ -471,7 +516,11 @@
               block
               :loading="quickAdding"
               :disabled="!selectedAthleteToQuickAdd"
-              @click="quickAddAthlete"
+              @click="
+                () => {
+                  void quickAddAthlete()
+                }
+              "
             />
           </div>
         </template>
@@ -496,7 +545,11 @@
               block
               :loading="quickAdding"
               :disabled="!athleteCodeToJoin"
-              @click="addAthleteByCode"
+              @click="
+                () => {
+                  void addAthleteByCode()
+                }
+              "
             />
           </div>
         </template>
@@ -508,7 +561,11 @@
         color="neutral"
         variant="ghost"
         block
-        @click="isQuickAddModalOpen = false"
+        @click="
+          () => {
+            isQuickAddModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>

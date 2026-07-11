@@ -62,7 +62,17 @@
         </div>
 
         <div class="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between">
-          <UButton size="xs" variant="ghost" color="neutral" label="Reset" @click="reset" />
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            label="Reset"
+            @click="
+              () => {
+                void reset()
+              }
+            "
+          />
           <span class="text-xs text-gray-500 self-center"> {{ selectedCount }} selected </span>
         </div>
       </div>

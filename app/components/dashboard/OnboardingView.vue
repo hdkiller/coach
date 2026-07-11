@@ -54,7 +54,11 @@
                 color="primary"
                 class="font-bold px-8"
                 icon="i-heroicons-link"
-                @click="signIn('intervals')"
+                @click="
+                  () => {
+                    void signIn('intervals')
+                  }
+                "
               >
                 {{ t('connect_now') }}
               </UButton>
@@ -79,7 +83,11 @@
                 ? 'opacity-60 cursor-not-allowed grayscale'
                 : 'hover:ring-2 hover:ring-orange-500/20 cursor-pointer'
             ]"
-            @click="!isStravaDisabled && navigateTo('/connect-strava')"
+            @click="
+              () => {
+                !isStravaDisabled && navigateTo('/connect-strava')
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -122,7 +130,11 @@
                 ? 'opacity-60 cursor-not-allowed grayscale'
                 : 'hover:ring-2 hover:ring-red-500/20 cursor-pointer'
             ]"
-            @click="!isWhoopDisabled && navigateTo('/connect-whoop')"
+            @click="
+              () => {
+                !isWhoopDisabled && navigateTo('/connect-whoop')
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -160,7 +172,11 @@
           <!-- Yazio -->
           <UCard
             class="hover:ring-2 hover:ring-green-500/20 transition-all cursor-pointer"
-            @click="navigateTo('/connect-yazio')"
+            @click="
+              () => {
+                void navigateTo('/connect-yazio')
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -192,7 +208,11 @@
           <!-- Fitbit -->
           <UCard
             class="hover:ring-2 hover:ring-emerald-500/20 transition-all cursor-pointer"
-            @click="navigateTo('/connect-fitbit')"
+            @click="
+              () => {
+                void navigateTo('/connect-fitbit')
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -220,7 +240,11 @@
           <!-- Wahoo -->
           <UCard
             class="hover:ring-2 hover:ring-blue-500/20 transition-all cursor-pointer"
-            @click="navigateTo('/connect-wahoo')"
+            @click="
+              () => {
+                void navigateTo('/connect-wahoo')
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-3">
               <div

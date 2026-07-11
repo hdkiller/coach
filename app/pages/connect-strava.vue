@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Strava')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -90,7 +99,11 @@
                   :loading="connecting"
                   icon="i-heroicons-bolt"
                   :disabled="isStravaDisabled"
-                  @click="connect"
+                  @click="
+                    () => {
+                      void connect()
+                    }
+                  "
                 >
                   {{ p('button', 'Connect with Strava') }}
                 </UButton>

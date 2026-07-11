@@ -182,7 +182,11 @@
         color="primary"
         variant="solid"
         class="font-bold uppercase tracking-widest px-6"
-        @click="isOpen = false"
+        @click="
+          () => {
+            isOpen = false
+          }
+        "
       />
     </template>
   </UModal>

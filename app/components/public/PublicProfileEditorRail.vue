@@ -21,7 +21,11 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-x-mark"
-              @click="emit('close')"
+              @click="
+                () => {
+                  void emit('close')
+                }
+              "
             />
           </div>
         </div>
@@ -47,7 +51,11 @@
                     type="button"
                     class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition"
                     :class="sectionButtonClass(heroSection?.id)"
-                    @click="selectSection(heroSection?.id)"
+                    @click="
+                      () => {
+                        void selectSection(heroSection?.id)
+                      }
+                    "
                   >
                     <UIcon name="i-heroicons-sparkles" class="h-5 w-5 shrink-0 text-primary" />
                     <div class="min-w-0 flex-1">
@@ -69,7 +77,11 @@
                       type="button"
                       class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition"
                       :class="sectionButtonClass(element.id)"
-                      @click="selectSection(element.id)"
+                      @click="
+                        () => {
+                          void selectSection(element.id)
+                        }
+                      "
                     >
                       <UIcon
                         name="i-heroicons-bars-3"
@@ -196,7 +208,14 @@
                             class="w-full"
                           />
                           <div class="flex flex-wrap gap-2">
-                            <UButton color="neutral" variant="soft" @click="setCoverFromUrl"
+                            <UButton
+                              color="neutral"
+                              variant="soft"
+                              @click="
+                                () => {
+                                  void setCoverFromUrl()
+                                }
+                              "
                               >Use URL</UButton
                             >
                             <label class="inline-flex">
@@ -216,7 +235,11 @@
                               v-if="coverImage"
                               color="error"
                               variant="ghost"
-                              @click="removeCover"
+                              @click="
+                                () => {
+                                  void removeCover()
+                                }
+                              "
                             >
                               Remove
                             </UButton>
@@ -356,7 +379,16 @@
                       <div class="text-sm text-muted">
                         Answer the questions athletes ask before they reach out.
                       </div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addFaqItem">
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addFaqItem()
+                          }
+                        "
+                      >
                         Add question
                       </UButton>
                     </div>
@@ -376,7 +408,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeFaqItem(item.id)"
+                            @click="
+                              () => {
+                                void removeFaqItem(item.id)
+                              }
+                            "
                           >
                             Remove
                           </UButton>
@@ -395,7 +431,16 @@
                   <template v-else-if="selectedSection?.type === 'testimonials'">
                     <div class="flex items-center justify-between gap-3">
                       <div class="text-sm text-muted">1-3 short athlete quotes work best.</div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addTestimonial">
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addTestimonial()
+                          }
+                        "
+                      >
                         Add testimonial
                       </UButton>
                     </div>
@@ -428,7 +473,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeTestimonial(testimonial.id)"
+                            @click="
+                              () => {
+                                void removeTestimonial(testimonial.id)
+                              }
+                            "
                           >
                             Remove
                           </UButton>
@@ -453,7 +502,14 @@
                             class="w-full"
                           />
                           <div class="flex flex-wrap gap-2">
-                            <UButton color="neutral" variant="soft" @click="addGalleryFromUrl"
+                            <UButton
+                              color="neutral"
+                              variant="soft"
+                              @click="
+                                () => {
+                                  void addGalleryFromUrl()
+                                }
+                              "
                               >Add image</UButton
                             >
                             <label class="inline-flex">
@@ -512,7 +568,11 @@
                                 color="error"
                                 variant="ghost"
                                 icon="i-heroicons-trash"
-                                @click="removeMedia(element.id)"
+                                @click="
+                                  () => {
+                                    void removeMedia(element.id)
+                                  }
+                                "
                               />
                             </div>
                           </div>
@@ -645,7 +705,11 @@
                                         color="neutral"
                                         variant="outline"
                                         size="sm"
-                                        @click="peekPlan(planById(element.planId))"
+                                        @click="
+                                          () => {
+                                            peekPlan(planById(element.planId))
+                                          }
+                                        "
                                       >
                                         Peek
                                       </UButton>
@@ -653,7 +717,11 @@
                                         color="error"
                                         variant="ghost"
                                         size="sm"
-                                        @click="removeFeaturedPlan(element.planId)"
+                                        @click="
+                                          () => {
+                                            void removeFeaturedPlan(element.planId)
+                                          }
+                                        "
                                       >
                                         Remove
                                       </UButton>
@@ -746,7 +814,11 @@
                                   color="neutral"
                                   variant="outline"
                                   size="sm"
-                                  @click="peekPlan(plan)"
+                                  @click="
+                                    () => {
+                                      void peekPlan(plan)
+                                    }
+                                  "
                                 >
                                   Peek
                                 </UButton>
@@ -754,7 +826,11 @@
                                   :color="isPlanFeatured(plan.id) ? 'neutral' : 'primary'"
                                   :variant="isPlanFeatured(plan.id) ? 'soft' : 'solid'"
                                   size="sm"
-                                  @click="toggleFeaturedPlan(plan)"
+                                  @click="
+                                    () => {
+                                      void toggleFeaturedPlan(plan)
+                                    }
+                                  "
                                 >
                                   {{ isPlanFeatured(plan.id) ? 'Selected' : 'Feature' }}
                                 </UButton>
@@ -801,7 +877,15 @@
                         <div class="text-sm text-muted">
                           Add the websites and social accounts visitors should actually use.
                         </div>
-                        <UButton color="neutral" variant="soft" size="sm" @click="addSocialLink"
+                        <UButton
+                          color="neutral"
+                          variant="soft"
+                          size="sm"
+                          @click="
+                            () => {
+                              void addSocialLink()
+                            }
+                          "
                           >Add link</UButton
                         >
                       </div>
@@ -822,7 +906,11 @@
                           color="error"
                           variant="ghost"
                           icon="i-heroicons-trash"
-                          @click="removeSocialLink(Number(index))"
+                          @click="
+                            () => {
+                              removeSocialLink(Number(index))
+                            }
+                          "
                         />
                       </div>
                       <div
@@ -860,7 +948,16 @@
                         <div class="text-sm text-muted">
                           Mix direct contact methods with an optional email form.
                         </div>
-                        <UButton color="neutral" variant="soft" size="sm" @click="addContactMethod">
+                        <UButton
+                          color="neutral"
+                          variant="soft"
+                          size="sm"
+                          @click="
+                            () => {
+                              void addContactMethod()
+                            }
+                          "
+                        >
                           Add method
                         </UButton>
                       </div>
@@ -901,7 +998,11 @@
                               color="error"
                               variant="ghost"
                               icon="i-heroicons-trash"
-                              @click="removeContactMethod(method.id)"
+                              @click="
+                                () => {
+                                  void removeContactMethod(method.id)
+                                }
+                              "
                             />
                           </div>
                         </div>
@@ -963,7 +1064,15 @@
                       <div class="text-sm text-muted">
                         Selected milestones, focus areas, or identity anchors.
                       </div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addHighlight"
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addHighlight()
+                          }
+                        "
                         >Add highlight</UButton
                       >
                     </div>
@@ -988,7 +1097,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeHighlight(highlight.id)"
+                            @click="
+                              () => {
+                                void removeHighlight(highlight.id)
+                              }
+                            "
                             >Remove</UButton
                           >
                         </div>
@@ -1001,7 +1114,15 @@
                       <div class="text-sm text-muted">
                         Race results, milestones, and standout efforts.
                       </div>
-                      <UButton color="neutral" variant="soft" size="sm" @click="addAchievement"
+                      <UButton
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                        @click="
+                          () => {
+                            void addAchievement()
+                          }
+                        "
                         >Add achievement</UButton
                       >
                     </div>
@@ -1026,7 +1147,11 @@
                             color="error"
                             variant="ghost"
                             size="sm"
-                            @click="removeAchievement(achievement.id)"
+                            @click="
+                              () => {
+                                void removeAchievement(achievement.id)
+                              }
+                            "
                             >Remove</UButton
                           >
                         </div>
@@ -1041,8 +1166,26 @@
 
         <div class="border-t border-default/70 px-5 py-4">
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="ghost" @click="emit('close')">Close</UButton>
-            <UButton color="primary" :loading="saving" @click="emit('save')">Save changes</UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="
+                () => {
+                  void emit('close')
+                }
+              "
+              >Close</UButton
+            >
+            <UButton
+              color="primary"
+              :loading="saving"
+              @click="
+                () => {
+                  void emit('save')
+                }
+              "
+              >Save changes</UButton
+            >
           </div>
         </div>
       </div>
@@ -1061,7 +1204,16 @@
         >
           Open public plan
         </UButton>
-        <UButton label="Close" color="neutral" variant="ghost" @click="showPlanPreview = false" />
+        <UButton
+          label="Close"
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showPlanPreview = false
+            }
+          "
+        />
       </div>
     </template>
   </PlanOverviewModal>

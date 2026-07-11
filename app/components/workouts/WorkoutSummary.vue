@@ -5,7 +5,11 @@
       :key="key"
       class="rounded-xl p-3 sm:p-4 border text-left transition-colors"
       :class="metricCards[key].cardClass"
-      @click="emit('open-metric', key)"
+      @click="
+        () => {
+          void emit('open-metric', key)
+        }
+      "
     >
       <div class="flex items-center justify-between mb-1">
         <span

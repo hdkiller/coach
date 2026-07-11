@@ -7,7 +7,11 @@
             color="primary"
             icon="i-heroicons-plus"
             label="New Exercise"
-            @click="openCreateModal"
+            @click="
+              () => {
+                void openCreateModal()
+              }
+            "
           />
         </template>
       </UDashboardNavbar>
@@ -32,7 +36,11 @@
                 :color="librarySource === option.value ? 'primary' : 'neutral'"
                 :variant="librarySource === option.value ? 'solid' : 'ghost'"
                 class="shrink-0 rounded-xl px-3"
-                @click="librarySource = option.value"
+                @click="
+                  () => {
+                    librarySource = option.value
+                  }
+                "
               >
                 {{ option.label }}
               </UButton>
@@ -58,7 +66,11 @@
               :color="selectedPattern === 'all' ? 'primary' : 'neutral'"
               :variant="selectedPattern === 'all' ? 'solid' : 'ghost'"
               icon="i-heroicons-squares-2x2"
-              @click="selectedPattern = 'all'"
+              @click="
+                () => {
+                  selectedPattern = 'all'
+                }
+              "
             >
               All Patterns
             </UButton>
@@ -68,7 +80,11 @@
               size="xs"
               :color="selectedPattern === option.value ? 'primary' : 'neutral'"
               :variant="selectedPattern === option.value ? 'solid' : 'ghost'"
-              @click="selectedPattern = option.value"
+              @click="
+                () => {
+                  selectedPattern = option.value
+                }
+              "
             >
               {{ option.label }}
             </UButton>
@@ -83,7 +99,11 @@
               size="xs"
               :color="selectedIntent === option.value ? 'primary' : 'neutral'"
               :variant="selectedIntent === option.value ? 'solid' : 'ghost'"
-              @click="selectedIntent = option.value"
+              @click="
+                () => {
+                  selectedIntent = option.value
+                }
+              "
             >
               {{ option.label }}
             </UButton>
@@ -139,7 +159,15 @@
                 : 'Create reusable strength exercises here so coaches can quickly insert them into workout blocks.'
             }}
           </p>
-          <UButton color="primary" variant="soft" @click="openCreateModal">
+          <UButton
+            color="primary"
+            variant="soft"
+            @click="
+              () => {
+                void openCreateModal()
+              }
+            "
+          >
             Create First Exercise
           </UButton>
         </div>
@@ -154,7 +182,11 @@
               body: 'flex flex-1 flex-col px-4 py-3 sm:px-4',
               footer: 'px-4 py-3 sm:px-4'
             }"
-            @click="openPreview(exercise)"
+            @click="
+              () => {
+                void openPreview(exercise)
+              }
+            "
           >
             <template #header>
               <div class="flex items-start justify-between gap-3">
@@ -403,7 +435,11 @@
                 variant="ghost"
                 size="sm"
                 icon="i-heroicons-pencil-square"
-                @click="previewItem && openEditModal(previewItem)"
+                @click="
+                  () => {
+                    previewItem && openEditModal(previewItem)
+                  }
+                "
               />
             </div>
           </div>
@@ -553,7 +589,11 @@
                     icon="i-tabler-brand-youtube"
                     class="shrink-0 text-red-400 hover:text-red-500"
                     :disabled="!form.title.trim()"
-                    @click="openYouTubeSearch(form.title)"
+                    @click="
+                      () => {
+                        void openYouTubeSearch(form.title)
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -630,7 +670,11 @@
                     variant="ghost"
                     icon="i-heroicons-minus"
                     :disabled="form.setRows.length <= 1"
-                    @click="removeSetRow"
+                    @click="
+                      () => {
+                        void removeSetRow()
+                      }
+                    "
                   />
                   <div class="min-w-[56px] text-center text-sm font-semibold text-highlighted">
                     {{ form.setRows.length }} set{{ form.setRows.length === 1 ? '' : 's' }}
@@ -640,7 +684,11 @@
                     color="neutral"
                     variant="ghost"
                     icon="i-heroicons-plus"
-                    @click="addSetRow"
+                    @click="
+                      () => {
+                        void addSetRow()
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -737,7 +785,11 @@
                     variant="ghost"
                     size="xs"
                     icon="i-heroicons-x-mark"
-                    @click="removeParameter(index + 1)"
+                    @click="
+                      () => {
+                        void removeParameter(index + 1)
+                      }
+                    "
                   />
                 </div>
                 <USelect
@@ -754,7 +806,11 @@
                 variant="soft"
                 icon="i-heroicons-plus"
                 :disabled="!canAddParameter(form)"
-                @click="addParameter"
+                @click="
+                  () => {
+                    void addParameter()
+                  }
+                "
               >
                 Add Metric
               </UButton>
@@ -795,8 +851,25 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t border-default/70 px-5 py-4">
-          <UButton color="neutral" variant="ghost" @click="isEditorOpen = false">Cancel</UButton>
-          <UButton color="primary" :loading="saving" @click="saveExercise">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isEditorOpen = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="saving"
+            @click="
+              () => {
+                void saveExercise()
+              }
+            "
+          >
             {{ editorMode === 'create' ? 'Create Exercise' : 'Save Changes' }}
           </UButton>
         </div>

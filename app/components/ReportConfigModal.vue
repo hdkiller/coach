@@ -127,8 +127,26 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <UButton color="neutral" variant="ghost" @click="emit('close')"> Cancel </UButton>
-      <UButton color="primary" :disabled="!isConfigValid" @click="handleGenerate">
+      <UButton
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            void emit('close')
+          }
+        "
+      >
+        Cancel
+      </UButton>
+      <UButton
+        color="primary"
+        :disabled="!isConfigValid"
+        @click="
+          () => {
+            void handleGenerate()
+          }
+        "
+      >
         <UIcon name="i-heroicons-sparkles" class="w-4 h-4 mr-2" />
         Generate Report
       </UButton>

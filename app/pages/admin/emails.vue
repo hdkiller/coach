@@ -227,14 +227,22 @@
                         icon="i-heroicons-paper-airplane"
                         size="sm"
                         :loading="isRowSending(row.id)"
-                        @click="sendEmailById(row)"
+                        @click="
+                          () => {
+                            void sendEmailById(row)
+                          }
+                        "
                       />
                       <UButton
                         color="neutral"
                         variant="ghost"
                         icon="i-heroicons-eye"
                         size="sm"
-                        @click="openPreview(row)"
+                        @click="
+                          () => {
+                            void openPreview(row)
+                          }
+                        "
                       />
                     </div>
                   </td>
@@ -298,7 +306,14 @@
               }}</UBadge>
             </div>
             <div class="flex gap-3">
-              <UButton color="neutral" variant="ghost" @click="isPreviewOpen = false"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isPreviewOpen = false
+                  }
+                "
                 >Close</UButton
               >
               <UButton
@@ -309,7 +324,11 @@
                 color="primary"
                 icon="i-heroicons-paper-airplane"
                 :loading="isSending"
-                @click="sendSelectedEmail"
+                @click="
+                  () => {
+                    void sendSelectedEmail()
+                  }
+                "
               >
                 Send Now
               </UButton>

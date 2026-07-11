@@ -100,7 +100,11 @@
             color="primary"
             variant="soft"
             class="justify-center font-black"
-            @click="quickAdd(chip)"
+            @click="
+              () => {
+                void quickAdd(chip)
+              }
+            "
           >
             +{{ chip }}ml
           </UButton>
@@ -207,7 +211,11 @@
             color="primary"
             variant="soft"
             class="justify-center font-black"
-            @click="quickAdd(chip)"
+            @click="
+              () => {
+                void quickAdd(chip)
+              }
+            "
           >
             +{{ chip }}ml
           </UButton>

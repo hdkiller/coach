@@ -13,7 +13,11 @@
             color="neutral"
             variant="outline"
             icon="i-heroicons-adjustments-horizontal"
-            @click="openIngestionSettingsModal"
+            @click="
+              () => {
+                void openIngestionSettingsModal()
+              }
+            "
           >
             {{ t('apps_ingestion_settings') }}
           </UButton>
@@ -170,7 +174,11 @@
                 icon="i-heroicons-trash"
                 size="sm"
                 class="font-bold flex-shrink-0"
-                @click="confirmRevoke(app.consent)"
+                @click="
+                  () => {
+                    void confirmRevoke(app.consent)
+                  }
+                "
               />
             </template>
             <UButton
@@ -204,9 +212,22 @@
             :label="t('banner_exit')"
             color="neutral"
             variant="ghost"
-            @click="isRevokeModalOpen = false"
+            @click="
+              () => {
+                isRevokeModalOpen = false
+              }
+            "
           />
-          <UButton label="Revoke Access" color="error" :loading="revoking" @click="revokeAccess" />
+          <UButton
+            label="Revoke Access"
+            color="error"
+            :loading="revoking"
+            @click="
+              () => {
+                void revokeAccess()
+              }
+            "
+          />
         </div>
       </template>
     </UModal>
@@ -240,14 +261,22 @@
             color="neutral"
             variant="ghost"
             :disabled="savingIngestionSettings"
-            @click="isIngestionSettingsModalOpen = false"
+            @click="
+              () => {
+                isIngestionSettingsModalOpen = false
+              }
+            "
           >
             {{ t('banner_exit') }}
           </UButton>
           <UButton
             color="primary"
             :loading="savingIngestionSettings"
-            @click="saveIngestionSettings"
+            @click="
+              () => {
+                void saveIngestionSettings()
+              }
+            "
           >
             {{ t('settings_save_changes') }}
           </UButton>

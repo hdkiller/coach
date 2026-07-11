@@ -5,6 +5,7 @@ import { fetchUltrahumanDaily, normalizeUltrahumanWellness } from '../server/uti
 import { prisma } from '../server/utils/db'
 import { shouldIngestWellness } from '../server/utils/integration-settings'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
+import { buildAuthFailureResult } from '../server/utils/ingestion-failure'
 import type { IngestionResult } from './types'
 
 export const ingestUltrahumanTask = task({
@@ -131,6 +132,15 @@ export const ingestUltrahumanTask = task({
         endDate
       }
     } catch (error) {
+      const authFailure = buildAuthFailureResult(error, { userId, startDate, endDate })
+      if (authFailure) {
+        logger.warn('[Ultrahuman Ingest] Authorization expired or revoked', {
+          integrationId: integration.id,
+          message: authFailure.message
+        })
+        return authFailure
+      }
+
       logger.error('[Ultrahuman Ingest] Error ingesting data', { error })
       await prisma.integration.update({
         where: { id: integration.id },

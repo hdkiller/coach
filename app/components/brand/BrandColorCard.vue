@@ -61,7 +61,11 @@
               color="primary"
               size="xs"
               class="rounded-xl border border-white/5 hover:bg-white/5"
-              @click="copy()"
+              @click="
+                () => {
+                  void copy()
+                }
+              "
             />
           </div>
         </div>

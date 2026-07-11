@@ -25,7 +25,11 @@
               icon="i-heroicons-x-mark"
               color="neutral"
               variant="ghost"
-              @click="isOpen = false"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
             />
           </div>
         </template>
@@ -113,7 +117,16 @@
 
         <template #footer>
           <div class="flex justify-end">
-            <UButton color="primary" @click="isOpen = false"> Got it </UButton>
+            <UButton
+              color="primary"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
+            >
+              Got it
+            </UButton>
           </div>
         </template>
       </UCard>

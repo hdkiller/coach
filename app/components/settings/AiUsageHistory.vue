@@ -6,7 +6,16 @@
           <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary" />
           <h2 class="text-xl font-semibold">{{ t('usage_history_header') }}</h2>
         </div>
-        <UButton size="sm" variant="ghost" :loading="refreshing" @click="refresh">
+        <UButton
+          size="sm"
+          variant="ghost"
+          :loading="refreshing"
+          @click="
+            () => {
+              void refresh()
+            }
+          "
+        >
           <UIcon name="i-heroicons-arrow-path" />
           {{ t('usage_refresh') }}
         </UButton>
@@ -29,7 +38,11 @@
           size="sm"
           class="ml-auto"
           :loading="refreshing"
-          @click="refresh"
+          @click="
+            () => {
+              void refresh()
+            }
+          "
         >
           <UIcon name="i-heroicons-arrow-path" />
           {{ t('usage_refresh') }}
@@ -71,7 +84,11 @@
             color="neutral"
             :disabled="currentPage === 1"
             icon="i-heroicons-chevron-left"
-            @click="goToPage(currentPage - 1)"
+            @click="
+              () => {
+                void goToPage(currentPage - 1)
+              }
+            "
           >
             {{ t('usage_previous') }}
           </UButton>
@@ -81,7 +98,11 @@
             color="neutral"
             :disabled="currentPage === data.pagination.totalPages"
             trailing-icon="i-heroicons-chevron-right"
-            @click="goToPage(currentPage + 1)"
+            @click="
+              () => {
+                void goToPage(currentPage + 1)
+              }
+            "
           >
             {{ t('usage_next') }}
           </UButton>

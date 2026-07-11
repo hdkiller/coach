@@ -15,7 +15,11 @@
         variant="solid"
         size="xs"
         :label="t('banner_exit')"
-        @click="coachingStore.stopActingAs"
+        @click="
+          () => {
+            void coachingStore.stopActingAs()
+          }
+        "
       />
     </div>
   </div>

@@ -22,7 +22,11 @@
             variant="ghost"
             size="xs"
             class="rounded-full"
-            @click="isSettingsModalOpen = true"
+            @click="
+              () => {
+                isSettingsModalOpen = true
+              }
+            "
           />
         </div>
       </div>

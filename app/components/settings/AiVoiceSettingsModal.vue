@@ -282,7 +282,11 @@
                   ? 'border-primary bg-primary/10'
                   : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700'
               "
-              @click="voiceSpeed = option.key"
+              @click="
+                () => {
+                  voiceSpeed = option.key
+                }
+              "
             >
               <div class="font-medium text-gray-900 dark:text-gray-100">{{ option.label }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400">{{ option.description }}</div>
@@ -319,7 +323,11 @@
             :icon="isPreviewPlaying ? 'i-heroicons-stop' : 'i-heroicons-speaker-wave'"
             :loading="isPreviewLoading"
             :label="isPreviewPlaying ? 'Stop preview' : 'Play preview'"
-            @click="testVoice"
+            @click="
+              () => {
+                void testVoice()
+              }
+            "
           />
         </div>
       </div>
@@ -331,7 +339,15 @@
           Current default: {{ selectedGeminiVoice.name }}, {{ selectedVoicePreset.label }},
           {{ voiceSpeed }}
         </div>
-        <UButton color="neutral" label="Done" @click="open = false" />
+        <UButton
+          color="neutral"
+          label="Done"
+          @click="
+            () => {
+              open = false
+            }
+          "
+        />
       </div>
     </template>
   </UModal>

@@ -143,7 +143,11 @@
                 color="neutral"
                 variant="ghost"
                 size="xs"
-                @click="resetFilters"
+                @click="
+                  () => {
+                    void resetFilters()
+                  }
+                "
               >
                 Clear
               </UButton>
@@ -174,7 +178,11 @@
                 <template v-for="log in data?.logs" :key="log.id">
                   <tr
                     class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                    @click="toggleExpand(log.id)"
+                    @click="
+                      () => {
+                        void toggleExpand(log.id)
+                      }
+                    "
                   >
                     <td
                       class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
@@ -255,8 +263,7 @@
                           </h4>
                           <pre
                             class="whitespace-pre-wrap text-xs font-mono text-red-800 dark:text-red-300"
-                            >{{ log.errorMessage }}</pre
-                          >
+                            >{{ log.errorMessage }}</pre>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

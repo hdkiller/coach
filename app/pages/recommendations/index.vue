@@ -18,7 +18,11 @@
               size="sm"
               class="font-bold"
               :loading="clearing"
-              @click="showClearModal = true"
+              @click="
+                () => {
+                  showClearModal = true
+                }
+              "
             >
               <span class="hidden sm:inline">Clear All</span>
               <span class="sm:hidden">Clear</span>
@@ -30,7 +34,11 @@
               size="sm"
               class="font-bold"
               :loading="refreshingAdvice"
-              @click="refreshAdvice"
+              @click="
+                () => {
+                  void refreshAdvice()
+                }
+              "
             >
               <span class="hidden sm:inline">Update Recommendations</span>
               <span class="sm:hidden">Update</span>
@@ -125,7 +133,11 @@
         <section v-if="sortedHistoryRecs?.length > 0 || historyPending">
           <div
             class="flex items-center justify-between gap-2 mb-4 pt-4 border-t border-gray-100 dark:border-gray-800 cursor-pointer select-none"
-            @click="isHistoryOpen = !isHistoryOpen"
+            @click="
+              () => {
+                isHistoryOpen = !isHistoryOpen
+              }
+            "
           >
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-clock" class="w-5 h-5 text-gray-400" />
@@ -181,7 +193,11 @@
                     variant="ghost"
                     icon="i-heroicons-x-mark-20-solid"
                     class="-my-1"
-                    @click="showClearModal = false"
+                    @click="
+                      () => {
+                        showClearModal = false
+                      }
+                    "
                   />
                 </div>
               </template>
@@ -195,14 +211,25 @@
 
               <template #footer>
                 <div class="flex justify-end gap-3">
-                  <UButton color="neutral" variant="ghost" @click="showClearModal = false"
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    @click="
+                      () => {
+                        showClearModal = false
+                      }
+                    "
                     >Cancel</UButton
                   >
                   <UButton
                     color="error"
                     variant="solid"
                     :loading="clearing"
-                    @click="confirmClearAll"
+                    @click="
+                      () => {
+                        void confirmClearAll()
+                      }
+                    "
                     >Yes, Clear All</UButton
                   >
                 </div>

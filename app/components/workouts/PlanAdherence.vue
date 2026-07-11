@@ -33,7 +33,11 @@
           size="sm"
           class="font-black uppercase tracking-widest text-[10px] bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10"
           :loading="regenerating"
-          @click="$emit('regenerate')"
+          @click="
+            () => {
+              void $emit('regenerate')
+            }
+          "
         >
           {{ adherence ? 'Regenerate' : 'Analyze' }}
         </UButton>
@@ -45,7 +49,11 @@
           size="sm"
           class="font-black uppercase tracking-widest text-[10px] border border-red-200 dark:border-red-900/40"
           :loading="unlinking"
-          @click="$emit('unlink')"
+          @click="
+            () => {
+              void $emit('unlink')
+            }
+          "
         >
           Unlink
         </UButton>
@@ -298,7 +306,11 @@
         color="primary"
         variant="solid"
         class="mt-10 font-black uppercase tracking-[0.2em] text-[11px] px-10 py-4 shadow-lg dark:shadow-[0_0_30px_rgba(0,220,130,0.2)] rounded-xl"
-        @click="$emit('regenerate')"
+        @click="
+          () => {
+            void $emit('regenerate')
+          }
+        "
       >
         Analyze Adherence
       </UButton>

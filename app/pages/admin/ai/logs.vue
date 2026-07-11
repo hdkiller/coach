@@ -174,7 +174,11 @@
                 color="neutral"
                 variant="ghost"
                 size="xs"
-                @click="resetFilters"
+                @click="
+                  () => {
+                    void resetFilters()
+                  }
+                "
               >
                 Clear
               </UButton>
@@ -206,7 +210,11 @@
                 <template v-for="log in data?.logs" :key="log.id">
                   <tr
                     class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                    @click="toggleExpand(log.id)"
+                    @click="
+                      () => {
+                        void toggleExpand(log.id)
+                      }
+                    "
                   >
                     <td
                       class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"

@@ -7,7 +7,16 @@
       </h5>
       <div class="flex gap-2">
         <slot name="actions"></slot>
-        <UButton size="xs" color="primary" variant="soft" icon="i-lucide-plus" @click="addZone"
+        <UButton
+          size="xs"
+          color="primary"
+          variant="soft"
+          icon="i-lucide-plus"
+          @click="
+            () => {
+              void addZone()
+            }
+          "
           >Add Zone</UButton
         >
       </div>
@@ -75,7 +84,11 @@
                 variant="ghost"
                 size="xs"
                 tabindex="-1"
-                @click="removeZone(index)"
+                @click="
+                  () => {
+                    void removeZone(index)
+                  }
+                "
               />
             </div>
           </div>

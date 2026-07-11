@@ -34,7 +34,11 @@
               variant="ghost"
               size="xs"
               :icon="isCollapsed(block.id) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
-              @click="$emit('toggle-collapsed', block.id)"
+              @click="
+                () => {
+                  void $emit('toggle-collapsed', block.id)
+                }
+              "
             >
               <span class="sm:hidden">{{ isCollapsed(block.id) ? 'Open' : 'Close' }}</span>
               <span class="hidden sm:inline">{{
@@ -46,7 +50,11 @@
               variant="ghost"
               size="xs"
               icon="i-heroicons-pencil-square"
-              @click="$emit('edit-block', block)"
+              @click="
+                () => {
+                  void $emit('edit-block', block)
+                }
+              "
             >
               <span class="sm:hidden">Edit</span>
               <span class="hidden sm:inline">Edit</span>
@@ -56,7 +64,11 @@
               variant="ghost"
               size="xs"
               icon="i-heroicons-trash"
-              @click="$emit('remove-block', block.id)"
+              @click="
+                () => {
+                  void $emit('remove-block', block.id)
+                }
+              "
             >
               <span class="sm:hidden">Delete</span>
               <span class="hidden sm:inline">Remove</span>
@@ -81,7 +93,11 @@
 
             <div
               class="border-b border-default/70 px-4 py-4"
-              @click="$emit('select-week', week.id)"
+              @click="
+                () => {
+                  void $emit('select-week', week.id)
+                }
+              "
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -228,7 +244,11 @@
                 :id="`architect-week-${week.id}`"
                 class="group/rail relative flex min-h-[188px] flex-col justify-between border-r border-default p-3.5 cursor-pointer"
                 :class="getWeekRowSurface(week)"
-                @click="$emit('select-week', week.id)"
+                @click="
+                  () => {
+                    void $emit('select-week', week.id)
+                  }
+                "
               >
                 <div
                   v-if="activeWeekId === week.id"

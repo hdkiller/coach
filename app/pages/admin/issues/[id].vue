@@ -519,7 +519,11 @@
               color="neutral"
               variant="outline"
               size="sm"
-              @click="showEditModal = true"
+              @click="
+                () => {
+                  showEditModal = true
+                }
+              "
             >
               Edit
             </UButton>
@@ -530,7 +534,11 @@
               variant="ghost"
               size="sm"
               :loading="deletingIssue"
-              @click="showDeleteIssueModal = true"
+              @click="
+                () => {
+                  showDeleteIssueModal = true
+                }
+              "
             >
               Delete
             </UButton>
@@ -578,7 +586,11 @@
                     variant="ghost"
                     color="neutral"
                     size="xs"
-                    @click="copyIssueId"
+                    @click="
+                      () => {
+                        void copyIssueId()
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -595,7 +607,11 @@
                     variant="ghost"
                     color="neutral"
                     size="xs"
-                    @click="copyFullTicket"
+                    @click="
+                      () => {
+                        void copyFullTicket()
+                      }
+                    "
                   >
                     Copy ticket
                   </UButton>
@@ -604,7 +620,11 @@
                     variant="ghost"
                     color="neutral"
                     size="xs"
-                    @click="copyTicketPrompt"
+                    @click="
+                      () => {
+                        void copyTicketPrompt()
+                      }
+                    "
                   >
                     Copy prompt
                   </UButton>
@@ -627,7 +647,11 @@
                     :color="uids.includes(userId) ? 'primary' : 'neutral'"
                     size="xs"
                     class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
-                    @click="toggleIssueReaction(String(emoji))"
+                    @click="
+                      () => {
+                        toggleIssueReaction(String(emoji))
+                      }
+                    "
                   >
                     {{ emoji }} {{ uids.length }}
                   </UButton>
@@ -651,7 +675,11 @@
                         variant="ghost"
                         color="neutral"
                         size="sm"
-                        @click="toggleIssueReaction(emoji)"
+                        @click="
+                          () => {
+                            void toggleIssueReaction(emoji)
+                          }
+                        "
                       >
                         {{ emoji }}
                       </UButton>
@@ -717,7 +745,11 @@
                         color="neutral"
                         variant="ghost"
                         size="xs"
-                        @click="openEditCommentModal(comment)"
+                        @click="
+                          () => {
+                            void openEditCommentModal(comment)
+                          }
+                        "
                       />
                       <UButton
                         icon="i-heroicons-trash"
@@ -725,7 +757,11 @@
                         variant="ghost"
                         size="xs"
                         :loading="deletingCommentId === comment.id"
-                        @click="deleteComment(comment.id)"
+                        @click="
+                          () => {
+                            void deleteComment(comment.id)
+                          }
+                        "
                       />
                     </div>
                     <div
@@ -768,7 +804,11 @@
                           size="xs"
                           :loading="acknowledgingCommentId === comment.id"
                           class="text-[9px] px-1 h-auto font-black uppercase tracking-tighter"
-                          @click="acknowledgeComment(comment.id)"
+                          @click="
+                            () => {
+                              void acknowledgeComment(comment.id)
+                            }
+                          "
                         />
                       </div>
                       <div v-else />
@@ -783,7 +823,11 @@
                             :color="uids.includes(userId) ? 'primary' : 'neutral'"
                             size="xs"
                             class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
-                            @click="toggleReaction(comment.id, String(emoji))"
+                            @click="
+                              () => {
+                                toggleReaction(comment.id, String(emoji))
+                              }
+                            "
                           >
                             {{ emoji }} {{ uids.length }}
                           </UButton>
@@ -815,7 +859,11 @@
                                 variant="ghost"
                                 color="neutral"
                                 size="sm"
-                                @click="toggleReaction(comment.id, emoji)"
+                                @click="
+                                  () => {
+                                    void toggleReaction(comment.id, emoji)
+                                  }
+                                "
                               >
                                 {{ emoji }}
                               </UButton>
@@ -874,7 +922,11 @@
                       :color="newCommentType === 'NOTE' ? 'warning' : 'primary'"
                       :loading="sendingComment"
                       :disabled="!newComment.trim()"
-                      @click="addComment"
+                      @click="
+                        () => {
+                          void addComment()
+                        }
+                      "
                     >
                       {{ newCommentType === 'NOTE' ? 'Add Note' : 'Send Message' }}
                     </UButton>
@@ -905,7 +957,11 @@
                     variant="ghost"
                     color="neutral"
                     size="xs"
-                    @click="copyLogs"
+                    @click="
+                      () => {
+                        void copyLogs()
+                      }
+                    "
                   >
                     Copy
                   </UButton>
@@ -1014,7 +1070,11 @@
                         variant="ghost"
                         color="neutral"
                         size="xs"
-                        @click="copyUserId"
+                        @click="
+                          () => {
+                            void copyUserId()
+                          }
+                        "
                       />
                     </div>
                   </div>
@@ -1069,7 +1129,11 @@
                       label="Reactivate Account"
                       :disabled="!canRunUserSupportActions"
                       :loading="supportActionLoading === 'reactivate'"
-                      @click="runSupportAction('reactivate')"
+                      @click="
+                        () => {
+                          void runSupportAction('reactivate')
+                        }
+                      "
                     />
                     <UButton
                       v-else
@@ -1080,7 +1144,11 @@
                       label="Deactivate Account"
                       :disabled="!canRunUserSupportActions"
                       :loading="supportActionLoading === 'deactivate'"
-                      @click="runSupportAction('deactivate')"
+                      @click="
+                        () => {
+                          void runSupportAction('deactivate')
+                        }
+                      "
                     />
                     <UButton
                       color="error"
@@ -1090,7 +1158,11 @@
                       label="Schedule Deletion"
                       :disabled="!canRunUserSupportActions"
                       :loading="supportActionLoading === 'delete'"
-                      @click="runSupportAction('delete')"
+                      @click="
+                        () => {
+                          void runSupportAction('delete')
+                        }
+                      "
                     />
                     <p v-if="!canRunUserSupportActions" class="text-[11px] text-gray-500">
                       Support actions are unavailable for your own account.
@@ -1164,7 +1236,11 @@
                     variant="ghost"
                     color="neutral"
                     size="xs"
-                    @click="openMetadataModal"
+                    @click="
+                      () => {
+                        void openMetadataModal()
+                      }
+                    "
                   />
                 </div>
               </template>
@@ -1178,7 +1254,11 @@
                       variant="ghost"
                       color="neutral"
                       size="xs"
-                      @click="copyIssueId"
+                      @click="
+                        () => {
+                          void copyIssueId()
+                        }
+                      "
                     />
                   </div>
                 </div>
@@ -1224,7 +1304,11 @@
                   variant="ghost"
                   icon="i-heroicons-x-mark"
                   class="-my-1"
-                  @click="isMetadataModalOpen = false"
+                  @click="
+                    () => {
+                      isMetadataModalOpen = false
+                    }
+                  "
                 />
               </div>
             </template>
@@ -1241,10 +1325,27 @@
 
             <template #footer>
               <div class="flex justify-end gap-3">
-                <UButton color="neutral" variant="ghost" @click="isMetadataModalOpen = false">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      isMetadataModalOpen = false
+                    }
+                  "
+                >
                   Cancel
                 </UButton>
-                <UButton color="primary" @click="saveMetadata"> Save Changes </UButton>
+                <UButton
+                  color="primary"
+                  @click="
+                    () => {
+                      void saveMetadata()
+                    }
+                  "
+                >
+                  Save Changes
+                </UButton>
               </div>
             </template>
           </UCard>
@@ -1277,10 +1378,26 @@
               >?
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showDeleteIssueModal = false">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    showDeleteIssueModal = false
+                  }
+                "
+              >
                 Cancel
               </UButton>
-              <UButton color="error" :loading="deletingIssue" @click="deleteIssue">
+              <UButton
+                color="error"
+                :loading="deletingIssue"
+                @click="
+                  () => {
+                    void deleteIssue()
+                  }
+                "
+              >
                 Delete
               </UButton>
             </div>
@@ -1313,14 +1430,26 @@
               characters
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="closeEditCommentModal">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    void closeEditCommentModal()
+                  }
+                "
+              >
                 Cancel
               </UButton>
               <UButton
                 color="primary"
                 :loading="savingComment"
                 :disabled="!editingCommentContent.trim()"
-                @click="saveCommentEdit"
+                @click="
+                  () => {
+                    void saveCommentEdit()
+                  }
+                "
               >
                 Save
               </UButton>

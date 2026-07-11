@@ -96,7 +96,11 @@
                   ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-200'
                   : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:text-white'
               "
-              @click="selectedWeekIdMap[plan.id] = week.id"
+              @click="
+                () => {
+                  selectedWeekIdMap[plan.id] = week.id
+                }
+              "
             >
               Week {{ week.weekNumber }}
             </button>
@@ -115,7 +119,11 @@
                     ? 'border-emerald-400/50 bg-emerald-400/10 text-white'
                     : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/20'
                 "
-                @click="selectedDayMap[plan.id] = day.dayIndex"
+                @click="
+                  () => {
+                    selectedDayMap[plan.id] = day.dayIndex
+                  }
+                "
               >
                 <div class="text-[11px] font-black uppercase tracking-[0.18em]">
                   {{ day.label }}

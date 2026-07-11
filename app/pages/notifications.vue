@@ -60,14 +60,22 @@
               variant="ghost"
               size="sm"
               icon="i-heroicons-check-circle"
-              @click="handleMarkAllRead"
+              @click="
+                () => {
+                  void handleMarkAllRead()
+                }
+              "
             />
             <UButton
               icon="i-heroicons-arrow-path"
               color="neutral"
               variant="ghost"
               :loading="loading"
-              @click="notificationStore.fetchNotifications(page, limit)"
+              @click="
+                () => {
+                  void notificationStore.fetchNotifications(page, limit)
+                }
+              "
             />
           </div>
         </template>
@@ -91,7 +99,11 @@
               variant="soft"
               size="xs"
               icon="i-heroicons-arrow-path"
-              @click="notificationStore.fetchNotifications(page, limit)"
+              @click="
+                () => {
+                  void notificationStore.fetchNotifications(page, limit)
+                }
+              "
             >
               {{ tr('notifications_retry', 'Retry') }}
             </UButton>
@@ -125,7 +137,11 @@
               'bg-primary-50/20 dark:bg-primary-900/5 ring-1 ring-primary-100 dark:ring-primary-900/50':
                 !notification.read
             }"
-            @click="handleNotificationClick(notification)"
+            @click="
+              () => {
+                void handleNotificationClick(notification)
+              }
+            "
           >
             <div class="flex gap-4 items-start">
               <div

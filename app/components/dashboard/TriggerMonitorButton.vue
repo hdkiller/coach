@@ -6,7 +6,11 @@
       size="sm"
       class="font-bold"
       icon="i-heroicons-cpu-chip"
-      @click="toggle"
+      @click="
+        () => {
+          void toggle()
+        }
+      "
     >
       <span class="hidden md:inline">{{ t('navbar_tasks') }}</span>
       <template v-if="activeRunCount > 0" #trailing>

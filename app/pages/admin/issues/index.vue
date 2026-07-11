@@ -181,7 +181,11 @@
                   variant="ghost"
                   icon="i-heroicons-x-mark"
                   size="xs"
-                  @click="searchQuery = ''"
+                  @click="
+                    () => {
+                      searchQuery = ''
+                    }
+                  "
                 />
               </template>
             </UInput>
@@ -200,7 +204,11 @@
                 :variant="groupByUser ? 'solid' : 'ghost'"
                 size="xs"
                 title="Group by User"
-                @click="groupByUser = !groupByUser"
+                @click="
+                  () => {
+                    groupByUser = !groupByUser
+                  }
+                "
               />
               <div
                 v-if="viewMode === 'card'"
@@ -211,14 +219,22 @@
                 :color="viewMode === 'table' ? 'primary' : 'neutral'"
                 :variant="viewMode === 'table' ? 'solid' : 'ghost'"
                 size="xs"
-                @click="viewMode = 'table'"
+                @click="
+                  () => {
+                    viewMode = 'table'
+                  }
+                "
               />
               <UButton
                 icon="i-heroicons-squares-2x2"
                 :color="viewMode === 'card' ? 'primary' : 'neutral'"
                 :variant="viewMode === 'card' ? 'solid' : 'ghost'"
                 size="xs"
-                @click="viewMode = 'card'"
+                @click="
+                  () => {
+                    viewMode = 'card'
+                  }
+                "
               />
             </div>
           </div>

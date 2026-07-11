@@ -81,7 +81,11 @@
             v-for="item in wellness"
             :key="item.id"
             class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            @click="navigateToWellness(item.id)"
+            @click="
+              () => {
+                void navigateToWellness(item.id)
+              }
+            "
           >
             <td
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium uppercase tracking-tight"

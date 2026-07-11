@@ -16,7 +16,11 @@
         size="xs"
         :label="t('banner_exit')"
         :loading="stopping"
-        @click="stopImpersonation"
+        @click="
+          () => {
+            void stopImpersonation()
+          }
+        "
       />
     </div>
   </div>

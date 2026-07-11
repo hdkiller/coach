@@ -59,7 +59,11 @@
           icon="i-heroicons-sparkles"
           :loading="loading"
           :disabled="isRestricted"
-          @click="$emit('generate')"
+          @click="
+            () => {
+              void $emit('generate')
+            }
+          "
         >
           Generate All Workouts for this Week
         </UButton>

@@ -34,7 +34,11 @@
             : undefined,
         description: 'w-full'
       }"
-      @click="handleClick"
+      @click="
+        () => {
+          void handleClick()
+        }
+      "
       @update:open="dismiss"
     >
       <template #description>

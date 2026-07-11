@@ -11,7 +11,11 @@
           type="button"
           class="group text-left"
           aria-label="Explain Power Duration Curve"
-          @click="showExplanation = true"
+          @click="
+            () => {
+              showExplanation = true
+            }
+          "
         >
           <h2
             class="text-base font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-500 transition-colors"
@@ -54,7 +58,11 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            @click="$emit('settings')"
+            @click="
+              () => {
+                void $emit('settings')
+              }
+            "
           />
         </div>
       </div>
@@ -120,7 +128,11 @@
               color="neutral"
               variant="ghost"
               class="font-bold uppercase text-xs"
-              @click="showExplanation = false"
+              @click="
+                () => {
+                  showExplanation = false
+                }
+              "
             >
               Close
             </UButton>

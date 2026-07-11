@@ -7,7 +7,11 @@
             icon="i-heroicons-arrow-left"
             color="neutral"
             variant="ghost"
-            @click="navigateTo(`/workouts/${workoutId}`)"
+            @click="
+              () => {
+                void navigateTo(`/workouts/${workoutId}`)
+              }
+            "
           >
             Back
           </UButton>
@@ -20,7 +24,11 @@
               color="neutral"
               variant="outline"
               :disabled="!imageVariants.length"
-              @click="downloadAll"
+              @click="
+                () => {
+                  void downloadAll()
+                }
+              "
             >
               Download All
             </UButton>
@@ -39,7 +47,11 @@
               color="primary"
               variant="solid"
               :loading="loading || generatingShareLink"
-              @click="refreshAll"
+              @click="
+                () => {
+                  void refreshAll()
+                }
+              "
             >
               Refresh
             </UButton>
@@ -108,7 +120,11 @@
                         variant="ghost"
                         size="sm"
                         :disabled="!shareLink"
-                        @click="copyShareLink"
+                        @click="
+                          () => {
+                            void copyShareLink()
+                          }
+                        "
                       >
                         Copy
                       </UButton>
@@ -129,7 +145,11 @@
                       :color="selectedRatio === option.value ? 'primary' : 'neutral'"
                       :variant="selectedRatio === option.value ? 'solid' : 'outline'"
                       size="sm"
-                      @click="selectedRatio = option.value"
+                      @click="
+                        () => {
+                          selectedRatio = option.value
+                        }
+                      "
                     >
                       {{ option.label }}
                     </UButton>
@@ -193,7 +213,11 @@
                       color="neutral"
                       variant="soft"
                       size="sm"
-                      @click="downloadImage(item)"
+                      @click="
+                        () => {
+                          void downloadImage(item)
+                        }
+                      "
                     >
                       Save
                     </UButton>

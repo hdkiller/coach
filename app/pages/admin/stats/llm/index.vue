@@ -619,7 +619,11 @@
             </UCard>
             <UCard
               class="bg-emerald-50/50 dark:bg-emerald-900/10 hover:border-emerald-500 transition-colors cursor-pointer"
-              @click="navigateTo('/admin/stats/llm/caching')"
+              @click="
+                () => {
+                  void navigateTo('/admin/stats/llm/caching')
+                }
+              "
             >
               <div class="text-center">
                 <div
@@ -908,7 +912,11 @@
                       size="xs"
                       :color="spenderTab === 'today' ? 'primary' : 'neutral'"
                       :variant="spenderTab === 'today' ? 'solid' : 'ghost'"
-                      @click="spenderTab = 'today'"
+                      @click="
+                        () => {
+                          spenderTab = 'today'
+                        }
+                      "
                     >
                       Today
                     </UButton>
@@ -916,7 +924,11 @@
                       size="xs"
                       :color="spenderTab === 'yesterday' ? 'primary' : 'neutral'"
                       :variant="spenderTab === 'yesterday' ? 'solid' : 'ghost'"
-                      @click="spenderTab = 'yesterday'"
+                      @click="
+                        () => {
+                          spenderTab = 'yesterday'
+                        }
+                      "
                     >
                       Yesterday
                     </UButton>
@@ -924,7 +936,11 @@
                       size="xs"
                       :color="spenderTab === '30d' ? 'primary' : 'neutral'"
                       :variant="spenderTab === '30d' ? 'solid' : 'ghost'"
-                      @click="spenderTab = '30d'"
+                      @click="
+                        () => {
+                          spenderTab = '30d'
+                        }
+                      "
                     >
                       30d
                     </UButton>

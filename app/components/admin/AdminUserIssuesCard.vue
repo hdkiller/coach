@@ -53,7 +53,11 @@
         v-for="ticket in otherIssues"
         :key="ticket.id"
         class="group cursor-pointer p-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        @click="navigateTo(`/admin/issues/${ticket.id}`)"
+        @click="
+          () => {
+            void navigateTo(`/admin/issues/${ticket.id}`)
+          }
+        "
       >
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">

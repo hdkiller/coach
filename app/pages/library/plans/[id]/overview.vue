@@ -9,7 +9,11 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-chevron-left"
-              @click="navigateTo('/library/plans')"
+              @click="
+                () => {
+                  void navigateTo('/library/plans')
+                }
+              "
             />
           </div>
         </template>
@@ -26,11 +30,24 @@
               variant="outline"
               size="sm"
               icon="i-heroicons-arrow-top-right-on-square"
-              @click="openPublicPage"
+              @click="
+                () => {
+                  void openPublicPage()
+                }
+              "
             >
               Visit public page
             </UButton>
-            <UButton color="primary" size="sm" icon="i-heroicons-play" @click="openUseModal">
+            <UButton
+              color="primary"
+              size="sm"
+              icon="i-heroicons-play"
+              @click="
+                () => {
+                  void openUseModal()
+                }
+              "
+            >
               Use
             </UButton>
             <UButton
@@ -38,7 +55,11 @@
               variant="outline"
               size="sm"
               icon="i-heroicons-pencil-square"
-              @click="navigateTo(`/library/plans/${route.params.id}/architect`)"
+              @click="
+                () => {
+                  void navigateTo(`/library/plans/${route.params.id}/architect`)
+                }
+              "
             >
               Edit structure
             </UButton>
@@ -175,7 +196,11 @@
                   variant="soft"
                   block
                   icon="i-heroicons-pencil-square"
-                  @click="navigateTo(`/library/plans/${route.params.id}/architect`)"
+                  @click="
+                    () => {
+                      void navigateTo(`/library/plans/${route.params.id}/architect`)
+                    }
+                  "
                 >
                   Edit details & publishing
                 </UButton>
@@ -393,8 +418,24 @@
 
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="isUseModalOpen = false">Cancel</UButton>
-        <UButton color="primary" :loading="isApplyingPlan" @click="confirmUsePlan"
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isUseModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          :loading="isApplyingPlan"
+          @click="
+            () => {
+              void confirmUsePlan()
+            }
+          "
           >Apply Plan</UButton
         >
       </div>

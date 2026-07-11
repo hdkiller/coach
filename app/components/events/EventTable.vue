@@ -14,7 +14,11 @@
         variant="outline"
         size="sm"
         icon="i-heroicons-plus"
-        @click="$emit('create')"
+        @click="
+          () => {
+            void $emit('create')
+          }
+        "
       >
         Add Event
       </UButton>
@@ -76,7 +80,11 @@
             v-for="event in events"
             :key="event.id"
             class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            @click="$emit('navigate', event.id)"
+            @click="
+              () => {
+                void $emit('navigate', event.id)
+              }
+            "
           >
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
               <div class="flex flex-col leading-tight">
@@ -175,14 +183,22 @@
                   color="neutral"
                   variant="ghost"
                   size="xs"
-                  @click="$emit('edit', event)"
+                  @click="
+                    () => {
+                      void $emit('edit', event)
+                    }
+                  "
                 />
                 <UButton
                   icon="i-heroicons-trash"
                   color="error"
                   variant="ghost"
                   size="xs"
-                  @click="$emit('delete', event)"
+                  @click="
+                    () => {
+                      void $emit('delete', event)
+                    }
+                  "
                 />
               </div>
             </td>

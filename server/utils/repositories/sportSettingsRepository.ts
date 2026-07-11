@@ -22,7 +22,10 @@ function normalizePersistedSetting(setting: any) {
   const thresholdPace = Number(setting.thresholdPace || 0)
   const paceZones = Array.isArray(setting.paceZones) ? setting.paceZones : []
   const paceZoneValues = paceZones.flatMap((zone: any) => [Number(zone?.min), Number(zone?.max)])
-  const maxPaceZoneValue = Math.max(...paceZoneValues.filter((value) => Number.isFinite(value)), 0)
+  const maxPaceZoneValue = Math.max(
+    ...paceZoneValues.filter((value: number) => Number.isFinite(value)),
+    0
+  )
   const paceZonesAreMetersPerMinute = thresholdPace > 0 && maxPaceZoneValue > thresholdPace * 20
   const normalizedThresholdPace =
     paceZonesAreMetersPerMinute && Number.isFinite(thresholdPace) && thresholdPace > 0

@@ -29,7 +29,11 @@
               variant="ghost"
               icon="i-lucide-x"
               square
-              @click="isOpen = false"
+              @click="
+                () => {
+                  isOpen = false
+                }
+              "
             />
           </div>
         </div>
@@ -99,7 +103,11 @@
                         ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
                         : 'border-gray-200 bg-white shadow-sm hover:border-primary-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900'
                     ]"
-                    @click="selectJourneyOption(option)"
+                    @click="
+                      () => {
+                        void selectJourneyOption(option)
+                      }
+                    "
                   >
                     <div class="flex items-start gap-3">
                       <div
@@ -156,7 +164,11 @@
                         ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
                         : 'border-gray-200 bg-white shadow-sm hover:border-primary-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900'
                     ]"
-                    @click="journeyForm.severity = level.value"
+                    @click="
+                      () => {
+                        journeyForm.severity = level.value
+                      }
+                    "
                   >
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2">
@@ -196,7 +208,11 @@
                     color="neutral"
                     :variant="selectedTimePreset === preset.id ? 'solid' : 'outline'"
                     size="xs"
-                    @click="applyTimePreset(preset.id)"
+                    @click="
+                      () => {
+                        void applyTimePreset(preset.id)
+                      }
+                    "
                   >
                     {{ preset.label }}
                   </UButton>
@@ -281,15 +297,37 @@
                 variant="ghost"
                 icon="i-lucide-trash"
                 :loading="deleting"
-                @click="handleDelete"
+                @click="
+                  () => {
+                    void handleDelete()
+                  }
+                "
               >
                 Delete
               </UButton>
             </div>
 
             <div class="flex gap-2">
-              <UButton color="neutral" variant="ghost" @click="isOpen = false">Close</UButton>
-              <UButton v-if="canSave" color="primary" :loading="saving" @click="handleSave">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isOpen = false
+                  }
+                "
+                >Close</UButton
+              >
+              <UButton
+                v-if="canSave"
+                color="primary"
+                :loading="saving"
+                @click="
+                  () => {
+                    void handleSave()
+                  }
+                "
+              >
                 {{ createMode ? 'Log event' : 'Save changes' }}
               </UButton>
             </div>

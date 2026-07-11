@@ -4,7 +4,7 @@ export type PlannedWorkoutExportSource = {
   lastGenerationSettingsSnapshot?: unknown
   createdFromSettingsSnapshot?: unknown
   structuredWorkout?: unknown
-  user?: { ftp?: number | null }
+  user?: { ftp?: number | null } | null
 }
 
 export type WorkoutExportContext = {

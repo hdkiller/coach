@@ -138,10 +138,26 @@
               </UFormField>
 
               <div class="flex gap-2 pt-2">
-                <UButton color="primary" class="flex-1 justify-center" @click="applyFilters"
+                <UButton
+                  color="primary"
+                  class="flex-1 justify-center"
+                  @click="
+                    () => {
+                      void applyFilters()
+                    }
+                  "
                   >Apply filters</UButton
                 >
-                <UButton color="neutral" variant="ghost" @click="clearFilters">Reset</UButton>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      void clearFilters()
+                    }
+                  "
+                  >Reset</UButton
+                >
               </div>
             </div>
           </UCard>
@@ -180,7 +196,11 @@
                 size="sm"
                 :color="filters.sport === sport.value ? 'primary' : 'neutral'"
                 :variant="filters.sport === sport.value ? 'soft' : 'ghost'"
-                @click="selectSportChip(sport.value)"
+                @click="
+                  () => {
+                    void selectSportChip(sport.value)
+                  }
+                "
               >
                 {{ sport.label }}
               </UButton>
@@ -203,7 +223,16 @@
                 Try broadening the sport, skill level, or duration filters to explore more public
                 plans.
               </p>
-              <UButton color="primary" class="mt-6" @click="clearFilters">Reset filters</UButton>
+              <UButton
+                color="primary"
+                class="mt-6"
+                @click="
+                  () => {
+                    void clearFilters()
+                  }
+                "
+                >Reset filters</UButton
+              >
             </div>
 
             <div v-else class="space-y-6">

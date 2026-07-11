@@ -805,35 +805,55 @@
                       size="xs"
                       :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
                       color="neutral"
-                      @click="applyQuickRange('30d')"
+                      @click="
+                        () => {
+                          void applyQuickRange('30d')
+                        }
+                      "
                       >30D</UButton
                     >
                     <UButton
                       size="xs"
                       :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
                       color="neutral"
-                      @click="applyQuickRange('90d')"
+                      @click="
+                        () => {
+                          void applyQuickRange('90d')
+                        }
+                      "
                       >90D</UButton
                     >
                     <UButton
                       size="xs"
                       :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
                       color="neutral"
-                      @click="applyQuickRange('180d')"
+                      @click="
+                        () => {
+                          void applyQuickRange('180d')
+                        }
+                      "
                       >180D</UButton
                     >
                     <UButton
                       size="xs"
                       :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
                       color="neutral"
-                      @click="applyQuickRange('ytd')"
+                      @click="
+                        () => {
+                          void applyQuickRange('ytd')
+                        }
+                      "
                       >YTD</UButton
                     >
                     <UButton
                       size="xs"
                       :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
                       color="neutral"
-                      @click="activateCustomRange"
+                      @click="
+                        () => {
+                          void activateCustomRange()
+                        }
+                      "
                       >Custom</UButton
                     >
                   </div>
@@ -848,7 +868,16 @@
                   </div>
 
                   <div class="flex justify-end border-t border-default pt-3">
-                    <UButton size="xs" color="primary" variant="soft" @click="applyCustomRange">
+                    <UButton
+                      size="xs"
+                      color="primary"
+                      variant="soft"
+                      @click="
+                        () => {
+                          void applyCustomRange()
+                        }
+                      "
+                    >
                       Apply
                     </UButton>
                   </div>
@@ -890,7 +919,11 @@
                     size="sm"
                     class="font-bold shrink-0 transition-all duration-200"
                     :class="activeTab === index ? 'px-4' : 'px-3 opacity-60 hover:opacity-100'"
-                    @click="activeTab = index"
+                    @click="
+                      () => {
+                        activeTab = index
+                      }
+                    "
                   >
                     <template #leading>
                       <UIcon :name="element.icon" class="w-4 h-4" />
@@ -917,7 +950,11 @@
               icon="i-lucide-plus"
               size="sm"
               class="font-bold shrink-0 opacity-50 hover:opacity-100"
-              @click="isNewDashboardModalOpen = true"
+              @click="
+                () => {
+                  isNewDashboardModalOpen = true
+                }
+              "
             />
           </div>
 
@@ -929,7 +966,11 @@
               label="Manage Metrics"
               size="sm"
               class="font-bold hidden sm:flex"
-              @click="isFieldManagerOpen = true"
+              @click="
+                () => {
+                  isFieldManagerOpen = true
+                }
+              "
             />
 
             <UButton
@@ -939,7 +980,11 @@
               label="Add Widget"
               size="sm"
               class="font-bold"
-              @click="isWidgetLibraryOpen = true"
+              @click="
+                () => {
+                  isWidgetLibraryOpen = true
+                }
+              "
             />
 
             <UButton
@@ -1023,7 +1068,11 @@
                           variant="ghost"
                           icon="i-lucide-maximize-2"
                           size="xs"
-                          @click="openExpandedWidget(element)"
+                          @click="
+                            () => {
+                              void openExpandedWidget(element)
+                            }
+                          "
                         />
                         <UDropdownMenu :items="widgetMenuItems(element)">
                           <UButton
@@ -1070,7 +1119,11 @@
                 size="lg"
                 label="Add System Chart"
                 icon="i-lucide-plus"
-                @click="isWidgetLibraryOpen = true"
+                @click="
+                  () => {
+                    isWidgetLibraryOpen = true
+                  }
+                "
               />
               <UButton
                 color="primary"
@@ -1103,7 +1156,11 @@
             icon="i-lucide-plus"
             label="Create First Dashboard"
             class="font-black uppercase tracking-widest px-8"
-            @click="isNewDashboardModalOpen = true"
+            @click="
+              () => {
+                isNewDashboardModalOpen = true
+              }
+            "
           />
         </div>
       </div>
@@ -1132,14 +1189,22 @@
         label="Cancel"
         color="neutral"
         variant="ghost"
-        @click="isNewDashboardModalOpen = false"
+        @click="
+          () => {
+            isNewDashboardModalOpen = false
+          }
+        "
       />
       <UButton
         label="Create Dashboard"
         color="primary"
         variant="solid"
         :loading="creatingDashboard"
-        @click="createDashboard"
+        @click="
+          () => {
+            void createDashboard()
+          }
+        "
       />
     </template>
   </UModal>
@@ -1165,9 +1230,22 @@
         label="Cancel"
         color="neutral"
         variant="ghost"
-        @click="isRenameDashboardModalOpen = false"
+        @click="
+          () => {
+            isRenameDashboardModalOpen = false
+          }
+        "
       />
-      <UButton label="Save" color="primary" variant="solid" @click="saveDashboardRename" />
+      <UButton
+        label="Save"
+        color="primary"
+        variant="solid"
+        @click="
+          () => {
+            void saveDashboardRename()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1192,9 +1270,22 @@
         label="Cancel"
         color="neutral"
         variant="ghost"
-        @click="isRenameWidgetModalOpen = false"
+        @click="
+          () => {
+            isRenameWidgetModalOpen = false
+          }
+        "
       />
-      <UButton label="Save" color="primary" variant="solid" @click="saveWidgetRename" />
+      <UButton
+        label="Save"
+        color="primary"
+        variant="solid"
+        @click="
+          () => {
+            void saveWidgetRename()
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1209,7 +1300,16 @@
       <AnalyticsFieldManager />
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isFieldManagerOpen = false" />
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isFieldManagerOpen = false
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1228,7 +1328,11 @@
           variant="subtle"
           class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group border-2 border-primary-500/20"
           to="/analytics/browse"
-          @click="isWidgetLibraryOpen = false"
+          @click="
+            () => {
+              isWidgetLibraryOpen = false
+            }
+          "
         >
           <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg">
             <UIcon name="i-lucide-monitor-play" class="w-5 h-5 text-primary-600" />
@@ -1249,7 +1353,11 @@
           variant="subtle"
           class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group border-2 border-default/60"
           to="/analytics/workout-explorer"
-          @click="isWidgetLibraryOpen = false"
+          @click="
+            () => {
+              isWidgetLibraryOpen = false
+            }
+          "
         >
           <div class="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
             <UIcon
@@ -1285,7 +1393,11 @@
               :color="activeCategory === 'all' ? 'primary' : 'neutral'"
               :variant="activeCategory === 'all' ? 'soft' : 'outline'"
               class="rounded-full"
-              @click="activeCategory = 'all'"
+              @click="
+                () => {
+                  activeCategory = 'all'
+                }
+              "
             >
               All
             </UButton>
@@ -1296,7 +1408,11 @@
               :color="activeCategory === category.value ? 'primary' : 'neutral'"
               :variant="activeCategory === category.value ? 'soft' : 'outline'"
               class="rounded-full"
-              @click="activeCategory = category.value"
+              @click="
+                () => {
+                  activeCategory = category.value
+                }
+              "
             >
               {{ category.label }}
             </UButton>
@@ -1305,7 +1421,11 @@
               :color="activeCategory === 'custom' ? 'primary' : 'neutral'"
               :variant="activeCategory === 'custom' ? 'soft' : 'outline'"
               class="rounded-full"
-              @click="activeCategory = 'custom'"
+              @click="
+                () => {
+                  activeCategory = 'custom'
+                }
+              "
             >
               My Visuals
             </UButton>
@@ -1327,7 +1447,11 @@
                 color="neutral"
                 variant="subtle"
                 class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
-                @click="addWidget({ ...widget.config, name: widget.name, id: widget.id })"
+                @click="
+                  () => {
+                    void addWidget({ ...widget.config, name: widget.name, id: widget.id })
+                  }
+                "
               >
                 <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
                   <UIcon name="i-lucide-gavel" class="w-5 h-5 text-primary-500" />
@@ -1358,7 +1482,11 @@
                 color="neutral"
                 variant="subtle"
                 class="flex items-start justify-start p-4 gap-4 text-left h-auto w-full group"
-                @click="addWidget(preset)"
+                @click="
+                  () => {
+                    void addWidget(preset)
+                  }
+                "
               >
                 <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg">
                   <UIcon
@@ -1405,7 +1533,16 @@
       </div>
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isWidgetLibraryOpen = false" />
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            isWidgetLibraryOpen = false
+          }
+        "
+      />
     </template>
   </UModal>
 
@@ -1431,7 +1568,11 @@
         label="Close"
         color="neutral"
         variant="ghost"
-        @click="isExpandedWidgetOpen = false"
+        @click="
+          () => {
+            isExpandedWidgetOpen = false
+          }
+        "
       />
     </template>
   </UModal>

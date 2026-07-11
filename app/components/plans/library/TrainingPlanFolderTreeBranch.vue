@@ -41,7 +41,11 @@
 
         <button
           class="flex min-w-0 flex-1 items-center gap-2 text-left"
-          @click="$emit('select-scope', node.id)"
+          @click="
+            () => {
+              void $emit('select-scope', node.id)
+            }
+          "
         >
           <UIcon name="i-heroicons-folder" class="h-4 w-4 shrink-0 text-primary" />
           <span class="truncate text-sm font-medium">{{ node.name }}</span>

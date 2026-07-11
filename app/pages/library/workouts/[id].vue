@@ -11,7 +11,11 @@
             variant="ghost"
             icon="i-heroicons-arrow-left"
             class="hidden sm:flex"
-            @click="goBack"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
           >
             Back
           </UButton>
@@ -26,7 +30,11 @@
             size="sm"
             class="font-bold"
             icon="i-heroicons-pencil-square"
-            @click="isEditorOpen = true"
+            @click="
+              () => {
+                isEditorOpen = true
+              }
+            "
           >
             Edit details
           </UButton>
@@ -38,7 +46,11 @@
             variant="solid"
             size="sm"
             class="font-bold"
-            @click="chatAboutWorkout"
+            @click="
+              () => {
+                void chatAboutWorkout()
+              }
+            "
           >
             <span class="hidden sm:inline">Chat</span>
           </UButton>
@@ -87,7 +99,11 @@
               class="font-black uppercase tracking-widest text-[10px]"
               :loading="generating"
               :disabled="generating"
-              @click="generateStructure"
+              @click="
+                () => {
+                  void generateStructure()
+                }
+              "
             >
               {{ generating ? 'Generating...' : 'Build Structure with AI' }}
             </UButton>
@@ -124,11 +140,24 @@
             <UButton
               v-if="loadError && loadError.statusCode !== 404"
               color="primary"
-              @click="fetchTemplate"
+              @click="
+                () => {
+                  void fetchTemplate()
+                }
+              "
             >
               Retry
             </UButton>
-            <UButton color="neutral" variant="outline" @click="goBack">Go Back</UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="
+                () => {
+                  void goBack()
+                }
+              "
+              >Go Back</UButton
+            >
           </div>
         </div>
       </div>
@@ -203,8 +232,25 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showAdjustModal = false">Cancel</UButton>
-        <UButton color="primary" :loading="adjusting" @click="submitAdjustment">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showAdjustModal = false
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          :loading="adjusting"
+          @click="
+            () => {
+              void submitAdjustment()
+            }
+          "
+        >
           Adjust Structure
         </UButton>
       </div>

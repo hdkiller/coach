@@ -41,7 +41,11 @@
           variant="ghost"
           size="xs"
           class="font-black uppercase tracking-widest text-[10px]"
-          @click="showFuelStateModal = true"
+          @click="
+            () => {
+              showFuelStateModal = true
+            }
+          "
         >
           Why Fuel State {{ fuelState }}?
         </UButton>
@@ -297,7 +301,11 @@
           variant="soft"
           block
           class="font-bold uppercase text-xs tracking-tight"
-          @click="showFuelStateModal = false"
+          @click="
+            () => {
+              showFuelStateModal = false
+            }
+          "
         >
           Close
         </UButton>

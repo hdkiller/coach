@@ -208,7 +208,11 @@
               icon="i-lucide-user-check"
               label="Reactivate"
               :loading="togglingDeactivation"
-              @click="reactivateUserAccount"
+              @click="
+                () => {
+                  void reactivateUserAccount()
+                }
+              "
             />
             <UButton
               v-else
@@ -218,7 +222,11 @@
               label="Deactivate"
               :disabled="isOwnAdminAccount"
               :loading="togglingDeactivation"
-              @click="isDeactivationModalOpen = true"
+              @click="
+                () => {
+                  isDeactivationModalOpen = true
+                }
+              "
             />
             <UButton
               color="neutral"
@@ -227,7 +235,11 @@
               label="Impersonate"
               :disabled="isOwnAdminAccount"
               :loading="impersonating"
-              @click="impersonateUser"
+              @click="
+                () => {
+                  void impersonateUser()
+                }
+              "
             />
             <UButton
               color="neutral"
@@ -242,7 +254,11 @@
               icon="i-lucide-trash-2"
               label="Delete Account"
               :disabled="isOwnAdminAccount"
-              @click="isDeleteModalOpen = true"
+              @click="
+                () => {
+                  isDeleteModalOpen = true
+                }
+              "
             />
           </div>
         </template>
@@ -270,7 +286,11 @@
               variant="soft"
               size="xs"
               icon="i-heroicons-arrow-path"
-              @click="refresh()"
+              @click="
+                () => {
+                  void refresh()
+                }
+              "
             >
               Retry
             </UButton>
@@ -610,7 +630,11 @@
                           icon="i-heroicons-paper-airplane"
                           size="xs"
                           :loading="isSendingEmail(delivery.id)"
-                          @click="sendDelivery(delivery.id)"
+                          @click="
+                            () => {
+                              void sendDelivery(delivery.id)
+                            }
+                          "
                         />
                         <UButton
                           :to="`/admin/emails?userId=${data.profile.id}`"
@@ -721,14 +745,26 @@
 
     <template #footer>
       <div class="flex gap-2 justify-end w-full">
-        <UButton color="neutral" variant="ghost" @click="isDeactivationModalOpen = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeactivationModalOpen = false
+            }
+          "
+        >
           Cancel
         </UButton>
         <UButton
           color="warning"
           :loading="togglingDeactivation"
           :disabled="isOwnAdminAccount"
-          @click="deactivateUserAccount"
+          @click="
+            () => {
+              void deactivateUserAccount()
+            }
+          "
         >
           Deactivate Account
         </UButton>
@@ -754,12 +790,25 @@
 
     <template #footer>
       <div class="flex gap-2 justify-end w-full">
-        <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">Cancel</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isDeleteModalOpen = false
+            }
+          "
+          >Cancel</UButton
+        >
         <UButton
           color="error"
           :loading="deletingUser"
           :disabled="isOwnAdminAccount"
-          @click="deleteUserAccount"
+          @click="
+            () => {
+              void deleteUserAccount()
+            }
+          "
         >
           Delete Account
         </UButton>

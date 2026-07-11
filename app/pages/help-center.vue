@@ -124,7 +124,11 @@
             <button
               type="button"
               class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              @click="showReportModal = true"
+              @click="
+                () => {
+                  showReportModal = true
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div
@@ -144,7 +148,11 @@
             <button
               type="button"
               class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              @click="navigateTo('/issues')"
+              @click="
+                () => {
+                  void navigateTo('/issues')
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div
@@ -164,7 +172,11 @@
             <button
               type="button"
               class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              @click="openChatWithMessage(aiTicketDraftMessage)"
+              @click="
+                () => {
+                  void openChatWithMessage(aiTicketDraftMessage)
+                }
+              "
             >
               <div class="flex items-center gap-4">
                 <div
@@ -217,7 +229,11 @@
                 <UButton
                   color="primary"
                   icon="i-heroicons-chat-bubble-left-right"
-                  @click="navigateTo('/chat')"
+                  @click="
+                    () => {
+                      void navigateTo('/chat')
+                    }
+                  "
                 >
                   {{ t('help_ai_assistant_button_chat') }}
                 </UButton>
@@ -234,7 +250,11 @@
             <button
               type="button"
               class="w-full h-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              @click="openChatWithMessage(ticketCommandsMessage)"
+              @click="
+                () => {
+                  void openChatWithMessage(ticketCommandsMessage)
+                }
+              "
             >
               <div class="space-y-3 h-full flex flex-col justify-between">
                 <div class="space-y-2">
@@ -276,7 +296,11 @@
                 <button
                   type="button"
                   class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                  @click="navigateTo(link.to, { external: link.external })"
+                  @click="
+                    () => {
+                      void navigateTo(link.to, { external: link.external })
+                    }
+                  "
                 >
                   <div class="space-y-2">
                     <UIcon :name="link.icon" class="size-5 text-primary-500" />
@@ -308,7 +332,11 @@
               <button
                 type="button"
                 class="w-full text-left p-4 sm:p-6 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                @click="copyUserId"
+                @click="
+                  () => {
+                    void copyUserId()
+                  }
+                "
               >
                 <div class="space-y-2">
                   <UIcon

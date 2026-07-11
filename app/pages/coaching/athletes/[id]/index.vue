@@ -23,7 +23,11 @@
               color="neutral"
               variant="ghost"
               icon="i-heroicons-chat-bubble-left-right"
-              @click="messageAthlete"
+              @click="
+                () => {
+                  void messageAthlete()
+                }
+              "
             >
               {{ tr('athlete_detail_message', 'Message') }}
             </UButton>
@@ -254,7 +258,11 @@
                         color="neutral"
                         variant="ghost"
                         size="xs"
-                        @click="selectedTab = 'calendar'"
+                        @click="
+                          () => {
+                            selectedTab = 'calendar'
+                          }
+                        "
                       >
                         View schedule
                       </UButton>

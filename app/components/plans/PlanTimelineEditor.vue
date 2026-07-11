@@ -7,7 +7,11 @@
         variant="soft"
         icon="i-heroicons-plus"
         size="sm"
-        @click="addBlockAtEnd"
+        @click="
+          () => {
+            void addBlockAtEnd()
+          }
+        "
       >
         Add Block
       </UButton>
@@ -29,7 +33,11 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            @click="moveBlock(index, -1)"
+            @click="
+              () => {
+                void moveBlock(index, -1)
+              }
+            "
           />
           <UButton
             v-if="index < localBlocks.length - 1"
@@ -37,7 +45,11 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            @click="moveBlock(index, 1)"
+            @click="
+              () => {
+                void moveBlock(index, 1)
+              }
+            "
           />
         </div>
 
@@ -90,7 +102,11 @@
             variant="ghost"
             icon="i-heroicons-trash"
             size="xs"
-            @click="removeBlock(index)"
+            @click="
+              () => {
+                void removeBlock(index)
+              }
+            "
           >
             Delete
           </UButton>
@@ -99,8 +115,26 @@
     </div>
 
     <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-      <UButton color="neutral" variant="ghost" @click="emit('cancel')">Cancel</UButton>
-      <UButton color="primary" :loading="saving" @click="saveChanges">Save Plan Structure</UButton>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            void emit('cancel')
+          }
+        "
+        >Cancel</UButton
+      >
+      <UButton
+        color="primary"
+        :loading="saving"
+        @click="
+          () => {
+            void saveChanges()
+          }
+        "
+        >Save Plan Structure</UButton
+      >
     </div>
   </div>
 </template>

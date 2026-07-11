@@ -57,7 +57,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('intervals')"
-            @click="$emit('sync', 'intervals')"
+            @click="
+              () => {
+                void $emit('sync', 'intervals')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -123,7 +127,11 @@
               class="font-bold"
               icon="i-heroicons-arrow-path"
               :loading="syncingProviders.has('whoop')"
-              @click="$emit('sync', 'whoop')"
+              @click="
+                () => {
+                  void $emit('sync', 'whoop')
+                }
+              "
             >
               Sync Now
             </UButton>
@@ -178,7 +186,11 @@
               class="font-bold"
               icon="i-heroicons-arrow-path"
               :loading="syncingProviders.has('oura')"
-              @click="$emit('sync', 'oura')"
+              @click="
+                () => {
+                  void $emit('sync', 'oura')
+                }
+              "
             >
               Sync Now
             </UButton>
@@ -238,7 +250,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('withings')"
-            @click="$emit('sync', 'withings')"
+            @click="
+              () => {
+                void $emit('sync', 'withings')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -297,7 +313,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('yazio')"
-            @click="$emit('sync', 'yazio')"
+            @click="
+              () => {
+                void $emit('sync', 'yazio')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -356,7 +376,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('fitbit')"
-            @click="$emit('sync', 'fitbit')"
+            @click="
+              () => {
+                void $emit('sync', 'fitbit')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -411,7 +435,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('hevy')"
-            @click="$emit('sync', 'hevy')"
+            @click="
+              () => {
+                void $emit('sync', 'hevy')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -471,7 +499,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('garmin')"
-            @click="$emit('sync', 'garmin')"
+            @click="
+              () => {
+                void $emit('sync', 'garmin')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -530,7 +562,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('wahoo')"
-            @click="$emit('sync', 'wahoo')"
+            @click="
+              () => {
+                void $emit('sync', 'wahoo')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -589,7 +625,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('polar')"
-            @click="$emit('sync', 'polar')"
+            @click="
+              () => {
+                void $emit('sync', 'polar')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -655,7 +695,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('strava')"
-            @click="$emit('sync', 'strava')"
+            @click="
+              () => {
+                void $emit('sync', 'strava')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -712,7 +756,11 @@
             class="font-bold"
             icon="i-heroicons-arrow-path"
             :loading="syncingProviders.has('rouvy')"
-            @click="$emit('sync', 'rouvy')"
+            @click="
+              () => {
+                void $emit('sync', 'rouvy')
+              }
+            "
           >
             Sync Now
           </UButton>
@@ -768,7 +816,11 @@
               class="font-bold"
               icon="i-heroicons-arrow-path"
               :loading="syncingProviders.has('ultrahuman')"
-              @click="$emit('sync', 'ultrahuman')"
+              @click="
+                () => {
+                  void $emit('sync', 'ultrahuman')
+                }
+              "
             >
               Sync Now
             </UButton>
@@ -866,7 +918,15 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" @click="advancedSyncModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                advancedSyncModalOpen = false
+              }
+            "
+          >
             Cancel
           </UButton>
           <UButton
@@ -913,7 +973,11 @@
           <UButton
             color="neutral"
             variant="outline"
-            @click="ultrahumanAdvancedSyncModalOpen = false"
+            @click="
+              () => {
+                ultrahumanAdvancedSyncModalOpen = false
+              }
+            "
           >
             Cancel
           </UButton>
@@ -1056,7 +1120,15 @@
 
       <template #footer>
         <div class="flex justify-end">
-          <UButton color="neutral" variant="soft" @click="intervalsSettingsModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="soft"
+            @click="
+              () => {
+                intervalsSettingsModalOpen = false
+              }
+            "
+          >
             Close
           </UButton>
         </div>
@@ -1115,7 +1187,15 @@
 
       <template #footer>
         <div class="flex justify-end">
-          <UButton color="neutral" variant="soft" @click="providerSettingsModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="soft"
+            @click="
+              () => {
+                providerSettingsModalOpen = false
+              }
+            "
+          >
             Close
           </UButton>
         </div>

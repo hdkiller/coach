@@ -14,6 +14,7 @@ export function usePlanArchitect(planId: string) {
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const blockTypeOptions = ['BASE', 'BUILD', 'PEAK', 'RECOVERY', 'DELOAD', 'TAPER']
   const viewModeKey = `architect-view-mode:${planId}`
+  const fetchAny = $fetch as any
 
   // API Data
   const {
@@ -26,17 +27,28 @@ export function usePlanArchitect(planId: string) {
   const draftPlan = ref<any | null>(planResponse.value ? normalizePlan(planResponse.value) : null)
   const lastSavedSnapshot = ref(draftPlan.value ? serializePlan(draftPlan.value) : '')
 
-  const {
-    data: workoutTemplates,
-    status: workoutTemplateStatus,
-    refresh: refreshWorkoutTemplates
-  } = (useLazyFetch as any)('/api/library/workouts', {
-    server: false,
-    default: () => [] as any[],
-    query: computed(() => ({
-      scope: librarySource.value
-    }))
-  }) as any
+  const workoutTemplates = ref<any[]>([])
+  const workoutTemplateStatus = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
+  async function refreshWorkoutTemplates() {
+    workoutTemplateStatus.value = 'pending'
+    try {
+      workoutTemplates.value = ((await fetchAny('/api/library/workouts', {
+        query: { scope: librarySource.value }
+      })) || []) as any[]
+      workoutTemplateStatus.value = 'success'
+    } catch {
+      workoutTemplates.value = []
+      workoutTemplateStatus.value = 'error'
+    }
+  }
+
+  watch(
+    librarySource,
+    () => {
+      void refreshWorkoutTemplates()
+    },
+    { immediate: true }
+  )
 
   // State
   const loading = computed(() => status.value === 'pending' && !draftPlan.value)

@@ -16,7 +16,11 @@
               variant="soft"
               size="sm"
               class="font-bold uppercase tracking-tight"
-              @click="openEditModal"
+              @click="
+                () => {
+                  void openEditModal()
+                }
+              "
             >
               Edit
             </UButton>
@@ -25,7 +29,11 @@
               color="error"
               variant="ghost"
               size="sm"
-              @click="confirmDeleteEvent"
+              @click="
+                () => {
+                  void confirmDeleteEvent()
+                }
+              "
             />
             <ClientOnly>
               <DashboardTriggerMonitorButton />
@@ -318,10 +326,25 @@
               >?
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isDeleteModalOpen = false
+                  }
+                "
                 >Cancel</UButton
               >
-              <UButton color="error" variant="solid" :loading="deleting" @click="deleteEvent"
+              <UButton
+                color="error"
+                variant="solid"
+                :loading="deleting"
+                @click="
+                  () => {
+                    void deleteEvent()
+                  }
+                "
                 >Delete</UButton
               >
             </div>

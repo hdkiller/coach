@@ -17,7 +17,11 @@
               size="sm"
               class="font-bold"
               icon="i-heroicons-share"
-              @click="isShareModalOpen = true"
+              @click="
+                () => {
+                  isShareModalOpen = true
+                }
+              "
             >
               <span class="hidden sm:inline">Share</span>
             </UButton>
@@ -28,7 +32,11 @@
               size="sm"
               class="font-bold"
               icon="i-heroicons-bookmark"
-              @click="navigateTo('/plans')"
+              @click="
+                () => {
+                  void navigateTo('/plans')
+                }
+              "
             >
               <span class="hidden sm:inline">My Plans</span>
             </UButton>
@@ -39,7 +47,11 @@
               size="sm"
               class="font-bold"
               icon="i-heroicons-plus"
-              @click="startNewPlan"
+              @click="
+                () => {
+                  void startNewPlan()
+                }
+              "
             >
               <span class="hidden sm:inline">New Plan</span>
               <span class="sm:hidden">New</span>
@@ -163,7 +175,11 @@
               label="Close"
               color="neutral"
               variant="ghost"
-              @click="isShareModalOpen = false"
+              @click="
+                () => {
+                  isShareModalOpen = false
+                }
+              "
             />
           </template>
         </UModal>
@@ -176,7 +192,15 @@
         >
           <template #footer>
             <div class="flex justify-end gap-2 w-full">
-              <UButton color="neutral" variant="ghost" @click="isArchiveModalOpen = false">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    isArchiveModalOpen = false
+                  }
+                "
+              >
                 Cancel
               </UButton>
               <UButton

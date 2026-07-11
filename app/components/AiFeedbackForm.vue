@@ -11,8 +11,27 @@
     </div>
 
     <div class="flex justify-end gap-2 w-full">
-      <UButton color="neutral" variant="ghost" @click="$emit('cancel')">Skip</UButton>
-      <UButton color="primary" :loading="loading" @click="submitTextFeedback"> Submit </UButton>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        @click="
+          () => {
+            void $emit('cancel')
+          }
+        "
+        >Skip</UButton
+      >
+      <UButton
+        color="primary"
+        :loading="loading"
+        @click="
+          () => {
+            void submitTextFeedback()
+          }
+        "
+      >
+        Submit
+      </UButton>
     </div>
   </div>
 </template>

@@ -2,7 +2,11 @@
   <UCard
     class="relative group transition-all duration-300 hover:ring-2 hover:ring-primary-500/50 cursor-pointer"
     :class="{ 'ring-2 ring-primary-500': selected }"
-    @click="$emit('select')"
+    @click="
+      () => {
+        void $emit('select')
+      }
+    "
   >
     <div class="space-y-3">
       <!-- Header -->

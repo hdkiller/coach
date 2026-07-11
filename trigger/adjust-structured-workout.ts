@@ -947,7 +947,7 @@ OUTPUT JSON matching the schema.`
             operation: 'adjust_structured_workout',
             entityType,
             entityId: entityId!,
-            timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS
+            timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS
           })
           if (generatorMode === 'draft_json_v1') {
             const draft = await generateStructuredAnalysis(
@@ -1067,7 +1067,7 @@ OUTPUT JSON matching the schema.`
 
             promptForAttempt = buildCorrectiveStructureRetryPrompt({
               workout,
-              reason: strengthValidation.reason,
+              reason: strengthValidation.reason ?? 'Strength validation failed',
               previousDraft: lastAiOutputForRetry,
               generatorMode,
               extraInstructions:
@@ -1130,7 +1130,7 @@ OUTPUT JSON matching the schema.`
             : undefined
         promptForAttempt = buildCorrectiveStructureRetryPrompt({
           workout,
-          reason: coverageValidation.reason,
+          reason: coverageValidation.reason ?? 'Coverage validation failed',
           previousDraft: lastAiOutputForRetry,
           generatorMode,
           extraInstructions: swimCoverageFeedback
@@ -1276,7 +1276,7 @@ OUTPUT JSON matching the schema.`
 
           let stepDistance: number
           let stepDuration: number
-          let stepTSS: number
+          let stepTSS = 0
 
           if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
             const nested = normalizeAndCalculate(step.steps, depth + 1, step)

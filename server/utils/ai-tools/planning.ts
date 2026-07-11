@@ -630,7 +630,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       workout_id: z.string().describe('The ID of the planned workout')
     }),
     execute: async ({ workout_id }) => {
-      const workout = await plannedWorkoutRepository.getById(workout_id, userId, {
+      const workout = (await plannedWorkoutRepository.getById(workout_id, userId, {
         include: {
           user: { select: { ftp: true } },
           trainingWeek: {
@@ -643,7 +643,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             }
           }
         }
-      })
+      })) as any
 
       if (!workout) return { error: 'Planned workout not found' }
 

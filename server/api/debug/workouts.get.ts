@@ -2,6 +2,9 @@ import { requireAdmin } from '../../utils/auth-guard'
 
 export default defineEventHandler(async (event) => {
   const session = await requireAdmin(event)
+  if (!session.user) {
+    throw createError({ statusCode: 401, message: 'Unauthorized' })
+  }
   const userId = session.user.id
 
   const [recentWorkouts, plannedWorkouts] = await Promise.all([

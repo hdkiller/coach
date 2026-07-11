@@ -22,30 +22,38 @@
           </UFormField>
 
           <UFormField label="Coach slug">
-            <UInput v-model="coachProfile.settings.slug" placeholder="coach-jane" class="w-full" />
+            <UInput
+              :model-value="coachProfile.settings.slug ?? undefined"
+              placeholder="coach-jane"
+              class="w-full"
+              @update:model-value="coachProfile.settings.slug = $event ?? null"
+            />
           </UFormField>
 
           <UFormField label="Display name">
             <UInput
-              v-model="coachProfile.settings.displayName"
+              :model-value="coachProfile.settings.displayName ?? undefined"
               placeholder="Coach Jane Doe"
               class="w-full"
+              @update:model-value="coachProfile.settings.displayName = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="Headline">
             <UInput
-              v-model="coachProfile.settings.headline"
+              :model-value="coachProfile.settings.headline ?? undefined"
               placeholder="Helping busy athletes train with clarity."
               class="w-full"
+              @update:model-value="coachProfile.settings.headline = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="Brand">
             <UInput
-              v-model="coachProfile.settings.coachingBrand"
+              :model-value="coachProfile.settings.coachingBrand ?? undefined"
               placeholder="Summit Endurance"
               class="w-full"
+              @update:model-value="coachProfile.settings.coachingBrand = $event ?? null"
             />
           </UFormField>
 
@@ -55,22 +63,29 @@
             :error="coachErrors['settings.ctaUrl']"
           >
             <UInput
-              v-model="coachProfile.settings.ctaUrl"
+              :model-value="coachProfile.settings.ctaUrl ?? undefined"
               placeholder="https://cal.com/coach-jane"
               class="w-full"
+              @update:model-value="coachProfile.settings.ctaUrl = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="SEO title">
             <UInput
-              v-model="coachProfile.settings.seoTitle"
+              :model-value="coachProfile.settings.seoTitle ?? undefined"
               placeholder="Coach Jane | Endurance Coaching"
               class="w-full"
+              @update:model-value="coachProfile.settings.seoTitle = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="SEO description">
-            <UTextarea v-model="coachProfile.settings.seoDescription" :rows="3" class="w-full" />
+            <UTextarea
+              :model-value="coachProfile.settings.seoDescription ?? undefined"
+              :rows="3"
+              class="w-full"
+              @update:model-value="coachProfile.settings.seoDescription = $event ?? null"
+            />
           </UFormField>
 
           <div class="flex flex-col gap-3">
@@ -102,7 +117,11 @@
                 color="primary"
                 class="w-full sm:w-auto justify-center"
                 :loading="savingCoach"
-                @click="saveCoach"
+                @click="
+                  () => {
+                    void saveCoach()
+                  }
+                "
               >
                 Save Coach Settings
               </UButton>
@@ -161,7 +180,11 @@
               color="primary"
               class="w-full sm:w-auto justify-center"
               :loading="savingCoachStart"
-              @click="saveCoachStartPage"
+              @click="
+                () => {
+                  void saveCoachStartPage()
+                }
+              "
             >
               Save Start Page
             </UButton>
@@ -191,30 +214,38 @@
 
           <UFormField label="Join headline">
             <UInput
-              v-model="coachJoinPage.headline"
+              :model-value="coachJoinPage.headline ?? undefined"
               placeholder="Join Coach Jane inside Coach Watts"
               class="w-full"
+              @update:model-value="coachJoinPage.headline = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="Join intro">
             <UTextarea
-              v-model="coachJoinPage.intro"
+              :model-value="coachJoinPage.intro ?? undefined"
               :rows="3"
               class="w-full"
               placeholder="Explain what athletes are about to do and why this is the right next step."
+              @update:model-value="coachJoinPage.intro = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="CTA label">
-            <UInput v-model="coachJoinPage.ctaLabel" placeholder="Join this coach" class="w-full" />
+            <UInput
+              :model-value="coachJoinPage.ctaLabel ?? undefined"
+              placeholder="Join this coach"
+              class="w-full"
+              @update:model-value="coachJoinPage.ctaLabel = $event ?? null"
+            />
           </UFormField>
 
           <UFormField label="Welcome title">
             <UInput
-              v-model="coachJoinPage.welcomeTitle"
+              :model-value="coachJoinPage.welcomeTitle ?? undefined"
               placeholder="What joining means"
               class="w-full"
+              @update:model-value="coachJoinPage.welcomeTitle = $event ?? null"
             />
           </UFormField>
 
@@ -228,27 +259,30 @@
           <div class="grid gap-4 lg:grid-cols-2">
             <UFormField label="Trust section title">
               <UInput
-                v-model="coachJoinPage.trustTitle"
+                :model-value="coachJoinPage.trustTitle ?? undefined"
                 placeholder="Why join with confidence"
                 class="w-full"
+                @update:model-value="coachJoinPage.trustTitle = $event ?? null"
               />
             </UFormField>
             <UFormField label="Trust note">
               <UTextarea
-                v-model="coachJoinPage.trustNote"
+                :model-value="coachJoinPage.trustNote ?? undefined"
                 :rows="3"
                 class="w-full"
                 placeholder="Clarify what joining under this coach means inside Coach Watts."
+                @update:model-value="coachJoinPage.trustNote = $event ?? null"
               />
             </UFormField>
           </div>
 
           <UFormField label="No active invite fallback note">
             <UTextarea
-              v-model="coachJoinPage.unavailableMessage"
+              :model-value="coachJoinPage.unavailableMessage ?? undefined"
               :rows="3"
               class="w-full"
               placeholder="Shown when you preview the page without an active public invite."
+              @update:model-value="coachJoinPage.unavailableMessage = $event ?? null"
             />
           </UFormField>
 
@@ -282,7 +316,16 @@
                   Reassure athletes before they create an account or connect under you.
                 </div>
               </div>
-              <UButton color="neutral" variant="soft" size="sm" @click="addJoinFaqItem">
+              <UButton
+                color="neutral"
+                variant="soft"
+                size="sm"
+                @click="
+                  () => {
+                    void addJoinFaqItem()
+                  }
+                "
+              >
                 Add question
               </UButton>
             </div>
@@ -301,7 +344,11 @@
                   color="error"
                   variant="ghost"
                   size="sm"
-                  @click="removeJoinFaqItem(item.id)"
+                  @click="
+                    () => {
+                      void removeJoinFaqItem(item.id)
+                    }
+                  "
                 >
                   Remove
                 </UButton>
@@ -328,7 +375,11 @@
                 color="primary"
                 class="w-full sm:w-auto justify-center"
                 :loading="savingCoachJoin"
-                @click="saveCoachJoinPage"
+                @click="
+                  () => {
+                    void saveCoachJoinPage()
+                  }
+                "
               >
                 Save Join Page
               </UButton>
@@ -359,38 +410,47 @@
 
           <UFormField label="Athlete slug">
             <UInput
-              v-model="athleteProfile.settings.slug"
+              :model-value="athleteProfile.settings.slug ?? undefined"
               placeholder="athlete-jane"
               class="w-full"
+              @update:model-value="athleteProfile.settings.slug = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="Display name">
             <UInput
-              v-model="athleteProfile.settings.displayName"
+              :model-value="athleteProfile.settings.displayName ?? undefined"
               placeholder="Jane Doe"
               class="w-full"
+              @update:model-value="athleteProfile.settings.displayName = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="Headline">
             <UInput
-              v-model="athleteProfile.settings.headline"
+              :model-value="athleteProfile.settings.headline ?? undefined"
               placeholder="Marathoner, mountain lover, and consistency nerd."
               class="w-full"
+              @update:model-value="athleteProfile.settings.headline = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="SEO title">
             <UInput
-              v-model="athleteProfile.settings.seoTitle"
+              :model-value="athleteProfile.settings.seoTitle ?? undefined"
               placeholder="Jane Doe | Athlete"
               class="w-full"
+              @update:model-value="athleteProfile.settings.seoTitle = $event ?? null"
             />
           </UFormField>
 
           <UFormField label="SEO description">
-            <UTextarea v-model="athleteProfile.settings.seoDescription" :rows="3" class="w-full" />
+            <UTextarea
+              :model-value="athleteProfile.settings.seoDescription ?? undefined"
+              :rows="3"
+              class="w-full"
+              @update:model-value="athleteProfile.settings.seoDescription = $event ?? null"
+            />
           </UFormField>
 
           <div class="flex flex-col gap-3">
@@ -420,7 +480,11 @@
                 color="primary"
                 class="w-full sm:w-auto justify-center"
                 :loading="savingAthlete"
-                @click="saveAthlete"
+                @click="
+                  () => {
+                    void saveAthlete()
+                  }
+                "
               >
                 Save Athlete Settings
               </UButton>

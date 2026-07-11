@@ -29,7 +29,11 @@
               size="sm"
               class="font-bold"
               :loading="loading"
-              @click="refreshData"
+              @click="
+                () => {
+                  void refreshData()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('nav_refresh') }}</span>
             </UButton>
@@ -85,7 +89,11 @@
                   variant="soft"
                   size="xs"
                   icon="i-heroicons-arrow-path"
-                  @click="refreshData"
+                  @click="
+                    () => {
+                      void refreshData()
+                    }
+                  "
                 >
                   {{ t('nav_refresh') }}
                 </UButton>
@@ -151,7 +159,11 @@
                           color="neutral"
                           variant="ghost"
                           size="xs"
-                          @click="openChartSettings('horizon')"
+                          @click="
+                            () => {
+                              void openChartSettings('horizon')
+                            }
+                          "
                         />
                       </div>
                     </div>
@@ -289,7 +301,11 @@
                         variant="ghost"
                         size="xs"
                         icon="i-lucide-plus"
-                        @click="openCreateRecoveryEvent()"
+                        @click="
+                          () => {
+                            void openCreateRecoveryEvent()
+                          }
+                        "
                       >
                         Log event
                       </UButton>
@@ -302,7 +318,11 @@
                       :key="item.id"
                       type="button"
                       class="w-full rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:border-primary-300 dark:border-gray-800"
-                      @click="openRecoveryItem(item)"
+                      @click="
+                        () => {
+                          void openRecoveryItem(item)
+                        }
+                      "
                     >
                       <div class="flex items-start justify-between gap-3">
                         <div>
@@ -371,7 +391,11 @@
                           size="xs"
                           color="warning"
                           variant="solid"
-                          @click="resetHydrationDebt"
+                          @click="
+                            () => {
+                              void resetHydrationDebt()
+                            }
+                          "
                         >
                           {{ t('hydration_reset_button') }}
                         </UButton>
@@ -385,7 +409,11 @@
                       color="neutral"
                       variant="outline"
                       icon="i-lucide-clipboard-list"
-                      @click="showGroceryList = true"
+                      @click="
+                        () => {
+                          showGroceryList = true
+                        }
+                      "
                     >
                       {{ t('grocery_button') }}
                     </UButton>
@@ -454,7 +482,11 @@
                   size="xs"
                   :color="groceryRange === option.value ? 'primary' : 'neutral'"
                   :variant="groceryRange === option.value ? 'solid' : 'soft'"
-                  @click="groceryRange = option.value"
+                  @click="
+                    () => {
+                      groceryRange = option.value
+                    }
+                  "
                 >
                   {{ option.label }}
                 </UButton>

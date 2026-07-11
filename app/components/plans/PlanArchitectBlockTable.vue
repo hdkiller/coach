@@ -22,7 +22,11 @@
             <tr
               class="group/row cursor-pointer border-t border-default/70 transition-colors hover:bg-muted/5"
               :class="{ 'bg-primary/5': expandedIds.includes(block.blockId) }"
-              @click="$emit('toggle-expanded', block.blockId)"
+              @click="
+                () => {
+                  void $emit('toggle-expanded', block.blockId)
+                }
+              "
             >
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-3 min-w-0">
@@ -319,7 +323,11 @@
                 icon="i-heroicons-plus"
                 label="Add Training Block"
                 block
-                @click="$emit('add-block')"
+                @click="
+                  () => {
+                    void $emit('add-block')
+                  }
+                "
               />
             </td>
           </tr>

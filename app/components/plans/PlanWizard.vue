@@ -168,7 +168,11 @@
           <!-- Create New Goal Option -->
           <button
             class="w-full p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 text-muted hover:text-primary"
-            @click="showCreateGoal = true"
+            @click="
+              () => {
+                showCreateGoal = true
+              }
+            "
           >
             <UIcon name="i-heroicons-plus" class="w-5 h-5" />
             <span class="font-medium">Create New Goal</span>
@@ -185,7 +189,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-primary/50'
               "
-              @click="selectGoal(goal)"
+              @click="
+                () => {
+                  void selectGoal(goal)
+                }
+              "
             >
               <div class="flex justify-between items-start">
                 <div>
@@ -242,7 +250,16 @@
       <!-- Step 2: Plan Strategy & Volume -->
       <div v-else-if="step === 2" class="space-y-8">
         <div class="flex items-center gap-3 mb-2">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 1" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 1
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Step 2: Training Strategy</h3>
         </div>
 
@@ -259,7 +276,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary/50'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 opacity-70'
               "
-              @click="toggleActivityType(type.value)"
+              @click="
+                () => {
+                  void toggleActivityType(type.value)
+                }
+              "
             >
               <UIcon
                 :name="type.icon"
@@ -314,7 +335,11 @@
               size="xs"
               color="primary"
               class="p-0"
-              @click="recommendStrategy"
+              @click="
+                () => {
+                  void recommendStrategy()
+                }
+              "
             >
               Help me choose
             </UButton>
@@ -330,7 +355,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800'
               "
-              @click="strategy = strat.value"
+              @click="
+                () => {
+                  strategy = strat.value
+                }
+              "
             >
               <!-- Selection Indicator -->
               <div v-if="strategy === strat.value" class="absolute top-2 right-2">
@@ -432,7 +461,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="recoveryRhythm = 2"
+              @click="
+                () => {
+                  recoveryRhythm = 2
+                }
+              "
             >
               <div
                 class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
@@ -455,7 +488,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="recoveryRhythm = 3"
+              @click="
+                () => {
+                  recoveryRhythm = 3
+                }
+              "
             >
               <div
                 class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
@@ -477,7 +514,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="recoveryRhythm = 4"
+              @click="
+                () => {
+                  recoveryRhythm = 4
+                }
+              "
             >
               <div
                 class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
@@ -499,7 +540,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="recoveryRhythm = 5"
+              @click="
+                () => {
+                  recoveryRhythm = 5
+                }
+              "
             >
               <div
                 class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
@@ -531,7 +576,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="startingPhase = 'BASE'"
+              @click="
+                () => {
+                  startingPhase = 'BASE'
+                }
+              "
             >
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-green-500" />
@@ -549,7 +598,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="startingPhase = 'BUILD'"
+              @click="
+                () => {
+                  startingPhase = 'BUILD'
+                }
+              "
             >
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-arrow-trending-up" class="w-5 h-5 text-amber-500" />
@@ -567,7 +620,11 @@
                   ? 'border-primary bg-primary/5 dark:bg-primary/10'
                   : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
               "
-              @click="startingPhase = 'PEAK'"
+              @click="
+                () => {
+                  startingPhase = 'PEAK'
+                }
+              "
             >
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-trophy" class="w-5 h-5 text-red-500" />
@@ -624,7 +681,16 @@
       <!-- Step 3: Review Timeline -->
       <div v-else-if="step === 3" class="space-y-6">
         <div class="flex items-center gap-3 mb-2">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 2" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 2
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Step 3: Review Timeline</h3>
         </div>
 
@@ -715,7 +781,16 @@
       <!-- Step 4: Schedule & Existing Workouts -->
       <div v-else-if="step === 4" class="space-y-6">
         <div class="flex items-center gap-3 mb-2">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 3" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 3
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Step 4: Review Schedule</h3>
         </div>
 
@@ -747,7 +822,16 @@
                 class="bg-gray-50 dark:bg-gray-800/50 p-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
               >
                 <span class="text-xs font-medium uppercase text-muted ml-2">Workouts</span>
-                <UButton size="xs" color="neutral" variant="ghost" @click="toggleSelectAll">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    () => {
+                      void toggleSelectAll()
+                    }
+                  "
+                >
                   {{
                     anchorWorkoutIds.length === independentWorkouts.length
                       ? 'Unselect All'
@@ -761,7 +845,11 @@
                   :key="workout.id"
                   class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer transition-colors"
                   :class="anchorWorkoutIds.includes(workout.id) ? 'bg-primary/5' : ''"
-                  @click="toggleAnchor(workout.id)"
+                  @click="
+                    () => {
+                      void toggleAnchor(workout.id)
+                    }
+                  "
                 >
                   <UCheckbox
                     :model-value="anchorWorkoutIds.includes(workout.id)"
@@ -810,7 +898,16 @@
       <!-- Step 5: Custom Instructions -->
       <div v-else-if="step === 5" class="space-y-6">
         <div class="flex items-center gap-3 mb-2">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 4" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 4
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Step 5: Custom Details</h3>
         </div>
 
@@ -842,7 +939,16 @@
       <!-- Step 6: Final Review -->
       <div v-else-if="step === 6" class="space-y-6">
         <div class="flex items-center gap-3 mb-2">
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" @click="step = 5" />
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="
+              () => {
+                step = 5
+              }
+            "
+          />
           <h3 class="text-xl font-semibold">Step 6: Review Your Plan</h3>
         </div>
 
@@ -946,7 +1052,11 @@
           size="xl"
           color="primary"
           icon="i-heroicons-arrow-right"
-          @click="step = 2"
+          @click="
+            () => {
+              step = 2
+            }
+          "
         >
           Next: Plan Strategy
         </UButton>
@@ -959,38 +1069,81 @@
           :loading="initializing"
           icon="i-heroicons-sparkles"
           :disabled="selectedActivityTypes.length === 0"
-          @click="initializePlan"
+          @click="
+            () => {
+              void initializePlan()
+            }
+          "
         >
           Generate Phases
         </UButton>
       </template>
 
       <template v-else-if="step === 3">
-        <UButton size="xl" color="primary" icon="i-heroicons-arrow-right" @click="step = 4">
+        <UButton
+          size="xl"
+          color="primary"
+          icon="i-heroicons-arrow-right"
+          @click="
+            () => {
+              step = 4
+            }
+          "
+        >
           Next: Schedule Review
         </UButton>
       </template>
 
       <template v-else-if="step === 4">
-        <UButton size="xl" color="primary" icon="i-heroicons-arrow-right" @click="step = 5">
+        <UButton
+          size="xl"
+          color="primary"
+          icon="i-heroicons-arrow-right"
+          @click="
+            () => {
+              step = 5
+            }
+          "
+        >
           Next: Custom Details
         </UButton>
       </template>
 
       <template v-else-if="step === 5">
-        <UButton size="xl" color="primary" icon="i-heroicons-arrow-right" @click="step = 6">
+        <UButton
+          size="xl"
+          color="primary"
+          icon="i-heroicons-arrow-right"
+          @click="
+            () => {
+              step = 6
+            }
+          "
+        >
           Review Plan
         </UButton>
       </template>
 
       <template v-else-if="step === 6">
-        <UButton variant="ghost" @click="step = 5">Back</UButton>
+        <UButton
+          variant="ghost"
+          @click="
+            () => {
+              step = 5
+            }
+          "
+          >Back</UButton
+        >
         <UButton
           size="xl"
           color="success"
           :loading="activating"
           icon="i-heroicons-check-circle"
-          @click="confirmPlan"
+          @click="
+            () => {
+              void confirmPlan()
+            }
+          "
         >
           Start Training
         </UButton>

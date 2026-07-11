@@ -82,7 +82,11 @@
                 'flex items-center justify-between gap-3 group cursor-pointer relative pt-3 first:pt-0',
                 workout.type === 'Rest' ? 'opacity-60 italic' : ''
               ]"
-              @click="navigateTo(`/workouts/planned/${workout.id}`)"
+              @click="
+                () => {
+                  void navigateTo(`/workouts/planned/${workout.id}`)
+                }
+              "
             >
               <div class="flex items-start gap-3 min-w-0 z-10">
                 <div
@@ -162,7 +166,11 @@
             color="primary"
             variant="soft"
             icon="i-heroicons-sparkles"
-            @click="openCreateAdHoc"
+            @click="
+              () => {
+                void openCreateAdHoc()
+              }
+            "
           >
             {{ t('training_recommendation_generate') }}
           </UButton>
@@ -208,7 +216,11 @@
             variant="outline"
             size="xs"
             icon="i-lucide-plus"
-            @click="openCreateRecoveryEvent()"
+            @click="
+              () => {
+                void openCreateRecoveryEvent()
+              }
+            "
           >
             Log event
           </UButton>
@@ -220,7 +232,11 @@
             type="button"
             class="inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-xs font-semibold shadow-sm transition hover:-translate-y-0.5 dark:bg-gray-900"
             :class="contextChipClass(item.sourceType)"
-            @click="openRecoveryItem(item)"
+            @click="
+              () => {
+                void openRecoveryItem(item)
+              }
+            "
           >
             <div
               class="flex size-6 items-center justify-center rounded-full"
@@ -266,7 +282,16 @@
         >
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm font-semibold text-teal-900 dark:text-teal-100">Today’s submission</p>
-            <UButton color="neutral" variant="ghost" size="xs" @click="$emit('open-checkin')">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              @click="
+                () => {
+                  void $emit('open-checkin')
+                }
+              "
+            >
               Edit today’s check-in
             </UButton>
           </div>
@@ -337,7 +362,11 @@
             variant="outline"
             size="sm"
             class="font-bold flex-1"
-            @click="$emit('open-details')"
+            @click="
+              () => {
+                void $emit('open-details')
+              }
+            "
           >
             {{ t('training_recommendation_details_button') }}
           </UButton>
@@ -348,7 +377,11 @@
             size="sm"
             class="font-bold flex-1"
             :loading="accepting"
-            @click="handleAccept"
+            @click="
+              () => {
+                void handleAccept()
+              }
+            "
           >
             {{ t('training_recommendation_accept_button') }}
           </UButton>
@@ -370,7 +403,11 @@
                 ? 'i-heroicons-sparkles'
                 : 'i-heroicons-adjustments-horizontal'
             "
-            @click="handleAnalyzeClick"
+            @click="
+              () => {
+                void handleAnalyzeClick()
+              }
+            "
           >
             {{ getButtonLabel() }}
           </UButton>

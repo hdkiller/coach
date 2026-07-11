@@ -73,9 +73,8 @@ export default defineEventHandler(async (event) => {
   const { query, mealType } = LogSchema.parse(body)
 
   let nutrition: any
-  let dateStr: string
-  if (/^\d{4}-\d{2}-\d{2}$/.test(id!)) {
-    dateStr = id!
+  let dateStr: string | undefined = /^\d{4}-\d{2}-\d{2}$/.test(id!) ? id! : undefined
+  if (dateStr) {
     const dateObj = new Date(`${id}T00:00:00Z`)
     nutrition = await nutritionRepository.getByDate(userId, dateObj)
   } else {
@@ -88,6 +87,9 @@ export default defineEventHandler(async (event) => {
   if (!nutrition) {
     // If not found, we still need a date to create one later
     if (!dateStr) throw createError({ statusCode: 404, message: 'Nutrition entry not found' })
+  }
+  if (!dateStr) {
+    throw createError({ statusCode: 404, message: 'Nutrition entry not found' })
   }
 
   // Use AI to parse the query

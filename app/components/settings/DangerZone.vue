@@ -20,7 +20,11 @@
               color="warning"
               variant="soft"
               :loading="clearingSchedule"
-              @click="isClearScheduleModalOpen = true"
+              @click="
+                () => {
+                  isClearScheduleModalOpen = true
+                }
+              "
             >
               {{ t('danger_button_clear_future') }}
             </UButton>
@@ -28,7 +32,11 @@
               color="warning"
               variant="soft"
               :loading="clearingPastSchedule"
-              @click="isClearPastScheduleModalOpen = true"
+              @click="
+                () => {
+                  isClearPastScheduleModalOpen = true
+                }
+              "
             >
               {{ t('danger_button_clear_past') }}
             </UButton>
@@ -36,7 +44,11 @@
               color="warning"
               variant="soft"
               :loading="clearingOrphanedSchedule"
-              @click="isClearOrphanedScheduleModalOpen = true"
+              @click="
+                () => {
+                  isClearOrphanedScheduleModalOpen = true
+                }
+              "
             >
               {{ t('danger_button_clear_orphaned') }}
             </UButton>
@@ -64,7 +76,11 @@
             color="warning"
             variant="soft"
             :loading="wipingProfiles"
-            @click="isWipeProfilesModalOpen = true"
+            @click="
+              () => {
+                isWipeProfilesModalOpen = true
+              }
+            "
           >
             {{ t('danger_button_wipe_profiles') }}
           </UButton>
@@ -91,7 +107,11 @@
             color="warning"
             variant="soft"
             :loading="wipingAnalysis"
-            @click="isWipeAnalysisModalOpen = true"
+            @click="
+              () => {
+                isWipeAnalysisModalOpen = true
+              }
+            "
           >
             {{ t('danger_button_wipe_ai') }}
           </UButton>
@@ -120,7 +140,11 @@
             color="warning"
             variant="soft"
             :loading="wipingSyncedActivities"
-            @click="isWipeSyncedActivitiesModalOpen = true"
+            @click="
+              () => {
+                isWipeSyncedActivitiesModalOpen = true
+              }
+            "
           >
             Wipe Synced Activities
           </UButton>
@@ -138,7 +162,11 @@
             color="warning"
             variant="soft"
             :loading="wipingWellness"
-            @click="isWipeWellnessModalOpen = true"
+            @click="
+              () => {
+                isWipeWellnessModalOpen = true
+              }
+            "
           >
             Wipe Wellness Data
           </UButton>
@@ -156,7 +184,11 @@
             color="warning"
             variant="soft"
             :loading="wipingNutrition"
-            @click="isWipeNutritionModalOpen = true"
+            @click="
+              () => {
+                isWipeNutritionModalOpen = true
+              }
+            "
           >
             Wipe Nutrition Logs
           </UButton>
@@ -185,7 +217,11 @@
           variant="outline"
           :loading="deletingAccount"
           :disabled="accountDeletionBlocked"
-          @click="openDeleteAccountModal"
+          @click="
+            () => {
+              void openDeleteAccountModal()
+            }
+          "
         >
           Delete Account
         </UButton>
@@ -213,7 +249,11 @@
             variant="soft"
             icon="i-heroicons-arrow-down-tray"
             :loading="exportingData"
-            @click="executeExportData"
+            @click="
+              () => {
+                void executeExportData()
+              }
+            "
           >
             Export My Data (.json)
           </UButton>
@@ -236,10 +276,24 @@
 
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isClearScheduleModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="clearingSchedule" @click="executeClearSchedule"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isClearScheduleModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="clearingSchedule"
+            @click="
+              () => {
+                void executeClearSchedule()
+              }
+            "
             >Clear Future Workouts</UButton
           >
         </div>
@@ -261,10 +315,24 @@
 
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isClearPastScheduleModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="clearingPastSchedule" @click="executeClearPastSchedule"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isClearPastScheduleModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="clearingPastSchedule"
+            @click="
+              () => {
+                void executeClearPastSchedule()
+              }
+            "
             >Clear Past Workouts</UButton
           >
         </div>
@@ -290,13 +358,21 @@
           <UButton
             color="neutral"
             variant="ghost"
-            @click="isClearOrphanedScheduleModalOpen = false"
+            @click="
+              () => {
+                isClearOrphanedScheduleModalOpen = false
+              }
+            "
             >{{ t('banner_exit') }}</UButton
           >
           <UButton
             color="warning"
             :loading="clearingOrphanedSchedule"
-            @click="executeClearOrphanedSchedule"
+            @click="
+              () => {
+                void executeClearOrphanedSchedule()
+              }
+            "
             >Clear Orphaned Workouts</UButton
           >
         </div>
@@ -318,10 +394,24 @@
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeProfilesModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingProfiles" @click="executeWipeProfiles"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isWipeProfilesModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="wipingProfiles"
+            @click="
+              () => {
+                void executeWipeProfiles()
+              }
+            "
             >Wipe Profiles & Scores</UButton
           >
         </div>
@@ -342,10 +432,24 @@
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeAnalysisModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingAnalysis" @click="executeWipeAnalysis"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isWipeAnalysisModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="wipingAnalysis"
+            @click="
+              () => {
+                void executeWipeAnalysis()
+              }
+            "
             >Wipe AI Data</UButton
           >
         </div>
@@ -372,13 +476,21 @@
           <UButton
             color="neutral"
             variant="ghost"
-            @click="isWipeSyncedActivitiesModalOpen = false"
+            @click="
+              () => {
+                isWipeSyncedActivitiesModalOpen = false
+              }
+            "
             >{{ t('banner_exit') }}</UButton
           >
           <UButton
             color="warning"
             :loading="wipingSyncedActivities"
-            @click="executeWipeSyncedActivities"
+            @click="
+              () => {
+                void executeWipeSyncedActivities()
+              }
+            "
             >Wipe Synced Activities</UButton
           >
         </div>
@@ -402,10 +514,24 @@
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeWellnessModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingWellness" @click="executeWipeWellness"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isWipeWellnessModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="wipingWellness"
+            @click="
+              () => {
+                void executeWipeWellness()
+              }
+            "
             >Wipe Wellness Data</UButton
           >
         </div>
@@ -429,10 +555,24 @@
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeNutritionModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingNutrition" @click="executeWipeNutrition"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isWipeNutritionModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="wipingNutrition"
+            @click="
+              () => {
+                void executeWipeNutrition()
+              }
+            "
             >Wipe Nutrition Logs</UButton
           >
         </div>
@@ -456,14 +596,25 @@
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isDeleteAccountModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isDeleteAccountModalOpen = false
+              }
+            "
+            >{{ t('banner_exit') }}</UButton
+          >
           <UButton
             color="error"
             :loading="deletingAccount"
             :disabled="accountDeletionBlocked"
-            @click="executeDeleteAccount"
+            @click="
+              () => {
+                void executeDeleteAccount()
+              }
+            "
           >
             Delete Account</UButton
           >

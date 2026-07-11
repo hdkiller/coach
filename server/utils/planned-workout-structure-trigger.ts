@@ -3,6 +3,7 @@ import { adjustStructuredWorkoutTask } from '../../trigger/adjust-structured-wor
 import { publishTaskRunStartedEvent } from './task-run-events'
 import { structureGenerationRunTags, type StructureRunSource } from './trigger-run-tags'
 import type { WorkoutTargetingOverride } from '../../trigger/utils/workout-targeting'
+import type { StructuredWorkoutGeneratorMode } from './structured-workout-generator'
 import {
   beginStructureGenerationRun,
   attachTriggerRunId,
@@ -33,7 +34,7 @@ export async function enqueuePlannedWorkoutStructureGeneration(options: {
   userId: string
   plannedWorkoutId: string
   targetingOverride?: WorkoutTargetingOverride | null
-  generatorOverride?: string | null
+  generatorOverride?: StructuredWorkoutGeneratorMode | null
   source?: StructureRunSource
   quotaCheckedAtEnqueue?: boolean
 }): Promise<StructureEnqueueResult> {

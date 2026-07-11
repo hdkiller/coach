@@ -45,7 +45,11 @@
         class="group relative w-full rounded-xl border px-2 py-1.5 text-left text-xs transition hover:bg-default/80"
         :class="activityClass(activity)"
         :draggable="activity.source === 'planned'"
-        @click="$emit('activity-click', activity)"
+        @click="
+          () => {
+            void $emit('activity-click', activity)
+          }
+        "
         @dragstart="onActivityDragStart($event, activity)"
       >
         <div

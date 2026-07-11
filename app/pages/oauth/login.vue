@@ -58,7 +58,11 @@
               block
               size="lg"
               class="font-bold"
-              @click="navigateTo(callbackUrl)"
+              @click="
+                () => {
+                  void navigateTo(callbackUrl)
+                }
+              "
             />
             <p class="text-center text-xs text-gray-500 font-medium">
               or sign in with another account below
@@ -76,7 +80,11 @@
             variant="outline"
             class="font-bold py-3"
             :loading="loadingGoogle"
-            @click="handleLogin('google')"
+            @click="
+              () => {
+                void handleLogin('google')
+              }
+            "
           >
             Sign in with Google
           </UButton>
@@ -88,7 +96,11 @@
             variant="outline"
             class="font-bold py-3"
             :loading="loadingIntervals"
-            @click="handleLogin('intervals')"
+            @click="
+              () => {
+                void handleLogin('intervals')
+              }
+            "
           >
             <template #leading>
               <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />
@@ -106,7 +118,11 @@
             variant="ghost"
             size="sm"
             class="font-medium"
-            @click="handleCancel"
+            @click="
+              () => {
+                void handleCancel()
+              }
+            "
           />
         </div>
 

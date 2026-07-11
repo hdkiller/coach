@@ -134,7 +134,11 @@
             icon="i-heroicons-plus"
             size="sm"
             class="font-bold"
-            @click="showReportModal = true"
+            @click="
+              () => {
+                showReportModal = true
+              }
+            "
           >
             <span class="hidden sm:inline">{{ tr('issues_new_button', 'New Issue') }}</span>
             <span class="sm:hidden">{{ tr('issues_new_button_short', 'Add') }}</span>
@@ -230,7 +234,11 @@
                   icon="i-heroicons-x-mark"
                   size="xs"
                   :aria-label="tr('issues_clear_search', 'Clear search')"
-                  @click="searchQuery = ''"
+                  @click="
+                    () => {
+                      searchQuery = ''
+                    }
+                  "
                 />
               </template>
             </UInput>
@@ -270,7 +278,11 @@
                 body: 'flex-1 flex flex-col p-4 sm:p-5',
                 header: 'p-4 sm:p-5 pb-0 sm:pb-0'
               }"
-              @click="navigateTo(`/issues/${report.id}`)"
+              @click="
+                () => {
+                  void navigateTo(`/issues/${report.id}`)
+                }
+              "
             >
               <template #header>
                 <div class="flex items-center justify-between mb-2">

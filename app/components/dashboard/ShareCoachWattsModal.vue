@@ -94,7 +94,11 @@
             class="font-black uppercase tracking-widest rounded-xl"
             :disabled="!hasShareIntent || claimingReward"
             :loading="claimingReward"
-            @click="claimReward"
+            @click="
+              () => {
+                void claimReward()
+              }
+            "
           />
         </div>
       </div>

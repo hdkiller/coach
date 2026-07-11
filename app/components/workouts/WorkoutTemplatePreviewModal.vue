@@ -20,13 +20,26 @@
     </template>
     <template #footer>
       <div class="flex items-center justify-between w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">Close</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+          >Close</UButton
+        >
         <UButton
           v-if="template"
           color="primary"
           variant="solid"
           icon="i-heroicons-arrow-top-right-on-square"
-          @click="goToFullPage"
+          @click="
+            () => {
+              void goToFullPage()
+            }
+          "
         >
           View Full Page
         </UButton>

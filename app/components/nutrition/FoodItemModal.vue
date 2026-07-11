@@ -13,7 +13,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-x-mark"
-          @click="isOpen = false"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
         />
       </div>
     </template>
@@ -74,13 +78,35 @@
           color="error"
           variant="soft"
           icon="i-heroicons-trash"
-          @click="onDelete"
+          @click="
+            () => {
+              void onDelete()
+            }
+          "
         >
           Delete
         </UButton>
         <div class="flex gap-2 ml-auto">
-          <UButton color="neutral" variant="ghost" @click="isOpen = false"> Cancel </UButton>
-          <UButton color="primary" :loading="loading" @click="onSubmit">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="primary"
+            :loading="loading"
+            @click="
+              () => {
+                void onSubmit()
+              }
+            "
+          >
             {{ isEditing ? 'Save Changes' : 'Add Item' }}
           </UButton>
         </div>

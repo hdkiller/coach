@@ -74,14 +74,28 @@
 
     <template #footer>
       <div class="flex justify-between w-full">
-        <UButton color="neutral" variant="ghost" @click="closeModal"> Cancel </UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              void closeModal()
+            }
+          "
+        >
+          Cancel
+        </UButton>
 
         <div class="flex gap-2">
           <UButton
             v-if="step === 'confirm'"
             color="neutral"
             variant="ghost"
-            @click="step = 'filter'"
+            @click="
+              () => {
+                step = 'filter'
+              }
+            "
           >
             Back
           </UButton>
@@ -90,7 +104,11 @@
             v-if="step === 'filter'"
             color="primary"
             :loading="loading"
-            @click="previewDeletion"
+            @click="
+              () => {
+                void previewDeletion()
+              }
+            "
           >
             Preview Deletion
           </UButton>
@@ -99,7 +117,11 @@
             v-if="step === 'confirm'"
             color="error"
             :loading="loading"
-            @click="executeDeletion"
+            @click="
+              () => {
+                void executeDeletion()
+              }
+            "
           >
             Delete {{ previewCounts?.total || 0 }} Items
           </UButton>

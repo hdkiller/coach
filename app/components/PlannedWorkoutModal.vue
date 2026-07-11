@@ -44,7 +44,11 @@
                     color="neutral"
                     variant="ghost"
                     class="opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                    @click="viewFullPlannedWorkout"
+                    @click="
+                      () => {
+                        void viewFullPlannedWorkout()
+                      }
+                    "
                   />
                 </div>
               </div>
@@ -67,7 +71,11 @@
 
               <div
                 class="px-5 py-3.5 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
-                @click="openTimeModal"
+                @click="
+                  () => {
+                    void openTimeModal()
+                  }
+                "
               >
                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
                   >Scheduled Date</span
@@ -86,7 +94,11 @@
 
               <div
                 class="px-5 py-3.5 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
-                @click="openTimeModal"
+                @click="
+                  () => {
+                    void openTimeModal()
+                  }
+                "
               >
                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
                   >Start Time</span
@@ -225,7 +237,11 @@
               icon="i-heroicons-arrow-path"
               class="font-black uppercase tracking-widest text-[9px]"
               :loading="generating"
-              @click="generateStructure"
+              @click="
+                () => {
+                  void generateStructure()
+                }
+              "
             >
               Regenerate
             </UButton>
@@ -383,7 +399,11 @@
             block
             class="font-black uppercase tracking-widest text-[11px] py-2.5"
             :loading="loading"
-            @click="confirmMarkCompleteWithoutActivity"
+            @click="
+              () => {
+                void confirmMarkCompleteWithoutActivity()
+              }
+            "
           >
             <UIcon name="i-heroicons-check" class="w-4 h-4 mr-2" />
             Mark as Done (No Activity)
@@ -395,7 +415,11 @@
             block
             class="font-black uppercase tracking-widest text-[11px] py-2.5"
             :loading="loading"
-            @click="showWorkoutSelector = true"
+            @click="
+              () => {
+                showWorkoutSelector = true
+              }
+            "
           >
             <UIcon name="i-heroicons-link" class="w-4 h-4 mr-2" />
             Link to Activity
@@ -429,14 +453,26 @@
               No workouts found for this date.
             </p>
             <div class="flex gap-2 justify-center">
-              <UButton color="primary" size="sm" @click="showManualEntry = true">
+              <UButton
+                color="primary"
+                size="sm"
+                @click="
+                  () => {
+                    showManualEntry = true
+                  }
+                "
+              >
                 Create Manual Entry
               </UButton>
               <UButton
                 color="neutral"
                 variant="ghost"
                 size="sm"
-                @click="showWorkoutSelector = false"
+                @click="
+                  () => {
+                    showWorkoutSelector = false
+                  }
+                "
               >
                 Cancel
               </UButton>
@@ -456,7 +492,11 @@
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
                 loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               ]"
-              @click="selectWorkout(workout.id)"
+              @click="
+                () => {
+                  void selectWorkout(workout.id)
+                }
+              "
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
@@ -496,7 +536,11 @@
               :disabled="!selectedWorkoutId"
               :loading="loading"
               class="flex-1"
-              @click="markComplete"
+              @click="
+                () => {
+                  void markComplete()
+                }
+              "
             >
               Confirm Complete
             </UButton>
@@ -504,7 +548,11 @@
               color="neutral"
               variant="ghost"
               :disabled="loading"
-              @click="showWorkoutSelector = false"
+              @click="
+                () => {
+                  showWorkoutSelector = false
+                }
+              "
             >
               Cancel
             </UButton>
@@ -527,7 +575,11 @@
             size="sm"
             block
             :disabled="loading"
-            @click="showManualEntry = true"
+            @click="
+              () => {
+                showManualEntry = true
+              }
+            "
           >
             Create Manual Entry Instead
           </UButton>
@@ -539,7 +591,16 @@
             <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400">
               Create Manual Workout
             </h4>
-            <UButton color="neutral" variant="ghost" size="xs" @click="showManualEntry = false">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              @click="
+                () => {
+                  showManualEntry = false
+                }
+              "
+            >
               Back
             </UButton>
           </div>
@@ -601,11 +662,24 @@
               :disabled="!isManualWorkoutValid"
               :loading="loading"
               class="flex-1"
-              @click="createManualWorkout"
+              @click="
+                () => {
+                  void createManualWorkout()
+                }
+              "
             >
               Create & Mark Complete
             </UButton>
-            <UButton color="neutral" variant="ghost" :disabled="loading" @click="cancelManualEntry">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :disabled="loading"
+              @click="
+                () => {
+                  void cancelManualEntry()
+                }
+              "
+            >
               Cancel
             </UButton>
           </div>
@@ -620,7 +694,11 @@
           color="error"
           variant="ghost"
           :loading="loading"
-          @click="confirmDelete"
+          @click="
+            () => {
+              void confirmDelete()
+            }
+          "
         >
           <UIcon name="i-heroicons-trash" class="w-4 h-4" />
           Delete
@@ -632,18 +710,35 @@
             color="neutral"
             variant="soft"
             :loading="savingToLibrary"
-            @click="emit('save-to-library', plannedWorkout)"
+            @click="
+              () => {
+                void emit('save-to-library', plannedWorkout)
+              }
+            "
           >
             Save to Library
           </UButton>
           <UButton
             v-if="showViewDetails && plannedWorkout"
             color="primary"
-            @click="viewFullPlannedWorkout"
+            @click="
+              () => {
+                void viewFullPlannedWorkout()
+              }
+            "
           >
             View Details
           </UButton>
-          <UButton color="neutral" variant="ghost" :disabled="loading" @click="closeModal">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :disabled="loading"
+            @click="
+              () => {
+                void closeModal()
+              }
+            "
+          >
             Close
           </UButton>
         </div>
@@ -659,10 +754,26 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showMarkCompleteConfirm = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showMarkCompleteConfirm = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="success" :loading="loading" @click="executeMarkCompleteWithoutActivity">
+        <UButton
+          color="success"
+          :loading="loading"
+          @click="
+            () => {
+              void executeMarkCompleteWithoutActivity()
+            }
+          "
+        >
           Confirm
         </UButton>
       </div>
@@ -677,10 +788,28 @@
   >
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              showDeleteConfirm = false
+            }
+          "
+        >
           Cancel
         </UButton>
-        <UButton color="error" :loading="loading" @click="executeDelete"> Delete </UButton>
+        <UButton
+          color="error"
+          :loading="loading"
+          @click="
+            () => {
+              void executeDelete()
+            }
+          "
+        >
+          Delete
+        </UButton>
       </div>
     </template>
   </UModal>
@@ -709,8 +838,23 @@
         </div>
 
         <div class="flex justify-end pt-2 gap-2">
-          <UButton variant="ghost" @click="showTimeModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="updatingTime" @click="submitTime"
+          <UButton
+            variant="ghost"
+            @click="
+              () => {
+                showTimeModal = false
+              }
+            "
+            >Cancel</UButton
+          >
+          <UButton
+            color="primary"
+            :loading="updatingTime"
+            @click="
+              () => {
+                void submitTime()
+              }
+            "
             >Update Schedule</UButton
           >
         </div>

@@ -99,7 +99,9 @@
   watch(
     () => state.value.source,
     (source) => {
-      const validFields = new Set(((fieldsData.value as any)?.[source] || []).map((field: any) => field.key))
+      const validFields = new Set(
+        ((fieldsData.value as any)?.[source] || []).map((field: any) => field.key)
+      )
       state.value.metrics = state.value.metrics.filter((metric) => validFields.has(metric.field))
     }
   )
@@ -179,7 +181,11 @@
               color="neutral"
               variant="ghost"
               icon="i-lucide-arrow-left"
-              @click="router.back()"
+              @click="
+                () => {
+                  void router.back()
+                }
+              "
             />
           </div>
         </template>
@@ -193,7 +199,11 @@
               variant="outline"
               label="Cancel"
               size="sm"
-              @click="router.back()"
+              @click="
+                () => {
+                  void router.back()
+                }
+              "
             />
             <UButton
               color="primary"
@@ -203,7 +213,11 @@
               size="sm"
               class="font-bold"
               :loading="saving"
-              @click="saveChart"
+              @click="
+                () => {
+                  void saveChart()
+                }
+              "
             />
           </div>
         </template>
@@ -213,12 +227,18 @@
     <template #body>
       <div class="flex h-full overflow-hidden">
         <!-- Left Pane: Controls -->
-        <div class="w-full md:w-1/3 lg:w-1/4 h-full overflow-y-auto border-r border-gray-100 dark:border-gray-800 p-6 space-y-8 bg-neutral-50/30 dark:bg-neutral-900/10">
+        <div
+          class="w-full md:w-1/3 lg:w-1/4 h-full overflow-y-auto border-r border-gray-100 dark:border-gray-800 p-6 space-y-8 bg-neutral-50/30 dark:bg-neutral-900/10"
+        >
           <div class="space-y-6">
             <div class="space-y-4">
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 italic">Data Scope</h3>
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 italic">
+                Data Scope
+              </h3>
               <p class="text-xs text-neutral-500 italic leading-relaxed">
-                Select an athlete to use their data for building this chart. The visualization itself is not tied to the selected athlete and can be used across your entire roster.
+                Select an athlete to use their data for building this chart. The visualization
+                itself is not tied to the selected athlete and can be used across your entire
+                roster.
               </p>
               <AnalyticsScopeSelector v-model="state.scope" class="w-full" />
             </div>
@@ -226,12 +246,20 @@
             <div class="border-t border-gray-100 dark:border-gray-800" />
 
             <div>
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-4 italic">Core Definition</h3>
+              <h3
+                class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-4 italic"
+              >
+                Core Definition
+              </h3>
               <div class="space-y-4">
                 <UFormField label="Visualization Name" help="Identify this chart in your library.">
-                  <UInput v-model="state.name" placeholder="e.g., Weekly TSS Trend" class="w-full" />
+                  <UInput
+                    v-model="state.name"
+                    placeholder="e.g., Weekly TSS Trend"
+                    class="w-full"
+                  />
                 </UFormField>
-                
+
                 <UFormField label="Data Source" help="Select the primary data set.">
                   <USelect v-model="state.source" :items="sourceOptions" class="w-full" />
                 </UFormField>
@@ -245,10 +273,18 @@
             <div class="border-t border-gray-100 dark:border-gray-800" />
 
             <div>
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-4 italic">Time & Aggregation</h3>
+              <h3
+                class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-4 italic"
+              >
+                Time & Aggregation
+              </h3>
               <div class="space-y-4">
                 <UFormField label="Time Range" help="Rolling window of data.">
-                  <USelect v-model="state.timeRange.value" :items="timeRangeOptions" class="w-full" />
+                  <USelect
+                    v-model="state.timeRange.value"
+                    :items="timeRangeOptions"
+                    class="w-full"
+                  />
                 </UFormField>
 
                 <UFormField label="Grouping" help="X-Axis interval.">
@@ -261,17 +297,37 @@
 
             <div>
               <div class="flex items-center justify-between mb-4">
-                <h3 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 italic">Metrics (Y-Axes)</h3>
-                <UButton color="primary" variant="soft" icon="i-lucide-plus" size="xs" label="Add Metric" @click="addMetric" />
+                <h3
+                  class="text-[10px] font-black uppercase tracking-widest text-neutral-400 italic"
+                >
+                  Metrics (Y-Axes)
+                </h3>
+                <UButton
+                  color="primary"
+                  variant="soft"
+                  icon="i-lucide-plus"
+                  size="xs"
+                  label="Add Metric"
+                  @click="
+                    () => {
+                      void addMetric()
+                    }
+                  "
+                />
               </div>
-              
-              <div v-if="state.metrics.length === 0" class="p-4 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl text-center">
-                <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-tight">No metrics added yet.</span>
+
+              <div
+                v-if="state.metrics.length === 0"
+                class="p-4 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl text-center"
+              >
+                <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-tight"
+                  >No metrics added yet.</span
+                >
               </div>
 
               <div v-else class="space-y-3">
-                <div 
-                  v-for="(metric, index) in state.metrics" 
+                <div
+                  v-for="(metric, index) in state.metrics"
                   :key="index"
                   class="p-3 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-gray-800 rounded-xl space-y-3 relative group"
                 >
@@ -281,15 +337,29 @@
                     icon="i-lucide-x"
                     size="xs"
                     class="absolute -top-2 -right-2 hidden group-hover:flex shadow-sm bg-white dark:bg-gray-900 rounded-full"
-                    @click="removeMetric(index)"
+                    @click="
+                      () => {
+                        void removeMetric(index)
+                      }
+                    "
                   />
-                  
+
                   <UFormField label="Field" size="xs">
-                    <USelect v-model="metric.field" :items="availableFields" class="w-full" label-attribute="label" value-attribute="key" />
+                    <USelect
+                      v-model="metric.field"
+                      :items="availableFields"
+                      class="w-full"
+                      label-attribute="label"
+                      value-attribute="key"
+                    />
                   </UFormField>
 
                   <UFormField label="Aggregation" size="xs">
-                    <USelect v-model="metric.aggregation" :items="aggregationOptions" class="w-full" />
+                    <USelect
+                      v-model="metric.aggregation"
+                      :items="aggregationOptions"
+                      class="w-full"
+                    />
                   </UFormField>
                 </div>
               </div>
@@ -302,29 +372,49 @@
           <div class="max-w-5xl mx-auto h-full flex flex-col">
             <div class="mb-8 flex items-end justify-between">
               <div>
-                <h2 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                <h2
+                  class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                >
                   {{ state.name || 'Untitled Visualization' }}
                 </h2>
                 <div class="flex items-center gap-2 mt-1">
-                  <UBadge color="neutral" variant="subtle" size="xs" class="font-black uppercase tracking-widest">
+                  <UBadge
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                    class="font-black uppercase tracking-widest"
+                  >
                     {{ state.source }}
                   </UBadge>
-                  <UBadge color="primary" variant="subtle" size="xs" class="font-black uppercase tracking-widest">
+                  <UBadge
+                    color="primary"
+                    variant="subtle"
+                    size="xs"
+                    class="font-black uppercase tracking-widest"
+                  >
                     {{ state.grouping }}
                   </UBadge>
                 </div>
               </div>
-              <p class="text-[10px] text-neutral-400 italic uppercase font-black tracking-widest mb-1">
+              <p
+                class="text-[10px] text-neutral-400 italic uppercase font-black tracking-widest mb-1"
+              >
                 Live Preview
               </p>
             </div>
 
             <!-- Preview Chart -->
-            <UCard class="flex-1 min-h-[400px] border-2 border-primary-500/10 shadow-xl overflow-hidden" :ui="{ body: 'p-0 h-full' }">
+            <UCard
+              class="flex-1 min-h-[400px] border-2 border-primary-500/10 shadow-xl overflow-hidden"
+              :ui="{ body: 'p-0 h-full' }"
+            >
               <div v-if="loadingWidget" class="h-full flex items-center justify-center">
                 <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
               </div>
-              <div v-else-if="state.metrics.length === 0" class="h-full flex flex-col items-center justify-center text-center p-12">
+              <div
+                v-else-if="state.metrics.length === 0"
+                class="h-full flex flex-col items-center justify-center text-center p-12"
+              >
                 <div class="inline-flex p-4 bg-neutral-50 dark:bg-neutral-800 rounded-full mb-4">
                   <UIcon name="i-lucide-plus" class="w-8 h-8 text-neutral-300" />
                 </div>

@@ -93,17 +93,39 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-              <UButton size="xs" color="neutral" variant="soft" @click="moveBlock(blockIndex, -1)">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="soft"
+                @click="
+                  () => {
+                    void moveBlock(blockIndex, -1)
+                  }
+                "
+              >
                 Up
               </UButton>
-              <UButton size="xs" color="neutral" variant="soft" @click="moveBlock(blockIndex, 1)">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="soft"
+                @click="
+                  () => {
+                    void moveBlock(blockIndex, 1)
+                  }
+                "
+              >
                 Down
               </UButton>
               <UButton
                 size="xs"
                 color="primary"
                 variant="soft"
-                @click="openLibraryPicker(blockIndex)"
+                @click="
+                  () => {
+                    void openLibraryPicker(blockIndex)
+                  }
+                "
               >
                 Add Exercise
               </UButton>
@@ -112,7 +134,11 @@
                 color="error"
                 variant="ghost"
                 :disabled="localBlocks.length === 1"
-                @click="removeBlock(blockIndex)"
+                @click="
+                  () => {
+                    void removeBlock(blockIndex)
+                  }
+                "
               >
                 Delete Block
               </UButton>
@@ -171,7 +197,11 @@
                             color="neutral"
                             variant="outline"
                             class="min-w-0 flex-1 justify-start truncate"
-                            @click="openLibraryPicker(blockIndex, stepIndex)"
+                            @click="
+                              () => {
+                                void openLibraryPicker(blockIndex, stepIndex)
+                              }
+                            "
                           >
                             {{ step.name || 'Select Exercise' }}
                           </UButton>
@@ -190,7 +220,16 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                      <UButton size="xs" color="neutral" variant="soft" @click="addSetRow(step)">
+                      <UButton
+                        size="xs"
+                        color="neutral"
+                        variant="soft"
+                        @click="
+                          () => {
+                            void addSetRow(step)
+                          }
+                        "
+                      >
                         + Set
                       </UButton>
                       <UButton
@@ -198,7 +237,11 @@
                         color="neutral"
                         variant="soft"
                         :disabled="step.setRows.length <= 1"
-                        @click="removeSetRow(step)"
+                        @click="
+                          () => {
+                            void removeSetRow(step)
+                          }
+                        "
                       >
                         - Set
                       </UButton>
@@ -206,7 +249,11 @@
                         size="xs"
                         color="neutral"
                         variant="soft"
-                        @click="openAdvancedStep(blockIndex, stepIndex)"
+                        @click="
+                          () => {
+                            void openAdvancedStep(blockIndex, stepIndex)
+                          }
+                        "
                       >
                         Details
                       </UButton>
@@ -215,7 +262,11 @@
                         color="neutral"
                         variant="soft"
                         :loading="savingLibraryExerciseId === step.id"
-                        @click="saveStepToLibrary(step)"
+                        @click="
+                          () => {
+                            void saveStepToLibrary(step)
+                          }
+                        "
                       >
                         {{ step.libraryExerciseId ? 'Update Saved' : 'Save to Library' }}
                       </UButton>
@@ -223,7 +274,11 @@
                         size="xs"
                         color="error"
                         variant="ghost"
-                        @click="removeStep(blockIndex, stepIndex)"
+                        @click="
+                          () => {
+                            void removeStep(blockIndex, stepIndex)
+                          }
+                        "
                       >
                         Delete
                       </UButton>
@@ -322,13 +377,36 @@
         variant="soft"
         icon="i-heroicons-plus"
         size="lg"
-        @click="isBlockTypeModalOpen = true"
+        @click="
+          () => {
+            isBlockTypeModalOpen = true
+          }
+        "
       >
         Add Block
       </UButton>
       <div class="flex gap-2">
-        <UButton color="neutral" variant="ghost" size="lg" @click="$emit('cancel')">Cancel</UButton>
-        <UButton color="primary" size="lg" @click="saveChanges">Save Routine</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="lg"
+          @click="
+            () => {
+              void $emit('cancel')
+            }
+          "
+          >Cancel</UButton
+        >
+        <UButton
+          color="primary"
+          size="lg"
+          @click="
+            () => {
+              void saveChanges()
+            }
+          "
+          >Save Routine</UButton
+        >
       </div>
     </div>
 
@@ -345,7 +423,11 @@
             color="neutral"
             variant="outline"
             class="justify-start"
-            @click="addBlock(blockType.value)"
+            @click="
+              () => {
+                void addBlock(blockType.value)
+              }
+            "
           >
             {{ blockType.label }}
           </UButton>
@@ -370,7 +452,16 @@
 
           <div class="flex justify-between gap-2">
             <div class="text-sm text-muted">Pick an existing exercise or create a new one.</div>
-            <UButton size="sm" color="primary" variant="soft" @click="openCustomExerciseModal">
+            <UButton
+              size="sm"
+              color="primary"
+              variant="soft"
+              @click="
+                () => {
+                  void openCustomExerciseModal()
+                }
+              "
+            >
               Create Custom Exercise
             </UButton>
           </div>
@@ -418,7 +509,15 @@
                 </div>
               </div>
               <div class="flex shrink-0 gap-2">
-                <UButton size="sm" color="primary" @click="selectLibraryExercise(item)">
+                <UButton
+                  size="sm"
+                  color="primary"
+                  @click="
+                    () => {
+                      void selectLibraryExercise(item)
+                    }
+                  "
+                >
                   Use Exercise
                 </UButton>
                 <UButton
@@ -426,7 +525,11 @@
                   color="error"
                   variant="ghost"
                   :loading="deletingLibraryExerciseId === item.id"
-                  @click="deleteLibraryExercise(item)"
+                  @click="
+                    () => {
+                      void deleteLibraryExercise(item)
+                    }
+                  "
                 >
                   Delete
                 </UButton>
@@ -498,7 +601,11 @@
                   size="sm"
                   color="error"
                   variant="ghost"
-                  @click="removeCustomParameter(parameterIndex)"
+                  @click="
+                    () => {
+                      void removeCustomParameter(parameterIndex)
+                    }
+                  "
                 >
                   Remove
                 </UButton>
@@ -509,7 +616,11 @@
                   color="neutral"
                   variant="soft"
                   :disabled="!canAddParameter(customExerciseForm)"
-                  @click="addCustomParameter"
+                  @click="
+                    () => {
+                      void addCustomParameter()
+                    }
+                  "
                 >
                   Add Parameter
                 </UButton>
@@ -526,7 +637,16 @@
               <div class="flex items-center justify-between border-b border-default/70 px-4 py-3">
                 <div class="text-sm font-semibold text-highlighted">Starter Set Rows</div>
                 <div class="flex gap-2">
-                  <UButton size="xs" color="neutral" variant="soft" @click="addCustomSetRow">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="soft"
+                    @click="
+                      () => {
+                        void addCustomSetRow()
+                      }
+                    "
+                  >
                     + Set
                   </UButton>
                   <UButton
@@ -534,7 +654,11 @@
                     color="neutral"
                     variant="soft"
                     :disabled="customExerciseForm.setRows.length <= 1"
-                    @click="removeCustomSetRow"
+                    @click="
+                      () => {
+                        void removeCustomSetRow()
+                      }
+                    "
                   >
                     - Set
                   </UButton>
@@ -599,10 +723,26 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="isCustomExerciseModalOpen = false">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isCustomExerciseModalOpen = false
+              }
+            "
+          >
             Cancel
           </UButton>
-          <UButton color="primary" :loading="creatingCustomExercise" @click="createCustomExercise">
+          <UButton
+            color="primary"
+            :loading="creatingCustomExercise"
+            @click="
+              () => {
+                void createCustomExercise()
+              }
+            "
+          >
             Save and Insert
           </UButton>
         </div>
@@ -661,7 +801,11 @@
                   size="sm"
                   color="error"
                   variant="ghost"
-                  @click="removeStepParameter(activeStep, parameterIndex)"
+                  @click="
+                    () => {
+                      if (activeStep) void removeStepParameter(activeStep, parameterIndex)
+                    }
+                  "
                 >
                   Remove
                 </UButton>
@@ -671,8 +815,12 @@
                   size="sm"
                   color="neutral"
                   variant="soft"
-                  :disabled="!canAddParameter(activeStep)"
-                  @click="addStepParameter(activeStep)"
+                  :disabled="!activeStep || !canAddParameter(activeStep)"
+                  @click="
+                    () => {
+                      if (activeStep) void addStepParameter(activeStep)
+                    }
+                  "
                 >
                   Add Parameter
                 </UButton>
@@ -719,11 +867,23 @@
               color="neutral"
               variant="soft"
               :loading="savingLibraryExerciseId === activeStep.id"
-              @click="saveActiveStepToLibrary"
+              @click="
+                () => {
+                  void saveActiveStepToLibrary()
+                }
+              "
             >
               {{ activeStep.libraryExerciseId ? 'Update Saved Exercise' : 'Save to Library' }}
             </UButton>
-            <UButton color="primary" @click="isAdvancedOpen = false">Done</UButton>
+            <UButton
+              color="primary"
+              @click="
+                () => {
+                  isAdvancedOpen = false
+                }
+              "
+              >Done</UButton
+            >
           </div>
         </div>
       </template>

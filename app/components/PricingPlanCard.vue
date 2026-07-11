@@ -72,7 +72,11 @@
         :variant="plan.popular || highlight ? 'solid' : 'outline'"
         block
         :disabled="isCurrentPlan || (!subscriptionsEnabled && plan.key !== 'free')"
-        @click="$emit('select', plan)"
+        @click="
+          () => {
+            void $emit('select', plan)
+          }
+        "
       >
         {{ subscriptionsEnabled || plan.key === 'free' ? buttonLabel : 'Unavailable' }}
       </UButton>

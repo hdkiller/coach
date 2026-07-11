@@ -263,7 +263,11 @@
               size="sm"
               class="font-bold"
               :aria-label="tr('issues_detail_edit_aria', 'Edit issue')"
-              @click="showEditModal = true"
+              @click="
+                () => {
+                  showEditModal = true
+                }
+              "
             >
               {{ tr('issues_detail_edit', 'Edit') }}
             </UButton>
@@ -275,7 +279,11 @@
               size="sm"
               :aria-label="tr('issues_detail_delete_aria', 'Delete issue')"
               :loading="deletingIssue"
-              @click="showDeleteIssueModal = true"
+              @click="
+                () => {
+                  showDeleteIssueModal = true
+                }
+              "
             >
               {{ tr('issues_detail_delete', 'Delete') }}
             </UButton>
@@ -329,7 +337,11 @@
                   variant="ghost"
                   size="xs"
                   :aria-label="tr('issues_detail_copy_id_aria', 'Copy issue ID')"
-                  @click="copyIssueId"
+                  @click="
+                    () => {
+                      void copyIssueId()
+                    }
+                  "
                 />
               </div>
             </div>
@@ -352,7 +364,11 @@
                       :aria-label="
                         tr('issues_detail_copy_description_aria', 'Copy initial description')
                       "
-                      @click="copyText(report.description, 'Initial description')"
+                      @click="
+                        () => {
+                          void copyText(report?.description ?? '', 'Initial description')
+                        }
+                      "
                     />
                   </div>
                 </template>
@@ -373,7 +389,11 @@
                       :color="uids.includes(userId) ? 'primary' : 'neutral'"
                       size="xs"
                       class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
-                      @click="toggleIssueReaction(String(emoji))"
+                      @click="
+                        () => {
+                          toggleIssueReaction(String(emoji))
+                        }
+                      "
                     >
                       {{ emoji }} {{ uids.length }}
                     </UButton>
@@ -398,7 +418,11 @@
                           variant="ghost"
                           color="neutral"
                           size="sm"
-                          @click="toggleIssueReaction(emoji)"
+                          @click="
+                            () => {
+                              void toggleIssueReaction(emoji)
+                            }
+                          "
                         >
                           {{ emoji }}
                         </UButton>
@@ -476,7 +500,11 @@
                           variant="ghost"
                           size="xs"
                           :aria-label="tr('issues_detail_copy_comment_aria', 'Copy comment')"
-                          @click="copyText(comment.content, 'Comment')"
+                          @click="
+                            () => {
+                              void copyText(comment.content, 'Comment')
+                            }
+                          "
                         />
                         <UButton
                           v-if="!comment.isAdmin"
@@ -485,7 +513,11 @@
                           variant="ghost"
                           size="xs"
                           :aria-label="tr('issues_detail_edit_comment_aria', 'Edit comment')"
-                          @click="openEditCommentModal(comment)"
+                          @click="
+                            () => {
+                              void openEditCommentModal(comment)
+                            }
+                          "
                         />
                         <UButton
                           v-if="!comment.isAdmin"
@@ -495,7 +527,11 @@
                           size="xs"
                           :aria-label="tr('issues_detail_delete_comment_aria', 'Delete comment')"
                           :loading="deletingCommentId === comment.id"
-                          @click="deleteComment(comment.id)"
+                          @click="
+                            () => {
+                              void deleteComment(comment.id)
+                            }
+                          "
                         />
                       </div>
                       <div
@@ -528,7 +564,11 @@
                             size="xs"
                             :loading="acknowledgingCommentId === comment.id"
                             class="text-[9px] px-1 h-auto font-black uppercase tracking-tighter"
-                            @click="acknowledgeComment(comment.id)"
+                            @click="
+                              () => {
+                                void acknowledgeComment(comment.id)
+                              }
+                            "
                           />
                         </div>
                         <div v-else />
@@ -543,7 +583,11 @@
                               :color="uids.includes(userId) ? 'primary' : 'neutral'"
                               size="xs"
                               class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
-                              @click="toggleReaction(comment.id, String(emoji))"
+                              @click="
+                                () => {
+                                  toggleReaction(comment.id, String(emoji))
+                                }
+                              "
                             >
                               {{ emoji }} {{ uids.length }}
                             </UButton>
@@ -575,7 +619,11 @@
                                   variant="ghost"
                                   color="neutral"
                                   size="sm"
-                                  @click="toggleReaction(comment.id, emoji)"
+                                  @click="
+                                    () => {
+                                      void toggleReaction(comment.id, emoji)
+                                    }
+                                  "
                                 >
                                   {{ emoji }}
                                 </UButton>
@@ -615,7 +663,11 @@
                       color="primary"
                       :loading="sendingComment"
                       :disabled="!newComment.trim()"
-                      @click="addComment"
+                      @click="
+                        () => {
+                          void addComment()
+                        }
+                      "
                     >
                       Reply
                     </UButton>
@@ -726,10 +778,26 @@
               >?
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showDeleteIssueModal = false">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    showDeleteIssueModal = false
+                  }
+                "
+              >
                 Cancel
               </UButton>
-              <UButton color="error" :loading="deletingIssue" @click="deleteIssue">
+              <UButton
+                color="error"
+                :loading="deletingIssue"
+                @click="
+                  () => {
+                    void deleteIssue()
+                  }
+                "
+              >
                 {{ tr('issues_detail_delete', 'Delete') }}
               </UButton>
             </div>
@@ -762,14 +830,26 @@
               characters
             </p>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="closeEditCommentModal">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="
+                  () => {
+                    void closeEditCommentModal()
+                  }
+                "
+              >
                 Cancel
               </UButton>
               <UButton
                 color="primary"
                 :loading="savingComment"
                 :disabled="!editingCommentContent.trim()"
-                @click="saveCommentEdit"
+                @click="
+                  () => {
+                    void saveCommentEdit()
+                  }
+                "
               >
                 Save
               </UButton>

@@ -1,6 +1,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import * as Sentry from '@sentry/node'
 import { failStructureGenerationTaskFromPayload } from '../server/utils/structure-generation-run-lifecycle'
+import { shouldReportIntegrationErrorToSentry } from '../server/utils/integration-errors'
 
 // Initialize Sentry
 Sentry.init({
@@ -14,6 +15,11 @@ Sentry.init({
 // Register a global onFailure hook to capture errors
 tasks.onFailure(async ({ payload, error, ctx }) => {
   await failStructureGenerationTaskFromPayload(payload, error)
+
+  if (!shouldReportIntegrationErrorToSentry(error, ctx.attempt?.number, ctx.run.maxAttempts)) {
+    return
+  }
+
   Sentry.captureException(error, {
     extra: {
       payload,

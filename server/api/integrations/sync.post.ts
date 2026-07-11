@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { resolveProviderSyncBlock, resolveSyncAllBlock } from '../../utils/integration-sync-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -208,25 +209,19 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (integration.syncStatus === 'SYNCING') {
+    const providerSyncBlock = await resolveProviderSyncBlock(userId, integration)
+    if (providerSyncBlock.blocked) {
       throw createError({
         statusCode: 409,
         message: `${provider} sync is already in progress. Please wait for it to finish.`
       })
     }
   } else {
-    const syncingIntegration = await prisma.integration.findFirst({
-      where: {
-        userId,
-        syncStatus: 'SYNCING'
-      },
-      select: { provider: true }
-    })
-
-    if (syncingIntegration) {
+    const syncAllBlock = await resolveSyncAllBlock(userId)
+    if (syncAllBlock.blocked) {
       throw createError({
         statusCode: 409,
-        message: `Sync already in progress for ${syncingIntegration.provider}. Please wait for it to finish.`
+        message: `Sync already in progress for ${syncAllBlock.provider}. Please wait for it to finish.`
       })
     }
   }

@@ -49,11 +49,13 @@ export const ingestOuraTask = task({
       throw new Error('Oura integration not found for user')
     }
 
-    // Update sync status
     await prisma.integration.update({
       where: { id: integration.id },
       data: { syncStatus: 'SYNCING' }
     })
+
+    let syncSucceeded = false
+    let syncErrorMessage: string | null = null
 
     try {
       const start = new Date(startDate)
@@ -192,15 +194,7 @@ export const ingestOuraTask = task({
         logger.log('[Oura Ingest] Workouts Disabled - Skipping')
       }
 
-      // Update sync status
-      await prisma.integration.update({
-        where: { id: integration.id },
-        data: {
-          syncStatus: 'SUCCESS',
-          lastSyncAt: new Date(),
-          errorMessage: null
-        }
-      })
+      syncSucceeded = true
 
       return {
         success: true,
@@ -215,14 +209,17 @@ export const ingestOuraTask = task({
       }
     } catch (error) {
       logger.error('[Oura Ingest] Error ingesting data', { error })
+      syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw error
+    } finally {
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
-          syncStatus: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
+          lastSyncAt: syncSucceeded ? new Date() : undefined,
+          errorMessage: syncSucceeded ? null : syncErrorMessage
         }
       })
-      throw error
     }
   }
 })

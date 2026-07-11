@@ -1311,7 +1311,9 @@ export const IntervalsService = {
         // If new structure is empty or has no exercises (Intervals never sends exercises structure)
         // We restore local exercises. Note: Intervals might send junk 'Rest' steps parsed from description, so we ignore steps check.
         if (!newStruct || !newStruct.exercises?.length) {
-          if (!normalizedPlanned.structuredWorkout) normalizedPlanned.structuredWorkout = {}
+          if (!normalizedPlanned.structuredWorkout) {
+            normalizedPlanned.structuredWorkout = {} as any
+          }
           const target = normalizedPlanned.structuredWorkout as any
 
           target.exercises = existingStruct.exercises
@@ -1347,7 +1349,7 @@ export const IntervalsService = {
             normalizedPlanned,
             sportSettings: plannedSettings,
             seenAt
-          })
+          }) as any
         })
       }
       plannedUpserted++
@@ -1994,7 +1996,9 @@ export const IntervalsService = {
             // Preserve local parsed exercises when webhook payload has only text/steps.
             if (existingStruct?.exercises?.length > 0) {
               if (!newStruct || !newStruct.exercises?.length) {
-                if (!normalizedPlanned.structuredWorkout) normalizedPlanned.structuredWorkout = {}
+                if (!normalizedPlanned.structuredWorkout) {
+                  normalizedPlanned.structuredWorkout = {} as any
+                }
                 const target = normalizedPlanned.structuredWorkout as any
                 target.exercises = existingStruct.exercises
                 if (existingStruct.coachInstructions && !target.coachInstructions) {
@@ -2034,7 +2038,7 @@ export const IntervalsService = {
                   normalizedPlanned,
                   sportSettings: plannedSettings,
                   seenAt
-                })
+                }) as any
               })
             }
 

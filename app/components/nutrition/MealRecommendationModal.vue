@@ -24,7 +24,11 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-x-mark"
-          @click="isOpen = false"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
         />
       </div>
     </template>
@@ -90,7 +94,11 @@
               variant="ghost"
               icon="i-lucide-refresh-cw"
               :loading="loading || loadingLlm"
-              @click="regenerateRecommendations"
+              @click="
+                () => {
+                  void regenerateRecommendations()
+                }
+              "
             >
               Re-generate
             </UButton>
@@ -114,7 +122,11 @@
               size="xs"
               icon="i-lucide-sparkles"
               :loading="loadingLlm"
-              @click="getLlmRecommendations"
+              @click="
+                () => {
+                  void getLlmRecommendations()
+                }
+              "
             >
               Don't like these? Ask AI for fresh ideas
             </UButton>
@@ -135,7 +147,11 @@
             color="primary"
             icon="i-lucide-sparkles"
             :loading="loadingLlm"
-            @click="getLlmRecommendations"
+            @click="
+              () => {
+                void getLlmRecommendations()
+              }
+            "
           >
             Ask AI for Recommendations
           </UButton>
@@ -152,12 +168,26 @@
         <div v-else></div>
 
         <div class="flex gap-2">
-          <UButton color="neutral" variant="ghost" @click="isOpen = false"> Cancel </UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+          >
+            Cancel
+          </UButton>
           <UButton
             color="primary"
             :disabled="!selectedOption"
             :loading="confirming"
-            @click="confirmSelection"
+            @click="
+              () => {
+                void confirmSelection()
+              }
+            "
           >
             Apply to Plan
           </UButton>
@@ -198,6 +228,7 @@
   const emit = defineEmits(['updated'])
 
   const isOpen = defineModel<boolean>('open', { default: false })
+  const toast = useToast()
   const loading = ref(false)
   const loadingLlm = ref(false)
   const confirming = ref(false)

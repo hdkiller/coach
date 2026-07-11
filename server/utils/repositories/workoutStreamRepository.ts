@@ -1,4 +1,5 @@
 import { prisma } from '../db'
+import { toPrismaInputJsonValue } from '../prisma-json'
 
 export type NormalizedStream = {
   id: string
@@ -154,9 +155,20 @@ export const workoutStreamRepository = {
       select: { id: true }
     })
     if (v1) {
+      const updateData: {
+        updatedAt: Date
+        hrZoneTimes?: ReturnType<typeof toPrismaInputJsonValue>
+        powerZoneTimes?: ReturnType<typeof toPrismaInputJsonValue>
+      } = { updatedAt: new Date() }
+      if (data.hrZoneTimes !== undefined) {
+        updateData.hrZoneTimes = toPrismaInputJsonValue(data.hrZoneTimes)
+      }
+      if (data.powerZoneTimes !== undefined) {
+        updateData.powerZoneTimes = toPrismaInputJsonValue(data.powerZoneTimes)
+      }
       await prisma.workoutStream.update({
         where: { workoutId },
-        data: { ...data, updatedAt: new Date() }
+        data: updateData
       })
     }
   },

@@ -10,7 +10,11 @@
             label="Create New App"
             icon="i-heroicons-plus"
             color="primary"
-            @click="isCreateModalOpen = true"
+            @click="
+              () => {
+                isCreateModalOpen = true
+              }
+            "
           />
         </template>
       </UDashboardNavbar>
@@ -47,7 +51,11 @@
             color="primary"
             variant="ghost"
             class="mt-4"
-            @click="isCreateModalOpen = true"
+            @click="
+              () => {
+                isCreateModalOpen = true
+              }
+            "
           />
         </div>
 
@@ -56,7 +64,11 @@
             v-for="app in apps"
             :key="app.id"
             class="flex flex-col hover:ring-2 hover:ring-primary-500 transition-shadow cursor-pointer"
-            @click="navigateTo(`/developer/${app.id}`)"
+            @click="
+              () => {
+                void navigateTo(`/developer/${app.id}`)
+              }
+            "
           >
             <div class="flex items-start gap-4">
               <UAvatar
@@ -139,7 +151,11 @@
             label="Cancel"
             color="neutral"
             variant="ghost"
-            @click="isCreateModalOpen = false"
+            @click="
+              () => {
+                isCreateModalOpen = false
+              }
+            "
           />
           <UButton type="submit" label="Create Application" color="primary" :loading="creating" />
         </div>
@@ -169,7 +185,11 @@
             :model-value="newApp?.clientId"
             readonly
             icon="i-heroicons-clipboard"
-            @click="copyToClipboard(newApp?.clientId, 'Client ID')"
+            @click="
+              () => {
+                void copyToClipboard(newApp?.clientId, 'Client ID')
+              }
+            "
           />
         </UFormField>
 
@@ -186,7 +206,11 @@
                 variant="ghost"
                 :icon="isKeyVisible ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'"
                 size="xs"
-                @click="isKeyVisible = !isKeyVisible"
+                @click="
+                  () => {
+                    isKeyVisible = !isKeyVisible
+                  }
+                "
               />
             </template>
           </UInput>
@@ -197,7 +221,11 @@
             variant="outline"
             icon="i-heroicons-clipboard"
             size="sm"
-            @click="copyToClipboard(newApp?.clientSecret, 'Client Secret')"
+            @click="
+              () => {
+                void copyToClipboard(newApp?.clientSecret, 'Client Secret')
+              }
+            "
           >
             Copy Secret
           </UButton>
@@ -209,7 +237,11 @@
         label="I have saved the secret"
         color="primary"
         block
-        @click="isSuccessModalOpen = false"
+        @click="
+          () => {
+            isSuccessModalOpen = false
+          }
+        "
       />
     </template>
   </UModal>

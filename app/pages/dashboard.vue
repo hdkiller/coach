@@ -15,7 +15,11 @@
                 size="sm"
                 square
                 :aria-label="t('share_footer_button')"
-                @click="showShareCoachWattsModal = true"
+                @click="
+                  () => {
+                    showShareCoachWattsModal = true
+                  }
+                "
               />
               <DashboardTriggerMonitorButton />
               <NotificationDropdown />
@@ -41,7 +45,11 @@
               size="sm"
               class="font-bold"
               aria-label="Sync data"
-              @click="handleSync"
+              @click="
+                () => {
+                  void handleSync()
+                }
+              "
             >
               <span class="hidden sm:inline">{{ t('header_sync_data') }}</span>
             </UButton>
@@ -264,7 +272,11 @@
                         v-for="workout in upcomingWorkouts"
                         :key="workout.id"
                         class="py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer -mx-4 px-4 rounded-lg transition-colors group relative"
-                        @click="handleUpcomingWorkoutClick(workout.id)"
+                        @click="
+                          () => {
+                            void handleUpcomingWorkoutClick(workout.id)
+                          }
+                        "
                       >
                         <!-- Date Box (Standardized) -->
                         <div

@@ -63,9 +63,9 @@
 
       return {
         ...item,
-        onSelect: () => {
+        onSelect: (event: Event) => {
           trackNavClick(path, label)
-          originalOnSelect?.()
+          originalOnSelect?.(event)
         },
         children: item.children ? wrapNavItems(item.children) : undefined
       }
@@ -969,7 +969,11 @@
                 :padded="false"
                 class="p-0 h-auto font-normal text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300"
                 :loading="stoppingImpersonation"
-                @click="stopImpersonation"
+                @click="
+                  () => {
+                    void stopImpersonation()
+                  }
+                "
               >
                 {{ isTReady ? t('navigation_admin_nav_stop_impersonating') : 'Stop impersonating' }}
               </UButton>
@@ -980,7 +984,11 @@
                 size="xs"
                 :padded="false"
                 class="p-0 h-auto font-normal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                @click="logout('/login')"
+                @click="
+                  () => {
+                    void logout('/login')
+                  }
+                "
               >
                 {{ isTReady ? t('navigation_admin_nav_sign_out') : 'Sign out' }}
               </UButton>

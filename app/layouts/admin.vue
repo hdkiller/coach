@@ -405,7 +405,11 @@
                 size="xs"
                 :padded="false"
                 class="p-0 h-auto font-normal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                @click="logout('/login')"
+                @click="
+                  () => {
+                    void logout('/login')
+                  }
+                "
               >
                 Sign out
               </UButton>

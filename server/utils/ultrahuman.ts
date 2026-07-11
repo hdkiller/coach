@@ -1,4 +1,5 @@
 import type { Integration } from '@prisma/client'
+import { IntegrationAuthError, IntegrationProviderError } from './integration-errors'
 
 export interface UltrahumanSettings {
   autoSync: boolean
@@ -19,7 +20,12 @@ interface UltrahumanTokenResponse {
  */
 export async function refreshUltrahumanToken(integration: Integration): Promise<Integration> {
   if (!integration.refreshToken) {
-    throw new Error('No refresh token available for Ultrahuman integration')
+    throw new IntegrationAuthError({
+      provider: 'ultrahuman',
+      integrationId: integration.id,
+      code: 'AUTH_MISSING',
+      message: 'No refresh token available for Ultrahuman integration'
+    })
   }
 
   const clientId = process.env.ULTRAHUMAN_CLIENT_ID
@@ -48,8 +54,7 @@ export async function refreshUltrahumanToken(integration: Integration): Promise<
     const errorText = await response.text()
     console.error('Ultrahuman token refresh failed:', errorText)
 
-    // If we get a 400 Bad Request during refresh, it typically means the refresh token is invalid/revoked
-    if (response.status === 400) {
+    if (response.status === 400 || response.status === 401) {
       const { prisma: db } = await import('./db')
       await db.integration.update({
         where: { id: integration.id },
@@ -57,6 +62,22 @@ export async function refreshUltrahumanToken(integration: Integration): Promise<
           syncStatus: 'FAILED',
           errorMessage: `Refresh token revoked or invalid: ${errorText}`
         }
+      })
+
+      throw new IntegrationAuthError({
+        provider: 'ultrahuman',
+        integrationId: integration.id,
+        statusCode: response.status,
+        message: `Ultrahuman authorization expired or was revoked. Please reconnect Ultrahuman.`
+      })
+    }
+
+    if (response.status >= 500) {
+      throw new IntegrationProviderError({
+        provider: 'ultrahuman',
+        integrationId: integration.id,
+        statusCode: response.status,
+        message: `Ultrahuman token refresh unavailable: ${response.status} ${response.statusText}`
       })
     }
 

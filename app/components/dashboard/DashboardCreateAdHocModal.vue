@@ -71,16 +71,27 @@
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">{{
-          t('banner_exit')
-        }}</UButton>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="
+            () => {
+              isOpen = false
+            }
+          "
+          >{{ t('banner_exit') }}</UButton
+        >
         <UButton
           color="primary"
           variant="solid"
           class="font-bold px-6"
           :loading="loading"
           icon="i-heroicons-sparkles"
-          @click="submit"
+          @click="
+            () => {
+              void submit()
+            }
+          "
         >
           {{ t('training_recommendation_adhoc_modal_generate_button') }}
         </UButton>

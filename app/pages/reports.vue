@@ -31,7 +31,11 @@
             variant="outline"
             color="neutral"
             class="flex flex-col items-start p-4 h-auto text-left transition-all hover:ring-2 hover:ring-primary/50"
-            @click="generateReport(template.type || 'TEMPLATE', template.id)"
+            @click="
+              () => {
+                void generateReport(template.type || 'TEMPLATE', template.id)
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-2 w-full">
               <UIcon
@@ -51,7 +55,11 @@
             variant="outline"
             color="primary"
             class="flex flex-col items-start p-4 h-auto text-left border-dashed"
-            @click="openCustomReportConfig"
+            @click="
+              () => {
+                void openCustomReportConfig()
+              }
+            "
           >
             <div class="flex items-center gap-3 mb-2">
               <UIcon name="i-heroicons-adjustments-horizontal" class="w-6 h-6 shrink-0" />
@@ -67,7 +75,16 @@
           class="mt-8 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center"
         >
           <p class="text-xs text-muted">You can define your own report templates soon.</p>
-          <UButton color="neutral" variant="ghost" @click="showSelectModal = false">Cancel</UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                showSelectModal = false
+              }
+            "
+            >Cancel</UButton
+          >
         </div>
       </div>
     </template>
@@ -88,7 +105,11 @@
               variant="solid"
               size="sm"
               class="font-bold"
-              @click="showSelectModal = true"
+              @click="
+                () => {
+                  showSelectModal = true
+                }
+              "
             >
               <span class="hidden sm:inline">New Report</span>
               <span class="sm:hidden">New</span>
@@ -180,7 +201,15 @@
             <UIcon name="i-heroicons-document-text" class="w-16 h-16 text-muted mx-auto mb-4" />
             <p class="mb-4">No reports yet</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
-              <UButton :loading="reportStore.generating" size="lg" @click="showSelectModal = true">
+              <UButton
+                :loading="reportStore.generating"
+                size="lg"
+                @click="
+                  () => {
+                    showSelectModal = true
+                  }
+                "
+              >
                 <UIcon name="i-heroicons-plus" class="w-5 h-5 mr-2" />
                 Create First Report
               </UButton>
@@ -249,7 +278,11 @@
                         size="xs"
                         color="primary"
                         variant="outline"
-                        @click="navigateTo(`/report/${report.id}`)"
+                        @click="
+                          () => {
+                            void navigateTo(`/report/${report.id}`)
+                          }
+                        "
                       >
                         View Report
                       </UButton>

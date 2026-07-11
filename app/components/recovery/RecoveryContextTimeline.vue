@@ -81,7 +81,11 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            @click="toggleGroup(group.dateKey)"
+            @click="
+              () => {
+                void toggleGroup(group.dateKey)
+              }
+            "
           >
             {{ expandedGroups.has(group.dateKey) ? 'Show less' : 'Show all' }}
           </UButton>
@@ -97,7 +101,11 @@
             type="button"
             class="relative flex w-full items-start justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition shadow-sm"
             :class="rowClass(item.sourceType)"
-            @click="$emit('select', item)"
+            @click="
+              () => {
+                void $emit('select', item)
+              }
+            "
           >
             <div
               class="absolute left-0 top-5 h-2.5 w-2.5 -translate-x-[21px] rounded-full border-2 border-white dark:border-gray-950"

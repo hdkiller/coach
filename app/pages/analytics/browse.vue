@@ -430,7 +430,11 @@
             color="neutral"
             variant="ghost"
             class="lg:hidden"
-            @click="isLibraryOpen = true"
+            @click="
+              () => {
+                isLibraryOpen = true
+              }
+            "
           />
         </template>
         <template #title>
@@ -447,7 +451,11 @@
                 label="Edit Source"
                 size="sm"
                 class="hidden font-bold md:flex"
-                @click="editWidget"
+                @click="
+                  () => {
+                    void editWidget()
+                  }
+                "
               />
 
               <UButton
@@ -459,7 +467,11 @@
                 size="sm"
                 class="font-bold"
                 :loading="saving"
-                @click="pinToDashboard"
+                @click="
+                  () => {
+                    void pinToDashboard()
+                  }
+                "
               />
             </div>
           </ClientOnly>
@@ -607,42 +619,66 @@
                                 size="xs"
                                 :variant="selectedRangeKey === '14d' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="applyQuickRange('14d')"
+                                @click="
+                                  () => {
+                                    void applyQuickRange('14d')
+                                  }
+                                "
                                 >14D</UButton
                               >
                               <UButton
                                 size="xs"
                                 :variant="selectedRangeKey === '30d' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="applyQuickRange('30d')"
+                                @click="
+                                  () => {
+                                    void applyQuickRange('30d')
+                                  }
+                                "
                                 >30D</UButton
                               >
                               <UButton
                                 size="xs"
                                 :variant="selectedRangeKey === '90d' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="applyQuickRange('90d')"
+                                @click="
+                                  () => {
+                                    void applyQuickRange('90d')
+                                  }
+                                "
                                 >90D</UButton
                               >
                               <UButton
                                 size="xs"
                                 :variant="selectedRangeKey === '180d' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="applyQuickRange('180d')"
+                                @click="
+                                  () => {
+                                    void applyQuickRange('180d')
+                                  }
+                                "
                                 >180D</UButton
                               >
                               <UButton
                                 size="xs"
                                 :variant="selectedRangeKey === 'ytd' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="applyQuickRange('ytd')"
+                                @click="
+                                  () => {
+                                    void applyQuickRange('ytd')
+                                  }
+                                "
                                 >YTD</UButton
                               >
                               <UButton
                                 size="xs"
                                 :variant="selectedRangeKey === 'custom' ? 'soft' : 'outline'"
                                 color="neutral"
-                                @click="activateCustomRange"
+                                @click="
+                                  () => {
+                                    void activateCustomRange()
+                                  }
+                                "
                                 >Custom</UButton
                               >
                             </div>
@@ -666,7 +702,11 @@
                                 size="xs"
                                 color="neutral"
                                 variant="ghost"
-                                @click="resetToPresetRange"
+                                @click="
+                                  () => {
+                                    void resetToPresetRange()
+                                  }
+                                "
                               >
                                 Reset
                               </UButton>
@@ -674,7 +714,11 @@
                                 size="xs"
                                 color="primary"
                                 variant="soft"
-                                @click="datePickerOpen = false"
+                                @click="
+                                  () => {
+                                    datePickerOpen = false
+                                  }
+                                "
                               >
                                 Apply
                               </UButton>
@@ -720,7 +764,11 @@
                                     ? 'border-primary/60 bg-primary/5'
                                     : 'border-default/70 bg-default'
                                 "
-                                @click="toggleOverlay(overlay.id)"
+                                @click="
+                                  () => {
+                                    void toggleOverlay(overlay.id)
+                                  }
+                                "
                               >
                                 <div
                                   class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-default/70"
@@ -748,7 +796,11 @@
                                 size="xs"
                                 color="neutral"
                                 variant="ghost"
-                                @click="clearOverlays"
+                                @click="
+                                  () => {
+                                    void clearOverlays()
+                                  }
+                                "
                               >
                                 Off
                               </UButton>
@@ -756,7 +808,11 @@
                                 size="xs"
                                 color="primary"
                                 variant="soft"
-                                @click="overlayPickerOpen = false"
+                                @click="
+                                  () => {
+                                    overlayPickerOpen = false
+                                  }
+                                "
                               >
                                 Apply
                               </UButton>
@@ -772,7 +828,11 @@
                         icon="i-lucide-settings-2"
                         size="xs"
                         class="h-auto px-0 py-0 font-black uppercase tracking-widest text-neutral-400 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-200"
-                        @click="isSettingsModalOpen = true"
+                        @click="
+                          () => {
+                            isSettingsModalOpen = true
+                          }
+                        "
                       >
                         Settings:
                         <span class="text-neutral-600 dark:text-neutral-200">Config</span>
@@ -820,7 +880,11 @@
                 color="primary"
                 variant="soft"
                 class="lg:hidden"
-                @click="isLibraryOpen = true"
+                @click="
+                  () => {
+                    isLibraryOpen = true
+                  }
+                "
               />
             </div>
           </div>

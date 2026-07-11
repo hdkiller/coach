@@ -66,16 +66,10 @@ export default defineEventHandler(async (event) => {
     const userFeedback = body?.userFeedback
 
     // Create a PENDING recommendation record immediately
-    const recommendation = await activityRecommendationRepository.create({
-      user: { connect: { id: userId } },
-      date: today,
-      recommendation: 'proceed', // Placeholder
-      confidence: 0,
-      reasoning: 'Analysis in progress...',
-      status: 'PROCESSING'
-      // We could store the feedback in a new field if we want to persist it,
-      // but passing it to the job is sufficient for now.
-    })
+    const recommendation = await activityRecommendationRepository.createProcessingPlaceholder(
+      userId,
+      today
+    )
 
     // Trigger background job with the recommendation ID
     const handle = await tasks.trigger(
@@ -100,8 +94,16 @@ export default defineEventHandler(async (event) => {
       recommendationId: recommendation.id,
       message: "Generating today's recommendation"
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in /api/recommendations/today:', error)
+
+    if (error?.name === 'PrismaClientValidationError') {
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to create recommendation record. Please try again.'
+      })
+    }
+
     throw error
   }
 })

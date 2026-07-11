@@ -11,7 +11,11 @@
           size="xs"
           variant="ghost"
           :loading="refreshing"
-          @click="refresh"
+          @click="
+            () => {
+              void refresh()
+            }
+          "
         >
           <UIcon name="i-heroicons-arrow-path" />
         </UButton>

@@ -9,16 +9,24 @@
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('paragraph') }"
-        @click="editor.chain().focus().setParagraph().run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('paragraph') }"
+        @click="
+          () => {
+            editor?.chain().focus().setParagraph().run()
+          }
+        "
       />
       <UButton
         icon="i-lucide-heading-2"
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('heading', { level: 2 }) }"
-        @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('heading', { level: 2 }) }"
+        @click="
+          () => {
+            editor?.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+        "
       />
       <div class="mx-1 h-5 w-px bg-default/70" />
       <UButton
@@ -26,16 +34,24 @@
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('bold') }"
-        @click="editor.chain().focus().toggleBold().run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('bold') }"
+        @click="
+          () => {
+            editor?.chain().focus().toggleBold().run()
+          }
+        "
       />
       <UButton
         icon="i-lucide-italic"
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('italic') }"
-        @click="editor.chain().focus().toggleItalic().run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('italic') }"
+        @click="
+          () => {
+            editor?.chain().focus().toggleItalic().run()
+          }
+        "
       />
       <div class="mx-1 h-5 w-px bg-default/70" />
       <UButton
@@ -43,16 +59,24 @@
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('bulletList') }"
-        @click="editor.chain().focus().toggleBulletList().run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('bulletList') }"
+        @click="
+          () => {
+            editor?.chain().focus().toggleBulletList().run()
+          }
+        "
       />
       <UButton
         icon="i-lucide-list-ordered"
         size="xs"
         color="neutral"
         variant="ghost"
-        :class="{ 'bg-primary/10 text-primary': editor.isActive('orderedList') }"
-        @click="editor.chain().focus().toggleOrderedList().run()"
+        :class="{ 'bg-primary/10 text-primary': editor?.isActive('orderedList') }"
+        @click="
+          () => {
+            editor?.chain().focus().toggleOrderedList().run()
+          }
+        "
       />
       <div class="mx-1 h-5 w-px bg-default/70" />
       <UButton
@@ -60,8 +84,12 @@
         size="xs"
         color="neutral"
         variant="ghost"
-        :disabled="!editor.can().undo()"
-        @click="editor.chain().focus().undo().run()"
+        :disabled="!editor?.can().undo()"
+        @click="
+          () => {
+            editor?.chain().focus().undo().run()
+          }
+        "
       />
       <div class="mx-1 h-5 w-px bg-default/70" />
       <label class="inline-flex">
@@ -79,7 +107,11 @@
             color="neutral"
             variant="ghost"
             :loading="uploadingImage"
-            @click="triggerImageUpload"
+            @click="
+              () => {
+                void triggerImageUpload()
+              }
+            "
           />
         </span>
       </label>

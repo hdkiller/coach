@@ -13,7 +13,11 @@
               variant="outline"
               size="sm"
               icon="i-lucide-plus"
-              @click="openCreateRecoveryEvent()"
+              @click="
+                () => {
+                  void openCreateRecoveryEvent()
+                }
+              "
             >
               {{ tr('recovery_log_event', 'Log event') }}
             </UButton>
@@ -61,7 +65,11 @@
               variant="soft"
               size="xs"
               icon="i-heroicons-arrow-path"
-              @click="refresh()"
+              @click="
+                () => {
+                  void refresh()
+                }
+              "
             >
               {{ tr('recovery_retry', 'Retry') }}
             </UButton>
@@ -90,7 +98,16 @@
                 <USelect v-model="kindFilter" :items="kindOptions" />
               </div>
               <div class="flex items-end">
-                <UButton color="neutral" variant="ghost" size="sm" @click="resetFilters">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  @click="
+                    () => {
+                      void resetFilters()
+                    }
+                  "
+                >
                   {{ tr('recovery_reset_filters', 'Reset filters') }}
                 </UButton>
               </div>

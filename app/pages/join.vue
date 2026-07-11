@@ -221,7 +221,11 @@
                   variant="solid"
                   class="relative overflow-hidden group shadow-[0_0_30px_rgba(0,220,130,0.1)] py-5 rounded-2xl h-14 min-w-full"
                   :loading="loading || isInitializing"
-                  @click="handleGoogleLogin"
+                  @click="
+                    () => {
+                      void handleGoogleLogin()
+                    }
+                  "
                 >
                   <span class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px]">{{
                     isInitializing ? 'CALIBRATING...' : joinGoogle
@@ -240,7 +244,11 @@
                 variant="outline"
                 class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full"
                 :loading="loadingStrava || isInitializing"
-                @click="handleStravaLogin"
+                @click="
+                  () => {
+                    void handleStravaLogin()
+                  }
+                "
               >
                 <template #leading>
                   <UIcon name="i-simple-icons-strava" class="w-5 h-5 text-[#FC4C02]" />
@@ -260,7 +268,11 @@
                 variant="outline"
                 class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full"
                 :loading="loadingIntervals || isInitializing"
-                @click="handleIntervalsLogin"
+                @click="
+                  () => {
+                    void handleIntervalsLogin()
+                  }
+                "
               >
                 <template #leading>
                   <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />

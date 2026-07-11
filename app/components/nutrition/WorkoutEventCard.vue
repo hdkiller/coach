@@ -12,9 +12,11 @@
       <div
         class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
         @click="
-          navigateTo(
-            isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`
-          )
+          () => {
+            void navigateTo(
+              isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`
+            )
+          }
         "
       >
         <div class="space-y-1 flex-1 min-w-0">

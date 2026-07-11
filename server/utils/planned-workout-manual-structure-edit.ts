@@ -4,7 +4,10 @@ import { syncPlannedWorkoutToIntervals } from './intervals-sync'
 import { serializeCanonicalForIntervals } from './canonical-workout-serializer'
 import { buildStructurePublishFields } from './planned-workout-structure-sync'
 import { hasActiveStructureGenerationRun } from './structure-generation-run'
-import { createZoneProfileSnapshot } from '../../shared/structured-workout-contract'
+import {
+  createZoneProfileSnapshot,
+  type ZoneProfileSnapshot
+} from '../../shared/structured-workout-contract'
 import {
   assessWorkoutSettingsStaleness,
   type SettingsStaleness
@@ -105,7 +108,7 @@ export async function syncManualPlannedWorkoutStructureToIntervalsIfSynced(optio
     description: options.updatedWorkout.description || '',
     type: options.updatedWorkout.type,
     structure: options.canonical,
-    zoneProfileSnapshot: options.canonical.zoneProfileSnapshot,
+    zoneProfileSnapshot: options.canonical.zoneProfileSnapshot as ZoneProfileSnapshot | undefined,
     workout: options.updatedWorkout,
     liveSportSettings: options.sportSettings,
     liveUserFtp: options.liveUserFtp

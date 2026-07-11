@@ -104,6 +104,17 @@ export const recommendationTools = (userId: string, timezone: string) => ({
       if (recs.length > 0) {
         const pinned = recs.find((rec) => rec.isPinned)
         const selected = pinned || recs[0]
+        if (!selected) {
+          return {
+            created: false,
+            synced: false,
+            success: false,
+            error:
+              'No workout recommendation is available yet. Use list_pending_recommendations or wait for the daily readiness analysis to complete.',
+            next_action:
+              'If the user wants a workout on the calendar, ask clarifying questions and use create_planned_workout once sport, duration, and date are clear.'
+          }
+        }
         return {
           created: false,
           synced: false,

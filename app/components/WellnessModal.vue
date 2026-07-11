@@ -22,7 +22,11 @@
             size="sm"
             aria-label="Close"
             class="-mr-2"
-            @click="isOpen = false"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
           />
 
           <div v-if="isGarminConnected" class="flex items-center gap-1.5 whitespace-nowrap">
@@ -351,7 +355,11 @@
               class="p-0 text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 transition-colors font-medium"
               :loading="analyzingWellness"
               :disabled="analyzingWellness"
-              @click="analyzeWellness"
+              @click="
+                () => {
+                  void analyzeWellness()
+                }
+              "
             >
               Regenerate
             </UButton>
@@ -372,7 +380,11 @@
           <div
             v-if="wellnessData.aiAnalysisJson"
             class="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl ring-1 ring-inset ring-indigo-200 dark:ring-indigo-800/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors group/ai-card cursor-pointer relative"
-            @click="navigateTo(`/fitness/${wellnessData.id}`)"
+            @click="
+              () => {
+                void navigateTo(`/fitness/${wellnessData.id}`)
+              }
+            "
           >
             <div class="flex items-start gap-3">
               <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-indigo-500 flex-shrink-0" />
@@ -419,7 +431,11 @@
             v-else
             class="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group flex items-start gap-3"
             :disabled="analyzingWellness"
-            @click="analyzeWellness"
+            @click="
+              () => {
+                void analyzeWellness()
+              }
+            "
           >
             <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500 flex-shrink-0" />
             <div>
@@ -618,7 +634,11 @@
         <div
           v-if="wellnessData.id"
           class="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl ring-1 ring-inset ring-primary-200 dark:ring-primary-800/30 hover:bg-primary-100 dark:hover:bg-primary-900/20 transition-colors group/rec-card cursor-pointer relative"
-          @click="navigateTo(`/fitness/${wellnessData.id}`)"
+          @click="
+            () => {
+              void navigateTo(`/fitness/${wellnessData.id}`)
+            }
+          "
         >
           <div class="flex items-start gap-3">
             <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500 flex-shrink-0" />
@@ -776,7 +796,11 @@
               icon="i-heroicons-check"
               :loading="savingWellness"
               :disabled="!hasChanges"
-              @click="saveWellness"
+              @click="
+                () => {
+                  void saveWellness()
+                }
+              "
             />
           </div>
         </div>
@@ -790,7 +814,11 @@
           color="primary"
           variant="soft"
           icon="i-heroicons-arrow-path"
-          @click="fetchWellnessData(props.date)"
+          @click="
+            () => {
+              void fetchWellnessData(props.date!)
+            }
+          "
         >
           Retry
         </UButton>

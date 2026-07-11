@@ -61,7 +61,11 @@
             size="xs"
             color="primary"
             :padded="false"
-            @click="notificationStore.markAllAsRead"
+            @click="
+              () => {
+                void notificationStore.markAllAsRead()
+              }
+            "
           >
             {{ tr('notifications_mark_all_read', 'Mark all as read') }}
           </UButton>
@@ -84,7 +88,11 @@
                   variant="soft"
                   size="xs"
                   icon="i-heroicons-arrow-path"
-                  @click="notificationStore.fetchNotifications()"
+                  @click="
+                    () => {
+                      void notificationStore.fetchNotifications()
+                    }
+                  "
                 >
                   {{ tr('notifications_retry', 'Retry') }}
                 </UButton>
@@ -112,7 +120,11 @@
               :key="notification.id"
               class="relative p-4 transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 flex gap-3 items-start"
               :class="{ 'bg-primary-50/30 dark:bg-primary-900/10': !notification.read }"
-              @click="handleNotificationClick(notification)"
+              @click="
+                () => {
+                  void handleNotificationClick(notification)
+                }
+              "
             >
               <div
                 class="mt-1 flex items-center justify-center w-8 h-8 rounded-full shrink-0"
@@ -157,7 +169,11 @@
             color="neutral"
             size="xs"
             class="w-full justify-center"
-            @click="isOpen = false"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
           >
             {{ tr('notifications_view_all', 'View all notifications') }}
           </UButton>

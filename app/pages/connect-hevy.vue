@@ -3,7 +3,16 @@
     <template #header>
       <UDashboardNavbar :title="p('title', 'Connect Hevy')">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="neutral" @click="goBack">
+          <UButton
+            icon="i-heroicons-arrow-left"
+            variant="ghost"
+            color="neutral"
+            @click="
+              () => {
+                void goBack()
+              }
+            "
+          >
             {{ back() }}
           </UButton>
         </template>
@@ -72,7 +81,15 @@
               <UButton to="/settings/apps" color="neutral" variant="outline">{{
                 cancel()
               }}</UButton>
-              <UButton :loading="connecting" :disabled="!apiKey" @click="connect">
+              <UButton
+                :loading="connecting"
+                :disabled="!apiKey"
+                @click="
+                  () => {
+                    void connect()
+                  }
+                "
+              >
                 {{ p('button', 'Connect') }}
               </UButton>
             </div>

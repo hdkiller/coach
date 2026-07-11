@@ -36,7 +36,11 @@
               </UFormField>
             </div>
 
-            <UFormField label="Comments" name="comments" description="Optional notes about the day.">
+            <UFormField
+              label="Comments"
+              name="comments"
+              description="Optional notes about the day."
+            >
               <UTextarea
                 v-model="state.comments"
                 :rows="3"
@@ -57,7 +61,11 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <UFormField label="Readiness" name="readiness" description="Overall readiness score (0-100).">
+              <UFormField
+                label="Readiness"
+                name="readiness"
+                description="Overall readiness score (0-100)."
+              >
                 <UInput v-model="state.readiness" type="number" min="0" max="100" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">%</span>
@@ -139,14 +147,22 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <UFormField label="HRV (rMSSD)" name="hrv" description="Heart rate variability in milliseconds.">
+              <UFormField
+                label="HRV (rMSSD)"
+                name="hrv"
+                description="Heart rate variability in milliseconds."
+              >
                 <UInput v-model="state.hrv" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">ms</span>
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="HRV SDNN" name="hrvSdnn" description="SDNN variability in milliseconds.">
+              <UFormField
+                label="HRV SDNN"
+                name="hrvSdnn"
+                description="SDNN variability in milliseconds."
+              >
                 <UInput v-model="state.hrvSdnn" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">ms</span>
@@ -171,20 +187,22 @@
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Respiration" name="respiration" description="Respiration rate per minute.">
-                <UInput
-                  v-model="state.respiration"
-                  type="number"
-                  step="any"
-                  min="0"
-                  class="w-full"
-                >
+              <UFormField
+                label="Respiration"
+                name="respiration"
+                description="Respiration rate per minute."
+              >
+                <UInput v-model="state.respiration" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">br/min</span>
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="SpO2 %" name="spO2" description="Blood oxygen saturation percentage.">
+              <UFormField
+                label="SpO2 %"
+                name="spO2"
+                description="Blood oxygen saturation percentage."
+              >
                 <UInput v-model="state.spO2" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">%</span>
@@ -198,7 +216,11 @@
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Diastolic" name="diastolic" description="Diastolic blood pressure.">
+              <UFormField
+                label="Diastolic"
+                name="diastolic"
+                description="Diastolic blood pressure."
+              >
                 <UInput v-model="state.diastolic" type="number" min="0" step="1" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">mmHg</span>
@@ -219,21 +241,33 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-              <UFormField label="Soreness" name="soreness" description="Subjective soreness scale (1-10).">
+              <UFormField
+                label="Soreness"
+                name="soreness"
+                description="Subjective soreness scale (1-10)."
+              >
                 <UInput v-model="state.soreness" type="number" min="1" max="10" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">/10</span>
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Fatigue" name="fatigue" description="Subjective fatigue scale (1-10).">
+              <UFormField
+                label="Fatigue"
+                name="fatigue"
+                description="Subjective fatigue scale (1-10)."
+              >
                 <UInput v-model="state.fatigue" type="number" min="1" max="10" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">/10</span>
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Stress" name="stress" description="Subjective stress scale (1-10).">
+              <UFormField
+                label="Stress"
+                name="stress"
+                description="Subjective stress scale (1-10)."
+              >
                 <UInput v-model="state.stress" type="number" min="1" max="10" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">/10</span>
@@ -286,7 +320,11 @@
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Abdomen (cm)" name="abdomen" description="Abdominal circumference in cm.">
+              <UFormField
+                label="Abdomen (cm)"
+                name="abdomen"
+                description="Abdominal circumference in cm."
+              >
                 <UInput v-model="state.abdomen" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">cm</span>
@@ -310,14 +348,22 @@
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="Skin Temp" name="skinTemp" description="Skin temperature delta from baseline.">
+              <UFormField
+                label="Skin Temp"
+                name="skinTemp"
+                description="Skin temperature delta from baseline."
+              >
                 <UInput v-model="state.skinTemp" type="number" step="any" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">deg</span>
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="VO2 Max" name="vo2max" description="Estimated maximal oxygen uptake.">
+              <UFormField
+                label="VO2 Max"
+                name="vo2max"
+                description="Estimated maximal oxygen uptake."
+              >
                 <UInput v-model="state.vo2max" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">ml/kg/min</span>
@@ -331,7 +377,11 @@
                   </template>
                 </UInput>
               </UFormField>
-              <UFormField label="CTL" name="ctl" description="Chronic training load (fitness proxy).">
+              <UFormField
+                label="CTL"
+                name="ctl"
+                description="Chronic training load (fitness proxy)."
+              >
                 <UInput v-model="state.ctl" type="number" step="any" min="0" class="w-full">
                   <template #trailing>
                     <span class="text-xs text-gray-500 pr-2">load</span>
@@ -399,7 +449,16 @@
         <div
           class="flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50"
         >
-          <UButton label="Cancel" color="neutral" variant="ghost" @click="isOpen = false" />
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="ghost"
+            @click="
+              () => {
+                isOpen = false
+              }
+            "
+          />
           <UButton
             type="submit"
             label="Save Wellness Changes"

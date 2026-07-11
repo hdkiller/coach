@@ -10,7 +10,16 @@
         <UIcon name="i-heroicons-exclamation-circle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">Authorization Error</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">{{ error }}</p>
-        <UButton label="Go Back" variant="link" class="mt-6" @click="navigateTo('/dashboard')" />
+        <UButton
+          label="Go Back"
+          variant="link"
+          class="mt-6"
+          @click="
+            () => {
+              void navigateTo('/dashboard')
+            }
+          "
+        />
       </div>
 
       <div v-else-if="app" class="space-y-6">
@@ -57,7 +66,11 @@
             size="xs"
             color="neutral"
             class="text-[10px] font-bold"
-            @click="handleSwitchAccount"
+            @click="
+              () => {
+                void handleSwitchAccount()
+              }
+            "
           />
         </div>
 

@@ -18,7 +18,11 @@
           :color="selectedType === type ? 'primary' : 'neutral'"
           :variant="selectedType === type ? 'solid' : 'ghost'"
           class="font-black uppercase text-[10px] tracking-widest px-3"
-          @click="selectedType = type"
+          @click="
+            () => {
+              selectedType = type
+            }
+          "
         >
           {{ type === 'power' ? 'Power' : 'Heart Rate' }}
         </UButton>
