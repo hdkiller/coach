@@ -11,7 +11,7 @@ function assertE2eMode() {
 export default defineEventHandler(async (event) => {
   assertE2eMode()
 
-  const body = await readBody<{ email?: string }>(event).catch(() => ({}))
+  const body = await readBody<{ email?: string }>(event).catch((): { email?: string } => ({}))
   const email = body.email ?? process.env.E2E_TEST_USER_EMAIL ?? 'e2e-athlete@coachwatts.test'
 
   const user = await prisma.user.findUnique({

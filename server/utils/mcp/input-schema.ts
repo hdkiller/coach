@@ -14,5 +14,5 @@ export function toMcpInputSchema(schema: unknown) {
   })
   delete jsonSchema.$schema
 
-  return fromJsonSchema(jsonSchema)
+  return fromJsonSchema(jsonSchema as Parameters<typeof fromJsonSchema>[0])
 }
