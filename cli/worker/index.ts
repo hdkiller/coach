@@ -3,6 +3,7 @@ import { Command } from 'commander'
 import { startCommand } from './start'
 import { pingCommand } from './ping'
 import { statusCommand } from './status'
+import { cleanCommand } from './clean'
 
 const program = new Command()
 
@@ -11,6 +12,7 @@ program.name('cw:worker').description('Coach Watts Webhook Worker CLI').version(
 program.addCommand(startCommand)
 program.addCommand(pingCommand)
 program.addCommand(statusCommand)
+program.addCommand(cleanCommand)
 
 // Default to 'start' if no subcommand is provided (backward compatibility)
 if (process.argv.length === 2) {

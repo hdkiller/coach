@@ -1,5 +1,5 @@
 import { webhookQueue } from '../../../utils/queue'
-import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 
 defineRouteMeta({
   openAPI: {
@@ -59,9 +59,16 @@ export default defineEventHandler(async (event) => {
     })
   } catch (error: any) {
     console.error('[Intervals Webhook Async] Failed to queue bulk request:', error)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Internal Server Error'
+
+    // When Redis is full or unavailable, persist to SQL so the worker poller can retry later.
+    const events = body?.events || []
+    await logWebhookRequest({
+      provider: 'intervals',
+      eventType: events[0]?.type || 'UNKNOWN',
+      payload: body,
+      headers,
+      status: 'PENDING',
+      error: error instanceof Error ? error.message : String(error)
     })
   }
 

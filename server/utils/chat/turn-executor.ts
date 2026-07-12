@@ -1147,11 +1147,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         currentPhase = 'completed'
         const hasMeaningfulText =
           typeof assistantText === 'string' && assistantText.trim().length > 0
-        const hasToolActivity =
-          (finalStepResults?.length || 0) > 0 ||
-          (finalCalls?.length || 0) > 0 ||
-          allToolResults.length > 0
-        const shouldFallbackForEmptyResponse = !hasMeaningfulText && !hasToolActivity
+        const shouldFallbackForEmptyResponse = !hasMeaningfulText
 
         if (shouldFallbackForEmptyResponse && attemptIndex === 0) {
           shouldRetryEmptyResponse = true
@@ -1285,7 +1281,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
               success: !shouldFallbackForEmptyResponse,
               errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
               errorMessage: shouldFallbackForEmptyResponse
-                ? 'LLM response finished with empty text and no tool activity.'
+                ? 'LLM response finished with empty text.'
                 : null,
               durationMs: executionDurationMs,
               ttft: firstOutputLatencyMs,
@@ -1301,7 +1297,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           success: !shouldFallbackForEmptyResponse,
           errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
           errorMessage: shouldFallbackForEmptyResponse
-            ? 'LLM response finished with empty text and no tool activity.'
+            ? 'LLM response finished with empty text.'
             : null,
           responsePreview: assistantText,
           durationMs: executionDurationMs,
@@ -1342,7 +1338,7 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
               success: !shouldFallbackForEmptyResponse,
               errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
               errorMessage: shouldFallbackForEmptyResponse
-                ? 'LLM response finished with empty text and no tool activity.'
+                ? 'LLM response finished with empty text.'
                 : null,
               promptPreview: (content || '').substring(0, 500),
               responsePreview: assistantText.substring(0, 500),

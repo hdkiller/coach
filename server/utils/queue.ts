@@ -12,6 +12,17 @@ let connection: IORedis | null = null
 let webhookQueueInstance: Queue | null = null
 let pingQueueInstance: Queue | null = null
 
+// Keep Redis lean: webhook jobs fan out heavily (bulk -> per-event) and otherwise accumulate forever.
+export const WEBHOOK_JOB_OPTIONS = {
+  removeOnComplete: { age: 3600, count: 1000 },
+  removeOnFail: { age: 86_400, count: 5000 }
+} as const
+
+export const PING_JOB_OPTIONS = {
+  removeOnComplete: { age: 3600, count: 100 },
+  removeOnFail: { age: 86_400, count: 500 }
+} as const
+
 function resetQueueInstances() {
   webhookQueueInstance = null
   pingQueueInstance = null
@@ -59,7 +70,10 @@ function getConnection() {
 function getWebhookQueueInstance() {
   const activeConnection = getConnection()
   if (!webhookQueueInstance) {
-    webhookQueueInstance = new Queue('webhookQueue', { connection: activeConnection as any })
+    webhookQueueInstance = new Queue('webhookQueue', {
+      connection: activeConnection as any,
+      defaultJobOptions: WEBHOOK_JOB_OPTIONS
+    })
   }
   return webhookQueueInstance
 }
@@ -67,7 +81,10 @@ function getWebhookQueueInstance() {
 function getPingQueueInstance() {
   const activeConnection = getConnection()
   if (!pingQueueInstance) {
-    pingQueueInstance = new Queue('pingQueue', { connection: activeConnection as any })
+    pingQueueInstance = new Queue('pingQueue', {
+      connection: activeConnection as any,
+      defaultJobOptions: PING_JOB_OPTIONS
+    })
   }
   return pingQueueInstance
 }

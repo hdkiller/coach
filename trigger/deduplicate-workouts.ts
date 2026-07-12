@@ -211,7 +211,7 @@ export const deduplicateWorkoutsTask = task({
               { aiAnalysisStatus: 'FAILED' } // Retry failed ones too? Maybe safer to stick to NOT_STARTED.
             ]
           },
-          select: { id: true, title: true, date: true, type: true }
+          select: { id: true, title: true, date: true, type: true, aiAnalysisStatus: true }
         })
 
         const eligibleWorkouts = unanalyzedWorkouts.filter((workout) =>
@@ -226,23 +226,47 @@ export const deduplicateWorkoutsTask = task({
             logger.log(
               `🤖 [Auto-Analyze] Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`
             )
-            await analyzeWorkoutTask.trigger(
-              {
-                workoutId: workout.id,
-                source: 'AUTOMATIC'
+            const claimed = await prisma.workout.updateMany({
+              where: {
+                id: workout.id,
+                aiAnalysisStatus: workout.aiAnalysisStatus
               },
-              {
-                tags: [`user:${actualUserId}`]
-              }
-            )
-            // Log the action
-            await auditLogRepository.log({
-              userId: actualUserId,
-              action: 'AUTO_ANALYZE_WORKOUT',
-              resourceType: 'Workout',
-              resourceId: workout.id,
-              metadata: { title: workout.title, date: workout.date.toISOString() }
+              data: { aiAnalysisStatus: 'PENDING' }
             })
+
+            if (claimed.count === 0) {
+              logger.log('🤖 [Auto-Analyze] Workout was already claimed by another run', {
+                workoutId: workout.id
+              })
+              continue
+            }
+
+            try {
+              await analyzeWorkoutTask.trigger(
+                {
+                  workoutId: workout.id,
+                  source: 'AUTOMATIC'
+                },
+                {
+                  concurrencyKey: actualUserId,
+                  tags: [`user:${actualUserId}`, `workout:${workout.id}`]
+                }
+              )
+              // Log the action
+              await auditLogRepository.log({
+                userId: actualUserId,
+                action: 'AUTO_ANALYZE_WORKOUT',
+                resourceType: 'Workout',
+                resourceId: workout.id,
+                metadata: { title: workout.title, date: workout.date.toISOString() }
+              })
+            } catch (error) {
+              await prisma.workout.updateMany({
+                where: { id: workout.id, aiAnalysisStatus: 'PENDING' },
+                data: { aiAnalysisStatus: workout.aiAnalysisStatus || 'NOT_STARTED' }
+              })
+              throw error
+            }
           }
         } else {
           logger.log('🤖 [Auto-Analyze] No eligible unanalyzed workouts found in the last 30 days.')
