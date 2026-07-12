@@ -1,10 +1,10 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { webhookQueue, pingQueue } from '../../server/utils/queue'
+import { webhookQueue, pingQueue, streamsQueue } from '../../server/utils/queue'
 import { prisma } from '../../server/utils/db'
 
 export const statusCommand = new Command('status')
-  .description('Check the status of the webhook and ping queues')
+  .description('Check the status of the webhook, streams, and ping queues')
   .action(async () => {
     try {
       console.log(chalk.blue.bold('Fetching Queue Status...'))
@@ -50,11 +50,31 @@ export const statusCommand = new Command('status')
 
       const pingWorkers = await pingQueue.getWorkers()
       console.log(chalk.white.bold(`  Workers: ${pingWorkers.length}`))
+
+      // --- Streams Queue ---
+      const streamCounts = await streamsQueue.getJobCounts(
+        'waiting',
+        'active',
+        'completed',
+        'failed',
+        'delayed',
+        'paused'
+      )
+
+      console.log(chalk.white.bold('\nStreams Queue Metrics:'))
+      console.log(`  ${chalk.cyan('Waiting:')}   ${streamCounts.waiting}`)
+      console.log(`  ${chalk.green('Active:')}    ${streamCounts.active}`)
+      console.log(`  ${chalk.blue('Completed:')} ${streamCounts.completed}`)
+      console.log(`  ${chalk.red('Failed:')}    ${streamCounts.failed}`)
+      console.log(`  ${chalk.yellow('Delayed:')}   ${streamCounts.delayed}`)
+      console.log(`  ${chalk.gray('Paused:')}    ${streamCounts.paused}`)
+
+      const streamWorkers = await streamsQueue.getWorkers()
+      console.log(chalk.white.bold(`  Workers: ${streamWorkers.length}`))
     } catch (error: any) {
       console.error(chalk.red('Failed to fetch queue status:'), error)
     } finally {
-      await webhookQueue.close()
-      await pingQueue.close()
+      await Promise.all([webhookQueue.close(), pingQueue.close(), streamsQueue.close()])
       await prisma.$disconnect()
       process.exit(0)
     }

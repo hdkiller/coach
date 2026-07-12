@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { getRedisConnection, pingQueue, webhookQueue } from './queue'
+import { getRedisConnection, pingQueue, streamsQueue, webhookQueue } from './queue'
 
 export type WorkerHealthStatus = 'ok' | 'degraded' | 'critical'
 
@@ -47,6 +47,7 @@ export type WorkerMonitoringSnapshot = {
   queues: {
     webhook: QueueCounts & { workers: number; isPaused: boolean }
     ping: QueueCounts & { workers: number; isPaused: boolean }
+    streams: QueueCounts & { workers: number; isPaused: boolean }
   }
   webhooks: {
     pending: number
@@ -123,7 +124,7 @@ async function getRedisMemoryStats(): Promise<RedisMemoryStats> {
   }
 }
 
-async function getQueueSnapshot(queue: typeof webhookQueue, name: 'webhook' | 'ping') {
+async function getQueueSnapshot(queue: typeof webhookQueue, name: 'webhook' | 'ping' | 'streams') {
   const [counts, workers, isPaused] = await Promise.all([
     queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
     queue.getWorkers(),
@@ -270,23 +271,25 @@ function evaluateWorkerHealth(input: {
 }
 
 export async function collectWorkerMonitoringSnapshot(): Promise<WorkerMonitoringSnapshot> {
-  const [redis, webhook, ping, pending, processedLast10Min, lastActivity] = await Promise.all([
-    getRedisMemoryStats(),
-    getQueueSnapshot(webhookQueue, 'webhook'),
-    getQueueSnapshot(pingQueue, 'ping'),
-    prisma.webhookLog.count({ where: { status: 'PENDING' } }),
-    prisma.webhookLog.count({
-      where: {
-        processedAt: {
-          gt: new Date(Date.now() - 10 * 60_000)
+  const [redis, webhook, ping, streams, pending, processedLast10Min, lastActivity] =
+    await Promise.all([
+      getRedisMemoryStats(),
+      getQueueSnapshot(webhookQueue, 'webhook'),
+      getQueueSnapshot(pingQueue, 'ping'),
+      getQueueSnapshot(streamsQueue, 'streams'),
+      prisma.webhookLog.count({ where: { status: 'PENDING' } }),
+      prisma.webhookLog.count({
+        where: {
+          processedAt: {
+            gt: new Date(Date.now() - 10 * 60_000)
+          }
         }
-      }
-    }),
-    prisma.webhookLog.findFirst({
-      orderBy: [{ processedAt: 'desc' }, { createdAt: 'desc' }],
-      select: { processedAt: true, createdAt: true }
-    })
-  ])
+      }),
+      prisma.webhookLog.findFirst({
+        orderBy: [{ processedAt: 'desc' }, { createdAt: 'desc' }],
+        select: { processedAt: true, createdAt: true }
+      })
+    ])
 
   const lastActivityAt = lastActivity?.processedAt || lastActivity?.createdAt || null
   const webhooks = {
@@ -316,6 +319,11 @@ export async function collectWorkerMonitoringSnapshot(): Promise<WorkerMonitorin
         ...ping.counts,
         workers: ping.workers,
         isPaused: ping.isPaused
+      },
+      streams: {
+        ...streams.counts,
+        workers: streams.workers,
+        isPaused: streams.isPaused
       }
     },
     webhooks,

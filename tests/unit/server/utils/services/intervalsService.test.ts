@@ -9,6 +9,8 @@ import { workoutRepository } from '../../../../../server/utils/repositories/work
 import { deduplicateWorkoutsTask } from '../../../../../trigger/deduplicate-workouts'
 import { IntervalsService } from '../../../../../server/utils/services/intervalsService'
 
+import { enqueueIntervalsStreamSync } from '../../../../../server/utils/intervals-stream-queue'
+
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
     integration: { findUnique: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
@@ -93,6 +95,10 @@ vi.mock('../../../../../trigger/queues', () => ({
   }
 }))
 
+vi.mock('../../../../../server/utils/intervals-stream-queue', () => ({
+  enqueueIntervalsStreamSync: vi.fn().mockResolvedValue(undefined)
+}))
+
 describe('IntervalsService ACTIVITY_UPDATED', () => {
   const userId = 'user-1'
 
@@ -137,7 +143,7 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
     streamSpy.mockRestore()
   })
 
-  it('does not sync activity streams on webhook even when stream_types are present', async () => {
+  it('does not sync activity streams inline on webhook when stream_types are present', async () => {
     vi.mocked(prisma.plannedWorkout.findUnique).mockResolvedValue(null as any)
     vi.mocked(workoutRepository.upsert).mockResolvedValue({
       record: { id: 'w-stream' } as any,
@@ -161,6 +167,11 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
 
     expect(workoutRepository.upsert).toHaveBeenCalledTimes(1)
     expect(streamSpy).not.toHaveBeenCalled()
+    expect(enqueueIntervalsStreamSync).toHaveBeenCalledWith({
+      userId,
+      workoutId: 'w-stream',
+      activityId: 'i555'
+    })
 
     streamSpy.mockRestore()
   })

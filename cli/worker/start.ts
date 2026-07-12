@@ -11,7 +11,7 @@ import { processStravaWebhookEvent } from '../../server/utils/services/stravaSer
 import { ResendService } from '../../server/utils/services/resendService'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
-import { webhookQueue, pingQueue } from '../../server/utils/queue'
+import { webhookQueue, pingQueue, streamsQueue } from '../../server/utils/queue'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
 import { formatErrorMessage } from '../../server/utils/log-format'
 import { Command } from 'commander'
@@ -33,6 +33,7 @@ export const startCommand = new Command('start')
     })
 
     const concurrency = parseInt(process.env.CW_WORKER_QUEUE_WEBHOOK_CONCURRENCY || '1')
+    const streamConcurrency = parseInt(process.env.CW_WORKER_QUEUE_STREAM_CONCURRENCY || '2')
     let restartRequested = false
 
     const requestRestart = (reason: string, error?: unknown) => {
@@ -47,7 +48,7 @@ export const startCommand = new Command('start')
     const healthServer = http.createServer(async (req, res) => {
       if (req.url === '/api/health' && req.method === 'GET') {
         try {
-          const [webhookCounts, pingCounts] = await Promise.all([
+          const [webhookCounts, pingCounts, streamCounts] = await Promise.all([
             webhookQueue.getJobCounts(
               'waiting',
               'active',
@@ -56,7 +57,15 @@ export const startCommand = new Command('start')
               'delayed',
               'paused'
             ),
-            pingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')
+            pingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
+            streamsQueue.getJobCounts(
+              'waiting',
+              'active',
+              'completed',
+              'failed',
+              'delayed',
+              'paused'
+            )
           ])
 
           const status = {
@@ -67,10 +76,12 @@ export const startCommand = new Command('start')
             redis: connection.status,
             queues: {
               webhook: webhookCounts,
-              ping: pingCounts
+              ping: pingCounts,
+              streams: streamCounts
             },
             config: {
               concurrency,
+              streamConcurrency,
               healthPort
             }
           }
@@ -665,6 +676,49 @@ export const startCommand = new Command('start')
       }
     })
 
+    const streamsWorker = new Worker(
+      'streamsQueue',
+      async (job: Job) => {
+        const { userId, workoutId, activityId } = job.data
+
+        if (!userId || !workoutId || !activityId) {
+          throw new Error('Missing stream sync job payload')
+        }
+
+        console.log(
+          chalk.cyan(`[StreamJob ${job.id}]`) +
+            ` Syncing Intervals streams for activity ${activityId} (workout ${workoutId})`
+        )
+
+        const result = await IntervalsService.syncActivityStream(userId, workoutId, activityId)
+
+        console.log(
+          chalk.green(`[StreamJob ${job.id}] Completed stream sync for activity ${activityId}`)
+        )
+
+        return { workoutId, activityId, hasStreamData: result !== null }
+      },
+      { connection, concurrency: streamConcurrency }
+    )
+
+    streamsWorker.on('ready', () => {
+      console.log(chalk.green.bold('🚀 Streams Worker listening on "streamsQueue"'))
+      console.log(chalk.white(`   Concurrency: ${chalk.yellow(streamConcurrency)}`))
+    })
+
+    streamsWorker.on('failed', (job, err) => {
+      const message = err?.message || 'Unknown error'
+      if (message === 'job stalled more than allowable limit') return
+      console.log(chalk.red(`[StreamJob ${job?.id}] has failed with: ${message}`))
+    })
+
+    streamsWorker.on('error', (err) => {
+      console.error(chalk.red.bold('Streams Worker error:'), err)
+      if (isRedisConnectionError(err)) {
+        requestRestart('streams worker lost redis connectivity', err)
+      }
+    })
+
     // Stats Reporter
     const statsInterval = setInterval(async () => {
       try {
@@ -676,6 +730,12 @@ export const startCommand = new Command('start')
           'delayed'
         )
         const pingCounts = await pingQueue.getJobCounts('waiting', 'active', 'completed', 'failed')
+        const streamCounts = await streamsQueue.getJobCounts(
+          'waiting',
+          'active',
+          'completed',
+          'failed'
+        )
 
         console.log(
           chalk.gray('[Stats] ') +
@@ -683,7 +743,10 @@ export const startCommand = new Command('start')
             `W:${counts.waiting} A:${counts.active} C:${counts.completed} F:${counts.failed}` +
             chalk.gray(' | ') +
             chalk.bold('Ping: ') +
-            `W:${pingCounts.waiting} A:${pingCounts.active} C:${pingCounts.completed} F:${pingCounts.failed}`
+            `W:${pingCounts.waiting} A:${pingCounts.active} C:${pingCounts.completed} F:${pingCounts.failed}` +
+            chalk.gray(' | ') +
+            chalk.bold('Streams: ') +
+            `W:${streamCounts.waiting} A:${streamCounts.active} C:${streamCounts.completed} F:${streamCounts.failed}`
         )
       } catch (err) {
         console.error(chalk.red('Failed to fetch queue stats:'), err)
@@ -707,10 +770,10 @@ export const startCommand = new Command('start')
         healthServer.close()
         console.log(chalk.gray('Health server closed.'))
 
-        await Promise.all([webhookWorker.close(), pingWorker.close()])
+        await Promise.all([webhookWorker.close(), pingWorker.close(), streamsWorker.close()])
         console.log(chalk.gray('Workers closed.'))
 
-        await Promise.all([webhookQueue.close(), pingQueue.close()])
+        await Promise.all([webhookQueue.close(), pingQueue.close(), streamsQueue.close()])
         console.log(chalk.gray('Queues closed.'))
 
         await connection.quit()

@@ -1,4 +1,4 @@
-import { webhookQueue, pingQueue } from '../../../utils/queue'
+import { webhookQueue, pingQueue, streamsQueue } from '../../../utils/queue'
 
 defineRouteMeta({
   openAPI: {
@@ -36,10 +36,11 @@ export default defineEventHandler(async (event) => {
 
   try {
     const webhookStats = await getQueueStats(webhookQueue, 'Webhook Queue')
+    const streamStats = await getQueueStats(streamsQueue, 'Streams Queue')
     const pingStats = await getQueueStats(pingQueue, 'Ping Queue')
 
     return {
-      queues: [webhookStats, pingStats],
+      queues: [webhookStats, streamStats, pingStats],
       timestamp: new Date().toISOString()
     }
   } catch (error: any) {

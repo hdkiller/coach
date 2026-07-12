@@ -82,6 +82,16 @@ monitorCommand
           console.table(data.queues.webhook)
         }
 
+        if (data.queues?.streams) {
+          console.log(chalk.bold('\nStreams Queue'))
+          console.table(data.queues.streams)
+        }
+
+        if (data.queues?.ping) {
+          console.log(chalk.bold('\nPing Queue'))
+          console.table(data.queues.ping)
+        }
+
         if (data.webhooks) {
           console.log(chalk.bold('\nWebhook SQL'))
           console.table(data.webhooks)

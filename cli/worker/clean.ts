@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { webhookQueue, pingQueue } from '../../server/utils/queue'
+import { webhookQueue, pingQueue, streamsQueue } from '../../server/utils/queue'
 import { prisma } from '../../server/utils/db'
 
 type QueueState = 'completed' | 'failed' | 'delayed' | 'wait' | 'active' | 'paused'
@@ -62,16 +62,25 @@ export const cleanCommand = new Command('clean')
         dryRun
       )
 
+      const streamsRemoved = await cleanQueue(
+        streamsQueue,
+        'streamsQueue',
+        ['completed', 'failed'],
+        graceMs,
+        limit,
+        dryRun
+      )
+
       console.log(
         chalk.white.bold(
-          `\nTotal removed: ${webhookRemoved + pingRemoved} (${webhookRemoved} webhook, ${pingRemoved} ping)`
+          `\nTotal removed: ${webhookRemoved + pingRemoved + streamsRemoved} (${webhookRemoved} webhook, ${streamsRemoved} streams, ${pingRemoved} ping)`
         )
       )
     } catch (error: any) {
       console.error(chalk.red('Failed to clean queues:'), error)
       process.exitCode = 1
     } finally {
-      await Promise.all([webhookQueue.close(), pingQueue.close()])
+      await Promise.all([webhookQueue.close(), pingQueue.close(), streamsQueue.close()])
       await prisma.$disconnect()
       process.exit(process.exitCode || 0)
     }

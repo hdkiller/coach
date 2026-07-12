@@ -44,6 +44,7 @@ import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settin
 import { isTaskRunning } from '../trigger-check'
 import { shouldIngestWellness } from '../integration-settings'
 import { persistIntervalsPlannedWorkoutImport } from '../canonical-planned-workout-write'
+import { enqueueIntervalsStreamSync } from '../intervals-stream-queue'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
@@ -1575,8 +1576,20 @@ export const IntervalsService = {
             )
           }
 
-          // Webhook path: upsert activity summary from payload only. Stream fetch/sync is
-          // deferred to full ingestion (ingest-intervals) or ingest-intervals-streams.
+          if (Array.isArray(activity.stream_types) && activity.stream_types.length > 0) {
+            try {
+              await enqueueIntervalsStreamSync({
+                userId,
+                workoutId: record.id,
+                activityId
+              })
+            } catch (error) {
+              console.error(
+                `[IntervalsService] Failed to enqueue stream sync for workout ${record.id}`,
+                error
+              )
+            }
+          }
         } else if (activityId && activity) {
           console.warn(
             `[IntervalsService] ${type} activity ${activityId} still lacks a usable date after fallback; applying delta-only patch path`
