@@ -20,6 +20,15 @@ tasks.onFailure(async ({ payload, error, ctx }) => {
     return
   }
 
+  if (
+    error &&
+    typeof error === 'object' &&
+    'name' in error &&
+    error.name === 'IntegrationAuthError'
+  ) {
+    return
+  }
+
   Sentry.captureException(error, {
     extra: {
       payload,

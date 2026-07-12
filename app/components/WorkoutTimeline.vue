@@ -90,9 +90,12 @@
           </div>
           <div class="px-2 py-4" style="height: 150px">
             <Line
+              v-if="isChartActive"
+              :ref="(el) => setChartRef(index, el)"
               :data="getChartData(metric)"
               :options="getChartOptions(metric, index === selectedMetrics.length - 1) as any"
               :height="120"
+              :destroy-delay="0"
             />
           </div>
         </div>
@@ -115,6 +118,7 @@
     Filler
   } from 'chart.js'
   import { usesImperialDistance } from '~/utils/metrics'
+  import { ensureChartJsAnnotationDefaults, safeChartUpdate } from '~/utils/chartjs-annotation'
 
   // Register Chart.js components
   ChartJS.register(
@@ -127,6 +131,8 @@
     Legend,
     Filler
   )
+
+  ensureChartJsAnnotationDefaults()
 
   interface Props {
     workoutId: string
@@ -142,6 +148,16 @@
   const selectedMetrics = ref<string[]>([])
   const hoverIndex = ref<number | null>(null)
   const chartRefs = ref<any[]>([])
+  const isChartActive = ref(true)
+
+  function setChartRef(index: number, el: any) {
+    chartRefs.value[index] = el
+  }
+
+  onBeforeUnmount(() => {
+    isChartActive.value = false
+    chartRefs.value = []
+  })
 
   interface Metric {
     key: string
@@ -396,6 +412,8 @@
         intersect: false
       },
       onHover: (event: any, elements: any, chart: any) => {
+        if (!isChartActive.value) return
+
         const xAxis = chart.scales.x
         if (!xAxis) return
 
@@ -419,13 +437,16 @@
 
             chartRefs.value.forEach((ref) => {
               if (ref?.chart && ref.chart !== chart) {
-                ref.chart.update('none')
+                safeChartUpdate(ref.chart, 'none')
               }
             })
           }
         }
       },
       plugins: {
+        annotation: {
+          annotations: {}
+        },
         legend: {
           display: false
         },

@@ -17,7 +17,7 @@
     Legend,
     Filler
   } from 'chart.js'
-  import annotationPlugin from 'chartjs-plugin-annotation'
+  import { ensureChartJsAnnotationDefaults } from '~/utils/chartjs-annotation'
   import type { AthleteJourneyEvent } from '~/types/nutrition'
 
   ChartJS.register(
@@ -28,9 +28,10 @@
     Title,
     Tooltip,
     Legend,
-    Filler,
-    annotationPlugin
+    Filler
   )
+
+  ensureChartJsAnnotationDefaults()
 
   const props = defineProps<{
     points: any[]

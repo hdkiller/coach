@@ -39,6 +39,13 @@ Sentry.init({
 
   ignoreErrors: [
     'Object Not Found Matching Id:2, MethodName:update',
-    'Object Not Found Matching Id:3, MethodName:update'
+    'Object Not Found Matching Id:3, MethodName:update',
+    // Auth session blips during deploys / server restarts
+    '/api/auth/session',
+    '/_nuxt/builds/meta/dev.json',
+    // Post-deploy chunk invalidation (handled by chunk-error.client.ts)
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'error loading dynamically imported module'
   ]
 })

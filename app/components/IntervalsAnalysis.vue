@@ -30,7 +30,13 @@
         <div
           class="h-64 relative bg-white/[0.02] dark:bg-black rounded-2xl border border-white/5 p-4 shadow-inner"
         >
-          <Line :data="chartConfig.data" :options="chartConfig.options" :height="250" />
+          <Line
+            v-if="isChartActive"
+            :data="chartConfig.data"
+            :options="chartConfig.options"
+            :height="250"
+            :destroy-delay="0"
+          />
         </div>
       </div>
 
@@ -278,7 +284,7 @@
     Legend,
     Filler
   } from 'chart.js'
-  import annotationPlugin from 'chartjs-plugin-annotation'
+  import { ensureChartJsAnnotationDefaults } from '~/utils/chartjs-annotation'
 
   ChartJS.register(
     CategoryScale,
@@ -288,9 +294,16 @@
     Title,
     Tooltip,
     Legend,
-    Filler,
-    annotationPlugin
+    Filler
   )
+
+  ensureChartJsAnnotationDefaults()
+
+  const isChartActive = ref(true)
+
+  onBeforeUnmount(() => {
+    isChartActive.value = false
+  })
 
   const props = defineProps<{
     workoutId: string

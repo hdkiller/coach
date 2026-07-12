@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-  import annotationPlugin from 'chartjs-plugin-annotation'
+  import { ensureChartJsAnnotationDefaults } from '~/utils/chartjs-annotation'
   import { Chart } from 'vue-chartjs'
   import {
     BarController,
@@ -29,9 +29,10 @@
     BarController,
     LineController,
     Tooltip,
-    Legend,
-    annotationPlugin
+    Legend
   )
+
+  ensureChartJsAnnotationDefaults()
 
   type ChartMetric = 'tss' | 'minutes'
 

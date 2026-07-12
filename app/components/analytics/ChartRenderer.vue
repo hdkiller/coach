@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Bar, Line, Scatter, Radar } from 'vue-chartjs'
-  import annotationPlugin from 'chartjs-plugin-annotation'
+  import { ensureChartJsAnnotationDefaults } from '~/utils/chartjs-annotation'
   import {
     BarElement,
     CategoryScale,
@@ -32,14 +32,10 @@
     Title,
     Tooltip,
     Legend,
-    Filler,
-    annotationPlugin
+    Filler
   )
 
-  ChartJS.defaults.plugins = ChartJS.defaults.plugins || {}
-  ChartJS.defaults.plugins.annotation = {
-    annotations: {}
-  }
+  ensureChartJsAnnotationDefaults()
 
   /**
    * Crosshair plugin — draws a synchronized vertical cursor line across all charts.
