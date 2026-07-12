@@ -270,9 +270,16 @@ export const startCommand = new Command('start')
           for (const update of payload) {
             const { collectionType, date, ownerId } = update
 
-            if (collectionType !== 'foods') {
-              console.log(
-                chalk.gray(`[FitbitJob ${job.id}] Skipping non-food update: ${collectionType}`)
+            if (collectionType === 'userRevokedAccess') {
+              console.log(chalk.yellow(`[FitbitJob ${job.id}] User revoked access: ${ownerId}`))
+              continue
+            }
+
+            if (!date) {
+              console.warn(
+                chalk.yellow(
+                  `[FitbitJob ${job.id}] Skipping update without date: ${collectionType}`
+                )
               )
               continue
             }

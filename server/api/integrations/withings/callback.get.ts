@@ -1,4 +1,5 @@
 import { getServerSession } from '../../../utils/session'
+import { subscribeWithingsWebhooks } from '../../../utils/withings-notifications'
 
 defineRouteMeta({
   openAPI: {
@@ -139,36 +140,25 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Subscribe to notifications (webhook)
     try {
       const webhookUrl = `${config.public.siteUrl || 'http://localhost:3099'}/api/integrations/withings/webhook`
+      const subscriptionResult = await subscribeWithingsWebhooks(access_token, webhookUrl)
 
-      // Subscribe to weight (1), activity/workouts (4), and sleep (16)
-      // Note: Withings requires separate subscriptions for each appli
-      const applis = [1, 4, 16]
-
-      for (const appli of applis) {
-        // We use fetch directly as we need to sign the request or use access_token
-        // For 'subscribe', we can use access_token without signature if it's health data API
-
-        await fetch('https://wbsapi.withings.net/notify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: `Bearer ${access_token}`
-          },
-          body: new URLSearchParams({
-            action: 'subscribe',
-            callbackurl: webhookUrl,
-            appli: appli.toString()
-            // No need for signature/nonce if using access_token for user data
-          }).toString()
-        })
+      if (subscriptionResult.subscribed.length > 0) {
+        console.log(
+          '[Withings Callback] Subscribed to notifications:',
+          subscriptionResult.subscribed
+        )
       }
-      console.log('Successfully subscribed to Withings notifications')
+
+      if (subscriptionResult.failed.length > 0) {
+        console.warn(
+          '[Withings Callback] Some webhook subscriptions failed:',
+          subscriptionResult.failed
+        )
+      }
     } catch (subError) {
-      console.error('Failed to subscribe to notifications:', subError)
-      // Don't fail the whole connection if subscription fails
+      console.error('[Withings Callback] Failed to subscribe to notifications:', subError)
     }
 
     // Redirect back to settings with success message

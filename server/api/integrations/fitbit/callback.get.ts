@@ -1,4 +1,5 @@
 import { getServerSession } from '../../../utils/session'
+import { subscribeFitbitWebhooks } from '../../../utils/fitbit-subscriptions'
 
 defineRouteMeta({
   openAPI: {
@@ -140,6 +141,22 @@ export default defineEventHandler(async (event) => {
           lastSyncAt: new Date()
         }
       })
+    }
+
+    try {
+      const subscriptionResult = await subscribeFitbitWebhooks(accessToken)
+      console.log('[Fitbit Callback] Webhook subscriptions:', subscriptionResult)
+      if (subscriptionResult.failed.length > 0) {
+        console.warn(
+          '[Fitbit Callback] Some webhook subscriptions failed:',
+          subscriptionResult.failed
+        )
+      }
+    } catch (subscriptionError) {
+      console.error(
+        '[Fitbit Callback] Failed to register Fitbit webhook subscriptions:',
+        subscriptionError
+      )
     }
 
     return sendRedirect(event, '/settings?fitbit_success=true')
