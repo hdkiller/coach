@@ -232,6 +232,58 @@ export function buildIntervalsImportPersistenceFields(options: {
   return createData
 }
 
+/** Upsert Intervals planned workouts; avoids duplicate (userId, externalId) races. */
+export async function persistIntervalsPlannedWorkoutImport(
+  client: DbClient,
+  options: {
+    userId: string
+    existingRecord: any | null | undefined
+    normalizedPlanned: Record<string, any>
+    sportSettings: any
+    seenAt: Date
+  }
+) {
+  const { userId, existingRecord, normalizedPlanned, sportSettings, seenAt } = options
+  const externalId = normalizedPlanned.externalId
+
+  if (existingRecord && existingRecord.externalId !== externalId) {
+    await client.plannedWorkout.update({
+      where: { id: existingRecord.id },
+      data: buildIntervalsImportPersistenceFields({
+        existingRecord,
+        normalizedPlanned,
+        sportSettings,
+        seenAt
+      })
+    })
+    return
+  }
+
+  const createData = buildIntervalsImportPersistenceFields({
+    existingRecord: null,
+    normalizedPlanned,
+    sportSettings,
+    seenAt
+  }) as Prisma.PlannedWorkoutUncheckedCreateInput
+
+  const recordForUpdate =
+    existingRecord ??
+    (await client.plannedWorkout.findUnique({
+      where: { userId_externalId: { userId, externalId } }
+    }))
+
+  await client.plannedWorkout.upsert({
+    where: { userId_externalId: { userId, externalId } },
+    create: createData,
+    update: buildIntervalsImportPersistenceFields({
+      existingRecord: recordForUpdate,
+      normalizedPlanned,
+      sportSettings,
+      seenAt
+    })
+  })
+}
+
 /**
  * Sole owner for planned-workout structure writes. The structure, derived metrics,
  * hash, revision, and sync intent are written together, optionally guarded by a

@@ -397,7 +397,7 @@ describe('transformHistoryToCoreMessages', () => {
     )
   })
 
-  it('reuses raw persisted tool-call parts so Gemini signatures survive continuation turns', async () => {
+  it('maps persisted Gemini provider metadata to provider options for replay', async () => {
     const assistantMessage = expandStoredChatMessage({
       id: 'assistant-signed',
       senderId: 'ai_agent',
@@ -415,7 +415,9 @@ describe('transformHistoryToCoreMessages', () => {
               toolCallId: 'call_signed',
               toolName: 'update_sport_settings',
               input: { ftp: 250 },
-              thoughtSignature: 'signed-part'
+              providerMetadata: {
+                google: { thoughtSignature: 'signed-part' }
+              }
             }
           }
         ]
@@ -430,7 +432,9 @@ describe('transformHistoryToCoreMessages', () => {
       toolCallId: 'call_signed',
       toolName: 'update_sport_settings',
       input: { ftp: 250 },
-      thoughtSignature: 'signed-part'
+      providerOptions: {
+        google: { thoughtSignature: 'signed-part' }
+      }
     })
   })
 })

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../../../server/utils/db'
 import {
   buildCanonicalPlannedWorkoutWriteData,
+  persistIntervalsPlannedWorkoutImport,
   writeCanonicalPlannedWorkoutStructure
 } from '../../../../server/utils/canonical-planned-workout-write'
 import { createZoneProfileSnapshot } from '../../../../shared/structured-workout-contract'
@@ -17,6 +18,8 @@ vi.stubGlobal('createError', (err: any) => {
 vi.mock('../../../../server/utils/db', () => ({
   prisma: {
     plannedWorkout: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn()
     }
@@ -93,6 +96,31 @@ describe('canonical planned workout write', () => {
       expectedGenerationRevision: 3
     })
     expect(result.stale).toBe(true)
+    expect(prisma.plannedWorkout.update).not.toHaveBeenCalled()
+  })
+
+  it('upserts Intervals planned workouts by userId and externalId', async () => {
+    vi.mocked(prisma.plannedWorkout.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.plannedWorkout.upsert).mockResolvedValue({ id: 'pw-1' } as any)
+
+    await persistIntervalsPlannedWorkoutImport(prisma, {
+      userId: 'user-1',
+      existingRecord: null,
+      normalizedPlanned: {
+        userId: 'user-1',
+        externalId: 'i123',
+        title: 'Endurance',
+        date: new Date('2026-07-12')
+      },
+      sportSettings: {},
+      seenAt: new Date('2026-07-12T12:00:00Z')
+    })
+
+    expect(prisma.plannedWorkout.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_externalId: { userId: 'user-1', externalId: 'i123' } }
+      })
+    )
     expect(prisma.plannedWorkout.update).not.toHaveBeenCalled()
   })
 })

@@ -13,6 +13,7 @@ import {
   CHAT_TURN_STATUS,
   type ChatTurnStatus,
   isActiveChatTurnStatus,
+  isMutatingChatTool,
   shouldResumeTurn
 } from '../chat/turns'
 
@@ -29,6 +30,11 @@ type PersistedRequestSnapshot = {
 }
 
 class ChatTurnService {
+  private readonly maxRecoveryAttempts = Math.max(
+    0,
+    Number(process.env.CHAT_TURN_MAX_RECOVERY_ATTEMPTS || 2)
+  )
+
   getTurnMetadata(turn: { metadata?: Prisma.JsonValue | null }) {
     return getJsonObject(turn.metadata) || {}
   }
@@ -489,14 +495,159 @@ class ChatTurnService {
     return truncateMessages(expandStoredChatMessages(stableMessages), limit)
   }
 
-  async markStaleTurnsInterrupted(now = new Date()) {
+  private async recoverTurn(
+    turn: Awaited<ReturnType<typeof prisma.chatTurn.findFirst>> & {
+      messages?: any[]
+      toolExecutions?: any[]
+    },
+    now: Date,
+    reason: 'heartbeat_timeout',
+    requireStaleHeartbeat = false
+  ) {
+    if (!turn) return 'skipped' as const
+
+    const metadata = this.getTurnMetadata(turn)
+    const recoveryAttempts = Number(metadata.recoveryAttempts || 0)
+    const hasUncertainMutation = (turn.toolExecutions || []).some(
+      (execution: any) => execution.status === 'STARTED' && isMutatingChatTool(execution.toolName)
+    )
+    const shouldRequeue = !hasUncertainMutation && recoveryAttempts < this.maxRecoveryAttempts
+    const interruptionReason = hasUncertainMutation
+      ? 'Turn interrupted because a mutating tool may have completed during worker restart.'
+      : 'Turn interrupted after recovery attempts were exhausted.'
+    const activeStatuses = [
+      CHAT_TURN_STATUS.RECEIVED,
+      CHAT_TURN_STATUS.RUNNING,
+      CHAT_TURN_STATUS.STREAMING,
+      CHAT_TURN_STATUS.WAITING_FOR_TOOLS
+    ]
+    const cutoff = new Date(now.getTime() - CHAT_TURN_HEARTBEAT_TIMEOUT_MS)
+
+    return await prisma.$transaction(async (tx) => {
+      const claimed = await tx.chatTurn.updateMany({
+        where: {
+          id: turn.id,
+          status: { in: activeStatuses },
+          ...(requireStaleHeartbeat
+            ? {
+                OR: [
+                  { lastHeartbeatAt: { lt: cutoff } },
+                  { lastHeartbeatAt: null, createdAt: { lt: cutoff } }
+                ]
+              }
+            : {})
+        },
+        data: shouldRequeue
+          ? {
+              status: CHAT_TURN_STATUS.QUEUED,
+              runId: null,
+              startedAt: null,
+              finishedAt: null,
+              failureReason: null,
+              lastHeartbeatAt: now,
+              metadata: this.mergeTurnMetadata(turn, {
+                recoveryAttempts: recoveryAttempts + 1,
+                recoveryReason: reason,
+                executionPhase: 'queued_for_recovery',
+                timeoutReason: null,
+                finishedAt: null
+              })
+            }
+          : {
+              status: CHAT_TURN_STATUS.INTERRUPTED,
+              finishedAt: now,
+              failureReason: interruptionReason,
+              lastHeartbeatAt: now,
+              metadata: this.mergeTurnMetadata(turn, {
+                recoveryAttempts,
+                recoveryReason: reason,
+                executionPhase: hasUncertainMutation
+                  ? 'recovery_blocked_by_started_mutation'
+                  : 'recovery_exhausted',
+                timeoutReason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
+                finishedAt: now.toISOString()
+              })
+            }
+      })
+
+      if (claimed.count === 0) return 'skipped' as const
+
+      const draft = turn.messages?.[0]
+      if (draft) {
+        const draftMetadata = ((draft.metadata as any) || {}) as Record<string, any>
+        await tx.chatMessage.update({
+          where: { id: draft.id },
+          data: {
+            content: shouldRequeue ? ' ' : draft.content || ' ',
+            metadata: {
+              ...draftMetadata,
+              isDraft: true,
+              turnStatus: shouldRequeue ? CHAT_TURN_STATUS.QUEUED : CHAT_TURN_STATUS.INTERRUPTED,
+              interrupted: !shouldRequeue,
+              failureReason: shouldRequeue ? null : interruptionReason,
+              timeoutReason: shouldRequeue ? null : CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
+              hideUntilContent: shouldRequeue,
+              hiddenBecauseEmptyFailure: !shouldRequeue
+                ? typeof draft.content === 'string' &&
+                  draft.content.trim().length === 0 &&
+                  !hasVisibleAssistantMetadataArtifacts(draftMetadata)
+                : false,
+              recoveryAttempts: shouldRequeue ? recoveryAttempts + 1 : recoveryAttempts
+            } as any
+          }
+        })
+      }
+
+      await tx.chatTurnEvent.create({
+        data: {
+          turnId: turn.id,
+          type: shouldRequeue
+            ? CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE
+            : CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED,
+          data: shouldRequeue
+            ? {
+                reason: 'turn_requeued_for_recovery',
+                recoveryReason: reason,
+                recoveryAttempt: recoveryAttempts + 1
+              }
+            : {
+                reason: hasUncertainMutation
+                  ? 'recovery_blocked_by_started_mutation'
+                  : 'recovery_attempts_exhausted',
+                recoveryReason: reason,
+                recoveryAttempts
+              }
+        }
+      })
+
+      await tx.llmUsage.updateMany({
+        where: {
+          turnId: turn.id,
+          operation: 'chat_turn_start',
+          errorType: 'IN_PROGRESS'
+        },
+        data: {
+          success: false,
+          errorType: shouldRequeue ? 'RECOVERED' : 'INTERRUPTED',
+          errorMessage: shouldRequeue ? `Chat turn requeued after ${reason}.` : interruptionReason,
+          durationMs:
+            turn.startedAt instanceof Date
+              ? Math.max(0, now.getTime() - turn.startedAt.getTime())
+              : Math.max(0, now.getTime() - turn.createdAt.getTime())
+        }
+      })
+
+      return shouldRequeue ? ('requeued' as const) : ('interrupted' as const)
+    })
+  }
+
+  async recoverStaleTurns(now = new Date()) {
     const cutoff = new Date(now.getTime() - CHAT_TURN_HEARTBEAT_TIMEOUT_MS)
     const turns = await prisma.chatTurn.findMany({
       where: {
         status: {
           in: [
             CHAT_TURN_STATUS.RECEIVED,
-            CHAT_TURN_STATUS.QUEUED,
             CHAT_TURN_STATUS.RUNNING,
             CHAT_TURN_STATUS.STREAMING,
             CHAT_TURN_STATUS.WAITING_FOR_TOOLS
@@ -512,84 +663,21 @@ class ChatTurnService {
           where: { senderId: 'ai_agent' },
           orderBy: { createdAt: 'desc' },
           take: 1
+        },
+        toolExecutions: {
+          where: { status: 'STARTED' },
+          select: { status: true, toolName: true }
         }
       }
     })
 
+    let recoveredCount = 0
     for (const turn of turns) {
-      await prisma.$transaction(async (tx) => {
-        await tx.chatTurn.update({
-          where: { id: turn.id },
-          data: {
-            status: CHAT_TURN_STATUS.INTERRUPTED,
-            finishedAt: now,
-            failureReason: 'Turn interrupted after heartbeat timeout.',
-            lastHeartbeatAt: now
-          }
-        })
-
-        const draft = turn.messages[0]
-        if (draft) {
-          const draftMetadata = ((draft.metadata as any) || {}) as Record<string, any>
-          const metadata = {
-            ...draftMetadata,
-            isDraft: true,
-            turnStatus: CHAT_TURN_STATUS.INTERRUPTED,
-            interrupted: true,
-            failureReason: 'Turn interrupted after heartbeat timeout.',
-            timeoutReason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
-            hiddenBecauseEmptyFailure:
-              typeof draft.content === 'string' &&
-              draft.content.trim().length === 0 &&
-              !hasVisibleAssistantMetadataArtifacts(draftMetadata)
-          }
-          await tx.chatMessage.update({
-            where: { id: draft.id },
-            data: { metadata: metadata as any }
-          })
-        }
-
-        await tx.chatTurnEvent.create({
-          data: {
-            turnId: turn.id,
-            type: CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED,
-            data: {
-              reason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT
-            } as any
-          }
-        })
-
-        await tx.chatTurn.update({
-          where: { id: turn.id },
-          data: {
-            metadata: this.mergeTurnMetadata(turn, {
-              timeoutReason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
-              executionPhase: 'orphaned',
-              finishedAt: now.toISOString()
-            })
-          }
-        })
-
-        await tx.llmUsage.updateMany({
-          where: {
-            turnId: turn.id,
-            operation: 'chat_turn_start',
-            errorType: 'IN_PROGRESS'
-          },
-          data: {
-            success: false,
-            errorType: 'INTERRUPTED',
-            errorMessage: 'Turn interrupted after heartbeat timeout.',
-            durationMs:
-              turn.startedAt instanceof Date
-                ? Math.max(0, now.getTime() - turn.startedAt.getTime())
-                : Math.max(0, now.getTime() - turn.createdAt.getTime())
-          }
-        })
-      })
+      const result = await this.recoverTurn(turn, now, 'heartbeat_timeout', true)
+      if (result !== 'skipped') recoveredCount += 1
     }
 
-    return turns.length
+    return recoveredCount
   }
 
   canResumeTurn(status?: string | null) {

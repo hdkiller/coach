@@ -29,12 +29,28 @@ function buildCoreToolCallPart(
     }
   }
 
+  const thoughtSignature =
+    rawPart.providerOptions?.google?.thoughtSignature ??
+    rawPart.providerMetadata?.google?.thoughtSignature ??
+    rawPart.thoughtSignature
+
   return {
     ...rawPart,
     type: 'tool-call',
     toolCallId: rawPart.toolCallId || fallback.toolCallId,
     toolName: rawPart.toolName || rawPart.name || fallback.toolName,
-    input: rawPart.input ?? rawPart.args ?? fallback.input
+    input: rawPart.input ?? rawPart.args ?? fallback.input,
+    ...(thoughtSignature
+      ? {
+          providerOptions: {
+            ...(rawPart.providerOptions || {}),
+            google: {
+              ...(rawPart.providerOptions?.google || {}),
+              thoughtSignature
+            }
+          }
+        }
+      : {})
   }
 }
 

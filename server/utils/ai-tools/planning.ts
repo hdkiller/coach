@@ -172,8 +172,8 @@ const targetingOverrideSchema = z
   })
   .optional()
 
-const structuredStepSchema: z.ZodType<any> = z.lazy(() =>
-  z
+function buildStructuredStepSchema(depth: number): z.ZodType<any> {
+  return z
     .object({
       type: z.preprocess(
         normalizeStructuredStepTypeInput,
@@ -195,10 +195,15 @@ const structuredStepSchema: z.ZodType<any> = z.lazy(() =>
       rpe: z.number().optional(),
       cadence: z.number().optional(),
       cadenceRange: z.record(z.string(), z.unknown()).optional(),
-      steps: z.array(structuredStepSchema).optional()
+      ...(depth > 0 ? { steps: z.array(buildStructuredStepSchema(depth - 1)).optional() } : {})
     })
     .passthrough()
-)
+}
+
+// Tool input schemas are converted to JSON Schema. Keep nesting bounded so the
+// converter does not replace recursive step references with `any`. Deeper input
+// remains accepted by passthrough and is validated by the canonical contract.
+const structuredStepSchema = buildStructuredStepSchema(3)
 
 const structuredWorkoutSchema = z
   .object({

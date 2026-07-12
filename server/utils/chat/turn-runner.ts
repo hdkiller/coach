@@ -89,8 +89,8 @@ class ChatTurnRunner {
     this.recovering = true
 
     try {
-      const interruptedCount = await chatTurnService.markStaleTurnsInterrupted()
-      if (interruptedCount > 0) {
+      const recoveredCount = await chatTurnService.recoverStaleTurns()
+      if (recoveredCount > 0) {
         void this.pump()
       }
     } catch (error) {

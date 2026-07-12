@@ -43,7 +43,7 @@ import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import { isTaskRunning } from '../trigger-check'
 import { shouldIngestWellness } from '../integration-settings'
-import { buildIntervalsImportPersistenceFields } from '../canonical-planned-workout-write'
+import { persistIntervalsPlannedWorkoutImport } from '../canonical-planned-workout-write'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
@@ -1325,33 +1325,13 @@ export const IntervalsService = {
         }
       }
 
-      const seenAt = new Date()
-      if (existingRecord) {
-        const updateData = buildIntervalsImportPersistenceFields({
-          existingRecord,
-          normalizedPlanned,
-          sportSettings: plannedSettings,
-          seenAt
-        })
-        await prisma.plannedWorkout.update({
-          where: {
-            userId_externalId: {
-              userId,
-              externalId: normalizedPlanned.externalId
-            }
-          },
-          data: updateData
-        })
-      } else {
-        await prisma.plannedWorkout.create({
-          data: buildIntervalsImportPersistenceFields({
-            existingRecord: null,
-            normalizedPlanned,
-            sportSettings: plannedSettings,
-            seenAt
-          }) as any
-        })
-      }
+      await persistIntervalsPlannedWorkoutImport(prisma, {
+        userId,
+        existingRecord,
+        normalizedPlanned,
+        sportSettings: plannedSettings,
+        seenAt: new Date()
+      })
       plannedUpserted++
 
       // Ensure it doesn't exist as a CalendarNote (if type changed)
@@ -2007,40 +1987,13 @@ export const IntervalsService = {
               }
             }
 
-            const seenAt = new Date()
-            if (existingRecord) {
-              const updateData = buildIntervalsImportPersistenceFields({
-                existingRecord,
-                normalizedPlanned,
-                sportSettings: plannedSettings,
-                seenAt
-              })
-              if (existingRecord.externalId === normalizedPlanned.externalId) {
-                await prisma.plannedWorkout.update({
-                  where: {
-                    userId_externalId: {
-                      userId,
-                      externalId: normalizedPlanned.externalId
-                    }
-                  },
-                  data: updateData
-                })
-              } else {
-                await prisma.plannedWorkout.update({
-                  where: { id: existingRecord.id },
-                  data: updateData
-                })
-              }
-            } else {
-              await prisma.plannedWorkout.create({
-                data: buildIntervalsImportPersistenceFields({
-                  existingRecord: null,
-                  normalizedPlanned,
-                  sportSettings: plannedSettings,
-                  seenAt
-                }) as any
-              })
-            }
+            await persistIntervalsPlannedWorkoutImport(prisma, {
+              userId,
+              existingRecord,
+              normalizedPlanned,
+              sportSettings: plannedSettings,
+              seenAt: new Date()
+            })
 
             await calendarNoteRepository.deleteExternal(userId, 'intervals', [
               normalizedPlanned.externalId
