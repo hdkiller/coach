@@ -13,6 +13,7 @@ import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webho
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue } from '../../server/utils/queue'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
+import { formatErrorMessage } from '../../server/utils/log-format'
 import { Command } from 'commander'
 import { tasks } from '@trigger.dev/sdk/v3'
 
@@ -536,7 +537,7 @@ export const startCommand = new Command('start')
             throw new Error(`Unknown provider: ${provider}`)
           }
         } catch (error: any) {
-          console.error(chalk.red(`[WebhookJob ${job.id}] Failed:`), error)
+          console.error(chalk.red(`[WebhookJob ${job.id}] Failed:`), formatErrorMessage(error))
           if (logId) {
             await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
           }
@@ -552,7 +553,9 @@ export const startCommand = new Command('start')
     })
 
     webhookWorker.on('failed', (job, err) => {
-      console.log(chalk.red(`[WebhookJob ${job?.id}] has failed with: ${err?.message}`))
+      const message = err?.message || 'Unknown error'
+      if (message === 'job stalled more than allowable limit') return
+      console.log(chalk.red(`[WebhookJob ${job?.id}] has failed with: ${message}`))
     })
 
     webhookWorker.on('error', (err) => {

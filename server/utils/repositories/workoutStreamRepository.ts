@@ -58,6 +58,17 @@ function toNormalizedFromV1(stream: any): NormalizedStream {
   return stream as NormalizedStream
 }
 
+/** Prisma Int[] columns reject null elements; preserve series length by coercing gaps to 0. */
+export function sanitizeNumericStreamArray(values: number[] | null | undefined): number[] {
+  if (!values?.length) return []
+  return values.map((value) => (value != null && Number.isFinite(value) ? value : 0))
+}
+
+export function sanitizeBooleanStreamArray(values: boolean[] | null | undefined): boolean[] {
+  if (!values?.length) return []
+  return values.map((value) => value === true)
+}
+
 export async function attachStreamToWorkout<T extends { id: string }>(
   workout: T
 ): Promise<T & { streams: NormalizedStream | null }> {
@@ -209,23 +220,23 @@ export const workoutStreamRepository = {
 
     const writeData: any = {
       ...rest,
-      lat,
-      lng,
-      time: rest.time ?? [],
-      distance: rest.distance ?? [],
-      velocity: rest.velocity ?? [],
-      heartrate: rest.heartrate ?? [],
-      cadence: rest.cadence ?? [],
-      watts: rest.watts ?? [],
-      altitude: rest.altitude ?? [],
-      grade: rest.grade ?? [],
-      moving: rest.moving ?? [],
-      temp: rest.temp ?? [],
-      torque: rest.torque ?? [],
-      leftRightBalance: rest.leftRightBalance ?? [],
-      hrv: rest.hrv ?? [],
-      respiration: rest.respiration ?? [],
-      targetPower: rest.targetPower ?? []
+      lat: sanitizeNumericStreamArray(lat),
+      lng: sanitizeNumericStreamArray(lng),
+      time: sanitizeNumericStreamArray(rest.time),
+      distance: sanitizeNumericStreamArray(rest.distance),
+      velocity: sanitizeNumericStreamArray(rest.velocity),
+      heartrate: sanitizeNumericStreamArray(rest.heartrate),
+      cadence: sanitizeNumericStreamArray(rest.cadence),
+      watts: sanitizeNumericStreamArray(rest.watts),
+      altitude: sanitizeNumericStreamArray(rest.altitude),
+      grade: sanitizeNumericStreamArray(rest.grade),
+      moving: sanitizeBooleanStreamArray(rest.moving),
+      temp: sanitizeNumericStreamArray(rest.temp),
+      torque: sanitizeNumericStreamArray(rest.torque),
+      leftRightBalance: sanitizeNumericStreamArray(rest.leftRightBalance),
+      hrv: sanitizeNumericStreamArray(rest.hrv),
+      respiration: sanitizeNumericStreamArray(rest.respiration),
+      targetPower: sanitizeNumericStreamArray(rest.targetPower)
     }
 
     return (prisma as any).workoutStreamV2.upsert({

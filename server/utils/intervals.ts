@@ -283,12 +283,13 @@ async function fetchWithRetry(
       const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : NaN
       const waitTime = Number.isFinite(retryAfterMs) ? retryAfterMs : backoff
 
-      console.warn(
-        `[Intervals API] 429 Too Many Requests. Retrying in ${waitTime}ms... (${retries} retries left)`
-      )
       await sleep(waitTime)
 
       return fetchWithRetry(url, options, retries - 1, backoff * 2)
+    }
+
+    if (response.status === 429) {
+      console.warn('[Intervals API] 429 Too Many Requests. Retries exhausted.')
     }
 
     return response
