@@ -59,9 +59,30 @@ function toNormalizedFromV1(stream: any): NormalizedStream {
 }
 
 /** Prisma Int[] columns reject null elements; preserve series length by coercing gaps to 0. */
-export function sanitizeNumericStreamArray(values: number[] | null | undefined): number[] {
+export function sanitizeIntStreamArray(values: readonly unknown[] | null | undefined): number[] {
   if (!values?.length) return []
-  return values.map((value) => (value != null && Number.isFinite(value) ? value : 0))
+  return values.map((value) => {
+    if (value == null || !Number.isFinite(Number(value))) return 0
+    return Math.trunc(Number(value))
+  })
+}
+
+/**
+ * Prisma Float[] columns reject nulls and mixed integer/float elements in one array.
+ * Coerce nulls to 0 and ensure whole numbers are encoded as floats for client validation.
+ */
+export function sanitizeFloatStreamArray(values: readonly unknown[] | null | undefined): number[] {
+  if (!values?.length) return []
+  return values.map((value) => {
+    if (value == null || !Number.isFinite(Number(value))) return 0
+    const n = Number(value)
+    return Number.isInteger(n) ? n + 1e-9 : n
+  })
+}
+
+/** @deprecated Use sanitizeIntStreamArray or sanitizeFloatStreamArray */
+export function sanitizeNumericStreamArray(values: number[] | null | undefined): number[] {
+  return sanitizeIntStreamArray(values)
 }
 
 export function sanitizeBooleanStreamArray(values: boolean[] | null | undefined): boolean[] {
@@ -214,29 +235,47 @@ export const workoutStreamRepository = {
       extrasMeta?: unknown
     }
   ) {
-    const { latlng, ...rest } = data
+    const {
+      latlng,
+      time,
+      distance,
+      velocity,
+      heartrate,
+      cadence,
+      watts,
+      altitude,
+      grade,
+      moving,
+      temp,
+      torque,
+      leftRightBalance,
+      hrv,
+      respiration,
+      targetPower,
+      ...meta
+    } = data
     const lat = latlng?.map(([latVal]) => latVal) ?? []
     const lng = latlng?.map(([, lngVal]) => lngVal) ?? []
 
     const writeData: any = {
-      ...rest,
-      lat: sanitizeNumericStreamArray(lat),
-      lng: sanitizeNumericStreamArray(lng),
-      time: sanitizeNumericStreamArray(rest.time),
-      distance: sanitizeNumericStreamArray(rest.distance),
-      velocity: sanitizeNumericStreamArray(rest.velocity),
-      heartrate: sanitizeNumericStreamArray(rest.heartrate),
-      cadence: sanitizeNumericStreamArray(rest.cadence),
-      watts: sanitizeNumericStreamArray(rest.watts),
-      altitude: sanitizeNumericStreamArray(rest.altitude),
-      grade: sanitizeNumericStreamArray(rest.grade),
-      moving: sanitizeBooleanStreamArray(rest.moving),
-      temp: sanitizeNumericStreamArray(rest.temp),
-      torque: sanitizeNumericStreamArray(rest.torque),
-      leftRightBalance: sanitizeNumericStreamArray(rest.leftRightBalance),
-      hrv: sanitizeNumericStreamArray(rest.hrv),
-      respiration: sanitizeNumericStreamArray(rest.respiration),
-      targetPower: sanitizeNumericStreamArray(rest.targetPower)
+      ...meta,
+      lat: sanitizeFloatStreamArray(lat),
+      lng: sanitizeFloatStreamArray(lng),
+      time: sanitizeIntStreamArray(time),
+      distance: sanitizeFloatStreamArray(distance),
+      velocity: sanitizeFloatStreamArray(velocity),
+      heartrate: sanitizeIntStreamArray(heartrate),
+      cadence: sanitizeIntStreamArray(cadence),
+      watts: sanitizeIntStreamArray(watts),
+      altitude: sanitizeFloatStreamArray(altitude),
+      grade: sanitizeFloatStreamArray(grade),
+      moving: sanitizeBooleanStreamArray(moving),
+      temp: sanitizeIntStreamArray(temp),
+      torque: sanitizeIntStreamArray(torque),
+      leftRightBalance: sanitizeIntStreamArray(leftRightBalance),
+      hrv: sanitizeFloatStreamArray(hrv),
+      respiration: sanitizeFloatStreamArray(respiration),
+      targetPower: sanitizeIntStreamArray(targetPower)
     }
 
     return (prisma as any).workoutStreamV2.upsert({
