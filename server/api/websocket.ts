@@ -84,13 +84,14 @@ async function handleChatMessage(
   try {
     await checkQuota(userId, 'chat_ws')
     await chatService.validateRoomAccess(userId, roomId)
+    const replyToId = await chatService.resolveReplyToId(roomId, replyMessage?._id)
 
     const userMessage = await chatService.saveUserMessage({
       userId,
       roomId,
       content,
       role: 'user',
-      replyToId: replyMessage?._id || undefined
+      replyToId
     })
 
     if (!userMessage) {

@@ -323,6 +323,25 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [222](./222-chat-stale-turn-recovery-race.md)               | Stale-turn recovery can interrupt completed turns | High     | Bug  | Open   |
 | [223](./223-chat-direct-send-no-retry.md)                   | Direct chat sends have no durable retry path      | Medium   | Bug  | Open   |
 
+## Issues 224–237 (chat page review — 2026-07-13)
+
+| ID                                                        | Title                                            | Priority | Type        | Status |
+| --------------------------------------------------------- | ------------------------------------------------ | -------- | ----------- | ------ |
+| [224](./224-chat-turn-executor-timer-leak.md)             | Turn executor timer leak and stuck rooms         | High     | Bug         | Fixed  |
+| [225](./225-chat-ws-auth-in-memory-multi-instance.md)     | WS auth tokens in-memory (multi-instance)        | High     | Bug         | Fixed  |
+| [226](./226-chat-share-leaks-internal-messages.md)        | Public chat share leaks internal messages        | High     | Bug         | Fixed  |
+| [227](./227-chat-room-existence-oracle.md)                | Room existence oracle in messages.post           | Medium   | Security    | Fixed  |
+| [228](./228-chat-auto-send-from-query-params.md)          | Auto-send from URL query params                  | Medium   | Security    | Fixed  |
+| [229](./229-chat-edit-regenerate-message-loss.md)         | Edit-and-regenerate can lose user message        | Medium   | Bug         | Fixed  |
+| [230](./230-chat-forged-tool-approval-metadata.md)        | Client can persist forged tool approval metadata | Medium   | Security    | Fixed  |
+| [231](./231-chat-share-token-minted-on-modal-open.md)     | Share token minted on modal open                 | Medium   | Privacy     | Fixed  |
+| [232](./232-chat-reply-to-id-unvalidated.md)              | replyToId not validated against room             | Medium   | Bug         | Fixed  |
+| [233](./233-chat-double-send-race.md)                     | Chat double-send race                            | Low      | Bug         | Fixed  |
+| [234](./234-chat-queue-survives-identity-switch.md)       | Outgoing queue survives identity switch          | Low      | Bug         | Fixed  |
+| [235](./235-chat-polling-amplification.md)                | Polling amplification during active turns        | Low      | Performance | Fixed  |
+| [236](./236-chat-realtime-fetch-race-flicker.md)          | Realtime delta vs HTTP refresh race              | Low      | Bug         | Fixed  |
+| [237](./237-chat-quota-failure-invisible-at-execution.md) | Execution-time quota failure invisible to user   | Medium   | Bug         | Fixed  |
+
 ---
 
 ## Recommended fix order (app review)

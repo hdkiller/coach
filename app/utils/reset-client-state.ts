@@ -1,3 +1,5 @@
+import { clearChatOutgoingQueue } from './chat-outgoing-queue'
+
 const LOGOUT_LOCAL_STORAGE_PREFIXES = ['library-source:', 'workout-comparison:']
 const LOGOUT_LOCAL_STORAGE_KEYS = new Set(['activities-list-columns-visibility'])
 
@@ -68,4 +70,5 @@ export function resetClientState() {
   useWorkoutComparisonStore().clearAll()
 
   clearLogoutScopedLocalStorage()
+  clearChatOutgoingQueue()
 }

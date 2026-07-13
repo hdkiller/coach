@@ -1,28 +1,68 @@
-import { describe, expect, it } from 'vitest'
-import { extractApprovalIdFromToolMessage } from '../../../../../server/utils/chat/approval-continuation'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('approval continuation helpers', () => {
-  it('extracts approval id from tool approval response parts', () => {
-    expect(
-      extractApprovalIdFromToolMessage({
-        role: 'tool',
-        parts: [
-          {
-            type: 'tool-approval-response',
-            approvalId: 'approval-123',
-            approved: true
-          }
-        ]
-      })
-    ).toBe('approval-123')
+const { prismaMock } = vi.hoisted(() => ({
+  prismaMock: {
+    chatMessage: {
+      findMany: vi.fn()
+    }
+  }
+}))
+
+vi.mock('../../../../server/utils/db', () => ({
+  prisma: prismaMock
+}))
+
+const { buildCanonicalApprovalResponse } =
+  await import('../../../server/utils/chat/approval-continuation')
+
+describe('buildCanonicalApprovalResponse', () => {
+  beforeEach(() => {
+    prismaMock.chatMessage.findMany.mockReset()
   })
 
-  it('returns null when no approval response is present', () => {
-    expect(
-      extractApprovalIdFromToolMessage({
-        role: 'tool',
-        parts: [{ type: 'tool-result', toolCallId: 'call-1' }]
+  it('builds a canonical approval response for a pending approval', async () => {
+    prismaMock.chatMessage.findMany.mockResolvedValue([
+      {
+        id: 'assistant-1',
+        metadata: {
+          pendingApprovals: [
+            {
+              toolCallId: 'approval-1',
+              toolName: 'create_workout',
+              args: { title: 'Run' }
+            }
+          ]
+        }
+      }
+    ])
+
+    await expect(
+      buildCanonicalApprovalResponse({
+        roomId: 'room-1',
+        approvalId: 'approval-1',
+        approved: true,
+        reason: 'Looks good.'
       })
-    ).toBeNull()
+    ).resolves.toEqual({
+      type: 'tool-approval-response',
+      toolCallId: 'approval-1',
+      approvalId: 'approval-1',
+      approved: true,
+      reason: 'Looks good.'
+    })
+  })
+
+  it('rejects unknown approval ids', async () => {
+    prismaMock.chatMessage.findMany.mockResolvedValue([])
+
+    await expect(
+      buildCanonicalApprovalResponse({
+        roomId: 'room-1',
+        approvalId: 'missing',
+        approved: true
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400
+    })
   })
 })

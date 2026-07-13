@@ -16,6 +16,10 @@
   import ChatMessageList from '~/components/chat/ChatMessageList.vue'
   import ChatInput from '~/components/chat/ChatInput.vue'
   import { shouldHideAssistantBubble } from '~/utils/chat-message-state'
+  import {
+    CHAT_OUTGOING_QUEUE_STORAGE_KEY,
+    clearChatOutgoingQueue
+  } from '~/utils/chat-outgoing-queue'
 
   const { t } = useTranslate('chat')
 
@@ -94,7 +98,7 @@
     activeTurnUpdatedAt: string | null
     hasAssistantMessage: boolean
   }
-  const CHAT_QUEUE_STORAGE_KEY = 'coach-chat-outgoing-queue'
+  const CHAT_QUEUE_STORAGE_KEY = CHAT_OUTGOING_QUEUE_STORAGE_KEY
 
   type SerializedQueuedOutgoingMessage = Omit<QueuedOutgoingMessage, 'createdAt'> & {
     createdAt: string
@@ -148,6 +152,8 @@
 
   const { refresh: refreshRuns } = useUserRuns()
   const upgradeModal = useUpgradeModal()
+  const userStore = useUserStore()
+  const coachingStore = useCoachingStore()
   const { trackChatSessionStart, trackChatError } = useAnalytics()
 
   watch(
@@ -290,6 +296,11 @@
   const queuedMessageCount = computed(() => queuedOutgoingMessages.value.length)
   const serializeRoomState = (state: ChatRoomStateSnapshot | null | undefined) =>
     JSON.stringify(state || null)
+  const serializePollableRoomState = (state: ChatRoomStateSnapshot | null | undefined) => {
+    if (!state) return 'null'
+    const { activeTurnUpdatedAt: _activeTurnUpdatedAt, ...pollableState } = state
+    return JSON.stringify(pollableState)
+  }
   const setRoomStateSignature = (roomId: string, signature: string) => {
     roomStateSignaturesByRoom.value = {
       ...roomStateSignaturesByRoom.value,
@@ -298,6 +309,15 @@
   }
   const getRoomStateSignature = (roomId: string) =>
     roomId ? roomStateSignaturesByRoom.value[roomId] || '' : ''
+  const getPollableRoomStateSignature = (roomId: string) => {
+    const raw = getRoomStateSignature(roomId)
+    if (!raw) return ''
+    try {
+      return serializePollableRoomState(JSON.parse(raw) as ChatRoomStateSnapshot)
+    } catch {
+      return ''
+    }
+  }
   const buildRoomStateFromMessages = (messages: any[]): ChatRoomStateSnapshot => {
     const latestUpdatedMessage = [...messages].sort(
       (left, right) =>
@@ -730,7 +750,44 @@
       }
     }
 
+    const existingText =
+      typeof existingMessage?.content === 'string' ? existingMessage.content.trim() : ''
+    const incomingText =
+      typeof incomingMessage?.content === 'string' ? incomingMessage.content.trim() : ''
+    const existingIsStreaming =
+      activeTurnStatuses.includes(String(existingStatus || '')) ||
+      existingMessage?.metadata?.isRealtimeDraft
+    if (
+      existingIsStreaming &&
+      existingText.length > incomingText.length &&
+      incomingMessage?.role === 'assistant'
+    ) {
+      const existingTextPart = existingParts.find((part: any) => part?.type === 'text')
+      return {
+        ...incomingMessage,
+        content: existingMessage.content,
+        parts: [
+          ...existingNonTextParts,
+          existingTextPart || { type: 'text', text: existingMessage.content }
+        ],
+        metadata: {
+          ...(incomingMessage?.metadata || {}),
+          ...(existingMessage?.metadata || {}),
+          turnStatus: existingStatus || incomingStatus
+        }
+      }
+    }
+
     return incomingMessage
+  }
+  const mergeLoadedMessages = (existingMessages: any[], loadedMessages: any[]) => {
+    const existingById = new Map(existingMessages.map((message) => [message?.id, message]))
+
+    return loadedMessages.map((loadedMessage) => {
+      const existingMessage = existingById.get(loadedMessage?.id)
+      if (!existingMessage) return loadedMessage
+      return mergeRealtimeMessage(existingMessage, loadedMessage)
+    })
   }
   const upsertChatMessage = (message: any) => {
     if (!chatPageActive) return
@@ -839,10 +896,16 @@
     ) {
       enqueueOutgoingMessage(outgoingMessage)
     } else {
-      await sendOutgoingMessage({
-        text: submittedText,
-        attachments
-      })
+      awaitingTurnStart.value = true
+      try {
+        await sendOutgoingMessage({
+          text: submittedText,
+          attachments
+        })
+      } catch (error) {
+        awaitingTurnStart.value = false
+        throw error
+      }
     }
 
     input.value = ''
@@ -958,7 +1021,8 @@
       await loadMessages(currentRoomId.value)
 
       if (response?.regenerateFromEdit) {
-        await sendOutgoingMessage({ text: content, attachments: [] })
+        awaitingTurnStart.value = true
+        restartTurnPolling({ forceForMs: 15000 })
       }
 
       toast.add({
@@ -1131,6 +1195,22 @@
 
           if (terminalTurnStatuses.includes(String(data.status || ''))) {
             awaitingTurnStart.value = false
+            if (data.quotaExceeded) {
+              upgradeModal.show({
+                title: 'Unlock More Insights Today',
+                featureTitle: 'Full AI Coach Access',
+                featureDescription:
+                  data.failureReason ||
+                  'You have utilized your daily training analysis. To continue planning your peak performance without limits, upgrade to Pro for unrestricted access to your Digital Coach.',
+                recommendedTier: 'pro',
+                bullets: [
+                  'Unlimited Strategic Chat',
+                  'Faster AI Responses',
+                  'Deep-Context Analysis',
+                  'Proactive Readiness Alerts'
+                ]
+              })
+            }
             scheduleTerminalMessageSync(currentRoomId.value, 50)
           }
         }
@@ -1213,13 +1293,13 @@
 
       try {
         const roomState = await fetchRoomState(currentRoomId.value)
-        const nextSignature = serializeRoomState(roomState)
+        const nextSignature = serializePollableRoomState(roomState)
 
         nextHasActiveTurn = activeTurnStatuses.includes(String(roomState.activeTurnStatus || ''))
         nextHasAssistantMessage = roomState.hasAssistantMessage
 
-        if (nextSignature !== getRoomStateSignature(currentRoomId.value)) {
-          setRoomStateSignature(currentRoomId.value, nextSignature)
+        if (nextSignature !== getPollableRoomStateSignature(currentRoomId.value)) {
+          setRoomStateSignature(currentRoomId.value, serializeRoomState(roomState))
           await loadMessages(currentRoomId.value, { silent: true })
           didReloadMessages = true
           nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
@@ -1299,16 +1379,14 @@
         ...transformStoredMessage(msg),
         updatedAt: msg.updatedAt || msg.metadata?.updatedAt || null
       }))
+      const mergedMessages = mergeLoadedMessages(chat.messages as any[], transformedMessages)
 
       // Avoid replacing the entire message list when nothing material changed,
       // because that retriggers internal scroll behavior in the chat UI.
-      if (!areMessageListsEquivalent(chat.messages as any[], transformedMessages)) {
-        chat.messages = transformedMessages as any
+      if (!areMessageListsEquivalent(chat.messages as any[], mergedMessages)) {
+        chat.messages = mergedMessages as any
       }
-      setRoomStateSignature(
-        roomId,
-        serializeRoomState(buildRoomStateFromMessages(transformedMessages))
-      )
+      setRoomStateSignature(roomId, serializeRoomState(buildRoomStateFromMessages(mergedMessages)))
       if (
         transformedMessages.some(
           (message: any) =>
@@ -1377,7 +1455,7 @@
       }
 
       if (text) {
-        await sendOutgoingMessage({ text, attachments: [] })
+        input.value = text
       }
 
       // Clear query params
@@ -1973,9 +2051,15 @@
     resetMemoryDraft()
   }
 
-  watch(isShareModalOpen, (newValue) => {
-    if (newValue && !shareLink.value) {
-      generateShareLink()
+  const clearOutgoingQueueState = () => {
+    queuedOutgoingByRoom.value = {}
+    clearChatOutgoingQueue()
+    Object.keys(queueReconcileTimersByRoom).forEach((roomId) => clearQueueReconcileTimer(roomId))
+  }
+
+  watch(isShareModalOpen, () => {
+    if (!isShareModalOpen.value) {
+      shareLink.value = ''
     }
   })
 
@@ -1994,6 +2078,19 @@
       void loadMemoryState()
     }
   })
+
+  watch(
+    () => [userStore.user?.id, coachingStore.actingAsUserId] as const,
+    ([nextUserId, nextActingAsUserId], previous) => {
+      const [prevUserId, prevActingAsUserId] = previous || [undefined, undefined]
+      if (
+        (prevUserId && nextUserId && prevUserId !== nextUserId) ||
+        prevActingAsUserId !== nextActingAsUserId
+      ) {
+        clearOutgoingQueueState()
+      }
+    }
+  )
 
   watch(
     () => [uiChatStatus.value, queuedMessageCount.value] as const,

@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { ACTIVE_CHAT_TURN_STATUSES } from '../../../utils/chat/turns'
+import { chatTurnService } from '../../../utils/services/chatTurnService'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -86,34 +87,45 @@ export default defineEventHandler(async (event) => {
   }
 
   if (regenerateFromEdit) {
-    const activeDownstreamTurn = await prisma.chatTurn.findFirst({
-      where: {
-        roomId: message.roomId,
-        createdAt: {
-          gte: message.createdAt
-        },
-        status: {
-          in: ACTIVE_CHAT_TURN_STATUSES
-        }
-      },
-      select: {
-        id: true
-      }
-    })
+    const metadata = (message.metadata as Record<string, any> | null) || {}
+    const nextMetadata: Record<string, any> = {
+      ...metadata,
+      editedAt: new Date().toISOString(),
+      editCount: Number(metadata.editCount || 0) + 1
+    }
 
-    if (activeDownstreamTurn) {
-      throw createError({
-        statusCode: 409,
-        message: 'Cannot regenerate while a downstream response is still running.'
-      })
+    if (!metadata.originalContent) {
+      nextMetadata.originalContent = message.content
     }
 
     await prisma.$transaction(async (tx) => {
+      const activeDownstreamTurn = await tx.chatTurn.findFirst({
+        where: {
+          roomId: message.roomId,
+          createdAt: {
+            gt: message.createdAt
+          },
+          status: {
+            in: ACTIVE_CHAT_TURN_STATUSES
+          }
+        },
+        select: {
+          id: true
+        }
+      })
+
+      if (activeDownstreamTurn) {
+        throw createError({
+          statusCode: 409,
+          message: 'Cannot regenerate while a downstream response is still running.'
+        })
+      }
+
       await tx.chatTurn.deleteMany({
         where: {
           roomId: message.roomId,
           createdAt: {
-            gte: message.createdAt
+            gt: message.createdAt
           }
         }
       })
@@ -122,8 +134,17 @@ export default defineEventHandler(async (event) => {
         where: {
           roomId: message.roomId,
           createdAt: {
-            gte: message.createdAt
+            gt: message.createdAt
           }
+        }
+      })
+
+      await tx.chatMessage.update({
+        where: { id: message.id },
+        data: {
+          content,
+          metadata: nextMetadata,
+          turnId: null
         }
       })
 
@@ -142,9 +163,40 @@ export default defineEventHandler(async (event) => {
       })
     })
 
+    const turn = await chatTurnService.createTurn({
+      roomId: message.roomId,
+      userId,
+      userMessageId: message.id,
+      request: {
+        messages: await chatTurnService.buildStableRequestMessages(message.roomId, message.id, 25),
+        lastMessageId: message.id,
+        content,
+        coachingContext: {
+          actorUserId: (session.user as any)?.originalUserId || userId,
+          isCoaching: !!(session.user as any)?.isCoaching
+        }
+      }
+    })
+
+    await prisma.chatMessage.update({
+      where: { id: message.id },
+      data: {
+        turnId: turn.id,
+        metadata: {
+          ...nextMetadata,
+          turnId: turn.id,
+          turnStatus: turn.status
+        } as any
+      }
+    })
+
+    await chatTurnService.enqueueTurn(turn.id, userId)
+
     return {
       success: true,
-      regenerateFromEdit: true
+      regenerateFromEdit: true,
+      turnId: turn.id,
+      messageId: message.id
     }
   }
 

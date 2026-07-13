@@ -118,3 +118,62 @@ export async function findTurnForApprovalResponseMessage(message: {
     orderBy: { createdAt: 'desc' }
   })
 }
+
+function findPendingApprovalInMetadata(metadata: Record<string, any>, approvalId: string) {
+  const collections = ['pendingApprovals', 'toolApprovals']
+  for (const key of collections) {
+    const entries = Array.isArray(metadata[key]) ? metadata[key] : []
+    const match = entries.find(
+      (entry: any) => entry?.toolCallId === approvalId || entry?.approvalId === approvalId
+    )
+    if (match) return match
+  }
+  return null
+}
+
+export async function buildCanonicalApprovalResponse(input: {
+  roomId: string
+  approvalId: string
+  approved: boolean
+  reason?: string | null
+}) {
+  const assistantMessages = await prisma.chatMessage.findMany({
+    where: {
+      roomId: input.roomId,
+      senderId: 'ai_agent'
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    select: {
+      id: true,
+      metadata: true
+    }
+  })
+
+  const hasPendingApproval = assistantMessages.some((message) => {
+    const metadata = (message.metadata as Record<string, any> | null) || {}
+    return !!findPendingApprovalInMetadata(metadata, input.approvalId)
+  })
+
+  if (!hasPendingApproval) {
+    throw createError({
+      statusCode: 400,
+      message: 'Approval request not found for this chat room.'
+    })
+  }
+
+  const reason =
+    typeof input.reason === 'string' && input.reason.trim()
+      ? input.reason.trim().slice(0, 500)
+      : input.approved
+        ? 'User confirmed action.'
+        : 'User cancelled action.'
+
+  return {
+    type: 'tool-approval-response',
+    toolCallId: input.approvalId,
+    approvalId: input.approvalId,
+    approved: input.approved,
+    reason
+  }
+}

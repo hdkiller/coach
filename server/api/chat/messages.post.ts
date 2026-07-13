@@ -8,7 +8,8 @@ import {
   extractApprovalIdFromToolMessage,
   findExistingApprovalResponseMessage,
   findTurnForApprovalResponseMessage,
-  resolveApprovalOriginLineageId
+  resolveApprovalOriginLineageId,
+  buildCanonicalApprovalResponse
 } from '../../utils/chat/approval-continuation'
 
 export default defineEventHandler(async (event) => {
@@ -32,19 +33,6 @@ export default defineEventHandler(async (event) => {
   const { roomId, messages, files, replyMessage } = body
   const clientMessages = Array.isArray(messages) ? messages : []
   const truncatedMessages = clientMessages.slice(-25)
-
-  const room = await prisma.chatRoom.findUnique({
-    where: { id: roomId },
-    select: { createdAt: true }
-  })
-
-  const MIGRATION_CUTOFF = new Date('2026-01-22T00:00:00Z')
-  if (room && new Date(room.createdAt) < MIGRATION_CUTOFF) {
-    throw createError({
-      statusCode: 403,
-      message: 'This chat is read-only. Please start a new chat.'
-    })
-  }
 
   const lastMessage = truncatedMessages?.[truncatedMessages.length - 1]
   const messageParts = Array.isArray(lastMessage?.parts)
@@ -119,6 +107,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await chatService.validateRoomAccess(userId, roomId)
+  const replyToId = await chatService.resolveReplyToId(roomId, replyMessage?._id)
 
   const incomingMessageId = lastMessage?.id
   const existingMessage = incomingMessageId
@@ -182,13 +171,24 @@ export default defineEventHandler(async (event) => {
   if (shouldPersistIncomingMessage && !existingMessage) {
     const metadata: any = {}
     if (lastMessage.role === 'tool') {
-      // Prefer parts over content for tool messages — the client sends tool-approval-response
-      // in parts (not content), and expandStoredChatMessage reads from metadata.toolResponse.
-      if (Array.isArray(lastMessage.parts) && lastMessage.parts.length > 0) {
-        metadata.toolResponse = lastMessage.parts
-      } else if (Array.isArray(lastMessage.content)) {
-        metadata.toolResponse = lastMessage.content
+      const approvalId = extractApprovalIdFromToolMessage(lastMessage)
+      const approvalPart = messageParts.find((part: any) => part?.type === 'tool-approval-response')
+
+      if (!approvalId) {
+        throw createError({
+          statusCode: 400,
+          message: 'Tool approval response is missing an approval identifier.'
+        })
       }
+
+      metadata.toolResponse = [
+        await buildCanonicalApprovalResponse({
+          roomId,
+          approvalId,
+          approved: approvalPart?.approved !== false,
+          reason: typeof approvalPart?.reason === 'string' ? approvalPart.reason : null
+        })
+      ]
     }
 
     persistedMessage = await chatService.saveUserMessage({
@@ -198,7 +198,7 @@ export default defineEventHandler(async (event) => {
       role: lastMessage.role,
       metadata,
       id: incomingMessageId || undefined,
-      replyToId: replyMessage?._id || undefined,
+      replyToId,
       files: attachedFiles.length > 0 ? attachedFiles : undefined
     })
   }

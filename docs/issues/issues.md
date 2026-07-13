@@ -226,6 +226,10 @@ Merged in PRs [#214](https://github.com/hdkiller/coach/pull/214)–[#222](https:
 | Session / act-as     | `server/utils/session.ts`                                                       |
 | Chat turn timeouts   | `server/utils/chat/turns.ts`, `server/utils/chat/turn-executor.ts`              |
 
+## Chat Page Review (224–237)
+
+Systematic review of `/chat`, turn executor, WebSocket auth, and public share (2026-07-13). Tracked in [app-review-issues.md](./app-review-issues.md#issue-224237-chat-page-review--2026-07-13). **224–237 fixed.**
+
 ## Chat / Trigger Timeout Notes
 
 From this review and the user's concern about **AI generation inside triggers timing out**:

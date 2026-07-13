@@ -1,41 +1,68 @@
-import { randomBytes } from 'crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
 
-// In-memory token store: token -> { userId, expiresAt }
-// 10 second expiration is plenty for the handshake
-const tokens = new Map<string, { userId: string; expiresAt: number }>()
+const WS_TOKEN_TTL_MS = 10 * 1000
+
+type WsTokenPayload = {
+  sub: string
+  purpose: 'websocket_auth'
+  exp: number
+  nonce: string
+}
+
+function getWsAuthSecret() {
+  return process.env.INTERNAL_API_TOKEN || process.env.NUXT_SESSION_PASSWORD || null
+}
 
 export function generateWsToken(userId: string): string {
-  const token = randomBytes(32).toString('hex')
-  tokens.set(token, {
-    userId,
-    expiresAt: Date.now() + 10 * 1000 // 10 seconds validity
-  })
-
-  // Cleanup old tokens
-  if (tokens.size > 1000) {
-    const now = Date.now()
-    for (const [key, value] of tokens.entries()) {
-      if (value.expiresAt < now) {
-        tokens.delete(key)
-      }
-    }
+  const secret = getWsAuthSecret()
+  if (!secret) {
+    throw new Error('WS auth secret is not configured')
   }
 
-  return token
+  const payload: WsTokenPayload = {
+    sub: userId,
+    purpose: 'websocket_auth',
+    exp: Date.now() + WS_TOKEN_TTL_MS,
+    nonce: randomBytes(8).toString('hex')
+  }
+
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const hmac = createHmac('sha256', secret)
+  hmac.update(payloadB64)
+  const signature = hmac.digest('hex')
+
+  return `${payloadB64}.${signature}`
 }
 
 export function verifyWsToken(token: string): string | null {
-  const data = tokens.get(token)
+  try {
+    const secret = getWsAuthSecret()
+    if (!secret) return null
 
-  if (!data) return null
+    const [payloadB64, signature] = token.split('.')
+    if (!payloadB64 || !signature) return null
 
-  if (Date.now() > data.expiresAt) {
-    tokens.delete(token)
+    const hmac = createHmac('sha256', secret)
+    hmac.update(payloadB64)
+    const expectedSignature = hmac.digest('hex')
+
+    if (signature.length !== expectedSignature.length) return null
+
+    const isValid = timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    )
+    if (!isValid) return null
+
+    const payload = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8')
+    ) as WsTokenPayload
+
+    if (payload.purpose !== 'websocket_auth' || !payload.sub) return null
+    if (Date.now() > payload.exp) return null
+
+    return payload.sub
+  } catch {
     return null
   }
-
-  // Single use token
-  tokens.delete(token)
-
-  return data.userId
 }

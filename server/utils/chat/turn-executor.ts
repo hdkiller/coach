@@ -464,7 +464,37 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   let terminalFailureReason: string | null = null
   const executionAbortController = new AbortController()
 
-  await checkQuota(turn.userId, 'chat')
+  try {
+    await checkQuota(turn.userId, 'chat')
+  } catch (error: any) {
+    const reason =
+      error?.statusCode === 429
+        ? error?.message || 'Chat quota exceeded.'
+        : error instanceof Error
+          ? error.message
+          : 'Chat turn failed before execution.'
+    const finishedAt = new Date()
+
+    await chatTurnService
+      .updateStatus(turn.id, CHAT_TURN_STATUS.FAILED, {
+        finishedAt,
+        failureReason: reason
+      })
+      .catch(() => null)
+
+    await sendToUser(turn.userId, {
+      type: 'chat_turn_status',
+      roomId: turn.roomId,
+      turnId: turn.id,
+      status: CHAT_TURN_STATUS.FAILED,
+      reason: 'turn_failed',
+      failureReason: reason,
+      quotaExceeded: error?.statusCode === 429
+    }).catch(() => null)
+
+    throw error
+  }
+
   const startedTurn = await chatTurnService.tryStartExecution(
     turn.id,
     expectedRunId || turn.runId,
@@ -517,722 +547,988 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     executionAbortController.abort(terminalFailureReason)
   }, CHAT_TURN_EXECUTION_TIMEOUT_LIMIT_MS)
 
-  const earlyUsage = await chatTurnService.startLlmUsage(turn.id, turn.userId, content || '')
-
-  const draft = await chatTurnService.createAssistantDraft({
-    turnId: turn.id,
-    roomId: turn.roomId,
-    status: CHAT_TURN_STATUS.RUNNING,
-    existingMessageId: turn.assistantMessageId
-  })
-
-  const { systemInstruction: baseSystemInstruction } = await buildAthleteContext(turn.userId, {
-    includeDomainToolInstructions: false
-  })
-  ensureTurnNotAborted()
-  const timezone = await getUserTimezone(turn.userId)
-  ensureTurnNotAborted()
-  const aiSettings = await getUserAiSettings(turn.userId)
-  ensureTurnNotAborted()
-  const roomMetadata = (turn.room.metadata as any) || {}
-  const { globalBlock: globalMemoryBlock, roomBlock: roomMemoryBlock } =
-    await userMemoryService.composePromptMemoryBlock({
-      userId: turn.userId,
-      roomId: turn.roomId,
-      memoryEnabled: aiSettings.aiMemoryEnabled
-    })
-  const roomSummaryBlock = roomMetadata?.historySummary
-    ? `## Previous Conversation Summary\n${roomMetadata.historySummary}`
-    : ''
-  let finalSystemInstruction = [
-    globalMemoryBlock,
-    roomSummaryBlock,
-    roomMemoryBlock,
-    baseSystemInstruction
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-
-  const google = createGoogle({
-    apiKey: process.env.GEMINI_API_KEY
-  })
-  const opSettings = await getLlmOperationSettings(turn.userId, 'chat')
-  ensureTurnNotAborted()
-  const modelName = opSettings.modelId
-  const allTools = getToolsWithContext(turn.userId, timezone, aiSettings, turn.roomId, {
-    turnId: turn.id,
-    lineageId: turn.lineageId,
-    roomId: turn.roomId,
-    userId: turn.userId,
-    actorUserId
-  })
-  const skillSelection = await classifyChatSkills({
-    userId: turn.userId,
-    turnId: turn.id,
-    messages: submittedMessages,
-    roomMetadata,
-    requireToolApproval: !!aiSettings?.aiRequireToolApproval,
-    nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
-  })
-  ensureTurnNotAborted()
-  const { tools, selectedToolNames, systemInstruction } = await buildTurnExecutionSkillConfig({
-    allTools,
-    baseSystemInstruction: finalSystemInstruction,
-    skillSelection,
-    aiRequireToolApproval: !!aiSettings?.aiRequireToolApproval,
-    nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
-  })
-  finalSystemInstruction = systemInstruction
-  const availableToolNames = selectedToolNames
-
-  const skillSelectionMetadata = {
-    skillIds: skillSelection.skillIds,
-    confidence: skillSelection.confidence,
-    useTools: skillSelection.useTools,
-    extractMemories: !!skillSelection.extractMemories,
-    memoryReason: skillSelection.memoryReason || null,
-    usedFallback: !!skillSelection.usedFallback,
-    source: skillSelection.source || 'router',
-    reason: skillSelection.reason || null,
-    selectedToolNames
-  }
-
-  await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.RUNNING, {
-    metadata: chatTurnService.mergeTurnMetadata(turn, {
-      timeoutReason: null,
-      slowResponse: false,
-      firstOutputLatencyMs: null,
-      executionDurationMs: null,
-      executionPhase: currentPhase,
-      skillSelection: skillSelectionMetadata
-    })
-  })
-
-  const historyToolCalls = new Map<string, any>()
-  const currentTurnToolCalls = new Map<string, any>()
-  const allToolResults: any[] = []
-
-  let assistantText = ''
-  let persistedText = draft.content || ' '
-  let lastPersistAt = 0
-  let latestUsage: any = null
-  const persistToolResultMessages = async (toolResults: any[]) => {
-    if (!toolResults.length) return
-
-    const canonicalParts = toolResults.map((toolResult: any) => ({
-      type: 'tool-result',
-      toolCallId: toolResult.toolCallId,
-      toolName: toolResult.toolName,
-      result: toolResult.result
-    }))
-
-    await chatTurnService.upsertToolResultMessage({
-      turnId: turn.id,
-      roomId: turn.roomId,
-      toolResponses: canonicalParts
-    })
-  }
-
-  let historyMessages = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
-    normalizeMessagesForSdk(submittedMessages)
-  )
-
-  const approvedContinuation = findApprovedToolContinuation(historyMessages)
-  if (
-    approvedContinuation?.toolName &&
-    typeof tools[approvedContinuation.toolName]?.execute === 'function'
-  ) {
-    historyToolCalls.set(approvedContinuation.toolCallId, {
-      toolCallId: approvedContinuation.toolCallId,
-      toolName: approvedContinuation.toolName,
-      args: approvedContinuation.args
-    })
-    currentTurnToolCalls.set(approvedContinuation.toolCallId, {
-      toolCallId: approvedContinuation.toolCallId,
-      toolName: approvedContinuation.toolName,
-      args: approvedContinuation.args
-    })
-
-    const directResult = await tools[approvedContinuation.toolName].execute(
-      approvedContinuation.args,
-      {
-        toolCallId: approvedContinuation.toolCallId,
-        context: {
-          turnId: activeTurn.id,
-          lineageId: turn.lineageId,
-          roomId: turn.roomId,
-          userId: turn.userId,
-          actorUserId
-        }
-      }
-    )
-
-    const directDetailedResult = {
-      toolCallId: approvedContinuation.toolCallId,
-      toolName: approvedContinuation.toolName,
-      args: approvedContinuation.args,
-      result: directResult
+  let slowResponseTimer: ReturnType<typeof setTimeout> | undefined
+  const clearExecutionTimers = () => {
+    clearInterval(heartbeatTimer)
+    clearTimeout(executionTimeoutTimer)
+    if (slowResponseTimer !== undefined) {
+      clearTimeout(slowResponseTimer)
     }
+  }
 
-    allToolResults.push(directDetailedResult)
-    await persistToolResultMessages(allToolResults)
+  return await (async () => {
+    try {
+      const earlyUsage = await chatTurnService.startLlmUsage(turn.id, turn.userId, content || '')
 
-    historyMessages = [
-      ...historyMessages,
-      {
-        role: 'tool',
-        parts: [
-          {
-            type: 'tool-result',
-            toolCallId: approvedContinuation.toolCallId,
-            toolName: approvedContinuation.toolName,
-            result: directResult
-          }
-        ]
-      }
-    ]
-
-    if (isMutatingChatTool(approvedContinuation.toolName)) {
-      currentPhase = 'completed'
-      await markFirstVisibleOutput('tool_step', {
-        toolCallCount: 1,
-        toolResultCount: 1,
-        approvedContinuation: true
+      const draft = await chatTurnService.createAssistantDraft({
+        turnId: turn.id,
+        roomId: turn.roomId,
+        status: CHAT_TURN_STATUS.RUNNING,
+        existingMessageId: turn.assistantMessageId
       })
 
-      assistantText = buildApprovedContinuationConfirmation(
-        approvedContinuation.toolName,
-        directResult
-      )
-
-      const finishedAt = new Date()
-      const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
-
-      await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
-        hideUntilContent: false,
-        hiddenBecauseEmptyFailure: false,
-        executionPhase: currentPhase,
-        executionDurationMs
+      const { systemInstruction: baseSystemInstruction } = await buildAthleteContext(turn.userId, {
+        includeDomainToolInstructions: false
       })
-
-      await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
-        finishedAt,
-        assistantMessageId: draft.id,
-        metadata: chatTurnService.mergeTurnMetadata(turn, {
-          timeoutReason: null,
-          slowResponse: slowResponseRecorded,
-          firstOutputLatencyMs,
-          executionDurationMs,
-          executionPhase: currentPhase,
-          finishedAt: finishedAt.toISOString(),
-          skillSelection: skillSelectionMetadata,
-          completedLocallyAfterApprovedTool: true
+      ensureTurnNotAborted()
+      const timezone = await getUserTimezone(turn.userId)
+      ensureTurnNotAborted()
+      const aiSettings = await getUserAiSettings(turn.userId)
+      ensureTurnNotAborted()
+      const roomMetadata = (turn.room.metadata as any) || {}
+      const { globalBlock: globalMemoryBlock, roomBlock: roomMemoryBlock } =
+        await userMemoryService.composePromptMemoryBlock({
+          userId: turn.userId,
+          roomId: turn.roomId,
+          memoryEnabled: aiSettings.aiMemoryEnabled
         })
+      const roomSummaryBlock = roomMetadata?.historySummary
+        ? `## Previous Conversation Summary\n${roomMetadata.historySummary}`
+        : ''
+      let finalSystemInstruction = [
+        globalMemoryBlock,
+        roomSummaryBlock,
+        roomMemoryBlock,
+        baseSystemInstruction
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+
+      const google = createGoogle({
+        apiKey: process.env.GEMINI_API_KEY
       })
-
-      await broadcastAssistantMessage(
-        {
-          id: draft.id,
-          content: assistantText,
-          createdAt: draft.createdAt,
-          metadata: {
-            ...((draft.metadata as any) || {}),
-            isDraft: false
-          }
-        },
-        CHAT_TURN_STATUS.COMPLETED,
-        { finishedAt, skillSelection: skillSelectionMetadata }
-      )
-
-      await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
-        assistantMessageId: draft.id,
-        firstOutputLatencyMs,
-        executionDurationMs,
-        completionMode: 'local_after_approved_tool'
-      } as any)
-
-      await prisma.llmUsage
-        .update({
-          where: { id: earlyUsage.id },
-          data: {
-            model: 'approval_continuation_local',
-            success: true,
-            errorType: null,
-            errorMessage: null,
-            durationMs: executionDurationMs,
-            ttft: firstOutputLatencyMs,
-            responsePreview: assistantText.substring(0, 500)
-          }
-        })
-        .catch(() => null)
-
-      await scheduleChatRoomSummaryIfNeeded({
+      const opSettings = await getLlmOperationSettings(turn.userId, 'chat')
+      ensureTurnNotAborted()
+      const modelName = opSettings.modelId
+      const allTools = getToolsWithContext(turn.userId, timezone, aiSettings, turn.roomId, {
+        turnId: turn.id,
+        lineageId: turn.lineageId,
         roomId: turn.roomId,
         userId: turn.userId,
-        roomName: turn.room.name,
-        roomMetadata
-      }).catch((error) => {
-        console.error('[ChatTurn] Failed to schedule chat summary after local completion:', {
-          turnId: activeTurn.id,
-          roomId: turn.roomId,
-          error
+        actorUserId
+      })
+      const skillSelection = await classifyChatSkills({
+        userId: turn.userId,
+        turnId: turn.id,
+        messages: submittedMessages,
+        roomMetadata,
+        requireToolApproval: !!aiSettings?.aiRequireToolApproval,
+        nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
+      })
+      ensureTurnNotAborted()
+      const { tools, selectedToolNames, systemInstruction } = await buildTurnExecutionSkillConfig({
+        allTools,
+        baseSystemInstruction: finalSystemInstruction,
+        skillSelection,
+        aiRequireToolApproval: !!aiSettings?.aiRequireToolApproval,
+        nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
+      })
+      finalSystemInstruction = systemInstruction
+      const availableToolNames = selectedToolNames
+
+      const skillSelectionMetadata = {
+        skillIds: skillSelection.skillIds,
+        confidence: skillSelection.confidence,
+        useTools: skillSelection.useTools,
+        extractMemories: !!skillSelection.extractMemories,
+        memoryReason: skillSelection.memoryReason || null,
+        usedFallback: !!skillSelection.usedFallback,
+        source: skillSelection.source || 'router',
+        reason: skillSelection.reason || null,
+        selectedToolNames
+      }
+
+      await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.RUNNING, {
+        metadata: chatTurnService.mergeTurnMetadata(turn, {
+          timeoutReason: null,
+          slowResponse: false,
+          firstOutputLatencyMs: null,
+          executionDurationMs: null,
+          executionPhase: currentPhase,
+          skillSelection: skillSelectionMetadata
         })
       })
 
-      return {
-        success: true,
-        assistantMessageId: draft.id
+      const historyToolCalls = new Map<string, any>()
+      const currentTurnToolCalls = new Map<string, any>()
+      const allToolResults: any[] = []
+
+      let assistantText = ''
+      let persistedText = draft.content || ' '
+      let lastPersistAt = 0
+      let latestUsage: any = null
+      const persistToolResultMessages = async (toolResults: any[]) => {
+        if (!toolResults.length) return
+
+        const canonicalParts = toolResults.map((toolResult: any) => ({
+          type: 'tool-result',
+          toolCallId: toolResult.toolCallId,
+          toolName: toolResult.toolName,
+          result: toolResult.result
+        }))
+
+        await chatTurnService.upsertToolResultMessage({
+          turnId: turn.id,
+          roomId: turn.roomId,
+          toolResponses: canonicalParts
+        })
       }
-    }
-  }
 
-  const coreMessages = await transformHistoryToCoreMessages(historyMessages)
-  ensureTurnNotAborted()
-  const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
-
-  async function broadcastAssistantMessage(
-    message: { id: string; content: string; createdAt: Date; metadata?: any },
-    status: string,
-    extra: {
-      failureReason?: string | null
-      finishedAt?: Date | null
-      skillSelection?: Record<string, any> | null
-    } = {}
-  ) {
-    await sendToUser(activeTurn.userId, {
-      type: 'chat_message_upsert',
-      roomId: activeTurn.roomId,
-      message: expandStoredChatMessage({
-        ...message,
-        senderId: 'ai_agent',
-        turn: {
-          id: activeTurn.id,
-          status,
-          failureReason: extra.failureReason ?? null,
-          startedAt,
-          finishedAt: extra.finishedAt ?? null,
-          metadata: extra.skillSelection ? { skillSelection: extra.skillSelection } : undefined
-        }
-      })
-    })
-  }
-
-  async function broadcastAssistantTextDelta(textDelta: string, status: string) {
-    await sendToUser(activeTurn.userId, {
-      type: 'chat_assistant_text_delta',
-      roomId: activeTurn.roomId,
-      turnId: activeTurn.id,
-      messageId: draft.id,
-      textDelta,
-      status
-    })
-  }
-
-  async function broadcastTurnStatus(reason: string, extra: Record<string, any> = {}) {
-    await sendToUser(activeTurn.userId, {
-      type: 'chat_turn_status',
-      roomId: activeTurn.roomId,
-      turnId: activeTurn.id,
-      status: extra.status || CHAT_TURN_STATUS.RUNNING,
-      reason,
-      ...extra
-    })
-  }
-
-  async function broadcastMemoryEvent(payload: {
-    action: 'saved' | 'updated' | 'forgotten'
-    memories: any[]
-    notice: string
-  }) {
-    await sendToUser(activeTurn.userId, {
-      type: 'chat_memory_event',
-      roomId: activeTurn.roomId,
-      action: payload.action,
-      memories: payload.memories,
-      notice: payload.notice
-    })
-  }
-
-  async function logAttemptUsage(params: {
-    attemptIndex: number
-    usage: any
-    success: boolean
-    errorType?: string | null
-    errorMessage?: string | null
-    responsePreview: string
-    durationMs: number
-    repairPromptUsed: boolean
-  }) {
-    try {
-      const promptTokens = params.usage?.inputTokens || 0
-      const completionTokens = params.usage?.outputTokens || 0
-      const cachedTokens = params.usage?.inputTokenDetails?.cacheReadTokens || 0
-      const reasoningTokens = params.usage?.outputTokenDetails?.reasoningTokens || 0
-      const estimatedCost = calculateLlmCost(
-        modelName,
-        promptTokens,
-        completionTokens + reasoningTokens,
-        cachedTokens
+      let historyMessages = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
+        normalizeMessagesForSdk(submittedMessages)
       )
 
-      await prisma.llmUsage.create({
-        data: {
-          userId: activeTurn.userId,
-          turnId: activeTurn.id,
-          provider: 'gemini',
-          model: modelName,
-          modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
-          operation: 'chat_attempt',
-          entityType: 'ChatTurn',
-          entityId: activeTurn.id,
-          promptTokens,
-          completionTokens,
-          cachedTokens,
-          reasoningTokens,
-          totalTokens: promptTokens + completionTokens,
-          estimatedCost,
-          durationMs: params.durationMs,
-          ttft: firstOutputLatencyMs,
-          retryCount: params.attemptIndex,
-          success: params.success,
-          errorType: params.errorType || null,
-          errorMessage: params.errorMessage || null,
-          promptPreview: (content || '').substring(0, 500),
-          responsePreview: params.responsePreview.substring(0, 500),
-          promptFull: JSON.stringify({
-            skillSelection: skillSelectionMetadata,
-            attemptIndex: params.attemptIndex,
-            repairPromptUsed: params.repairPromptUsed
-          }).substring(0, 2000)
-        }
-      })
-    } catch (error) {
-      console.error('[ChatTurn] Attempt usage log failed:', error)
-    }
-  }
+      const approvedContinuation = findApprovedToolContinuation(historyMessages)
+      if (
+        approvedContinuation?.toolName &&
+        typeof tools[approvedContinuation.toolName]?.execute === 'function'
+      ) {
+        historyToolCalls.set(approvedContinuation.toolCallId, {
+          toolCallId: approvedContinuation.toolCallId,
+          toolName: approvedContinuation.toolName,
+          args: approvedContinuation.args
+        })
+        currentTurnToolCalls.set(approvedContinuation.toolCallId, {
+          toolCallId: approvedContinuation.toolCallId,
+          toolName: approvedContinuation.toolName,
+          args: approvedContinuation.args
+        })
 
-  async function persistDraft(
-    status: string,
-    force = false,
-    extraMetadata: Record<string, any> = {}
-  ) {
-    const now = Date.now()
-    if (!force && assistantText === persistedText && now - lastPersistAt < 250) return
-
-    const toolCallsUsed = buildPersistedToolCalls(
-      Array.from(currentTurnToolCalls.values()),
-      allToolResults
-    )
-    const toolApprovals = Array.isArray(extraMetadata.toolApprovals)
-      ? extraMetadata.toolApprovals
-      : []
-    const hasVisibleOutput = hasVisibleAssistantArtifacts({
-      assistantText,
-      toolCalls: toolCallsUsed,
-      toolApprovals,
-      toolResults: allToolResults
-    })
-    const executionDurationMs = Math.max(0, Date.now() - executionStartedAtMs)
-    const runtimeTimeoutReason =
-      extraMetadata.timeoutReason ||
-      terminalTimeoutReason ||
-      (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null)
-
-    persistedText = assistantText || ' '
-    lastPersistAt = now
-
-    const updatedDraft = await chatTurnService.updateAssistantDraft({
-      messageId: draft.id,
-      content: persistedText,
-      metadata: {
-        isDraft: status !== CHAT_TURN_STATUS.COMPLETED,
-        turnId: activeTurn.id,
-        turnStatus: status,
-        toolCalls: toolCallsUsed,
-        toolsUsed: toolCallsUsed.map((entry: any) => entry.name),
-        toolCallCount: toolCallsUsed.length,
-        hideUntilContent: status === CHAT_TURN_STATUS.RUNNING && !hasVisibleOutput,
-        hiddenBecauseEmptyFailure:
-          status !== CHAT_TURN_STATUS.RUNNING &&
-          !hasVisibleOutput &&
-          !!extraMetadata.hiddenBecauseEmptyFailure,
-        slowResponse: slowResponseRecorded,
-        timeoutReason: runtimeTimeoutReason,
-        firstOutputLatencyMs,
-        executionDurationMs,
-        executionPhase: extraMetadata.executionPhase || currentPhase,
-        ...extraMetadata
-      } as any
-    })
-
-    await chatTurnService.heartbeat(activeTurn.id, status as any)
-    await broadcastAssistantMessage(updatedDraft, status, {
-      failureReason:
-        typeof extraMetadata.failureReason === 'string' ? extraMetadata.failureReason : null
-    })
-  }
-
-  const markSlowResponse = async () => {
-    if (slowResponseRecorded || firstVisibleOutputAt || terminalTimeoutReason) {
-      return
-    }
-
-    slowResponseRecorded = true
-    await chatTurnService.recordEvent(activeTurn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
-      thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS,
-      reason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
-      phase: currentPhase
-    } as any)
-    await persistDraft(CHAT_TURN_STATUS.RUNNING, true, {
-      slowResponse: true,
-      timeoutReason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
-      executionPhase: currentPhase
-    })
-    await broadcastTurnStatus(CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE, {
-      phase: currentPhase,
-      thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS
-    })
-  }
-
-  const slowResponseTimer = setTimeout(() => {
-    void markSlowResponse().catch((error) => {
-      console.error('[ChatTurn] Slow response marker failed:', {
-        turnId: activeTurn.id,
-        error
-      })
-    })
-  }, CHAT_TURN_SLOW_RESPONSE_LIMIT_MS)
-
-  function ensureTurnNotAborted() {
-    if (executionAbortController.signal.aborted) {
-      throw createAbortError(terminalFailureReason || 'Turn aborted.')
-    }
-  }
-
-  async function markFirstVisibleOutput(
-    source: 'text_delta' | 'tool_step',
-    extra: Record<string, any> = {}
-  ) {
-    if (firstVisibleOutputAt) {
-      return
-    }
-
-    firstVisibleOutputAt = new Date()
-    firstOutputLatencyMs = Math.max(0, firstVisibleOutputAt.getTime() - startedAt.getTime())
-    currentPhase = source === 'text_delta' ? 'streaming' : 'tool_step'
-
-    await chatTurnService.recordEvent(activeTurn.id, CHAT_TURN_EVENT_TYPE.FIRST_OUTPUT_RECEIVED, {
-      source,
-      firstOutputLatencyMs,
-      ...extra
-    } as any)
-  }
-
-  await broadcastAssistantMessage(draft, CHAT_TURN_STATUS.RUNNING)
-  ensureTurnNotAborted()
-  currentPhase = 'awaiting_first_output'
-
-  const providerOptions = getHardcodedChatProviderOptions(opSettings.model, modelName)
-
-  const executeStreamAttempt = async (attemptIndex: number) => {
-    let shouldRetryEmptyResponse = false
-    const attemptProviderOptions = providerOptions
-    const repairPromptUsed = attemptIndex > 0 && shouldUseWriteRepairPrompt(skillSelection)
-    const attemptSystemInstruction = repairPromptUsed
-      ? buildWriteRepairSystemInstruction(finalSystemInstruction)
-      : finalSystemInstruction
-
-    if (repairPromptUsed) {
-      await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
-        reason: 'empty_response_repair_prompt',
-        attempt: attemptIndex + 1,
-        phase: currentPhase
-      } as any)
-    }
-
-    const result = streamText({
-      model: google(modelName),
-      instructions: attemptSystemInstruction,
-      messages: normalizedMessages,
-      tools,
-      abortSignal: executionAbortController.signal,
-      experimental_repairToolCall: async ({ toolCall, error }) => {
-        if (!NoSuchToolError.isInstance(error)) {
-          return null
-        }
-
-        const repair = findToolNameRepair(toolCall.toolName, availableToolNames)
-        if (!repair) {
-          return null
-        }
-
-        await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TOOL_CALL_REPAIRED, {
-          toolCallId: toolCall.toolCallId,
-          originalToolName: toolCall.toolName,
-          repairedToolName: repair.repairedName,
-          strategy: repair.strategy,
-          distance: repair.distance ?? null
-        } as any)
-
-        return {
-          ...toolCall,
-          toolName: repair.repairedName
-        }
-      },
-      stopWhen: isStepCount(opSettings.maxSteps),
-      providerOptions: attemptProviderOptions,
-      onChunk: async ({ chunk }) => {
-        if (chunk.type === 'text-delta') {
-          const deltaText = chunk.text
-          await markFirstVisibleOutput('text_delta')
-          assistantText += deltaText
-          currentPhase = 'streaming'
-          await broadcastAssistantTextDelta(deltaText, CHAT_TURN_STATUS.STREAMING)
-          await persistDraft(CHAT_TURN_STATUS.STREAMING)
-          await chatTurnService.recordEvent(
-            activeTurn.id,
-            CHAT_TURN_EVENT_TYPE.ASSISTANT_TEXT_DELTA,
-            {
-              textDelta: deltaText
-            } as any
-          )
-        }
-      },
-      onStepEnd: async ({ toolCalls, toolResults, usage }) => {
-        latestUsage = usage
-        if (toolCalls) {
-          toolCalls.forEach((tc) => {
-            historyToolCalls.set(tc.toolCallId, tc)
-            currentTurnToolCalls.set(tc.toolCallId, tc)
-          })
-        }
-        if (toolResults) {
-          const detailed = toolResults.map((tr: any) => {
-            const call = historyToolCalls.get(tr.toolCallId)
-            return {
-              ...tr,
-              args: (tr as any).args || (tr as any).input || call?.args || call?.input,
-              toolName: tr.toolName || call?.toolName,
-              result: (tr as any).result || (tr as any).output
-            }
-          })
-          allToolResults.push(...detailed)
-          await persistToolResultMessages(allToolResults)
-        }
-
-        if (
-          !firstVisibleOutputAt &&
-          ((toolCalls?.length || 0) > 0 || (toolResults?.length || 0) > 0)
-        ) {
-          await markFirstVisibleOutput('tool_step', {
-            toolCallCount: toolCalls?.length || 0,
-            toolResultCount: toolResults?.length || 0
-          })
-        }
-
-        currentPhase = toolCalls?.length ? 'tool_step' : 'streaming'
-
-        await persistDraft(
-          toolCalls?.length ? CHAT_TURN_STATUS.WAITING_FOR_TOOLS : CHAT_TURN_STATUS.STREAMING,
-          true,
+        const directResult = await tools[approvedContinuation.toolName].execute(
+          approvedContinuation.args,
           {
-            executionPhase: currentPhase
+            toolCallId: approvedContinuation.toolCallId,
+            context: {
+              turnId: activeTurn.id,
+              lineageId: turn.lineageId,
+              roomId: turn.roomId,
+              userId: turn.userId,
+              actorUserId
+            }
           }
         )
-      },
-      onEnd: async (event) => {
-        const { text, toolResults: finalStepResults, usage, toolCalls: finalCalls } = event
-        latestUsage = usage
-        assistantText = text || assistantText
-        currentPhase = 'completed'
-        const hasMeaningfulText =
-          typeof assistantText === 'string' && assistantText.trim().length > 0
-        const executedToolCallIds = new Set([
-          ...(finalStepResults || []).map((result: any) => result.toolCallId),
-          ...allToolResults.map((result: any) => result.toolCallId)
-        ])
-        const pendingApprovals = (finalCalls || [])
-          .filter((call: any) => !executedToolCallIds.has(call.toolCallId))
-          .map((call: any) => ({
-            toolCallId: call.toolCallId,
-            toolName: call.toolName,
-            args: call.args || call.input
-          }))
-        const shouldFallbackForEmptyResponse = !hasMeaningfulText && pendingApprovals.length === 0
 
-        if (shouldFallbackForEmptyResponse && attemptIndex === 0) {
-          shouldRetryEmptyResponse = true
-          currentPhase = 'retrying_empty_response'
-          await logAttemptUsage({
-            attemptIndex,
-            usage,
-            success: false,
-            errorType: 'EMPTY_RESPONSE_RETRY',
-            errorMessage: 'LLM response finished empty on initial attempt; retrying.',
-            responsePreview: '',
-            durationMs: Math.max(0, Date.now() - startedAt.getTime()),
-            repairPromptUsed
+        const directDetailedResult = {
+          toolCallId: approvedContinuation.toolCallId,
+          toolName: approvedContinuation.toolName,
+          args: approvedContinuation.args,
+          result: directResult
+        }
+
+        allToolResults.push(directDetailedResult)
+        await persistToolResultMessages(allToolResults)
+
+        historyMessages = [
+          ...historyMessages,
+          {
+            role: 'tool',
+            parts: [
+              {
+                type: 'tool-result',
+                toolCallId: approvedContinuation.toolCallId,
+                toolName: approvedContinuation.toolName,
+                result: directResult
+              }
+            ]
+          }
+        ]
+
+        if (isMutatingChatTool(approvedContinuation.toolName)) {
+          currentPhase = 'completed'
+          await markFirstVisibleOutput('tool_step', {
+            toolCallCount: 1,
+            toolResultCount: 1,
+            approvedContinuation: true
           })
-          await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
-            reason: 'empty_response_retry',
-            attempt: attemptIndex + 1,
-            phase: currentPhase
+
+          assistantText = buildApprovedContinuationConfirmation(
+            approvedContinuation.toolName,
+            directResult
+          )
+
+          const finishedAt = new Date()
+          const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+
+          await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
+            hideUntilContent: false,
+            hiddenBecauseEmptyFailure: false,
+            executionPhase: currentPhase,
+            executionDurationMs
+          })
+
+          await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
+            finishedAt,
+            assistantMessageId: draft.id,
+            metadata: chatTurnService.mergeTurnMetadata(turn, {
+              timeoutReason: null,
+              slowResponse: slowResponseRecorded,
+              firstOutputLatencyMs,
+              executionDurationMs,
+              executionPhase: currentPhase,
+              finishedAt: finishedAt.toISOString(),
+              skillSelection: skillSelectionMetadata,
+              completedLocallyAfterApprovedTool: true
+            })
+          })
+
+          await broadcastAssistantMessage(
+            {
+              id: draft.id,
+              content: assistantText,
+              createdAt: draft.createdAt,
+              metadata: {
+                ...((draft.metadata as any) || {}),
+                isDraft: false
+              }
+            },
+            CHAT_TURN_STATUS.COMPLETED,
+            { finishedAt, skillSelection: skillSelectionMetadata }
+          )
+
+          await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
+            assistantMessageId: draft.id,
+            firstOutputLatencyMs,
+            executionDurationMs,
+            completionMode: 'local_after_approved_tool'
           } as any)
+
+          await prisma.llmUsage
+            .update({
+              where: { id: earlyUsage.id },
+              data: {
+                model: 'approval_continuation_local',
+                success: true,
+                errorType: null,
+                errorMessage: null,
+                durationMs: executionDurationMs,
+                ttft: firstOutputLatencyMs,
+                responsePreview: assistantText.substring(0, 500)
+              }
+            })
+            .catch(() => null)
+
+          await scheduleChatRoomSummaryIfNeeded({
+            roomId: turn.roomId,
+            userId: turn.userId,
+            roomName: turn.room.name,
+            roomMetadata
+          }).catch((error) => {
+            console.error('[ChatTurn] Failed to schedule chat summary after local completion:', {
+              turnId: activeTurn.id,
+              roomId: turn.roomId,
+              error
+            })
+          })
+
+          return {
+            success: true,
+            assistantMessageId: draft.id
+          }
+        }
+      }
+
+      const coreMessages = await transformHistoryToCoreMessages(historyMessages)
+      ensureTurnNotAborted()
+      const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
+
+      async function broadcastAssistantMessage(
+        message: { id: string; content: string; createdAt: Date; metadata?: any },
+        status: string,
+        extra: {
+          failureReason?: string | null
+          finishedAt?: Date | null
+          skillSelection?: Record<string, any> | null
+        } = {}
+      ) {
+        await sendToUser(activeTurn.userId, {
+          type: 'chat_message_upsert',
+          roomId: activeTurn.roomId,
+          message: expandStoredChatMessage({
+            ...message,
+            senderId: 'ai_agent',
+            turn: {
+              id: activeTurn.id,
+              status,
+              failureReason: extra.failureReason ?? null,
+              startedAt,
+              finishedAt: extra.finishedAt ?? null,
+              metadata: extra.skillSelection ? { skillSelection: extra.skillSelection } : undefined
+            }
+          })
+        })
+      }
+
+      async function broadcastAssistantTextDelta(textDelta: string, status: string) {
+        await sendToUser(activeTurn.userId, {
+          type: 'chat_assistant_text_delta',
+          roomId: activeTurn.roomId,
+          turnId: activeTurn.id,
+          messageId: draft.id,
+          textDelta,
+          status
+        })
+      }
+
+      async function broadcastTurnStatus(reason: string, extra: Record<string, any> = {}) {
+        await sendToUser(activeTurn.userId, {
+          type: 'chat_turn_status',
+          roomId: activeTurn.roomId,
+          turnId: activeTurn.id,
+          status: extra.status || CHAT_TURN_STATUS.RUNNING,
+          reason,
+          ...extra
+        })
+      }
+
+      async function broadcastMemoryEvent(payload: {
+        action: 'saved' | 'updated' | 'forgotten'
+        memories: any[]
+        notice: string
+      }) {
+        await sendToUser(activeTurn.userId, {
+          type: 'chat_memory_event',
+          roomId: activeTurn.roomId,
+          action: payload.action,
+          memories: payload.memories,
+          notice: payload.notice
+        })
+      }
+
+      async function logAttemptUsage(params: {
+        attemptIndex: number
+        usage: any
+        success: boolean
+        errorType?: string | null
+        errorMessage?: string | null
+        responsePreview: string
+        durationMs: number
+        repairPromptUsed: boolean
+      }) {
+        try {
+          const promptTokens = params.usage?.inputTokens || 0
+          const completionTokens = params.usage?.outputTokens || 0
+          const cachedTokens = params.usage?.inputTokenDetails?.cacheReadTokens || 0
+          const reasoningTokens = params.usage?.outputTokenDetails?.reasoningTokens || 0
+          const estimatedCost = calculateLlmCost(
+            modelName,
+            promptTokens,
+            completionTokens + reasoningTokens,
+            cachedTokens
+          )
+
+          await prisma.llmUsage.create({
+            data: {
+              userId: activeTurn.userId,
+              turnId: activeTurn.id,
+              provider: 'gemini',
+              model: modelName,
+              modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
+              operation: 'chat_attempt',
+              entityType: 'ChatTurn',
+              entityId: activeTurn.id,
+              promptTokens,
+              completionTokens,
+              cachedTokens,
+              reasoningTokens,
+              totalTokens: promptTokens + completionTokens,
+              estimatedCost,
+              durationMs: params.durationMs,
+              ttft: firstOutputLatencyMs,
+              retryCount: params.attemptIndex,
+              success: params.success,
+              errorType: params.errorType || null,
+              errorMessage: params.errorMessage || null,
+              promptPreview: (content || '').substring(0, 500),
+              responsePreview: params.responsePreview.substring(0, 500),
+              promptFull: JSON.stringify({
+                skillSelection: skillSelectionMetadata,
+                attemptIndex: params.attemptIndex,
+                repairPromptUsed: params.repairPromptUsed
+              }).substring(0, 2000)
+            }
+          })
+        } catch (error) {
+          console.error('[ChatTurn] Attempt usage log failed:', error)
+        }
+      }
+
+      async function persistDraft(
+        status: string,
+        force = false,
+        extraMetadata: Record<string, any> = {}
+      ) {
+        const now = Date.now()
+        if (!force && assistantText === persistedText && now - lastPersistAt < 250) return
+
+        const toolCallsUsed = buildPersistedToolCalls(
+          Array.from(currentTurnToolCalls.values()),
+          allToolResults
+        )
+        const toolApprovals = Array.isArray(extraMetadata.toolApprovals)
+          ? extraMetadata.toolApprovals
+          : []
+        const hasVisibleOutput = hasVisibleAssistantArtifacts({
+          assistantText,
+          toolCalls: toolCallsUsed,
+          toolApprovals,
+          toolResults: allToolResults
+        })
+        const executionDurationMs = Math.max(0, Date.now() - executionStartedAtMs)
+        const runtimeTimeoutReason =
+          extraMetadata.timeoutReason ||
+          terminalTimeoutReason ||
+          (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null)
+
+        persistedText = assistantText || ' '
+        lastPersistAt = now
+
+        const updatedDraft = await chatTurnService.updateAssistantDraft({
+          messageId: draft.id,
+          content: persistedText,
+          metadata: {
+            isDraft: status !== CHAT_TURN_STATUS.COMPLETED,
+            turnId: activeTurn.id,
+            turnStatus: status,
+            toolCalls: toolCallsUsed,
+            toolsUsed: toolCallsUsed.map((entry: any) => entry.name),
+            toolCallCount: toolCallsUsed.length,
+            hideUntilContent: status === CHAT_TURN_STATUS.RUNNING && !hasVisibleOutput,
+            hiddenBecauseEmptyFailure:
+              status !== CHAT_TURN_STATUS.RUNNING &&
+              !hasVisibleOutput &&
+              !!extraMetadata.hiddenBecauseEmptyFailure,
+            slowResponse: slowResponseRecorded,
+            timeoutReason: runtimeTimeoutReason,
+            firstOutputLatencyMs,
+            executionDurationMs,
+            executionPhase: extraMetadata.executionPhase || currentPhase,
+            ...extraMetadata
+          } as any
+        })
+
+        await chatTurnService.heartbeat(activeTurn.id, status as any)
+        await broadcastAssistantMessage(updatedDraft, status, {
+          failureReason:
+            typeof extraMetadata.failureReason === 'string' ? extraMetadata.failureReason : null
+        })
+      }
+
+      const markSlowResponse = async () => {
+        if (slowResponseRecorded || firstVisibleOutputAt || terminalTimeoutReason) {
           return
         }
 
-        if (shouldFallbackForEmptyResponse) {
-          assistantText =
-            'I hit a response issue while processing that. Please retry your last message.'
+        slowResponseRecorded = true
+        await chatTurnService.recordEvent(activeTurn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+          thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS,
+          reason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
+          phase: currentPhase
+        } as any)
+        await persistDraft(CHAT_TURN_STATUS.RUNNING, true, {
+          slowResponse: true,
+          timeoutReason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
+          executionPhase: currentPhase
+        })
+        await broadcastTurnStatus(CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE, {
+          phase: currentPhase,
+          thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS
+        })
+      }
+
+      slowResponseTimer = setTimeout(() => {
+        void markSlowResponse().catch((error) => {
+          console.error('[ChatTurn] Slow response marker failed:', {
+            turnId: activeTurn.id,
+            error
+          })
+        })
+      }, CHAT_TURN_SLOW_RESPONSE_LIMIT_MS)
+
+      function ensureTurnNotAborted() {
+        if (executionAbortController.signal.aborted) {
+          throw createAbortError(terminalFailureReason || 'Turn aborted.')
+        }
+      }
+
+      async function markFirstVisibleOutput(
+        source: 'text_delta' | 'tool_step',
+        extra: Record<string, any> = {}
+      ) {
+        if (firstVisibleOutputAt) {
+          return
         }
 
-        if (finalStepResults?.length) {
-          const finalDetailedResults = finalStepResults.map((tr: any) => {
-            const call =
-              finalCalls?.find((tc: any) => tc.toolCallId === tr.toolCallId) ||
-              historyToolCalls.get(tr.toolCallId)
+        firstVisibleOutputAt = new Date()
+        firstOutputLatencyMs = Math.max(0, firstVisibleOutputAt.getTime() - startedAt.getTime())
+        currentPhase = source === 'text_delta' ? 'streaming' : 'tool_step'
+
+        await chatTurnService.recordEvent(
+          activeTurn.id,
+          CHAT_TURN_EVENT_TYPE.FIRST_OUTPUT_RECEIVED,
+          {
+            source,
+            firstOutputLatencyMs,
+            ...extra
+          } as any
+        )
+      }
+
+      await broadcastAssistantMessage(draft, CHAT_TURN_STATUS.RUNNING)
+      ensureTurnNotAborted()
+      currentPhase = 'awaiting_first_output'
+
+      const providerOptions = getHardcodedChatProviderOptions(opSettings.model, modelName)
+
+      const executeStreamAttempt = async (attemptIndex: number) => {
+        let shouldRetryEmptyResponse = false
+        const attemptProviderOptions = providerOptions
+        const repairPromptUsed = attemptIndex > 0 && shouldUseWriteRepairPrompt(skillSelection)
+        const attemptSystemInstruction = repairPromptUsed
+          ? buildWriteRepairSystemInstruction(finalSystemInstruction)
+          : finalSystemInstruction
+
+        if (repairPromptUsed) {
+          await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+            reason: 'empty_response_repair_prompt',
+            attempt: attemptIndex + 1,
+            phase: currentPhase
+          } as any)
+        }
+
+        const result = streamText({
+          model: google(modelName),
+          instructions: attemptSystemInstruction,
+          messages: normalizedMessages,
+          tools,
+          abortSignal: executionAbortController.signal,
+          experimental_repairToolCall: async ({ toolCall, error }) => {
+            if (!NoSuchToolError.isInstance(error)) {
+              return null
+            }
+
+            const repair = findToolNameRepair(toolCall.toolName, availableToolNames)
+            if (!repair) {
+              return null
+            }
+
+            await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TOOL_CALL_REPAIRED, {
+              toolCallId: toolCall.toolCallId,
+              originalToolName: toolCall.toolName,
+              repairedToolName: repair.repairedName,
+              strategy: repair.strategy,
+              distance: repair.distance ?? null
+            } as any)
+
             return {
-              ...tr,
-              args: tr.args || call?.args || call?.input,
-              toolName: tr.toolName || call?.toolName,
-              result: tr.result || tr.output
+              ...toolCall,
+              toolName: repair.repairedName
             }
-          })
-          allToolResults.push(...finalDetailedResults)
-          await persistToolResultMessages(allToolResults)
-        }
-
-        if (
-          !firstVisibleOutputAt &&
-          hasVisibleAssistantArtifacts({
-            assistantText,
-            toolCalls: finalCalls,
-            toolResults: finalStepResults
-          })
-        ) {
-          await markFirstVisibleOutput(
-            assistantText.trim().length > 0 ? 'text_delta' : 'tool_step',
-            {
-              toolCallCount: finalCalls?.length || 0,
-              toolResultCount: finalStepResults?.length || 0
+          },
+          stopWhen: isStepCount(opSettings.maxSteps),
+          providerOptions: attemptProviderOptions,
+          onChunk: async ({ chunk }) => {
+            if (chunk.type === 'text-delta') {
+              const deltaText = chunk.text
+              await markFirstVisibleOutput('text_delta')
+              assistantText += deltaText
+              currentPhase = 'streaming'
+              await broadcastAssistantTextDelta(deltaText, CHAT_TURN_STATUS.STREAMING)
+              await persistDraft(CHAT_TURN_STATUS.STREAMING)
+              await chatTurnService.recordEvent(
+                activeTurn.id,
+                CHAT_TURN_EVENT_TYPE.ASSISTANT_TEXT_DELTA,
+                {
+                  textDelta: deltaText
+                } as any
+              )
             }
-          )
-        }
+          },
+          onStepEnd: async ({ toolCalls, toolResults, usage }) => {
+            latestUsage = usage
+            if (toolCalls) {
+              toolCalls.forEach((tc) => {
+                historyToolCalls.set(tc.toolCallId, tc)
+                currentTurnToolCalls.set(tc.toolCallId, tc)
+              })
+            }
+            if (toolResults) {
+              const detailed = toolResults.map((tr: any) => {
+                const call = historyToolCalls.get(tr.toolCallId)
+                return {
+                  ...tr,
+                  args: (tr as any).args || (tr as any).input || call?.args || call?.input,
+                  toolName: tr.toolName || call?.toolName,
+                  result: (tr as any).result || (tr as any).output
+                }
+              })
+              allToolResults.push(...detailed)
+              await persistToolResultMessages(allToolResults)
+            }
 
-        const finishedAt = new Date()
-        const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+            if (
+              !firstVisibleOutputAt &&
+              ((toolCalls?.length || 0) > 0 || (toolResults?.length || 0) > 0)
+            ) {
+              await markFirstVisibleOutput('tool_step', {
+                toolCallCount: toolCalls?.length || 0,
+                toolResultCount: toolResults?.length || 0
+              })
+            }
 
-        // Detect tool calls blocked by needsApproval: present in finalCalls but absent from results
-        await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
-          hideUntilContent: false,
-          hiddenBecauseEmptyFailure: false,
-          executionPhase: currentPhase,
-          executionDurationMs,
-          ...(pendingApprovals.length > 0 ? { pendingApprovals } : {})
+            currentPhase = toolCalls?.length ? 'tool_step' : 'streaming'
+
+            await persistDraft(
+              toolCalls?.length ? CHAT_TURN_STATUS.WAITING_FOR_TOOLS : CHAT_TURN_STATUS.STREAMING,
+              true,
+              {
+                executionPhase: currentPhase
+              }
+            )
+          },
+          onEnd: async (event) => {
+            const { text, toolResults: finalStepResults, usage, toolCalls: finalCalls } = event
+            latestUsage = usage
+            assistantText = text || assistantText
+            currentPhase = 'completed'
+            const hasMeaningfulText =
+              typeof assistantText === 'string' && assistantText.trim().length > 0
+            const executedToolCallIds = new Set([
+              ...(finalStepResults || []).map((result: any) => result.toolCallId),
+              ...allToolResults.map((result: any) => result.toolCallId)
+            ])
+            const pendingApprovals = (finalCalls || [])
+              .filter((call: any) => !executedToolCallIds.has(call.toolCallId))
+              .map((call: any) => ({
+                toolCallId: call.toolCallId,
+                toolName: call.toolName,
+                args: call.args || call.input
+              }))
+            const shouldFallbackForEmptyResponse =
+              !hasMeaningfulText && pendingApprovals.length === 0
+
+            if (shouldFallbackForEmptyResponse && attemptIndex === 0) {
+              shouldRetryEmptyResponse = true
+              currentPhase = 'retrying_empty_response'
+              await logAttemptUsage({
+                attemptIndex,
+                usage,
+                success: false,
+                errorType: 'EMPTY_RESPONSE_RETRY',
+                errorMessage: 'LLM response finished empty on initial attempt; retrying.',
+                responsePreview: '',
+                durationMs: Math.max(0, Date.now() - startedAt.getTime()),
+                repairPromptUsed
+              })
+              await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+                reason: 'empty_response_retry',
+                attempt: attemptIndex + 1,
+                phase: currentPhase
+              } as any)
+              return
+            }
+
+            if (shouldFallbackForEmptyResponse) {
+              assistantText =
+                'I hit a response issue while processing that. Please retry your last message.'
+            }
+
+            if (finalStepResults?.length) {
+              const finalDetailedResults = finalStepResults.map((tr: any) => {
+                const call =
+                  finalCalls?.find((tc: any) => tc.toolCallId === tr.toolCallId) ||
+                  historyToolCalls.get(tr.toolCallId)
+                return {
+                  ...tr,
+                  args: tr.args || call?.args || call?.input,
+                  toolName: tr.toolName || call?.toolName,
+                  result: tr.result || tr.output
+                }
+              })
+              allToolResults.push(...finalDetailedResults)
+              await persistToolResultMessages(allToolResults)
+            }
+
+            if (
+              !firstVisibleOutputAt &&
+              hasVisibleAssistantArtifacts({
+                assistantText,
+                toolCalls: finalCalls,
+                toolResults: finalStepResults
+              })
+            ) {
+              await markFirstVisibleOutput(
+                assistantText.trim().length > 0 ? 'text_delta' : 'tool_step',
+                {
+                  toolCallCount: finalCalls?.length || 0,
+                  toolResultCount: finalStepResults?.length || 0
+                }
+              )
+            }
+
+            const finishedAt = new Date()
+            const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+
+            // Detect tool calls blocked by needsApproval: present in finalCalls but absent from results
+            await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
+              hideUntilContent: false,
+              hiddenBecauseEmptyFailure: false,
+              executionPhase: currentPhase,
+              executionDurationMs,
+              ...(pendingApprovals.length > 0 ? { pendingApprovals } : {})
+            })
+
+            await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
+              finishedAt,
+              assistantMessageId: draft.id,
+              metadata: chatTurnService.mergeTurnMetadata(turn, {
+                timeoutReason:
+                  terminalTimeoutReason ||
+                  (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null),
+                slowResponse: slowResponseRecorded,
+                firstOutputLatencyMs,
+                executionDurationMs,
+                executionPhase: currentPhase,
+                finishedAt: finishedAt.toISOString(),
+                skillSelection: skillSelectionMetadata
+              })
+            })
+            await broadcastAssistantMessage(
+              {
+                id: draft.id,
+                content: assistantText || ' ',
+                createdAt: draft.createdAt,
+                metadata: {
+                  ...((draft.metadata as any) || {}),
+                  isDraft: false
+                }
+              },
+              CHAT_TURN_STATUS.COMPLETED,
+              { finishedAt, skillSelection: skillSelectionMetadata }
+            )
+
+            await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
+              assistantMessageId: draft.id,
+              firstOutputLatencyMs,
+              executionDurationMs
+            } as any)
+            await broadcastTurnStatus('turn_completed', {
+              status: CHAT_TURN_STATUS.COMPLETED,
+              assistantMessageId: draft.id,
+              executionDurationMs,
+              firstOutputLatencyMs
+            })
+
+            await prisma.llmUsage
+              .update({
+                where: { id: earlyUsage.id },
+                data: {
+                  model: modelName,
+                  success: !shouldFallbackForEmptyResponse,
+                  errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
+                  errorMessage: shouldFallbackForEmptyResponse
+                    ? 'LLM response finished with empty text.'
+                    : null,
+                  durationMs: executionDurationMs,
+                  ttft: firstOutputLatencyMs,
+                  responsePreview: assistantText.substring(0, 500),
+                  retryCount: attemptIndex
+                }
+              })
+              .catch(() => null)
+
+            await logAttemptUsage({
+              attemptIndex,
+              usage,
+              success: !shouldFallbackForEmptyResponse,
+              errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
+              errorMessage: shouldFallbackForEmptyResponse
+                ? 'LLM response finished with empty text.'
+                : null,
+              responsePreview: assistantText,
+              durationMs: executionDurationMs,
+              repairPromptUsed
+            })
+
+            try {
+              const promptTokens = usage.inputTokens || 0
+              const completionTokens = usage.outputTokens || 0
+              const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
+              const reasoningTokens = usage?.outputTokenDetails?.reasoningTokens || 0
+              const estimatedCost = calculateLlmCost(
+                modelName,
+                promptTokens,
+                completionTokens + reasoningTokens,
+                cachedTokens
+              )
+
+              await prisma.llmUsage.create({
+                data: {
+                  userId: turn.userId,
+                  turnId: activeTurn.id,
+                  provider: 'gemini',
+                  model: modelName,
+                  modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
+                  operation: 'chat',
+                  entityType: 'ChatMessage',
+                  entityId: draft.id,
+                  promptTokens,
+                  completionTokens,
+                  cachedTokens,
+                  reasoningTokens,
+                  totalTokens: promptTokens + completionTokens,
+                  estimatedCost,
+                  durationMs: executionDurationMs,
+                  ttft: firstOutputLatencyMs,
+                  retryCount: 0,
+                  success: !shouldFallbackForEmptyResponse,
+                  errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
+                  errorMessage: shouldFallbackForEmptyResponse
+                    ? 'LLM response finished with empty text.'
+                    : null,
+                  promptPreview: (content || '').substring(0, 500),
+                  responsePreview: assistantText.substring(0, 500),
+                  promptFull: JSON.stringify(skillSelectionMetadata).substring(0, 2000)
+                }
+              })
+            } catch (error) {
+              console.error('[ChatTurn] LLM usage log failed:', error)
+            }
+
+            await scheduleChatRoomSummaryIfNeeded({
+              roomId: turn.roomId,
+              userId: turn.userId,
+              roomName: turn.room.name,
+              roomMetadata
+            }).catch((error) => {
+              console.error('[ChatTurn] Failed to schedule chat summary after completion:', {
+                turnId: activeTurn.id,
+                roomId: turn.roomId,
+                error
+              })
+            })
+
+            if (aiSettings.aiMemoryEnabled && skillSelection.extractMemories && content?.trim()) {
+              const existingMemories = await userMemoryService.listMemories({ userId: turn.userId })
+              const extraction = await extractMemoryCandidatesFromConversation({
+                userId: turn.userId,
+                roomId: turn.roomId,
+                turnId: activeTurn.id,
+                messages: [
+                  { role: 'user', content },
+                  ...(assistantText.trim()
+                    ? [{ role: 'assistant' as const, content: assistantText.trim() }]
+                    : [])
+                ],
+                existingMemories: existingMemories.map((memory) => ({
+                  scope: memory.scope,
+                  content: memory.content
+                })),
+                operation: 'chat-memory-extract',
+                entityType: 'ChatTurn',
+                entityId: turn.id
+              })
+
+              const savedMemories = await userMemoryService.saveMemoryCandidates({
+                userId: turn.userId,
+                candidates: extraction.candidates
+              })
+
+              if (savedMemories.length > 0) {
+                await broadcastMemoryEvent({
+                  action: 'saved',
+                  memories: savedMemories,
+                  notice:
+                    savedMemories.length === 1
+                      ? 'Saved 1 memory from this conversation.'
+                      : `Saved ${savedMemories.length} memories from this conversation.`
+                }).catch((error) => {
+                  console.error('[ChatTurn] Failed to broadcast auto-saved memory event:', {
+                    turnId: activeTurn.id,
+                    roomId: turn.roomId,
+                    error
+                  })
+                })
+              }
+            }
+
+            const memoryToolEvent = buildMemoryEventFromToolResults(allToolResults)
+            if (memoryToolEvent && memoryToolEvent.memories.length > 0) {
+              await broadcastMemoryEvent(memoryToolEvent).catch((error) => {
+                console.error('[ChatTurn] Failed to broadcast tool-driven memory event:', {
+                  turnId: activeTurn.id,
+                  roomId: turn.roomId,
+                  error
+                })
+              })
+            }
+          }
         })
 
-        await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
+        let streamError: Error | undefined
+        await result.consumeStream({
+          onError: (error) => {
+            streamError = error instanceof Error ? error : new Error(String(error))
+            console.error('[ChatTurn] Mid-stream error from LLM:', streamError.message)
+          }
+        })
+        if (streamError) {
+          throw streamError
+        }
+
+        return shouldRetryEmptyResponse
+      }
+
+      try {
+        const maxEmptyResponseAttempts = 2
+        for (let attemptIndex = 0; attemptIndex < maxEmptyResponseAttempts; attemptIndex += 1) {
+          const shouldRetry = await executeStreamAttempt(attemptIndex)
+          if (!shouldRetry) break
+
+          assistantText = ''
+          persistedText = draft.content || ' '
+          lastPersistAt = 0
+          latestUsage = null
+          currentPhase = 'awaiting_first_output'
+        }
+
+        return {
+          success: true,
+          assistantMessageId: draft.id
+        }
+      } catch (error: any) {
+        const isExplicitTimeout =
+          terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT ||
+          terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT
+        const terminalStatus = isExplicitTimeout
+          ? CHAT_TURN_STATUS.FAILED
+          : error?.name === 'AbortError'
+            ? CHAT_TURN_STATUS.INTERRUPTED
+            : CHAT_TURN_STATUS.FAILED
+        const reason =
+          terminalFailureReason ||
+          (error?.name === 'AbortError' ? 'Turn aborted.' : error?.message || 'Chat turn failed.')
+        const finishedAt = new Date()
+        const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+        const hiddenBecauseEmptyFailure = !hasVisibleAssistantArtifacts({
+          assistantText,
+          toolCalls: Array.from(currentTurnToolCalls.values()),
+          toolResults: allToolResults
+        })
+
+        currentPhase = isExplicitTimeout ? currentPhase : 'failed'
+
+        await persistDraft(terminalStatus, true, {
+          interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
+          failureReason: reason,
+          timeoutReason: terminalTimeoutReason,
+          hiddenBecauseEmptyFailure,
+          hideUntilContent: false,
+          executionPhase: currentPhase,
+          executionDurationMs
+        }).catch(() => null)
+        await chatTurnService.updateStatus(turn.id, terminalStatus, {
           finishedAt,
+          failureReason: reason,
           assistantMessageId: draft.id,
           metadata: chatTurnService.mergeTurnMetadata(turn, {
             timeoutReason:
@@ -1253,308 +1549,98 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
             createdAt: draft.createdAt,
             metadata: {
               ...((draft.metadata as any) || {}),
-              isDraft: false
+              isDraft: false,
+              interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
+              failureReason: reason
             }
           },
-          CHAT_TURN_STATUS.COMPLETED,
-          { finishedAt, skillSelection: skillSelectionMetadata }
+          terminalStatus,
+          { failureReason: reason, finishedAt, skillSelection: skillSelectionMetadata }
+        ).catch(() => null)
+        await chatTurnService.recordEvent(
+          turn.id,
+          terminalStatus === CHAT_TURN_STATUS.INTERRUPTED
+            ? CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED
+            : CHAT_TURN_EVENT_TYPE.TURN_FAILED,
+          {
+            reason:
+              terminalTimeoutReason ||
+              (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'interrupted' : 'failed'),
+            failureReason: reason,
+            firstOutputLatencyMs,
+            executionDurationMs,
+            phase: currentPhase
+          } as any
         )
-
-        await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
-          assistantMessageId: draft.id,
-          firstOutputLatencyMs,
-          executionDurationMs
-        } as any)
-        await broadcastTurnStatus('turn_completed', {
-          status: CHAT_TURN_STATUS.COMPLETED,
-          assistantMessageId: draft.id,
-          executionDurationMs,
-          firstOutputLatencyMs
-        })
-
+        await broadcastTurnStatus(
+          terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'turn_interrupted' : 'turn_failed',
+          {
+            status: terminalStatus,
+            assistantMessageId: draft.id,
+            executionDurationMs,
+            firstOutputLatencyMs,
+            failureReason: reason
+          }
+        ).catch(() => null)
         await prisma.llmUsage
           .update({
             where: { id: earlyUsage.id },
             data: {
               model: modelName,
-              success: !shouldFallbackForEmptyResponse,
-              errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
-              errorMessage: shouldFallbackForEmptyResponse
-                ? 'LLM response finished with empty text.'
-                : null,
+              success: false,
+              errorType:
+                (terminalTimeoutReason ? String(terminalTimeoutReason).toUpperCase() : '') ||
+                (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'INTERRUPTED' : 'FAILED'),
+              errorMessage: reason,
               durationMs: executionDurationMs,
-              ttft: firstOutputLatencyMs,
-              responsePreview: assistantText.substring(0, 500),
-              retryCount: attemptIndex
+              ttft: firstOutputLatencyMs
             }
           })
           .catch(() => null)
+        throw error
+      }
+    } catch (error: any) {
+      const activeStatuses = [
+        CHAT_TURN_STATUS.RUNNING,
+        CHAT_TURN_STATUS.STREAMING,
+        CHAT_TURN_STATUS.WAITING_FOR_TOOLS,
+        CHAT_TURN_STATUS.RECEIVED
+      ]
+      const reason =
+        error?.statusCode === 429
+          ? error?.message || 'Chat quota exceeded.'
+          : error instanceof Error
+            ? error.message
+            : 'Chat turn failed during execution.'
 
-        await logAttemptUsage({
-          attemptIndex,
-          usage,
-          success: !shouldFallbackForEmptyResponse,
-          errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
-          errorMessage: shouldFallbackForEmptyResponse
-            ? 'LLM response finished with empty text.'
-            : null,
-          responsePreview: assistantText,
-          durationMs: executionDurationMs,
-          repairPromptUsed
-        })
-
-        try {
-          const promptTokens = usage.inputTokens || 0
-          const completionTokens = usage.outputTokens || 0
-          const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
-          const reasoningTokens = usage?.outputTokenDetails?.reasoningTokens || 0
-          const estimatedCost = calculateLlmCost(
-            modelName,
-            promptTokens,
-            completionTokens + reasoningTokens,
-            cachedTokens
-          )
-
-          await prisma.llmUsage.create({
-            data: {
-              userId: turn.userId,
-              turnId: activeTurn.id,
-              provider: 'gemini',
-              model: modelName,
-              modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
-              operation: 'chat',
-              entityType: 'ChatMessage',
-              entityId: draft.id,
-              promptTokens,
-              completionTokens,
-              cachedTokens,
-              reasoningTokens,
-              totalTokens: promptTokens + completionTokens,
-              estimatedCost,
-              durationMs: executionDurationMs,
-              ttft: firstOutputLatencyMs,
-              retryCount: 0,
-              success: !shouldFallbackForEmptyResponse,
-              errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
-              errorMessage: shouldFallbackForEmptyResponse
-                ? 'LLM response finished with empty text.'
-                : null,
-              promptPreview: (content || '').substring(0, 500),
-              responsePreview: assistantText.substring(0, 500),
-              promptFull: JSON.stringify(skillSelectionMetadata).substring(0, 2000)
-            }
-          })
-        } catch (error) {
-          console.error('[ChatTurn] LLM usage log failed:', error)
-        }
-
-        await scheduleChatRoomSummaryIfNeeded({
-          roomId: turn.roomId,
-          userId: turn.userId,
-          roomName: turn.room.name,
-          roomMetadata
-        }).catch((error) => {
-          console.error('[ChatTurn] Failed to schedule chat summary after completion:', {
-            turnId: activeTurn.id,
-            roomId: turn.roomId,
-            error
-          })
-        })
-
-        if (aiSettings.aiMemoryEnabled && skillSelection.extractMemories && content?.trim()) {
-          const existingMemories = await userMemoryService.listMemories({ userId: turn.userId })
-          const extraction = await extractMemoryCandidatesFromConversation({
-            userId: turn.userId,
-            roomId: turn.roomId,
-            turnId: activeTurn.id,
-            messages: [
-              { role: 'user', content },
-              ...(assistantText.trim()
-                ? [{ role: 'assistant' as const, content: assistantText.trim() }]
-                : [])
-            ],
-            existingMemories: existingMemories.map((memory) => ({
-              scope: memory.scope,
-              content: memory.content
-            })),
-            operation: 'chat-memory-extract',
-            entityType: 'ChatTurn',
-            entityId: turn.id
-          })
-
-          const savedMemories = await userMemoryService.saveMemoryCandidates({
-            userId: turn.userId,
-            candidates: extraction.candidates
-          })
-
-          if (savedMemories.length > 0) {
-            await broadcastMemoryEvent({
-              action: 'saved',
-              memories: savedMemories,
-              notice:
-                savedMemories.length === 1
-                  ? 'Saved 1 memory from this conversation.'
-                  : `Saved ${savedMemories.length} memories from this conversation.`
-            }).catch((error) => {
-              console.error('[ChatTurn] Failed to broadcast auto-saved memory event:', {
-                turnId: activeTurn.id,
-                roomId: turn.roomId,
-                error
-              })
-            })
+      await prisma.chatTurn
+        .updateMany({
+          where: {
+            id: turn.id,
+            status: { in: activeStatuses }
+          },
+          data: {
+            status: CHAT_TURN_STATUS.FAILED,
+            finishedAt: new Date(),
+            failureReason: reason,
+            lastHeartbeatAt: new Date()
           }
-        }
+        })
+        .catch(() => null)
 
-        const memoryToolEvent = buildMemoryEventFromToolResults(allToolResults)
-        if (memoryToolEvent && memoryToolEvent.memories.length > 0) {
-          await broadcastMemoryEvent(memoryToolEvent).catch((error) => {
-            console.error('[ChatTurn] Failed to broadcast tool-driven memory event:', {
-              turnId: activeTurn.id,
-              roomId: turn.roomId,
-              error
-            })
-          })
-        }
-      }
-    })
-
-    let streamError: Error | undefined
-    await result.consumeStream({
-      onError: (error) => {
-        streamError = error instanceof Error ? error : new Error(String(error))
-        console.error('[ChatTurn] Mid-stream error from LLM:', streamError.message)
-      }
-    })
-    if (streamError) {
-      throw streamError
-    }
-
-    return shouldRetryEmptyResponse
-  }
-
-  try {
-    const maxEmptyResponseAttempts = 2
-    for (let attemptIndex = 0; attemptIndex < maxEmptyResponseAttempts; attemptIndex += 1) {
-      const shouldRetry = await executeStreamAttempt(attemptIndex)
-      if (!shouldRetry) break
-
-      assistantText = ''
-      persistedText = draft.content || ' '
-      lastPersistAt = 0
-      latestUsage = null
-      currentPhase = 'awaiting_first_output'
-    }
-
-    return {
-      success: true,
-      assistantMessageId: draft.id
-    }
-  } catch (error: any) {
-    const isExplicitTimeout =
-      terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT ||
-      terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT
-    const terminalStatus = isExplicitTimeout
-      ? CHAT_TURN_STATUS.FAILED
-      : error?.name === 'AbortError'
-        ? CHAT_TURN_STATUS.INTERRUPTED
-        : CHAT_TURN_STATUS.FAILED
-    const reason =
-      terminalFailureReason ||
-      (error?.name === 'AbortError' ? 'Turn aborted.' : error?.message || 'Chat turn failed.')
-    const finishedAt = new Date()
-    const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
-    const hiddenBecauseEmptyFailure = !hasVisibleAssistantArtifacts({
-      assistantText,
-      toolCalls: Array.from(currentTurnToolCalls.values()),
-      toolResults: allToolResults
-    })
-
-    currentPhase = isExplicitTimeout ? currentPhase : 'failed'
-
-    await persistDraft(terminalStatus, true, {
-      interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
-      failureReason: reason,
-      timeoutReason: terminalTimeoutReason,
-      hiddenBecauseEmptyFailure,
-      hideUntilContent: false,
-      executionPhase: currentPhase,
-      executionDurationMs
-    }).catch(() => null)
-    await chatTurnService.updateStatus(turn.id, terminalStatus, {
-      finishedAt,
-      failureReason: reason,
-      assistantMessageId: draft.id,
-      metadata: chatTurnService.mergeTurnMetadata(turn, {
-        timeoutReason:
-          terminalTimeoutReason ||
-          (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null),
-        slowResponse: slowResponseRecorded,
-        firstOutputLatencyMs,
-        executionDurationMs,
-        executionPhase: currentPhase,
-        finishedAt: finishedAt.toISOString(),
-        skillSelection: skillSelectionMetadata
-      })
-    })
-    await broadcastAssistantMessage(
-      {
-        id: draft.id,
-        content: assistantText || ' ',
-        createdAt: draft.createdAt,
-        metadata: {
-          ...((draft.metadata as any) || {}),
-          isDraft: false,
-          interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
-          failureReason: reason
-        }
-      },
-      terminalStatus,
-      { failureReason: reason, finishedAt, skillSelection: skillSelectionMetadata }
-    ).catch(() => null)
-    await chatTurnService.recordEvent(
-      turn.id,
-      terminalStatus === CHAT_TURN_STATUS.INTERRUPTED
-        ? CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED
-        : CHAT_TURN_EVENT_TYPE.TURN_FAILED,
-      {
-        reason:
-          terminalTimeoutReason ||
-          (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'interrupted' : 'failed'),
+      await sendToUser(turn.userId, {
+        type: 'chat_turn_status',
+        roomId: turn.roomId,
+        turnId: turn.id,
+        status: CHAT_TURN_STATUS.FAILED,
+        reason: 'turn_failed',
         failureReason: reason,
-        firstOutputLatencyMs,
-        executionDurationMs,
-        phase: currentPhase
-      } as any
-    )
-    await broadcastTurnStatus(
-      terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'turn_interrupted' : 'turn_failed',
-      {
-        status: terminalStatus,
-        assistantMessageId: draft.id,
-        executionDurationMs,
-        firstOutputLatencyMs,
-        failureReason: reason
-      }
-    ).catch(() => null)
-    await prisma.llmUsage
-      .update({
-        where: { id: earlyUsage.id },
-        data: {
-          model: modelName,
-          success: false,
-          errorType:
-            (terminalTimeoutReason ? String(terminalTimeoutReason).toUpperCase() : '') ||
-            (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'INTERRUPTED' : 'FAILED'),
-          errorMessage: reason,
-          durationMs: executionDurationMs,
-          ttft: firstOutputLatencyMs
-        }
-      })
-      .catch(() => null)
-    throw error
-  } finally {
-    clearInterval(heartbeatTimer)
-    clearTimeout(slowResponseTimer)
-    clearTimeout(executionTimeoutTimer)
-  }
+        quotaExceeded: error?.statusCode === 429
+      }).catch(() => null)
+
+      throw error
+    } finally {
+      clearExecutionTimers()
+    }
+  })()
 }

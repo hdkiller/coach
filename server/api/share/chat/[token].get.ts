@@ -1,3 +1,5 @@
+import { buildSharedChatMessages } from '../../../utils/chat/share-sanitize'
+
 defineRouteMeta({
   openAPI: {
     tags: ['Public'],
@@ -89,6 +91,24 @@ export default defineEventHandler(async (event) => {
       messages: {
         orderBy: {
           createdAt: 'asc'
+        },
+        select: {
+          id: true,
+          content: true,
+          senderId: true,
+          createdAt: true,
+          metadata: true,
+          files: true,
+          turn: {
+            select: {
+              id: true,
+              status: true,
+              failureReason: true,
+              startedAt: true,
+              finishedAt: true,
+              metadata: true
+            }
+          }
         }
       },
       users: {
@@ -121,13 +141,7 @@ export default defineEventHandler(async (event) => {
     id: room.id,
     name: room.name,
     createdAt: room.createdAt,
-    messages: room.messages.map((msg) => ({
-      id: msg.id,
-      role: msg.senderId === 'ai_agent' ? 'assistant' : 'user',
-      content: msg.content,
-      parts: (msg.metadata as any)?.parts || [{ type: 'text', text: msg.content }],
-      createdAt: msg.createdAt
-    })),
+    messages: buildSharedChatMessages(room.messages),
     user: sharingUser
   }
 })

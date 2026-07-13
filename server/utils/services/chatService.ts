@@ -43,6 +43,27 @@ export class ChatService {
     return participant
   }
 
+  async resolveReplyToId(roomId: string, replyToId?: string | null) {
+    if (!replyToId) return undefined
+
+    const referencedMessage = await prisma.chatMessage.findFirst({
+      where: {
+        id: replyToId,
+        roomId
+      },
+      select: { id: true }
+    })
+
+    if (!referencedMessage) {
+      throw createError({
+        statusCode: 400,
+        message: 'Reply target message not found in this room.'
+      })
+    }
+
+    return replyToId
+  }
+
   async saveUserMessage(data: {
     userId: string
     roomId: string
