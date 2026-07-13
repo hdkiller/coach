@@ -34,12 +34,7 @@ type PrimaryArchetype =
   | 'strength'
   | 'unknown'
 type ExecutionEnvironment =
-  | 'indoor_erg'
-  | 'indoor_resistance'
-  | 'outdoor_free'
-  | 'treadmill'
-  | 'mixed'
-  | 'unknown'
+  'indoor_erg' | 'indoor_resistance' | 'outdoor_free' | 'treadmill' | 'mixed' | 'unknown'
 type PrimaryMetric = 'power' | 'pace' | 'hr' | 'subjective' | 'mixed'
 type SessionSteadiness = 'steady' | 'rolling' | 'stochastic' | 'intervalled' | 'unknown'
 type PromptDecision = {
@@ -1962,7 +1957,7 @@ function classifyArchetype(params: {
     titleContext.includes(token)
   )
 
-  let primaryArchetype: PrimaryArchetype = 'unknown'
+  let primaryArchetype: PrimaryArchetype
   if (family === 'strength') primaryArchetype = 'strength'
   else if (isRace) {
     primaryArchetype = 'race'
@@ -2030,7 +2025,7 @@ function classifyArchetype(params: {
   else if (hrUsable) primaryMetric = 'hr'
   else if (workout?.rpe || workout?.sessionRpe) primaryMetric = 'subjective'
 
-  let sessionSteadiness: SessionSteadiness = 'unknown'
+  let sessionSteadiness: SessionSteadiness
   if (intervalCount >= 3 || workSteps.length >= 3) sessionSteadiness = 'intervalled'
   else if (motionPattern.stopGoLikely) sessionSteadiness = 'stochastic'
   else if (vi >= 1.12) sessionSteadiness = 'stochastic'

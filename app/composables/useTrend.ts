@@ -17,7 +17,7 @@ export function useTrend() {
     thresholdPercent: number = 1 // 1% change required to be considered a trend
   ): TrendResult => {
     // Calculate previous value (single value or average of array)
-    let prevValue = 0
+    let prevValue: number
     if (Array.isArray(previous)) {
       if (previous.length === 0)
         prevValue = current // No history, assume flat

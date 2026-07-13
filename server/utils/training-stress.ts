@@ -348,10 +348,10 @@ export async function getCurrentFitnessSummary(
   })
 
   // Determine which is more recent (or use defaults)
-  let ctl = 0
-  let atl = 0
-  let lastUpdated: Date | null = null
-  let loadSource: 'workout' | 'wellness' | null = null
+  let ctl: number
+  let atl: number
+  let lastUpdated: Date | null
+  let loadSource: 'workout' | 'wellness'
 
   // Helper to get YYYY-MM-DD
   const toDay = (d: Date | null | undefined) => {

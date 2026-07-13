@@ -37,7 +37,7 @@
 | 7   | Workouts (completed)            | ✅ Done | 043, 064–065, 073–074, 088–092, 112–113, 130      | 1–2     |
 | 8   | Workouts (planned) & Plans      | ✅ Done | 080, 089–090, 117–118, 119                        | 2       |
 | 9   | Chat & AI tools                 | ✅ Done | 062, 077–079, 123, 163–166                        | 1–2     |
-| 10  | Nutrition                       | ✅ Done | 067, 075, 081–084, 114, 156–157                   | 2       |
+| 10  | Nutrition                       | ✅ Done | 067, 075, 081–084, 114, 156–157, 238–258          | 2, 13   |
 | 11  | Coaching & Teams                | ✅ Done | 068, 085, 115–116, 152–154, 201                   | 2–3     |
 | 12  | Auth, OAuth, Session            | ✅ Done | 058, 071, 093, 109–111, 125–126, 129              | 1–2     |
 | 13  | Integrations & Webhooks         | ✅ Done | 056, 059–060, 069–072, 099–108, 161, 171–174, 197 | 1–3     |
@@ -105,6 +105,7 @@
 | 2026-07-09 | 10      | Fix low-risk open issues — a11y, toasts, export, webhook URL, Sentry filter, send-email timeout, notifications, fitness pagination       | —          |
 | 2026-07-09 | 11      | Fix low-risk batch 2 — help-center card a11y, data page i18n/a11y, daily check-in i18n, admin chart labels, issues index i18n            | —          |
 | 2026-07-09 | 12      | Chat resilience review — send state, room-load races, WebSocket cleanup, stale-turn recovery, direct-send retry                          | 219–223    |
+| 2026-07-13 | 13      | Nutrition system deep review — metabolic sim/chain, fueling plan, hydration, nutrition APIs, trigger tasks, meal-rec UI                  | 238–258    |
 
 ## Postponed: auth & third-party (deferred 2026-07-08)
 

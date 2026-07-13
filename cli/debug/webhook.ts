@@ -164,7 +164,7 @@ async function analyzeIntervalsWebhook(prisma: PrismaClient, log: any, payload: 
     endDate.setHours(23, 59, 59, 999)
 
     const type = event.type
-    let actionDescription = ''
+    let actionDescription: string
 
     switch (type) {
       case 'ACTIVITY_UPLOADED':

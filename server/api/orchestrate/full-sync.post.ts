@@ -192,8 +192,6 @@ async function executeTask(userId: string, taskId: string, syncState: any) {
   broadcastTaskUpdate(userId, taskId, syncState.states[taskId])
 
   try {
-    let result
-
     // Execute task directly via Trigger.dev or database operations
     // instead of calling API endpoints (which require auth)
 
@@ -225,16 +223,6 @@ async function executeTask(userId: string, taskId: string, syncState: any) {
       broadcastTaskUpdate(userId, taskId, syncState.states[taskId])
       return
     }
-
-    // Update state to completed
-    syncState.states[taskId] = {
-      ...syncState.states[taskId],
-      status: 'completed',
-      endTime: new Date(),
-      progress: 100,
-      result
-    }
-    broadcastTaskUpdate(userId, taskId, syncState.states[taskId])
   } catch (error: any) {
     console.error(`Task ${taskId} failed:`, error)
 

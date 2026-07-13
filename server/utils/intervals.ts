@@ -1465,6 +1465,9 @@ export function normalizeIntervalsPlannedWorkout(
         zoneProfileSnapshot: zoneProfileSnapshot || createZoneProfileSnapshot({})
       })
     : undefined
+  if (canonicalStructure && durationSec) {
+    ;(canonicalStructure as { duration?: number }).duration = Math.round(durationSec)
+  }
   const result = {
     userId,
     externalId: String(event.id), // Convert to string

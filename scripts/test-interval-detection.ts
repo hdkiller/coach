@@ -23,8 +23,8 @@ function generateIntervals(duration: number): { time: number[]; power: number[];
   const power: number[] = []
   const hr: number[] = []
 
-  let currentPower = 150
-  let currentHr = 120
+  let currentPower: number
+  let currentHr: number
 
   for (let i = 0; i < duration; i++) {
     time.push(i)
@@ -35,11 +35,11 @@ function generateIntervals(duration: number): { time: number[]; power: number[];
     if (cycle < 300 && i > 600) {
       // Work interval (starts after 10m warmup)
       currentPower = 250 + (Math.random() * 20 - 10)
-      currentHr = Math.min(170, currentHr + 0.5)
+      currentHr = Math.min(170, (currentHr ?? 120) + 0.5)
     } else {
       // Recovery
       currentPower = 150 + (Math.random() * 20 - 10)
-      currentHr = Math.max(120, currentHr - 0.3)
+      currentHr = Math.max(120, (currentHr ?? 120) - 0.3)
     }
 
     power.push(currentPower)

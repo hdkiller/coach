@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-07-09 (app-review PRs #226–#237 merged; structure-gen PRs #214–#222 merged — see [issues.md](./issues.md))
 
-Documents **185 app-wide issues** (039–223) from systematic codebase review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
+Documents **220 app-wide issues** (039–258) from systematic codebase review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
 
 **Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~95% complete)
 
@@ -341,6 +341,47 @@ Documents **185 app-wide issues** (039–223) from systematic codebase review. C
 | [235](./235-chat-polling-amplification.md)                | Polling amplification during active turns        | Low      | Performance | Fixed  |
 | [236](./236-chat-realtime-fetch-race-flicker.md)          | Realtime delta vs HTTP refresh race              | Low      | Bug         | Fixed  |
 | [237](./237-chat-quota-failure-invisible-at-execution.md) | Execution-time quota failure invisible to user   | Medium   | Bug         | Fixed  |
+
+## Issues 238–258 (nutrition system review — 2026-07-13)
+
+Deep pass over the nutrition system: `server/utils/nutrition-domain/`,
+`server/utils/nutrition/`, `metabolicService`, `server/api/nutrition/*`, nutrition
+trigger tasks, and key UI components. Complements the earlier page-level nutrition pass
+(067, 075, 081–084, 114, 156–157).
+
+| ID                                                                 | Title                                                             | Priority | Type            | Status |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- | -------- | --------------- | ------ |
+| [238](./238-rescue-protocol-zero-intra-carbs.md)                   | LOW_FIBER_LIQUID rescue protocol sets intra carbs to 0            | High     | Bug             | Open   |
+| [239](./239-metabolic-chain-never-persisted.md)                    | Metabolic chain state never persisted in production               | High     | Bug/Arch        | Open   |
+| [240](./240-check-critical-alerts-stubbed.md)                      | `checkCriticalAlerts` body deleted in refactor                    | Medium   | Bug             | Open   |
+| [241](./241-adjust-fueling-post-workout-dead-and-wrong.md)         | `adjust-fueling-post-workout` never triggered; kJ formula wrong   | Medium   | Bug             | Open   |
+| [242](./242-ai-log-hydration-double-count.md)                      | AI food log double-counts hydration (AI item + regex fallback)    | High     | Bug             | Open   |
+| [243](./243-extract-fluid-volume-container-double-count.md)        | `extractFluidIntakeMl` double-counts volume + container           | Medium   | Bug             | Open   |
+| [244](./244-nutrition-source-precedence-unenforced.md)             | Source precedence unenforced; API upload wipes manual logs        | High     | Bug             | Open   |
+| [245](./245-carb-load-backfill-double-counts-allocated.md)         | Carb-loading back-distribution double-counts allocations          | Medium   | Bug             | Open   |
+| [246](./246-repair-chain-unbounded-future-recursion.md)            | `repairMetabolicChain` unbounded future recursion + create race   | Medium   | Bug             | Open   |
+| [247](./247-wave-endpoints-unbounded-range.md)                     | Wave endpoints accept unbounded ranges (CPU/DB amplification)     | Medium   | Bug/Performance | Open   |
+| [248](./248-simulate-impact-no-validation.md)                      | `simulate-impact` endpoint has no input validation                | Low      | Bug             | Open   |
+| [249](./249-metabolic-sim-internal-inconsistencies.md)             | Metabolic sim inconsistencies (drain, absorption cap, precedence) | Medium   | Bug             | Open   |
+| [250](./250-finalizeday-diverges-from-timeline.md)                 | `finalizeDay` simulates a different day than `getDailyTimeline`   | Medium   | Bug             | Open   |
+| [251](./251-analyze-nutrition-schema-and-status-gaps.md)           | analyze-nutrition schema mismatch; QUOTA_EXCEEDED never retried   | Medium   | Bug             | Open   |
+| [252](./252-nutrition-last-call-dead-cron.md)                      | `nutrition-last-call` disabled cron still runs every 30 min       | Low      | Maintenance     | Open   |
+| [253](./253-items-patch-nonatomic-move-and-races.md)               | Item mutations: non-atomic cross-meal move + write races          | Medium   | Bug             | Open   |
+| [254](./254-meal-rec-modal-single-shot-poll.md)                    | Meal rec modal poll fallback fires once after 3s                  | Medium   | Bug             | Open   |
+| [255](./255-recommendation-stuck-processing-on-trigger-failure.md) | Recommendation stuck PROCESSING when trigger enqueue fails        | Medium   | Bug             | Open   |
+| [256](./256-active-feed-ignores-absorption-type.md)                | Active feed absorption progress ignores stored `absorptionType`   | Low      | Bug             | Open   |
+| [257](./257-strategy-endpoints-recompute-amplification.md)         | Strategy/upcoming endpoints recompute plans dozens of times       | Medium   | Performance     | Open   |
+| [258](./258-waverange-utc-day-grouping.md)                         | `getWaveRange` groups workouts by UTC date, not local day         | Medium   | Bug             | Open   |
+
+### Suggested fix order (nutrition)
+
+1. **238 + 242 + 243** — user-facing data correctness (rescue fueling, hydration double counts); small isolated fixes
+2. **244** — stop API uploads wiping manual logs (data loss)
+3. **239 + 250 + 240** — decide the chain-persistence architecture, unify day simulation, restore alerts
+4. **247 + 257** — bound and batch the simulation endpoints (perf/DoS)
+5. **253 + 255 + 254** — mutation atomicity and stuck-state recovery
+6. **245 + 249 + 258** — simulation fidelity cluster
+7. **241 + 246 + 248 + 251 + 252 + 256** — remaining dead-feature/validation cleanups
 
 ---
 

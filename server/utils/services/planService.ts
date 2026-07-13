@@ -67,7 +67,7 @@ export const planService = {
           )
           blockId = block.id
         } else {
-          block = await trainingBlockRepository.update(
+          await trainingBlockRepository.update(
             blockId,
             {
               name: config.name,

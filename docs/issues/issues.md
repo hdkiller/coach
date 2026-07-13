@@ -226,6 +226,16 @@ Merged in PRs [#214](https://github.com/hdkiller/coach/pull/214)–[#222](https:
 | Session / act-as     | `server/utils/session.ts`                                                       |
 | Chat turn timeouts   | `server/utils/chat/turns.ts`, `server/utils/chat/turn-executor.ts`              |
 
+## Nutrition System Review (238–258)
+
+Deep review of the nutrition system (2026-07-13): metabolic simulation & chain,
+fueling-plan engine, hydration parsing, `server/api/nutrition/*`, nutrition trigger
+tasks, and meal-recommendation UI. Tracked in
+[app-review-issues.md](./app-review-issues.md#issues-238258-nutrition-system-review--2026-07-13).
+**238–258 open.** Highlights: rescue protocol zero-carbs bug (238), chain state never
+persisted in production (239), hydration double-counting (242/243), API upload wipes
+manual logs (244).
+
 ## Chat Page Review (224–237)
 
 Systematic review of `/chat`, turn executor, WebSocket auth, and public share (2026-07-13). Tracked in [app-review-issues.md](./app-review-issues.md#issue-224237-chat-page-review--2026-07-13). **224–237 fixed.**

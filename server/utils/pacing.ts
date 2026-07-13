@@ -213,8 +213,8 @@ export function analyzePacingStrategy(lapSplits: any[]) {
   // CV of 33% = score 0 (Poor)
   const evennessScore = Math.max(0, 100 - coefficientOfVariation * 3) // 0-100 scale
 
-  let strategy = 'even'
-  let description = 'Well-paced with consistent splits'
+  let strategy: string
+  let description: string
 
   if (paceDifference < -5) {
     strategy = 'negative_split'
@@ -334,8 +334,8 @@ export function calculateOptimalCadence(
   }
 
   // 4. Comparison with current cadence
-  let recommendation = ''
-  let status: 'optimal' | 'low' | 'high' = 'optimal'
+  let recommendation: string
+  let status: 'optimal' | 'low' | 'high'
 
   if (currentCadence) {
     if (currentCadence < optimalRange.min) {
@@ -350,6 +350,7 @@ export function calculateOptimalCadence(
       recommendation = `Your cadence is in the optimal range for this pace. Great job maintaining efficient form!`
     }
   } else {
+    status = 'optimal'
     recommendation = `Target a cadence around ${roundedReference} spm for this pace to optimize running economy.`
   }
 

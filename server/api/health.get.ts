@@ -2,7 +2,7 @@ import { prisma } from '../utils/db'
 
 export default defineEventHandler(async (event) => {
   const start = performance.now()
-  let dbStatus = 'unknown'
+  let dbStatus: 'connected' | 'disconnected'
   let error = null
 
   try {

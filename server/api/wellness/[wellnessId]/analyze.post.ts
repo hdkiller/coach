@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
-  let wellness: any = null
+  let wellness: any
 
   if (isUuid) {
     // Fetch the wellness record by ID

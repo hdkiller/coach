@@ -102,15 +102,9 @@ const growthCommand = new Command('growth')
         const yesterdayCount = hourlyStats[hour].yesterday
         const todayCount = hourlyStats[hour].today
 
-        let diffStr = ''
         const diff = todayCount - yesterdayCount
-        if (diff > 0) {
-          diffStr = chalk.green(`+${diff}`)
-        } else if (diff < 0) {
-          diffStr = chalk.red(`${diff}`)
-        } else {
-          diffStr = chalk.gray('=')
-        }
+        const diffStr =
+          diff > 0 ? chalk.green(`+${diff}`) : diff < 0 ? chalk.red(`${diff}`) : chalk.gray('=')
 
         return {
           Hour: hourLabel,

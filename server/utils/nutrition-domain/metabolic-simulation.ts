@@ -195,8 +195,8 @@ export function calculateGlycogenState(
 
   const percentage = Math.round((currentGrams / C_cap) * 100)
 
-  let advice = ''
-  let state = 1
+  let advice: string
+  let state: number
 
   if (percentage > 70) {
     advice = 'Energy levels high. Ready for intensity.'

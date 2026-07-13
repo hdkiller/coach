@@ -24,12 +24,10 @@ export const publishCommand = new Command('publish')
     }
 
     // 1. Resolve Webhook URL
-    let webhookUrl = ''
-    if (type === 'announcements') {
-      webhookUrl = process.env.DISCORD_WEBHOOK_ANNOUNCEMENTS || ''
-    } else {
-      webhookUrl = process.env.DISCORD_WEBHOOK_TECHNICAL || ''
-    }
+    const webhookUrl =
+      type === 'announcements'
+        ? process.env.DISCORD_WEBHOOK_ANNOUNCEMENTS || ''
+        : process.env.DISCORD_WEBHOOK_TECHNICAL || ''
 
     if (!webhookUrl && !options.dryRun) {
       console.error(

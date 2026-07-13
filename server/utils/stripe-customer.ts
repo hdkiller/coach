@@ -79,7 +79,6 @@ export async function ensureStripeCustomerForUser(
         throw error
       }
 
-      customerId = null
       await prisma.user.update({
         where: { id: user.id },
         data: {

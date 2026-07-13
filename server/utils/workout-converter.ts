@@ -261,8 +261,8 @@ export const WorkoutConverter = {
       const power = step.power || { value: 0 }
 
       // Calculate start and end power as percentage (0-100)
-      let startPercent = 0
-      let endPercent = 0
+      let startPercent: number
+      let endPercent: number
 
       if (power.range) {
         startPercent = (power.range.start ?? 0) * 100
@@ -308,8 +308,8 @@ export const WorkoutConverter = {
       const power = step.power || { value: 0 }
 
       // Calculate start and end power in Watts
-      let startWatts = 0
-      let endWatts = 0
+      let startWatts: number
+      let endWatts: number
 
       if (power.range) {
         startWatts = (power.range.start ?? 0) * ftp
