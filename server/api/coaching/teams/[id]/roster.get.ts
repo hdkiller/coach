@@ -42,5 +42,8 @@ export default defineEventHandler(async (event) => {
   // Only team staff (OWNER, ADMIN, COACH) can see the full roster with detailed metrics
   const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
 
-  return await teamRepository.getTeamRoster(teamId, { maskSensitiveData: !isStaff })
+  return await teamRepository.getTeamRoster(teamId, {
+    maskSensitiveData: !isStaff,
+    viewingCoachId: user.id
+  })
 })

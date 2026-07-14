@@ -3722,6 +3722,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useNow } from '@vueuse/core'
   import { nextTick } from 'vue'
   import { useTranslate } from '@tolgee/vue'
   import { marked } from 'marked'
@@ -3796,10 +3797,11 @@
   const savingTags = ref(false)
   const showTagEditor = ref(false)
   const analysisFactsOpen = ref(false)
+  const quotaClock = useNow({ interval: 30_000 })
   const canAnalyzeNowAfterQuotaReset = computed(() => {
     if (workout.value?.aiAnalysisStatus !== 'QUOTA_EXCEEDED') return false
     if (!workoutAnalysisQuota.value) return false
-    return !isQuotaExhausted(workoutAnalysisQuota.value)
+    return !isQuotaExhausted(workoutAnalysisQuota.value, quotaClock.value)
   })
 
   async function refreshWorkoutAnalysisQuota() {

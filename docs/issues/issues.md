@@ -232,9 +232,17 @@ Deep review of the nutrition system (2026-07-13): metabolic simulation & chain,
 fueling-plan engine, hydration parsing, `server/api/nutrition/*`, nutrition trigger
 tasks, and meal-recommendation UI. Tracked in
 [app-review-issues.md](./app-review-issues.md#issues-238258-nutrition-system-review--2026-07-13).
-**238–258 open.** Highlights: rescue protocol zero-carbs bug (238), chain state never
-persisted in production (239), hydration double-counting (242/243), API upload wipes
-manual logs (244).
+**Fixed:** 238, 239, 240, 242, 243, 244.  
+**Still open:** 241, 245–258.
+
+Highlights shipped:
+
+- **238** — fix rescue protocol intra-workout carbs cap ordering (`server/utils/nutrition-domain/fueling-plan.ts`)
+- **242** — prevent AI hydration double count in log endpoint (`server/api/nutrition/[id]/log.post.ts`)
+- **243** — avoid explicit-volume + container double count (`server/utils/nutrition/hydration.ts`)
+- **244** — merge upload items by source instead of wiping day (`server/api/nutrition/index.post.ts`)
+- **240** — restore `checkCriticalAlerts` logic (`server/utils/services/metabolicService.ts`)
+- **239** — schedule `finalize-daily-nutrition` daily fanout (`trigger/finalize-daily-nutrition.ts`)
 
 ## Chat Page Review (224–237)
 

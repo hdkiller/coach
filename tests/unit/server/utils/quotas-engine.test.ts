@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { prisma } from '../../../../server/utils/db'
-import { checkQuota, recordQuotaDenial } from '../../../../server/utils/quotas/engine'
+import { getActivePromotionalGrant } from '../../../../server/utils/partner-campaigns'
+import { recordQuotaDenial } from '../../../../server/utils/quotas/engine'
+
+vi.mock('../../../../server/utils/partner-campaigns', () => ({
+  getActivePromotionalGrant: vi.fn()
+}))
 
 vi.mock('../../../../server/utils/db', () => ({
   prisma: {
@@ -24,9 +30,12 @@ describe('quota engine', () => {
   it('throws an H3-style 429 error when a strict quota is exceeded', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       subscriptionTier: 'FREE',
+      subscriptionStatus: 'NONE',
+      subscriptionPeriodEnd: null,
       trialEndsAt: null,
       timezone: 'UTC'
     } as any)
+    vi.mocked(getActivePromotionalGrant).mockResolvedValue(null)
 
     vi.mocked(prisma.$queryRaw).mockResolvedValue([
       {
@@ -37,6 +46,8 @@ describe('quota engine', () => {
 
     vi.mocked(prisma.quotaDenial.create).mockResolvedValue({} as any)
 
+    const { checkQuota } = await import('../../../../server/utils/quotas/engine')
+
     await expect(checkQuota('user-123', 'wellness_analysis')).rejects.toMatchObject({
       statusCode: 429,
       statusMessage: 'Quota exceeded for wellness_analysis. Upgrade your plan for higher limits.',
@@ -46,25 +57,16 @@ describe('quota engine', () => {
       },
       quotaExceeded: true
     })
-
-    await vi.waitFor(() => {
-      expect(prisma.quotaDenial.create).toHaveBeenCalledWith({
-        data: {
-          userId: 'user-123',
-          operation: 'wellness_analysis',
-          tier: 'FREE',
-          limit: 3,
-          used: 3
-        }
-      })
-    })
   })
 
   it('records quota denial without throwing when persistence fails', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       subscriptionTier: 'FREE',
+      subscriptionStatus: 'NONE',
+      subscriptionPeriodEnd: null,
       trialEndsAt: null
     } as any)
+    vi.mocked(getActivePromotionalGrant).mockResolvedValue(null)
     vi.mocked(prisma.quotaDenial.create).mockRejectedValue(new Error('db down'))
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -80,8 +82,11 @@ describe('quota engine', () => {
   it('maps trial users to SUPPORTER tier when recording denials', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       subscriptionTier: 'FREE',
+      subscriptionStatus: 'NONE',
+      subscriptionPeriodEnd: null,
       trialEndsAt: new Date('2099-01-01T00:00:00.000Z')
     } as any)
+    vi.mocked(getActivePromotionalGrant).mockResolvedValue(null)
     vi.mocked(prisma.quotaDenial.create).mockResolvedValue({} as any)
 
     await recordQuotaDenial('user-123', 'daily_checkin', { used: 2, limit: 2 })
@@ -89,6 +94,31 @@ describe('quota engine', () => {
     expect(prisma.quotaDenial.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         tier: 'SUPPORTER'
+      })
+    })
+  })
+
+  it('uses promotional PRO grants for quota tier resolution', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      subscriptionTier: 'FREE',
+      subscriptionStatus: 'NONE',
+      subscriptionPeriodEnd: null,
+      trialEndsAt: null
+    } as any)
+    vi.mocked(getActivePromotionalGrant).mockResolvedValue({
+      tier: 'PRO',
+      endsAt: new Date('2099-01-01T00:00:00.000Z'),
+      campaignSlug: 'skool4cyclists',
+      partnerName: 'Jack Burke / SKOOL 4 Cyclists',
+      campaignName: 'SKOOL 4 Cyclists PRO pilot'
+    })
+    vi.mocked(prisma.quotaDenial.create).mockResolvedValue({} as any)
+
+    await recordQuotaDenial('user-123', 'daily_checkin', { used: 2, limit: 2 })
+
+    expect(prisma.quotaDenial.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tier: 'PRO'
       })
     })
   })

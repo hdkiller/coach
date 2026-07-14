@@ -622,8 +622,13 @@ export function normalizeStructuredStrengthWorkout(structuredWorkout: any) {
     structuredWorkout?.steps
   )
 
+  // Strength workouts use `blocks` as the canonical representation. If we keep legacy `steps`
+  // alongside normalized blocks, downstream metrics + export validation can double-count or
+  // incorrectly reject exports based on step-level targets.
+  const { steps: _steps, ...rest } = structuredWorkout || {}
+
   return {
-    ...(structuredWorkout || {}),
+    ...rest,
     blocks,
     exercises: flattenStrengthBlocksToExercises(blocks)
   }

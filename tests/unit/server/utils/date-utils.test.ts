@@ -5,6 +5,7 @@ import {
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC,
   formatDateUTC,
+  formatUserDate,
   parseDateTimeInTimezone
 } from '../../../../server/utils/date'
 
@@ -78,6 +79,17 @@ describe('Date Utilities', () => {
       const result = getTimestampDateKey(new Date('2026-02-16T18:55:11.000Z'), 'Australia/Sydney')
 
       expect(result).toBe('2026-02-17')
+    })
+  })
+
+  describe('formatUserDate', () => {
+    it('formats an instant on the athlete local calendar day', () => {
+      const trialEnd = new Date('2026-07-18T00:30:00.000Z')
+
+      expect(formatUserDate(trialEnd, 'America/Los_Angeles', 'EEEE, MMMM d')).toBe(
+        'Friday, July 17'
+      )
+      expect(formatUserDate(trialEnd, 'Europe/Budapest', 'EEEE, MMMM d')).toBe('Saturday, July 18')
     })
   })
 

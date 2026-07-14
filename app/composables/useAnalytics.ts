@@ -309,6 +309,31 @@ export function useAnalytics() {
       trackEvent('share_reward_claim_rejected', {
         reason
       })
+    },
+
+    trackPartnerPageView: (campaignSlug: string, availability: string) => {
+      trackEvent('partner_page_view', {
+        campaign_slug: campaignSlug,
+        availability
+      })
+    },
+
+    trackPartnerSignupStart: (campaignSlug: string) => {
+      trackEvent('partner_signup_start', {
+        campaign_slug: campaignSlug
+      })
+    },
+
+    trackPartnerRedemption: (
+      campaignSlug: string,
+      status: 'completed' | 'already_redeemed' | 'rejected',
+      reason?: string
+    ) => {
+      trackEvent('partner_redemption', {
+        campaign_slug: campaignSlug,
+        status,
+        ...(reason ? { reason } : {})
+      })
     }
   }
 }

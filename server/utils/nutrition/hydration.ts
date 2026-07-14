@@ -82,22 +82,28 @@ export function extractFluidIntakeMl(text: string): number {
   if (!hasFluidKeyword) return 0
 
   let totalMl = 0
+  let hasExplicitVolume = false
   const explicitVolumePattern =
     /(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|l|liters?|litres?|oz|fl\s?oz)\b/gi
   for (const match of Array.from(lower.matchAll(explicitVolumePattern))) {
     const value = Number(match[1] || 0)
     const unit = (match[2] || '').toLowerCase()
     if (!value) continue
+    hasExplicitVolume = true
     if (unit === 'ml' || unit.startsWith('millil')) totalMl += value
     else if (unit === 'l' || unit.startsWith('liter') || unit.startsWith('litre'))
       totalMl += value * 1000
     else totalMl += value * OUNCE_TO_ML
   }
 
-  const containerPattern = /\b(large|medium|small)?\s*(bottle|glass|cup|flask)\b/gi
-  for (const match of Array.from(lower.matchAll(containerPattern))) {
-    const descriptor = `${match[1] || ''} ${match[2] || ''}`.trim()
-    totalMl += inferContainerMl(descriptor)
+  // If the user already gave an explicit volume ("500ml bottle"), don't also add a
+  // container estimate (which would double count).
+  if (!hasExplicitVolume) {
+    const containerPattern = /\b(large|medium|small)?\s*(bottle|glass|cup|flask)\b/gi
+    for (const match of Array.from(lower.matchAll(containerPattern))) {
+      const descriptor = `${match[1] || ''} ${match[2] || ''}`.trim()
+      totalMl += inferContainerMl(descriptor)
+    }
   }
 
   return Math.round(totalMl)

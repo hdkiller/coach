@@ -2,12 +2,12 @@
   <UCard
     class="flex flex-col h-full transition-all overflow-hidden group"
     :class="{
-      'hover:ring-2 hover:ring-primary-500 cursor-pointer': !athlete.isMasked,
-      'opacity-80 grayscale-[0.5]': athlete.isMasked
+      'hover:ring-2 hover:ring-primary-500 cursor-pointer': canInteract,
+      'opacity-80 grayscale-[0.5]': !canInteract
     }"
     @click="
       () => {
-        athlete.isMasked ? null : $emit('view', athlete)
+        canInteract ? $emit('view', athlete) : null
       }
     "
   >
@@ -23,7 +23,7 @@
           <div class="min-w-0">
             <h4
               class="font-bold text-gray-900 dark:text-white truncate transition-colors"
-              :class="{ 'group-hover:text-primary-600': !athlete.isMasked }"
+              :class="{ 'group-hover:text-primary-600': canInteract }"
             >
               {{ athlete.name }}
             </h4>
@@ -94,11 +94,17 @@
         >
           <p class="text-[10px] text-neutral-500 uppercase font-bold mb-0.5">7d Comp.</p>
           <p
-            v-if="!athlete.isMasked"
+            v-if="canInteract"
             class="text-lg font-black leading-tight"
-            :class="(athlete.stats?.adherence7d || 0) >= 80 ? 'text-green-600' : 'text-orange-500'"
+            :class="
+              adherence7d !== null && adherence7d !== undefined
+                ? adherence7d >= 80
+                  ? 'text-green-600'
+                  : 'text-orange-500'
+                : 'text-neutral-400'
+            "
           >
-            {{ athlete.stats?.adherence7d ?? '--' }}%
+            {{ adherence7d != null ? `${adherence7d}%` : '--' }}
           </p>
           <p v-else class="text-lg font-black text-neutral-300 leading-tight">--%</p>
           <p class="text-[9px] text-neutral-400">
@@ -188,15 +194,25 @@
       <div class="flex gap-2">
         <UButton
           class="flex-1 font-bold"
-          :label="athlete.isMasked ? 'Private Profile' : 'Analyze Athlete'"
-          :icon="athlete.isMasked ? 'i-heroicons-lock-closed' : 'i-heroicons-chart-bar'"
-          :variant="athlete.isMasked ? 'ghost' : 'soft'"
-          :color="athlete.isMasked ? 'neutral' : 'primary'"
+          :label="
+            athlete.isMasked
+              ? 'Private Profile'
+              : athlete.canViewDetails === false
+                ? 'Not Your Athlete'
+                : 'Analyze Athlete'
+          "
+          :icon="
+            athlete.isMasked || athlete.canViewDetails === false
+              ? 'i-heroicons-lock-closed'
+              : 'i-heroicons-chart-bar'
+          "
+          :variant="canInteract ? 'soft' : 'ghost'"
+          :color="canInteract ? 'primary' : 'neutral'"
           size="sm"
-          :disabled="athlete.isMasked"
-          @click.stop="$emit('view', athlete)"
+          :disabled="!canInteract"
+          @click.stop="canInteract ? $emit('view', athlete) : null"
         />
-        <UTooltip v-if="!athlete.isMasked" text="Message Athlete">
+        <UTooltip v-if="canInteract" text="Message Athlete">
           <UButton
             color="neutral"
             variant="ghost"
@@ -232,6 +248,10 @@
   defineEmits(['view', 'message'])
 
   const currentWellness = computed(() => props.athlete.wellness?.[0] || null)
+  const canInteract = computed(
+    () => !props.athlete.isMasked && props.athlete.canViewDetails !== false
+  )
+  const adherence7d = computed(() => props.athlete.stats?.adherence7d ?? null)
   const performanceSummary = computed(() => props.athlete.performanceSummary || null)
   const currentCTL = computed(
     () => performanceSummary.value?.currentCTL ?? currentWellness.value?.ctl ?? null
@@ -259,7 +279,10 @@
 
   // Alert Logic
   const isOvertrained = computed(() => currentTSB.value !== null && currentTSB.value < -25)
-  const isSlacking = computed(() => (props.athlete.stats?.adherence7d || 100) < 60)
+  const isSlacking = computed(() => {
+    const adherence = props.athlete.stats?.adherence7d
+    return adherence != null && adherence < 60
+  })
 
   const getTSBColor = (tsb: number | null) => {
     if (tsb === null) return 'text-neutral-400'

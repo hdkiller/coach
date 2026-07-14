@@ -5,13 +5,30 @@ import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
 import type { QuotaStatus } from '~~/app/types/quotas'
 import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../date'
+import { resolveEffectiveTier } from '../../../shared/effective-tier'
+import { getActivePromotionalGrant } from '../partner-campaigns'
 
-function resolveEffectiveTier(user: {
-  subscriptionTier: SubscriptionTier
-  trialEndsAt: Date | null
-}): SubscriptionTier {
-  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
-  return user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+async function resolveEffectiveTierForUser(userId: string): Promise<SubscriptionTier | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      subscriptionTier: true,
+      subscriptionStatus: true,
+      subscriptionPeriodEnd: true,
+      trialEndsAt: true
+    }
+  })
+  if (!user) return null
+
+  const activeGrant = await getActivePromotionalGrant(userId)
+
+  return resolveEffectiveTier({
+    subscriptionTier: user.subscriptionTier,
+    subscriptionStatus: user.subscriptionStatus,
+    subscriptionPeriodEnd: user.subscriptionPeriodEnd,
+    trialEndsAt: user.trialEndsAt,
+    promotionalGrantTier: activeGrant?.tier ?? null
+  })
 }
 
 /**
@@ -28,15 +45,29 @@ export async function recordQuotaDenial(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { subscriptionTier: true, trialEndsAt: true }
+      select: {
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        subscriptionPeriodEnd: true,
+        trialEndsAt: true
+      }
     })
     if (!user) return
+
+    const activeGrant = await getActivePromotionalGrant(userId)
+    const tier = resolveEffectiveTier({
+      subscriptionTier: user.subscriptionTier,
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionPeriodEnd: user.subscriptionPeriodEnd,
+      trialEndsAt: user.trialEndsAt,
+      promotionalGrantTier: activeGrant?.tier ?? null
+    })
 
     await prisma.quotaDenial.create({
       data: {
         userId,
         operation: canonicalOp,
-        tier: resolveEffectiveTier(user),
+        tier,
         limit: status.limit,
         used: status.used
       }
@@ -59,12 +90,25 @@ export async function getQuotaStatus(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { subscriptionTier: true, trialEndsAt: true, timezone: true }
+      select: {
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        subscriptionPeriodEnd: true,
+        trialEndsAt: true,
+        timezone: true
+      }
     })
 
     if (!user) return null
 
-    const effectiveTier = resolveEffectiveTier(user)
+    const activeGrant = await getActivePromotionalGrant(userId)
+    const effectiveTier = resolveEffectiveTier({
+      subscriptionTier: user.subscriptionTier,
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionPeriodEnd: user.subscriptionPeriodEnd,
+      trialEndsAt: user.trialEndsAt,
+      promotionalGrantTier: activeGrant?.tier ?? null
+    })
 
     const quotaDef = QUOTA_REGISTRY[effectiveTier][canonicalOp]
 
@@ -204,14 +248,8 @@ function parseIntervalToMs(interval: string): number {
  */
 export async function getQuotaSummary(userId: string): Promise<QuotaStatus[]> {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { subscriptionTier: true, trialEndsAt: true }
-    })
-
-    if (!user) return []
-
-    const effectiveTier = resolveEffectiveTier(user)
+    const effectiveTier = await resolveEffectiveTierForUser(userId)
+    if (!effectiveTier) return []
 
     const ops = Object.keys(QUOTA_REGISTRY[effectiveTier]) as QuotaOperation[]
 

@@ -178,7 +178,9 @@ model User {
 }
 ```
 
-### 10.2 Entitlements Calculation Logic (`server/utils/entitlements.ts`)
+### 10.2 Entitlements Calculation Logic (`server/utils/entitlements.ts` + `shared/effective-tier.ts`)
+
+Effective tier is resolved from paid subscription (including grace period), signup trial, and promotional partner grants. The highest valid tier wins. Promotional grants are stored in `PartnerCampaignRedemption` and never modify Stripe subscription fields.
 
 We must handle the "Grace Period" (Canceled but paid).
 

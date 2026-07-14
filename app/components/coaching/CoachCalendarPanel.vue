@@ -206,7 +206,14 @@
     if (!props.athlete?.id) return
     const raw = event.dataTransfer?.getData('application/json')
     if (!raw) return
-    const parsed = JSON.parse(raw)
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      return
+    }
+
     if (parsed.template) {
       emit('scheduleTemplate', {
         athleteId: props.athlete.id,

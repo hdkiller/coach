@@ -351,13 +351,13 @@ trigger tasks, and key UI components. Complements the earlier page-level nutriti
 
 | ID                                                                 | Title                                                             | Priority | Type            | Status |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------- | -------- | --------------- | ------ |
-| [238](./238-rescue-protocol-zero-intra-carbs.md)                   | LOW_FIBER_LIQUID rescue protocol sets intra carbs to 0            | High     | Bug             | Open   |
-| [239](./239-metabolic-chain-never-persisted.md)                    | Metabolic chain state never persisted in production               | High     | Bug/Arch        | Open   |
-| [240](./240-check-critical-alerts-stubbed.md)                      | `checkCriticalAlerts` body deleted in refactor                    | Medium   | Bug             | Open   |
+| [238](./238-rescue-protocol-zero-intra-carbs.md)                   | LOW_FIBER_LIQUID rescue protocol sets intra carbs to 0            | High     | Bug             | Fixed  |
+| [239](./239-metabolic-chain-never-persisted.md)                    | Metabolic chain state never persisted in production               | High     | Bug/Arch        | Fixed  |
+| [240](./240-check-critical-alerts-stubbed.md)                      | `checkCriticalAlerts` body deleted in refactor                    | Medium   | Bug             | Fixed  |
 | [241](./241-adjust-fueling-post-workout-dead-and-wrong.md)         | `adjust-fueling-post-workout` never triggered; kJ formula wrong   | Medium   | Bug             | Open   |
-| [242](./242-ai-log-hydration-double-count.md)                      | AI food log double-counts hydration (AI item + regex fallback)    | High     | Bug             | Open   |
-| [243](./243-extract-fluid-volume-container-double-count.md)        | `extractFluidIntakeMl` double-counts volume + container           | Medium   | Bug             | Open   |
-| [244](./244-nutrition-source-precedence-unenforced.md)             | Source precedence unenforced; API upload wipes manual logs        | High     | Bug             | Open   |
+| [242](./242-ai-log-hydration-double-count.md)                      | AI food log double-counts hydration (AI item + regex fallback)    | High     | Bug             | Fixed  |
+| [243](./243-extract-fluid-volume-container-double-count.md)        | `extractFluidIntakeMl` double-counts volume + container           | Medium   | Bug             | Fixed  |
+| [244](./244-nutrition-source-precedence-unenforced.md)             | Source precedence unenforced; API upload wipes manual logs        | High     | Bug             | Fixed  |
 | [245](./245-carb-load-backfill-double-counts-allocated.md)         | Carb-loading back-distribution double-counts allocations          | Medium   | Bug             | Open   |
 | [246](./246-repair-chain-unbounded-future-recursion.md)            | `repairMetabolicChain` unbounded future recursion + create race   | Medium   | Bug             | Open   |
 | [247](./247-wave-endpoints-unbounded-range.md)                     | Wave endpoints accept unbounded ranges (CPU/DB amplification)     | Medium   | Bug/Performance | Open   |
@@ -384,6 +384,48 @@ trigger tasks, and key UI components. Complements the earlier page-level nutriti
 7. **241 + 246 + 248 + 251 + 252 + 256** — remaining dead-feature/validation cleanups
 
 ---
+
+## Issues 259–262 (strength structured workout path review — 2026-07-13)
+
+Deep pass over the strength structured-workout path: library normalization, exercise matching, validation/support matrix, metrics estimators, and publishing serialization.
+
+| ID                                                               | Title                                                                | Priority | Type            | Status |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------- | -------- | --------------- | ------ |
+| [259](./259-strength-normalization-retains-steps.md)             | Strength normalization keeps `steps` → double metrics/export blocked | High     | Bug             | Open   |
+| [260](./260-strength-export-validation-exemption-dead.md)        | Strength export validation exemption is dead code                    | High     | Bug             | Open   |
+| [261](./261-strength-library-matching-can-fail-trigger.md)       | Strength library matching can fail the whole trigger task            | High     | Bug/Performance | Open   |
+| [262](./262-strength-distance-prescription-modes-unsupported.md) | Strength distance prescription modes inflate duration/TSS            | High     | Bug             | Open   |
+
+## Issues 263–275 (coaching pages review — 2026-07-14)
+
+Systematic pass over `/coaching` pages, components, `coachingRepository`, `teamRepository`, and all coaching API routes. Prior issues 068, 085, 115–116, 152–154, 201 covered feed links, i18n, and join flow.
+
+| ID                                                         | Title                                                  | Priority | Type             | Status |
+| ---------------------------------------------------------- | ------------------------------------------------------ | -------- | ---------------- | ------ |
+| [263](./263-public-share-invite-single-use.md)             | Public coach/team share invites are single-use         | Critical | Bug              | Open   |
+| [264](./264-team-roster-enrichment-wrong-coach-id.md)      | Team roster enrichment passes `teamId` as `coachId`    | High     | Bug              | Open   |
+| [265](./265-group-delete-route-missing.md)                 | Delete Group button calls missing API route            | High     | Bug              | Open   |
+| [266](./266-team-staff-cannot-access-roster-athletes.md)   | Team staff 403 on athletes they don't personally coach | High     | Bug/AuthZ        | Open   |
+| [267](./267-weak-invite-codes-no-rate-limit.md)            | Weak invite codes with no redemption rate limiting     | High     | Security         | Open   |
+| [268](./268-coaches-only-masking-leaks-email.md)           | COACHES_ONLY visibility still leaks member emails      | High     | Security/Privacy | Open   |
+| [269](./269-coaching-legacy-endpoints-skip-requireauth.md) | Older coaching endpoints skip `requireAuth` guards     | Medium   | Security         | Open   |
+| [270](./270-coach-calendar-panel-fetch-race.md)            | Coach calendar panel fetch race on fast navigation     | Medium   | Bug              | Open   |
+| [271](./271-overview-compliance-server-timezone.md)        | Overview compliance grid uses server timezone          | Medium   | Bug              | Open   |
+| [272](./272-adherence-100-with-zero-planned.md)            | Adherence shows 100% with zero planned workouts        | Medium   | Bug/UX           | Open   |
+| [273](./273-team-invite-email-case-sensitive.md)           | Team invite email restriction is case-sensitive        | Medium   | Bug              | Open   |
+| [274](./274-coaching-calendar-unbounded-range.md)          | Coaching athlete calendar accepts unbounded date range | Medium   | Bug/Performance  | Open   |
+| [275](./275-coaching-polish-bundle.md)                     | Coaching pages low-priority polish (275a–275e)         | Low      | Maintenance      | Open   |
+
+### Suggested fix order (coaching)
+
+1. **263** — public share links multi-use (silent production failure; breaks branded join page)
+2. **264 + 272** — roster metrics honest (wrong coach ID + fake 100% adherence)
+3. **265** — wire group DELETE (and optional PATCH) route
+4. **266** — decide team-staff access model; align UI + `requireCoachAccessToAthlete`
+5. **267 + 268** — invite security + email privacy
+6. **269 + 273 + 274** — auth consistency and input validation
+7. **270 + 271** — calendar/overview correctness
+8. **275** — polish when touching nearby files; **116** message-athlete context separately
 
 ## Recommended fix order (app review)
 

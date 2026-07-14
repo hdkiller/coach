@@ -1,45 +1,43 @@
 ---
 title: Coaches
-description: Empowering human coaches with AI-driven insights and advanced athlete management tools.
+description: A complete guide to managing athletes, calendars, teams, analytics, invitations, and your public coaching presence.
 ---
 
-Welcome to the Coaches Hub. Coach Watts is designed to be a "force multiplier" for human coaches, providing you with deep data analysis so you can focus on strategic mentorship and personalized guidance.
+The coach workspace brings athlete onboarding, schedule management, performance review, reusable training content, and team administration into one place.
 
-## Why use Coach Watts as a Coach?
+## Start here
 
-The platform bridges the gap between raw data and actionable coaching. While our AI handles the day-to-day data crunching, you maintain full control over the high-level strategy.
+1. [Connect your first athlete](/documentation/coaches/connecting-athletes).
+2. Learn the [strategic overview](/documentation/coaches/strategic-overview).
+3. Review an athlete through the [roster and athlete profile](/documentation/coaches/athlete-roster-profiles).
+4. Schedule work in the [coach calendar](/documentation/coaches/coaching-calendar).
 
-## Getting started
+## Documentation coverage map
 
-1. **[Connect with athletes](/documentation/coaches/connecting-athletes)** — invite code system
-2. **[Act as an athlete](/documentation/coaches/acting-as-athlete)** — view their dashboard and data
-3. **[Coaching calendar](/documentation/coaches/coaching-calendar)** — multi-athlete scheduling
+| Coach workflow                                                 | Guide                                                                                                                                                     |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard compliance and activity signals                      | [Strategic Overview](/documentation/coaches/strategic-overview)                                                                                           |
+| Share links, email invitations, athlete codes, and requests    | [Connecting with Athletes](/documentation/coaches/connecting-athletes) and [Invitations & Coaching Requests](/documentation/coaches/invitations-requests) |
+| Athlete metrics, recovery, schedule, completed work, and zones | [Athlete Roster & Profiles](/documentation/coaches/athlete-roster-profiles)                                                                               |
+| Coach-scoped access versus athlete account access              | [Reviewing an Athlete](/documentation/coaches/acting-as-athlete)                                                                                          |
+| Week/month scheduling, split view, moving and copying workouts | [Coaching Calendar](/documentation/coaches/coaching-calendar)                                                                                             |
+| Workout, exercise, and plan templates                          | [Coach Library & Sharing](/documentation/coaches/coach-library)                                                                                           |
+| Dashboards, chart scopes, comparisons, and explorers           | [Coach Analytics](/documentation/coaches/coach-analytics)                                                                                                 |
+| Teams, staff roles, invitations, and rosters                   | [Team Management](/documentation/coaches/team-management)                                                                                                 |
+| Personal and team-scoped athlete groups                        | [Athlete Groups](/documentation/coaches/athlete-groups)                                                                                                   |
+| What the Message Athlete action actually does                  | [Messaging & AI-Assisted Review](/documentation/coaches/messaging-ai-review)                                                                              |
+| Coach profile and account settings                             | [Coach Settings & Public Presence](/documentation/coaches/coach-settings-public-presence)                                                                 |
+| Public intake form and branded invite experience               | [Start & Direct Invite Pages](/documentation/coaches/start-direct-invite-pages)                                                                           |
+| Relationship, team, role, and privacy boundaries               | [Permissions & Privacy](/documentation/coaches/permissions-privacy)                                                                                       |
 
-## Coach guides
+## Main coach areas
 
-| Guide                                                                  | Covers                                         |
-| ---------------------------------------------------------------------- | ---------------------------------------------- |
-| [Connecting with Athletes](/documentation/coaches/connecting-athletes) | Invite codes, permissions, revoking access     |
-| [Acting as an Athlete](/documentation/coaches/acting-as-athlete)       | Impersonation, what coaches can see and do     |
-| [Team Management](/documentation/coaches/team-management)              | Teams, rosters, group invites                  |
-| [Coaching Calendar](/documentation/coaches/coaching-calendar)          | Planned and completed sessions across athletes |
-| [Coach Library & Sharing](/documentation/coaches/coach-library)        | Workout and plan templates                     |
-| [Coach Analytics](/documentation/coaches/coach-analytics)              | Squad-level trends and compliance              |
+- **Coaching → Overview** — weekly compliance, recent activity, and roster shortcuts.
+- **Coaching → Athletes** — connections, invitations, public-start requests, groups, and athlete profiles.
+- **Coaching → Calendar** — athlete schedules and reusable workout or plan content.
+- **Analytics** — personal, single-athlete, and multi-athlete analysis.
+- **Coaching → Team** — your personal invite code, professional teams, staff, and team membership.
+- **Library** — workouts, exercises, and plan blueprints.
+- **Profile → Settings → Public Presence** — coach profile, start page, and branded direct-invite page.
 
-## Core capabilities
-
-### Athlete management
-
-Establish secure connections with your athletes via our unique invite code system. Maintain a centralized dashboard of your entire squad.
-
-### Performance monitoring
-
-Use the **Act As** feature to step into your athlete's shoes. View their training stress trends, AI recommendations, and metabolic waves in real-time.
-
-### Strategic oversight
-
-Review the AI-generated daily and weekly recommendations to see if they align with your coaching philosophy, and make manual adjustments to the training block when necessary.
-
-::alert{type="tip"}
-Use the **AI Chat** while acting as an athlete to ask specific questions about their recent performance or recovery trends.
-::
+**Note:** Coach access is relationship- and role-scoped. A team roster entry does not always grant access to private athlete data. See [Permissions & Privacy](/documentation/coaches/permissions-privacy).

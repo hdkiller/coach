@@ -1,6 +1,7 @@
 import { schedules, tasks, logger } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { QUOTA_REGISTRY } from '../server/utils/quotas/registry'
+import { formatUserDate } from '../server/utils/date'
 
 function getTrialEndingWindow(now = new Date()) {
   const targetDay = new Date(now)
@@ -67,6 +68,7 @@ export const trialEndingReminderCron = schedules.task({
         id: true,
         name: true,
         email: true,
+        timezone: true,
         trialEndsAt: true
       }
     })
@@ -92,11 +94,7 @@ export const trialEndingReminderCron = schedules.task({
         subject: 'Your Coach Watts performance trial ends soon',
         props: {
           name: user.name || 'Athlete',
-          trialEndsAt: user.trialEndsAt.toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric'
-          }),
+          trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
           usageHighlights,
           supporterHighlights: formatSupporterHighlights(),
           pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`

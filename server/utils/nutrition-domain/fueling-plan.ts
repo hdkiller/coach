@@ -77,7 +77,7 @@ export function calculateFuelingStrategy(
   }
 
   // --- 2. INTRA-WORKOUT STRATEGY ---
-  let targetCarbsPerHour = 0
+  let targetCarbsPerHour: number
   const workoutTempC = extractWorkoutTemperatureC(workout)
   const effectiveSweatRate =
     profile.sweatRate && profile.sweatRate > 0
@@ -94,6 +94,17 @@ export function calculateFuelingStrategy(
     targetCarbsPerHour = 0
     notes.push('TRAIN LOW Protocol: No carb intake during ride to enhance fat oxidation.')
   } else if (workout.strategyOverride === 'LOW_FIBER_LIQUID') {
+    // Apply the normal targeting rules first, then cap at 45g/hr for the rescue protocol.
+    if (durationHours < 1) {
+      targetCarbsPerHour = 0
+      if (intensity > 0.9) targetCarbsPerHour = 45
+    } else if (durationHours < 2) {
+      targetCarbsPerHour = intensity > 0.8 ? 75 : 45
+    } else {
+      targetCarbsPerHour = intensity > 0.8 ? 90 : 60
+    }
+
+    targetCarbsPerHour *= sensitivity
     targetCarbsPerHour = Math.min(45, targetCarbsPerHour)
     notes.push(
       'RESCUE PROTOCOL: Capping intra-workout carbs at 45g/hr and prioritizing liquid/gel forms.'

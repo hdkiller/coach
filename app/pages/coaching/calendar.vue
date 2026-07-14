@@ -629,6 +629,10 @@
       data: null as any
     }
   })
+  const panelFetchTokens = {
+    primary: 0,
+    secondary: 0
+  }
 
   const primaryAthlete = computed(
     () => athletes.value.find((rel) => rel.athleteId === primaryAthleteId.value)?.athlete || null
@@ -798,18 +802,22 @@
       return
     }
 
+    const fetchToken = ++panelFetchTokens[panel]
     panelState[panel].pending = true
     panelState[panel].error = null
     try {
       const range = getRangeForPanel(panel)
-      panelState[panel].data = await $fetch(`/api/coaching/athletes/${athleteId}/calendar`, {
+      const data = await $fetch(`/api/coaching/athletes/${athleteId}/calendar`, {
         query: {
           startDate: range.start.toISOString(),
           endDate: range.end.toISOString(),
           viewMode: viewMode.value
         }
       })
+      if (fetchToken !== panelFetchTokens[panel]) return
+      panelState[panel].data = data
     } catch (error: any) {
+      if (fetchToken !== panelFetchTokens[panel]) return
       panelState[panel].error = error
       toast.add({
         title: tr('calendar_failed_load_lane', 'Failed to load calendar'),
@@ -819,7 +827,9 @@
         color: 'error'
       })
     } finally {
-      panelState[panel].pending = false
+      if (fetchToken === panelFetchTokens[panel]) {
+        panelState[panel].pending = false
+      }
     }
   }
 

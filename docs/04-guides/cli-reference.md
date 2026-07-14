@@ -23,6 +23,19 @@ pnpm cw:cli <command> [subcommand] [options]
 
 ### Core Command Groups
 
+#### Partner campaigns (`partners`)
+
+Manage time-limited partner promotional access.
+
+- `create [--prod]`: Create a campaign.
+- `list [--prod]`: List campaigns with aggregate redemption counts.
+- `show <slug> [--prod]`: Inspect one campaign.
+- `disable <slug> [--prod]`: Stop new redemptions.
+- `update-capacity <slug> [--max-redemptions N] [--enable] [--prod]`: Adjust capacity or re-enable.
+- `user-grant <email-or-id> [--prod]`: Inspect a user's promotional grant for support.
+
+See [partner-campaigns.md](./partner-campaigns.md).
+
 #### 1. Database (`db`)
 
 Manage database operations, backups, and schema diagnostics.

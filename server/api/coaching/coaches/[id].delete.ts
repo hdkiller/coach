@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -35,17 +35,17 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const athleteId = (session.user as any).id
+  const user = await requireAuth(event, ['coaching:write'])
   const coachId = getRouterParam(event, 'id')
 
   if (!coachId) {
     throw createError({ statusCode: 400, message: 'Coach ID is required' })
   }
 
-  return await coachingRepository.removeRelationship(coachId, athleteId)
+  const result = await coachingRepository.removeRelationship(coachId, user.id)
+  if (result.count === 0) {
+    throw createError({ statusCode: 404, message: 'Coaching relationship not found' })
+  }
+
+  return { success: true }
 })

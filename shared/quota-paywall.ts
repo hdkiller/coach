@@ -26,9 +26,19 @@ const TIER_RANK: Record<SubscriptionTier, number> = {
 
 export function resolveRecommendedUpgradeTier(
   subscriptionTier: SubscriptionTier = 'FREE'
-): PricingTier {
+): PricingTier | undefined {
+  if (subscriptionTier === 'PRO') return undefined
   if (subscriptionTier === 'SUPPORTER') return 'pro'
   return 'supporter'
+}
+
+export function hasQuotaResetPassed(
+  resetsAt: Date | string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!resetsAt) return false
+  const resetDate = new Date(resetsAt)
+  return !Number.isNaN(resetDate.getTime()) && resetDate.getTime() <= now.getTime()
 }
 
 export function formatQuotaWindowLabel(window: string): string {

@@ -4,9 +4,22 @@ import type { SubscriptionTier } from '@prisma/client'
 import {
   buildQuotaFeatureDescription,
   buildQuotaUpgradeBullets,
+  hasQuotaResetPassed,
   resolveRecommendedUpgradeTier,
   type QuotaPaywallOperation
 } from '~~/shared/quota-paywall'
+import { useNow } from '@vueuse/core'
+
+interface QuotaSummaryResponse {
+  tier: SubscriptionTier
+  effectiveTier: SubscriptionTier
+  isTrialActive: boolean
+  showQuotaMeter: boolean
+  trialEndsAt: Date | string | null
+  quotas: QuotaStatus[]
+}
+
+const QUOTA_CACHE_TTL_MS = 30_000
 
 export interface QuotaPaywallOptions {
   operation?: QuotaPaywallOperation
@@ -23,12 +36,31 @@ export interface QuotaPaywallOptions {
 export function useQuotaPaywall() {
   const upgradeModal = useUpgradeModal()
   const userStore = useUserStore()
-  const quotasState = useState<any | null>('profileQuotaSummary', () => null)
+  const quotasState = useState<QuotaSummaryResponse | null>('profileQuotaSummary', () => null)
+  const quotasFetchedAt = useState<number>('profileQuotaSummaryFetchedAt', () => 0)
+  let refreshPromise: Promise<QuotaSummaryResponse> | null = null
 
-  async function ensureQuotasLoaded() {
-    if (quotasState.value) return quotasState.value
-    quotasState.value = await $fetch('/api/profile/quotas')
-    return quotasState.value
+  const quotaSummary = computed(() => quotasState.value)
+
+  function snapshotNeedsRefresh(now = new Date()) {
+    if (!quotasState.value) return true
+    if (Date.now() - quotasFetchedAt.value >= QUOTA_CACHE_TTL_MS) return true
+    return quotasState.value.quotas.some((quota) => hasQuotaResetPassed(quota.resetsAt, now))
+  }
+
+  async function ensureQuotasLoaded(options: { force?: boolean } = {}) {
+    if (!options.force && !snapshotNeedsRefresh()) return quotasState.value!
+    if (refreshPromise) return refreshPromise
+
+    refreshPromise = ($fetch as any)('/api/profile/quotas') as Promise<QuotaSummaryResponse>
+    try {
+      const summary = await refreshPromise
+      quotasState.value = summary
+      quotasFetchedAt.value = Date.now()
+      return summary
+    } finally {
+      refreshPromise = null
+    }
   }
 
   function getQuotaForOperation(
@@ -43,8 +75,15 @@ export function useQuotaPaywall() {
   function buildPaywallOptions(input: QuotaPaywallOptions) {
     const subscriptionTier = (userStore.user?.subscriptionTier || 'FREE') as SubscriptionTier
     const quota = input.quota ?? (input.operation ? getQuotaForOperation(input.operation) : null)
-    const recommendedTier = input.recommendedTier ?? resolveRecommendedUpgradeTier(subscriptionTier)
-    const nextTierName = recommendedTier === 'pro' ? 'Pro' : 'Supporter'
+    const effectiveTier = quotasState.value?.effectiveTier || subscriptionTier
+    const quotaNextTier = quota?.nextTier?.toLowerCase() as PricingTier | undefined
+    const recommendedTier =
+      input.recommendedTier ?? quotaNextTier ?? resolveRecommendedUpgradeTier(effectiveTier)
+    const nextTierName = recommendedTier
+      ? recommendedTier === 'pro'
+        ? 'Pro'
+        : 'Supporter'
+      : undefined
 
     return {
       title: input.title || 'Upgrade Your Plan',
@@ -74,19 +113,25 @@ export function useQuotaPaywall() {
   }
 
   async function showQuotaPaywall(input: QuotaPaywallOptions) {
+    let resolvedInput = input
     if (input.operation) {
-      await ensureQuotasLoaded()
+      await ensureQuotasLoaded({ force: true })
+      resolvedInput = {
+        ...input,
+        quota: getQuotaForOperation(input.operation) ?? input.quota
+      }
     }
-    upgradeModal.show(buildPaywallOptions(input))
+    upgradeModal.show(buildPaywallOptions(resolvedInput))
   }
 
   async function getOperationQuota(operation: string) {
-    await ensureQuotasLoaded()
+    await ensureQuotasLoaded({ force: true })
     return getQuotaForOperation(operation)
   }
 
-  function isQuotaExhausted(quota: QuotaStatus | null | undefined) {
+  function isQuotaExhausted(quota: QuotaStatus | null | undefined, now: Date = new Date()) {
     if (!quota) return false
+    if (hasQuotaResetPassed(quota.resetsAt, now)) return false
     return quota.remaining <= 0 || !quota.allowed
   }
 
@@ -120,14 +165,22 @@ export function useQuotaPaywall() {
   }
 
   function useOperationLockState(operation: QuotaPaywallOperation) {
+    const now = useNow({ interval: 30_000 })
     const locked = computed(() => {
       if (!shouldShowQuotaMeterForUser()) return false
-      return isQuotaExhausted(getQuotaForOperation(operation))
+      return isQuotaExhausted(getQuotaForOperation(operation), now.value)
     })
 
     const lockedTierLabel = computed(() => {
-      const subscriptionTier = (userStore.user?.subscriptionTier || 'FREE') as SubscriptionTier
-      return resolveRecommendedUpgradeTier(subscriptionTier) === 'pro' ? 'Pro' : 'Supporter'
+      const quota = getQuotaForOperation(operation)
+      if (quota?.nextTier === 'PRO') return 'Pro'
+      if (quota?.nextTier === 'SUPPORTER') return 'Supporter'
+
+      const subscriptionTier =
+        quotasState.value?.effectiveTier ||
+        ((userStore.user?.subscriptionTier || 'FREE') as SubscriptionTier)
+      const recommendedTier = resolveRecommendedUpgradeTier(subscriptionTier)
+      return recommendedTier === 'pro' ? 'Pro' : recommendedTier === 'supporter' ? 'Supporter' : ''
     })
 
     onMounted(() => {
@@ -138,6 +191,7 @@ export function useQuotaPaywall() {
   }
 
   return {
+    quotaSummary,
     ensureQuotasLoaded,
     getOperationQuota,
     getQuotaForOperation,

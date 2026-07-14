@@ -1,4 +1,5 @@
-import type { User, SubscriptionTier, SubscriptionStatus } from '@prisma/client'
+import type { SubscriptionStatus, SubscriptionTier, User } from '@prisma/client'
+import { resolveEffectiveTier } from '../../shared/effective-tier'
 
 export interface UserEntitlements {
   tier: 'FREE' | 'SUPPORTER' | 'PRO'
@@ -9,16 +10,32 @@ export interface UserEntitlements {
   proactivity: boolean
 }
 
+export type EntitlementUser = Pick<
+  User,
+  'subscriptionTier' | 'subscriptionStatus' | 'subscriptionPeriodEnd' | 'trialEndsAt'
+> & {
+  promotionalGrantTier?: SubscriptionTier | null
+}
+
+function entitlementsFromTier(effectiveTier: SubscriptionTier): UserEntitlements {
+  return {
+    tier: effectiveTier,
+    autoSync: effectiveTier !== 'FREE',
+    autoAnalysis: effectiveTier !== 'FREE',
+    aiModel: effectiveTier === 'PRO' ? 'pro' : 'flash',
+    priorityProcessing: effectiveTier !== 'FREE',
+    proactivity: effectiveTier === 'PRO'
+  }
+}
+
 /**
- * Calculate user entitlements based on subscription status and period
+ * Calculate user entitlements based on paid subscription, trial, and promotional grants.
  *
  * Handles grace period: Users retain access if:
  * 1. Status is ACTIVE, OR
  * 2. Status is CANCELED/PAST_DUE/NONE but current time is before periodEnd
  */
-export function getUserEntitlements(
-  user: Pick<User, 'subscriptionTier' | 'subscriptionStatus' | 'subscriptionPeriodEnd'>
-): UserEntitlements {
+export function getUserEntitlements(user: EntitlementUser): UserEntitlements {
   const config = useRuntimeConfig()
 
   // If Stripe is not configured (self-hosted mode), everyone is PRO
@@ -33,33 +50,22 @@ export function getUserEntitlements(
     }
   }
 
-  const now = new Date()
-  const periodEnd = user.subscriptionPeriodEnd ? new Date(user.subscriptionPeriodEnd) : new Date(0)
+  const effectiveTier = resolveEffectiveTier({
+    subscriptionTier: user.subscriptionTier,
+    subscriptionStatus: user.subscriptionStatus as SubscriptionStatus,
+    subscriptionPeriodEnd: user.subscriptionPeriodEnd,
+    trialEndsAt: user.trialEndsAt,
+    promotionalGrantTier: user.promotionalGrantTier ?? null
+  })
 
-  // A user is effectively "Premium" if:
-  // 1. Status is ACTIVE
-  // 2. OR Status is CANCELED (or NONE/PAST_DUE) but we are still before periodEnd (Grace Period)
-  const isEffectivePremium =
-    user.subscriptionStatus === 'ACTIVE' || (user.subscriptionPeriodEnd && now < periodEnd)
-
-  // Fallback to FREE if subscription is dead
-  const effectiveTier = isEffectivePremium ? user.subscriptionTier : 'FREE'
-
-  return {
-    tier: effectiveTier,
-    autoSync: effectiveTier !== 'FREE',
-    autoAnalysis: effectiveTier !== 'FREE',
-    aiModel: effectiveTier === 'PRO' ? 'pro' : 'flash',
-    priorityProcessing: effectiveTier !== 'FREE',
-    proactivity: effectiveTier === 'PRO'
-  }
+  return entitlementsFromTier(effectiveTier)
 }
 
 /**
  * Check if a user has a specific entitlement
  */
 export function hasEntitlement(
-  user: Pick<User, 'subscriptionTier' | 'subscriptionStatus' | 'subscriptionPeriodEnd'>,
+  user: EntitlementUser,
   feature: keyof Omit<UserEntitlements, 'tier'>
 ): boolean | string {
   const entitlements = getUserEntitlements(user)
@@ -70,7 +76,7 @@ export function hasEntitlement(
  * Check if a user has a minimum tier level
  */
 export function hasMinimumTier(
-  user: Pick<User, 'subscriptionTier' | 'subscriptionStatus' | 'subscriptionPeriodEnd'>,
+  user: EntitlementUser,
   minimumTier: 'FREE' | 'SUPPORTER' | 'PRO'
 ): boolean {
   const entitlements = getUserEntitlements(user)

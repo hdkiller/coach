@@ -805,6 +805,7 @@
   }
 
   function viewAthlete(athlete: any) {
+    if (athlete?.canViewDetails === false || athlete?.isMasked) return
     router.push(`/coaching/athletes/${athlete.id}`)
   }
 

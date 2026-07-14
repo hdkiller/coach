@@ -1211,19 +1211,26 @@ OUTPUT JSON matching the schema.`
               where: { userId: workout.userId },
               orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }]
             })
-            const matchResult = await applyStrengthLibraryDefaultsToWorkout({
-              structuredWorkout: structure,
-              libraryExercises,
-              userId: workout.userId,
-              entityType,
-              entityId: entityId!,
-              operation: 'match_strength_exercise_defaults'
-            })
-            structure = normalizeStructuredStrengthWorkout(matchResult.structuredWorkout)
-            logStage('strength-library-defaults-applied', {
-              matchedCount: matchResult.matchedCount,
-              libraryCount: libraryExercises.length
-            })
+            try {
+              const matchResult = await applyStrengthLibraryDefaultsToWorkout({
+                structuredWorkout: structure,
+                libraryExercises,
+                userId: workout.userId,
+                entityType,
+                entityId: entityId!,
+                operation: 'match_strength_exercise_defaults'
+              })
+              structure = normalizeStructuredStrengthWorkout(matchResult.structuredWorkout)
+              logStage('strength-library-defaults-applied', {
+                matchedCount: matchResult.matchedCount,
+                libraryCount: libraryExercises.length
+              })
+            } catch (matchError: any) {
+              logStage('strength-library-defaults-failed', {
+                error: matchError?.message || String(matchError),
+                libraryCount: libraryExercises.length
+              })
+            }
           }
 
           const strengthValidation = validateStrengthStructuredWorkout(
@@ -1269,9 +1276,12 @@ OUTPUT JSON matching the schema.`
         })
 
         totals = normalizeAndCalculate(structure.steps || [])
+        const strengthExercisesForMetrics = Array.isArray(structure?.blocks)
+          ? structure.blocks.flatMap((b: any) => (Array.isArray(b?.steps) ? b.steps : []))
+          : structure.exercises
         const validationStrengthMetrics =
-          Array.isArray(structure.exercises) && structure.exercises.length > 0
-            ? computeStrengthExerciseMetrics(structure.exercises)
+          Array.isArray(strengthExercisesForMetrics) && strengthExercisesForMetrics.length > 0
+            ? computeStrengthExerciseMetrics(strengthExercisesForMetrics)
             : { durationSec: 0, tss: 0, workIntensity: null }
         const validationDurationSec = totals.duration + validationStrengthMetrics.durationSec
         const coverageValidation = validateStructuredCoverage({

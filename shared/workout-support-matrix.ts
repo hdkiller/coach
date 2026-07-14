@@ -285,6 +285,13 @@ export function validateCanonicalForDestination(
   const sport = normalizeWorkoutSport(sportType)
   const issues: DestinationValidationIssue[] = []
 
+  // Strength exports are driven by native strength structures (`blocks` / `exercises`), not
+  // interval-style `steps`. When blocks/exercises exist, step-level target validation can
+  // falsely block exports (e.g. leftover steps from legacy normalization).
+  if (sport === 'strength' && (structure.exercises?.length || structure.blocks?.length)) {
+    return []
+  }
+
   const visit = (steps: any[] | undefined, path: string) => {
     if (!Array.isArray(steps)) return
     for (let index = 0; index < steps.length; index++) {
@@ -309,10 +316,6 @@ export function validateCanonicalForDestination(
   }
 
   visit(structure.steps, 'steps')
-
-  if (sport === 'strength' && (structure.exercises?.length || structure.blocks?.length)) {
-    return issues
-  }
 
   return issues
 }

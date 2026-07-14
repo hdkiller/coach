@@ -1,5 +1,6 @@
 import { requireAuth } from '../../../utils/auth-guard'
 import { teamRepository } from '../../../utils/repositories/teamRepository'
+import { prisma } from '../../../utils/db'
 
 defineRouteMeta({
   openAPI: {
@@ -31,17 +32,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Team ID is required' })
   }
 
-  const team = await teamRepository.getTeamDetails(teamId)
-  if (!team) {
+  const isOwner = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER'])
+  if (!isOwner) {
     throw createError({ statusCode: 404, message: 'Team not found' })
   }
 
-  const isOwner = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER'])
-  if (!isOwner) {
-    throw createError({
-      statusCode: 403,
-      message: 'Only team owners can delete teams'
-    })
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { id: true }
+  })
+
+  if (!team) {
+    throw createError({ statusCode: 404, message: 'Team not found' })
   }
 
   await teamRepository.deleteTeam(teamId)

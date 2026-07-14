@@ -28,6 +28,7 @@ import {
 import { HYDRATION_DEBT_NUDGE_THRESHOLD_ML, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
 import { getUserNutritionSettings } from '../nutrition/settings'
 import { bodyMetricResolver } from './bodyMetricResolver'
+import { auditLogRepository } from '../repositories/auditLogRepository'
 
 interface FuelingWindow {
   type: string
@@ -1610,7 +1611,66 @@ export const metabolicService = {
   },
 
   async checkCriticalAlerts(userId: string, startingGlycogen: number, date: Date) {
-    // ... logic remains same
+    const dateKey = date.toISOString().split('T')[0]
+
+    // Only alert when glycogen is critically low before a hard morning session.
+    if (!Number.isFinite(startingGlycogen) || startingGlycogen >= 20) return
+
+    const timezone = await getUserTimezone(userId)
+    const rangeStart = getStartOfDayUTC(timezone, date)
+    const rangeEnd = getEndOfDayUTC(timezone, date)
+    const workouts = await workoutRepository.getForUser(userId, {
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      includeDuplicates: false
+    })
+
+    const morningHardWorkout = (workouts || []).find((workout: any) => {
+      const start = workout?.startTime ? new Date(workout.startTime) : null
+      if (!start || Number.isNaN(start.getTime())) return false
+
+      const localTimeStr = formatUserTime(start, timezone, 'H:m')
+      const [h] = localTimeStr.split(':').map(Number)
+      const isMorning = (h ?? 24) < 10
+
+      const intensity =
+        workout?.intensityFactor ?? workout?.workIntensity ?? workout?.intensity ?? workout?.if ?? 0
+      const durationSec = Number(workout?.durationSec ?? workout?.duration ?? 0)
+      const isHard = Number(intensity) >= 0.85 && durationSec >= 45 * 60
+
+      return isMorning && isHard
+    })
+
+    if (!morningHardWorkout) return
+
+    const nutrition = await nutritionRepository.getByDate(userId, date)
+
+    // De-dupe: avoid writing the same alert repeatedly if finalize runs often.
+    const recent = await prisma.auditLog.findMany({
+      where: {
+        userId,
+        action: 'CRITICAL_FUELING_ALERT',
+        createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) }
+      },
+      take: 25,
+      orderBy: { createdAt: 'desc' }
+    })
+
+    const alreadyLogged = recent.some((log) => (log as any)?.metadata?.date === dateKey)
+    if (alreadyLogged) return
+
+    await auditLogRepository.log({
+      userId,
+      action: 'CRITICAL_FUELING_ALERT',
+      resourceType: 'Nutrition',
+      resourceId: nutrition?.id ?? null,
+      metadata: {
+        date: dateKey,
+        startingGlycogen,
+        workoutId: morningHardWorkout?.id ?? null,
+        workoutTitle: morningHardWorkout?.title ?? null
+      }
+    })
   },
 
   /**

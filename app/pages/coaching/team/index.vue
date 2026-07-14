@@ -513,12 +513,6 @@
     }
   }
 
-  function copyInvite() {
-    if (!invite.value.code) return
-    navigator.clipboard.writeText(invite.value.code)
-    toast.add({ title: 'Code copied to clipboard', color: 'primary' })
-  }
-
   function formatFullDate(date: string) {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',

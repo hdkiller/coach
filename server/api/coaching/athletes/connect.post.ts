@@ -1,4 +1,6 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
+import { coachingRepository } from '../../../utils/repositories/coachingRepository'
+import { enforceInviteRedemptionRateLimit } from '../../../utils/invite-redemption-rate-limit'
 
 defineRouteMeta({
   openAPI: {
@@ -12,7 +14,7 @@ defineRouteMeta({
             type: 'object',
             required: ['code'],
             properties: {
-              code: { type: 'string', description: 'The 6-character invite code' }
+              code: { type: 'string', description: 'The invite code' }
             }
           }
         }
@@ -34,18 +36,16 @@ defineRouteMeta({
         }
       },
       400: { description: 'Invalid code or request' },
-      401: { description: 'Unauthorized' }
+      401: { description: 'Unauthorized' },
+      429: { description: 'Too many attempts' }
     }
   }
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const user = await requireAuth(event, ['coaching:write'])
+  enforceInviteRedemptionRateLimit(event, user.id)
 
-  const coachId = (session.user as any).id
   const { code } = await readBody(event)
 
   if (!code) {
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    return await coachingRepository.connectAthleteWithCode(coachId, code)
+    return await coachingRepository.connectAthleteWithCode(user.id, code)
   } catch (error: any) {
     throw createError({ statusCode: 400, message: error.message })
   }

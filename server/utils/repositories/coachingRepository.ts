@@ -3,6 +3,11 @@ import { prisma } from '../db'
 import { athleteMetricsService } from '../athleteMetricsService'
 import { sportSettingsRepository } from './sportSettingsRepository'
 import { getCurrentFitnessSummary } from '../training-stress'
+import {
+  generateInviteCode,
+  isUniqueConstraintError,
+  MAX_INVITE_CODE_RETRIES
+} from '../invite-code'
 
 function normalizeReadinessScore(
   readiness: number | null | undefined,
@@ -207,7 +212,7 @@ export const coachingRepository = {
             },
             stats: {
               adherence7d:
-                recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : 100,
+                recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : null,
               completedCount: completedPlanned,
               plannedCount: recentPlanned,
               wellnessHistory // For sparkline
@@ -373,7 +378,8 @@ export const coachingRepository = {
         maxHr: defaultSport?.maxHr ?? null
       },
       stats: {
-        adherence7d: recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : 100,
+        adherence7d:
+          recentPlanned > 0 ? Math.round((completedPlanned / recentPlanned) * 100) : null,
         completedCount: completedPlanned,
         plannedCount: recentPlanned,
         overduePlannedCount: overduePlanned
@@ -626,12 +632,31 @@ export const coachingRepository = {
   },
 
   async approveCoachingRequest(coachId: string, requestId: string) {
-    const request = await this.getPendingCoachingRequestForCoachById(coachId, requestId)
-    if (!request) {
-      throw new Error('Request not found')
-    }
-
     return await prisma.$transaction(async (tx) => {
+      const updatedRequest = await (tx as any).coachingRequest.updateMany({
+        where: {
+          id: requestId,
+          coachId,
+          status: 'PENDING'
+        },
+        data: {
+          status: 'APPROVED',
+          reviewedAt: new Date()
+        }
+      })
+
+      if (updatedRequest.count === 0) {
+        throw new Error('Request not found')
+      }
+
+      const request = await (tx as any).coachingRequest.findFirst({
+        where: { id: requestId, coachId }
+      })
+
+      if (!request) {
+        throw new Error('Request not found')
+      }
+
       const relationship = await (tx as any).coachingRelationship.upsert({
         where: {
           coachId_athleteId: {
@@ -649,17 +674,9 @@ export const coachingRepository = {
         }
       })
 
-      const updatedRequest = await (tx as any).coachingRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'APPROVED',
-          reviewedAt: new Date()
-        }
-      })
-
       return {
         relationship,
-        request: updatedRequest
+        request
       }
     })
   },
@@ -767,44 +784,70 @@ export const coachingRepository = {
       )
     }
 
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase()
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    let rows: Array<{
+      id: string
+      coachId: string
+      email: string | null
+      code: string
+      status: string
+      expiresAt: Date
+      acceptedBy: string | null
+      createdAt: Date
+      updatedAt: Date
+    }> = []
 
-    const rows = await prisma.$queryRaw<
-      Array<{
-        id: string
-        coachId: string
-        email: string | null
-        code: string
-        status: string
-        expiresAt: Date
-        acceptedBy: string | null
-        createdAt: Date
-        updatedAt: Date
-      }>
-    >(Prisma.sql`
-      INSERT INTO "CoachAthleteInvite" (
-        "id",
-        "coachId",
-        "email",
-        "code",
-        "status",
-        "expiresAt",
-        "createdAt",
-        "updatedAt"
-      )
-      VALUES (
-        gen_random_uuid()::text,
-        ${coachId},
-        ${normalizedEmail},
-        ${code},
-        'PENDING',
-        ${expiresAt},
-        NOW(),
-        NOW()
-      )
-      RETURNING "id", "coachId", "email", "code", "status", "expiresAt", "acceptedBy", "createdAt", "updatedAt"
-    `)
+    for (let attempt = 0; attempt < MAX_INVITE_CODE_RETRIES; attempt++) {
+      const code = generateInviteCode()
+
+      try {
+        rows = await prisma.$queryRaw<
+          Array<{
+            id: string
+            coachId: string
+            email: string | null
+            code: string
+            status: string
+            expiresAt: Date
+            acceptedBy: string | null
+            createdAt: Date
+            updatedAt: Date
+          }>
+        >(Prisma.sql`
+          INSERT INTO "CoachAthleteInvite" (
+            "id",
+            "coachId",
+            "email",
+            "code",
+            "status",
+            "expiresAt",
+            "createdAt",
+            "updatedAt"
+          )
+          VALUES (
+            gen_random_uuid()::text,
+            ${coachId},
+            ${normalizedEmail},
+            ${code},
+            'PENDING',
+            ${expiresAt},
+            NOW(),
+            NOW()
+          )
+          RETURNING "id", "coachId", "email", "code", "status", "expiresAt", "acceptedBy", "createdAt", "updatedAt"
+        `)
+        break
+      } catch (error) {
+        if (isUniqueConstraintError(error) && attempt < MAX_INVITE_CODE_RETRIES - 1) {
+          continue
+        }
+        throw error
+      }
+    }
+
+    if (!rows[0]) {
+      throw new Error('Failed to generate invite code')
+    }
 
     return {
       ...rows[0],
@@ -842,17 +885,25 @@ export const coachingRepository = {
       data: { status: 'EXPIRED' }
     })
 
-    // Generate a simple 6-char code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-
-    return (prisma as any).coachingInvite.create({
-      data: {
-        athleteId,
-        code,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        status: 'PENDING'
+    for (let attempt = 0; attempt < MAX_INVITE_CODE_RETRIES; attempt++) {
+      try {
+        return await (prisma as any).coachingInvite.create({
+          data: {
+            athleteId,
+            code: generateInviteCode(),
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            status: 'PENDING'
+          }
+        })
+      } catch (error) {
+        if (isUniqueConstraintError(error) && attempt < MAX_INVITE_CODE_RETRIES - 1) {
+          continue
+        }
+        throw error
       }
-    })
+    }
+
+    throw new Error('Failed to generate invite code')
   },
 
   async getActiveInvite(athleteId: string) {
@@ -909,15 +960,25 @@ export const coachingRepository = {
         }
       })
 
-      await tx.$executeRaw(
-        Prisma.sql`
-          UPDATE "CoachAthleteInvite"
-          SET "status" = 'ACCEPTED',
-              "acceptedBy" = ${athleteId},
-              "updatedAt" = NOW()
-          WHERE "id" = ${invite.id}
-        `
-      )
+      if (invite.email) {
+        await tx.$executeRaw(
+          Prisma.sql`
+            UPDATE "CoachAthleteInvite"
+            SET "status" = 'ACCEPTED',
+                "acceptedBy" = ${athleteId},
+                "updatedAt" = NOW()
+            WHERE "id" = ${invite.id}
+          `
+        )
+      } else {
+        await tx.$executeRaw(
+          Prisma.sql`
+            UPDATE "CoachAthleteInvite"
+            SET "updatedAt" = NOW()
+            WHERE "id" = ${invite.id}
+          `
+        )
+      }
 
       return relationship
     })

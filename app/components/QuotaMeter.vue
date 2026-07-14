@@ -29,8 +29,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useNow } from '@vueuse/core'
   import { useTranslate } from '@tolgee/vue'
   import type { QuotaStatus } from '~/types/quotas'
+  import { hasQuotaResetPassed } from '~~/shared/quota-paywall'
 
   const props = defineProps<{
     operation: string
@@ -38,29 +40,34 @@
 
   const { t } = useTranslate('quotas')
   const { formatRelativeTime } = useFormat()
-  const { showQuotaPaywall } = useQuotaPaywall()
-
-  const { data } = (useFetch as any)('/api/profile/quotas', {
-    server: false,
-    lazy: true
-  }) as { data: Ref<any> }
+  const { quotaSummary, ensureQuotasLoaded, isQuotaExhausted, showQuotaPaywall } = useQuotaPaywall()
+  const now = useNow({ interval: 30_000 })
 
   const quota = computed<QuotaStatus | null>(() => {
-    const quotas = data.value?.quotas as QuotaStatus[] | undefined
+    const quotas = quotaSummary.value?.quotas
     if (!quotas) return null
     return quotas.find((entry) => entry.operation === props.operation) || null
   })
 
+  const resetPassed = computed(() => hasQuotaResetPassed(quota.value?.resetsAt, now.value))
+
   const shouldShow = computed(() => {
-    if (!data.value?.showQuotaMeter || !quota.value) return false
+    if (!quotaSummary.value?.showQuotaMeter || !quota.value || resetPassed.value) return false
     if (quota.value.limit <= 0) return false
     const comfortablyHighThreshold = Math.max(1, Math.ceil(quota.value.limit * 0.5))
     return quota.value.remaining <= comfortablyHighThreshold
   })
 
   const isExhausted = computed(() => {
-    if (!quota.value) return false
-    return quota.value.remaining <= 0 || !quota.value.allowed
+    return isQuotaExhausted(quota.value, now.value)
+  })
+
+  onMounted(() => {
+    void ensureQuotasLoaded()
+  })
+
+  watch(resetPassed, (passed) => {
+    if (passed) void ensureQuotasLoaded({ force: true })
   })
 
   const usageLabel = computed(() => {

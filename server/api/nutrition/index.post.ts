@@ -5,6 +5,7 @@ import { metabolicService } from '../../utils/services/metabolicService'
 import { nutritionPlanService } from '../../utils/services/nutritionPlanService'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../utils/date'
+import { recalculateNutritionTotals } from '../../utils/nutrition/totals'
 
 const foodItemSchema = z.object({
   name: z.string().optional(),
@@ -223,19 +224,41 @@ export default defineEventHandler(async (event) => {
   }
 
   // 5. Build final payload
-  const finalData: any = {
-    ...mealGroups,
-    waterMl: totals.waterMl,
-    rawJson: rawJson || null
+  const existing = await nutritionRepository.getByDate(userId, targetDate)
+
+  const mergeMeal = (mealKey: 'breakfast' | 'lunch' | 'dinner' | 'snacks') => {
+    const existingItems = ((existing as any)?.[mealKey] as any[]) || []
+    const kept = existingItems.filter((item) => item?.source !== source)
+    const incoming = (mealGroups[mealKey] as any[]) || []
+    return [...kept, ...incoming]
   }
 
-  // Use overrides if provided, otherwise use calculated totals
-  finalData.calories = totals.calories !== undefined ? totals.calories : Math.round(calcCalories)
-  finalData.carbs = totals.carbs !== undefined ? totals.carbs : calcCarbs
-  finalData.protein = totals.protein !== undefined ? totals.protein : calcProtein
-  finalData.fat = totals.fat !== undefined ? totals.fat : calcFat
-  finalData.fiber = calcFiber // Always calculate these as they aren't usually overridden
-  finalData.sugar = calcSugar
+  const finalMeals: any = {
+    breakfast: mergeMeal('breakfast'),
+    lunch: mergeMeal('lunch'),
+    dinner: mergeMeal('dinner'),
+    snacks: mergeMeal('snacks')
+  }
+
+  const finalData: any = {
+    ...finalMeals,
+    rawJson: rawJson || (existing as any)?.rawJson || null,
+    waterMl: totals.waterMl ?? (existing as any)?.waterMl ?? 0
+  }
+
+  const mergedTotals = recalculateNutritionTotals(finalData)
+
+  // Use overrides if provided, otherwise use recalculated totals from the merged day.
+  finalData.calories =
+    totals.calories !== undefined ? totals.calories : Math.round(mergedTotals.calories)
+  finalData.carbs = totals.carbs !== undefined ? totals.carbs : mergedTotals.carbs
+  finalData.protein = totals.protein !== undefined ? totals.protein : mergedTotals.protein
+  finalData.fat = totals.fat !== undefined ? totals.fat : mergedTotals.fat
+  finalData.fiber = mergedTotals.fiber
+  finalData.sugar = mergedTotals.sugar
+  if (totals.waterMl === undefined) {
+    finalData.waterMl = mergedTotals.waterMl
+  }
 
   // 6. Upsert to DB
   const { record } = await nutritionRepository.upsert(

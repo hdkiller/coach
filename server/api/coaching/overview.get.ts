@@ -2,7 +2,14 @@ import { requireAuth } from '../../utils/auth-guard'
 import { coachingRepository } from '../../utils/repositories/coachingRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getWorkoutIcon } from '../../utils/activity-types'
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay } from 'date-fns'
+import {
+  formatDateUTC,
+  getTimestampDateKey,
+  getUserLocalDate,
+  getUserTimezone
+} from '../../utils/date'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, endOfDay } from 'date-fns'
 
 defineRouteMeta({
   openAPI: {
@@ -21,7 +28,6 @@ export default defineEventHandler(async (event) => {
   const userAuth = await requireAuth(event, ['coaching:read'])
   const coachId = userAuth.id
 
-  // 1. Get all athletes for this coach
   const athleteRelationships = await coachingRepository.getAthletesForCoach(coachId)
   if (athleteRelationships.length === 0) {
     return {
@@ -32,22 +38,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const athleteIds = athleteRelationships.map((rel) => rel.athlete.id)
-
-  // 2. Define current week range (Monday to Sunday)
+  const timezone = await getUserTimezone(coachId)
   const now = new Date()
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 }) // Sunday
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
-
-  // 3. Fetch data for all athletes in parallel
-  // Note: For performance in large rosters, we might want to optimize this to few bulk queries.
-  // For now, keeping it simple.
+  const zonedNow = toZonedTime(now, timezone)
+  const weekStartLocal = startOfWeek(zonedNow, { weekStartsOn: 1 })
+  const weekEndLocal = endOfWeek(zonedNow, { weekStartsOn: 1 })
+  const weekStartUtc = fromZonedTime(weekStartLocal, timezone)
+  const weekEndUtc = fromZonedTime(endOfDay(weekEndLocal), timezone)
+  const days = eachDayOfInterval({ start: weekStartLocal, end: weekEndLocal })
+  const todayKey = formatDateUTC(getUserLocalDate(timezone, now))
 
   const [allWorkouts, allPlanned] = await Promise.all([
     prisma.workout.findMany({
       where: {
         userId: { in: athleteIds },
-        date: { gte: weekStart, lte: weekEnd },
+        date: { gte: weekStartUtc, lte: weekEndUtc },
         isDuplicate: false
       },
       select: {
@@ -63,7 +68,7 @@ export default defineEventHandler(async (event) => {
     prisma.plannedWorkout.findMany({
       where: {
         userId: { in: athleteIds },
-        date: { gte: weekStart, lte: weekEnd },
+        date: { gte: weekStartUtc, lte: weekEndUtc },
         category: 'WORKOUT'
       },
       select: {
@@ -77,20 +82,19 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
-  // 4. Build Compliance Grid (reuse enriched athlete data from getAthletesForCoach)
-  const todayStart = new Date(new Date().setHours(0, 0, 0, 0))
   const athletesWithCompliance = athleteRelationships.map((rel) => {
     const athlete = rel.athlete
 
     const complianceDays = days.map((day) => {
+      const dayKey = format(day, 'yyyy-MM-dd')
       const dayWorkouts = allWorkouts.filter(
-        (w) => w.userId === athlete.id && isSameDay(new Date(w.date), day)
+        (w) => w.userId === athlete.id && getTimestampDateKey(new Date(w.date), timezone) === dayKey
       )
       const dayPlanned = allPlanned.filter(
-        (p) => p.userId === athlete.id && isSameDay(new Date(p.date), day)
+        (p) => p.userId === athlete.id && formatDateUTC(new Date(p.date)) === dayKey
       )
 
-      let status = 'empty' // empty, planned, completed, partially_completed, missed
+      let status = 'empty'
       if (dayPlanned.length > 0) {
         const allCompleted = dayPlanned.every((p) => p.completed)
         const someCompleted = dayPlanned.some((p) => p.completed)
@@ -99,7 +103,7 @@ export default defineEventHandler(async (event) => {
         } else if (someCompleted || dayWorkouts.length > 0) {
           status = 'partially_completed'
         } else {
-          status = day < todayStart ? 'missed' : 'planned'
+          status = dayKey < todayKey ? 'missed' : 'planned'
         }
       } else if (dayWorkouts.length > 0) {
         status = 'unscheduled_completed'
@@ -124,8 +128,6 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // 5. Build Feed (Recent 20 items across all athletes)
-  // Reuse some logic from recent.get.ts but for multiple users
   const recentWorkouts = await workoutRepository.getForUsers(athleteIds, {
     limit: 20,
     orderBy: { date: 'desc' },

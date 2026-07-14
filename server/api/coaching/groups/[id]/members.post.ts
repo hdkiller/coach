@@ -60,13 +60,6 @@ export default defineEventHandler(async (event) => {
         message: 'Insufficient permissions for this team group'
       })
     }
-
-    // Verify athlete is also in the team
-    const athleteInTeam = await teamRepository.checkTeamAccess(group.teamId, athleteId)
-    if (!athleteInTeam) {
-      // Optional: Auto-add to team? For now, require they are already in the team or connected as athlete.
-      // Actually, coaching relationship is usually enough.
-    }
   } else {
     if (group.coachId !== user.id) {
       throw createError({ statusCode: 403, message: 'You do not own this group' })

@@ -1,5 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { getUserEntitlements } from '../../utils/entitlements'
+import { getActivePromotionalGrant } from '../../utils/partner-campaigns'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -41,5 +43,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return user
+  const activePromotionalGrant = await getActivePromotionalGrant(userId)
+  const entitlements = getUserEntitlements({
+    ...user,
+    promotionalGrantTier: activePromotionalGrant?.tier ?? null
+  })
+
+  return {
+    ...user,
+    entitlements,
+    activePromotionalGrant: activePromotionalGrant
+      ? {
+          tier: activePromotionalGrant.tier,
+          endsAt: activePromotionalGrant.endsAt.toISOString(),
+          campaignSlug: activePromotionalGrant.campaignSlug,
+          partnerName: activePromotionalGrant.partnerName,
+          campaignName: activePromotionalGrant.campaignName
+        }
+      : null
+  }
 })

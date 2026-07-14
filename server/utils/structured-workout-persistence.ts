@@ -524,36 +524,90 @@ export function normalizeStructuredWorkoutForPersistence(
 }
 
 export function estimateStrengthExerciseDurationSec(exercise: any) {
+  const parseMmSsToSeconds = (text: string): number | null => {
+    const parts = text
+      .trim()
+      .split(':')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (parts.length < 2 || parts.length > 3) return null
+    const nums = parts.map((p) => Number(p))
+    if (nums.some((n) => !Number.isFinite(n) || n < 0)) return null
+    if (parts.length === 2) {
+      const mm = nums[0] ?? 0
+      const ss = nums[1] ?? 0
+      return Math.round(mm * 60 + ss)
+    }
+    const hh = nums[0] ?? 0
+    const mm = nums[1] ?? 0
+    const ss = nums[2] ?? 0
+    return Math.round(hh * 3600 + mm * 60 + ss)
+  }
+
+  const parseRestSeconds = (raw: any, fallbackSeconds: number) => {
+    const restText = String(raw || '')
+      .trim()
+      .toLowerCase()
+    if (!restText) return fallbackSeconds
+    const mmss = parseMmSsToSeconds(restText)
+    if (mmss !== null) return mmss
+    if (restText.includes('m') && !restText.includes('ms')) {
+      return (parseFloat(restText) || 0) * 60
+    }
+    return parseFloat(restText) || fallbackSeconds
+  }
+
+  const distanceToMeters = (value: any, prescriptionMode: any): number | null => {
+    const text = typeof value === 'string' ? value : String(value || '')
+    const match = text.match(/(\d+(\.\d+)?)/)
+    const n = match ? Number(match[1]) : NaN
+    if (!Number.isFinite(n) || n <= 0) return null
+    const mode = String(prescriptionMode || '').trim()
+    if (mode === 'distance_meters') return n
+    if (mode === 'distance_km') return n * 1000
+    if (mode === 'distance_ft') return n * 0.3048
+    if (mode === 'distance_yd') return n * 0.9144
+    if (mode === 'distance_miles') return n * 1609.34
+    return null
+  }
+
   if (Array.isArray(exercise?.setRows) && exercise.setRows.length > 0) {
     let total = 0
-    const isDurationMode = String(exercise?.prescriptionMode || '').trim() === 'duration'
+    const prescriptionMode = String(exercise?.prescriptionMode || '').trim()
+    const isDurationMode = prescriptionMode === 'duration'
+    const isDistanceMode = prescriptionMode.startsWith('distance_')
+
+    // Conservative default: a loaded carry / sled / farmer walk tends to be slow.
+    // This is only used to avoid treating distance as "reps" (which explodes duration).
+    const ASSUMED_DISTANCE_SPEED_MPS = 1.5
     for (const row of exercise.setRows) {
       if (isDurationMode) {
         const duration = toPositiveInt(row?.value)
         if (duration) {
           total += duration
         }
+      } else if (isDistanceMode) {
+        const meters = distanceToMeters(row?.value, prescriptionMode)
+        if (meters) {
+          total += meters / ASSUMED_DISTANCE_SPEED_MPS
+        }
       } else {
         let reps = 10
         const value = typeof row?.value === 'string' ? row.value : String(row?.value || '')
         const match = value.match(/\d+/)
         if (match) reps = Number(match[0])
+        if (value.toLowerCase().includes('/side') || value.toLowerCase().includes('per side')) {
+          reps *= 2
+        }
 
         const repDurationSec = 5
         total += reps * repDurationSec
       }
 
-      const restText = String(row?.restOverride || exercise?.defaultRest || '')
-        .trim()
-        .toLowerCase()
-      let restDurationSec = isDurationMode ? 0 : 90
-      if (restText) {
-        if (restText.includes('m') && !restText.includes('ms')) {
-          restDurationSec = (parseFloat(restText) || 0) * 60
-        } else {
-          restDurationSec = parseFloat(restText) || (isDurationMode ? 0 : 90)
-        }
-      }
+      const restDurationSec = parseRestSeconds(
+        row?.restOverride || exercise?.defaultRest || '',
+        isDurationMode ? 0 : 90
+      )
       total += restDurationSec
     }
 
@@ -598,12 +652,7 @@ export function estimateStrengthExerciseDurationSec(exercise: any) {
 
   let restDurationSec = 90
   if (typeof exercise?.rest === 'string' && exercise.rest.trim()) {
-    const restText = exercise.rest.trim().toLowerCase()
-    if (restText.includes('m') && !restText.includes('ms')) {
-      restDurationSec = (parseFloat(restText) || 0) * 60
-    } else {
-      restDurationSec = parseFloat(restText) || 90
-    }
+    restDurationSec = parseRestSeconds(exercise.rest, 90)
   }
 
   return Math.round(workDurationSec + sets * restDurationSec)

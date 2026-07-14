@@ -183,6 +183,7 @@ model User {
   widgets                            Widget[]
   customFieldDefinitions             CustomFieldDefinition[]
   coachAthleteInvitesSent            CoachAthleteInvite[]
+  partnerCampaignRedemptions         PartnerCampaignRedemption[]
 
   @@index([createdAt])
   @@index([deactivatedAt])
@@ -1830,6 +1831,43 @@ model QuotaDenial {
   @@index([userId, createdAt])
   @@index([operation, tier, createdAt])
   @@index([createdAt])
+}
+
+model PartnerCampaign {
+  id                 String                      @id @default(uuid())
+  slug               String                      @unique
+  partnerName        String
+  campaignName       String
+  grantedTier        SubscriptionTier
+  accessDurationDays Int
+  maxRedemptions     Int
+  redemptionCount    Int                         @default(0)
+  windowStartsAt     DateTime?
+  windowEndsAt       DateTime?
+  isActive           Boolean                     @default(true)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  redemptions        PartnerCampaignRedemption[]
+
+  @@index([isActive])
+}
+
+model PartnerCampaignRedemption {
+  id          String           @id @default(uuid())
+  campaignId  String
+  userId      String
+  grantedTier SubscriptionTier
+  startsAt    DateTime
+  endsAt      DateTime
+  redeemedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  campaign    PartnerCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@index([userId, endsAt])
+  @@index([campaignId])
 }
 
 model LlmUsage {

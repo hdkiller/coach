@@ -37,7 +37,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'You do not have access to this team' })
   }
 
-  const team = await teamRepository.getTeamDetails(teamId)
+  const isStaff = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER', 'ADMIN', 'COACH'])
+
+  const team = await teamRepository.getTeamDetails(teamId, {
+    viewerId: user.id,
+    isStaff
+  })
   if (!team) {
     throw createError({ statusCode: 404, message: 'Team not found' })
   }

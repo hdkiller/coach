@@ -2,6 +2,7 @@ import { requireAuth } from '../../utils/auth-guard'
 import { teamRepository } from '../../utils/repositories/teamRepository'
 import { coachingRepository } from '../../utils/repositories/coachingRepository'
 import { prisma } from '../../utils/db'
+import { enforceInviteRedemptionRateLimit } from '../../utils/invite-redemption-rate-limit'
 
 function mapJoinAcceptError(error: unknown): never {
   const message = error instanceof Error ? error.message : 'Failed to accept invitation'
@@ -41,6 +42,7 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  enforceInviteRedemptionRateLimit(event, user.id)
   const code = getRouterParam(event, 'code')?.toUpperCase()
 
   if (!code) {

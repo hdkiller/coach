@@ -431,6 +431,10 @@ export async function applyStrengthLibraryDefaultsToWorkout(params: {
   }
 
   let matchedCount = 0
+  let llmCalls = 0
+  const llmBudgetStartMs = Date.now()
+  const MAX_LLM_CALLS_PER_WORKOUT = 3
+  const MAX_LLM_BUDGET_MS = 45000
   const blocks = []
 
   for (const block of structuredWorkout.blocks) {
@@ -440,15 +444,30 @@ export async function applyStrengthLibraryDefaultsToWorkout(params: {
       let matchedExercise = findDeterministicStrengthExerciseMatch(step, libraryExercises)
 
       if (!matchedExercise) {
+        if (
+          llmCalls >= MAX_LLM_CALLS_PER_WORKOUT ||
+          Date.now() - llmBudgetStartMs >= MAX_LLM_BUDGET_MS
+        ) {
+          nextSteps.push(step)
+          continue
+        }
+
         const candidates = getStrengthExerciseMatchCandidates(step, libraryExercises)
-        matchedExercise = await findLlmStrengthExerciseMatch({
-          step,
-          candidates,
-          userId,
-          entityType,
-          entityId,
-          operation
-        })
+        if (candidates.length > 0) {
+          try {
+            llmCalls += 1
+            matchedExercise = await findLlmStrengthExerciseMatch({
+              step,
+              candidates,
+              userId,
+              entityType,
+              entityId,
+              operation
+            })
+          } catch {
+            matchedExercise = null
+          }
+        }
       }
 
       if (matchedExercise) {

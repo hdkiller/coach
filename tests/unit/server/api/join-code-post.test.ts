@@ -39,6 +39,10 @@ vi.mock('../../../../server/utils/repositories/coachingRepository', () => ({
   }
 }))
 
+vi.mock('../../../../server/utils/invite-redemption-rate-limit', () => ({
+  enforceInviteRedemptionRateLimit: vi.fn()
+}))
+
 const futureDate = new Date('2026-12-31T00:00:00Z')
 
 describe('POST /api/join/[code]', () => {

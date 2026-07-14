@@ -2,6 +2,37 @@ import { prisma } from '../db'
 import { slugifyPublicName } from '../../../shared/public-plans'
 import type { TeamRole } from '@prisma/client'
 import { coachingRepository } from './coachingRepository'
+import {
+  generateInviteCode,
+  isUniqueConstraintError,
+  MAX_INVITE_CODE_RETRIES
+} from '../invite-code'
+
+function sanitizeTeamMemberEmail(
+  member: {
+    user: {
+      id: string
+      name: string | null
+      email: string | null
+      image: string | null
+      teamVisibility?: string | null
+    }
+  },
+  viewerId: string,
+  isStaff: boolean
+) {
+  if (isStaff || member.user.id === viewerId) {
+    return member
+  }
+
+  return {
+    ...member,
+    user: {
+      ...member.user,
+      email: null
+    }
+  }
+}
 
 export const teamRepository = {
   // --- Team Management ---
@@ -54,14 +85,20 @@ export const teamRepository = {
     })
   },
 
-  async getTeamDetails(teamId: string) {
-    return await (prisma as any).team.findUnique({
+  async getTeamDetails(teamId: string, options: { viewerId?: string; isStaff?: boolean } = {}) {
+    const team = await (prisma as any).team.findUnique({
       where: { id: teamId },
       include: {
         members: {
           include: {
             user: {
-              select: { id: true, name: true, email: true, image: true }
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                teamVisibility: true
+              }
             }
           }
         },
@@ -77,6 +114,17 @@ export const teamRepository = {
         }
       }
     })
+
+    if (!team || !options.viewerId) {
+      return team
+    }
+
+    return {
+      ...team,
+      members: team.members.map((member: any) =>
+        sanitizeTeamMemberEmail(member, options.viewerId!, options.isStaff ?? false)
+      )
+    }
   },
 
   async updateTeam(teamId: string, data: { name?: string; description?: string }) {
@@ -161,7 +209,10 @@ export const teamRepository = {
   /**
    * Fetches all athletes in a team with their metrics (CTL, TSB, etc.)
    */
-  async getTeamRoster(teamId: string, options: { maskSensitiveData?: boolean } = {}) {
+  async getTeamRoster(
+    teamId: string,
+    options: { maskSensitiveData?: boolean; viewingCoachId?: string } = {}
+  ) {
     const memberships = await (prisma as any).teamMember.findMany({
       where: { teamId, role: 'ATHLETE', status: 'ACTIVE' },
       include: {
@@ -203,41 +254,74 @@ export const teamRepository = {
       }
     })
 
-    // Reuse the enrichment logic from coachingRepository
+    const viewingCoachId = options.viewingCoachId
+
     return await Promise.all(
       memberships.map(async (m: any) => {
         const shouldMask = options.maskSensitiveData && m.user.teamVisibility === 'COACHES_ONLY'
 
-        // If masking, we still fetch basic name/image but skip detailed metrics
         if (shouldMask) {
           return {
             ...m,
+            canViewDetails: false,
             athlete: {
               id: m.user.id,
               name: m.user.name,
-              email: m.user.email,
               image: m.user.image,
-              isMasked: true
+              isMasked: true,
+              canViewDetails: false
             }
           }
         }
 
-        const athlete = await coachingRepository.getEnrichedAthleteForCoach(m.teamId, m.user.id)
-        const finalAthlete = athlete || m.user
+        const hasDirectCoaching = viewingCoachId
+          ? await coachingRepository.checkRelationship(viewingCoachId, m.user.id)
+          : false
 
-        // Ensure default stats exist to prevent crashes in AthleteCard
-        if (!finalAthlete.stats) {
-          finalAthlete.stats = {
-            adherence7d: 0,
-            completedCount: 0,
-            plannedCount: 0,
-            wellnessHistory: []
+        if (hasDirectCoaching && viewingCoachId) {
+          const athlete = await coachingRepository.getEnrichedAthleteForCoach(
+            viewingCoachId,
+            m.user.id
+          )
+
+          return {
+            ...m,
+            canViewDetails: true,
+            athlete: athlete
+              ? {
+                  ...athlete,
+                  canViewDetails: true
+                }
+              : {
+                  id: m.user.id,
+                  name: m.user.name,
+                  email: m.user.email,
+                  image: m.user.image,
+                  canViewDetails: true,
+                  stats: {
+                    adherence7d: null,
+                    completedCount: 0,
+                    plannedCount: 0
+                  }
+                }
           }
         }
 
         return {
           ...m,
-          athlete: finalAthlete
+          canViewDetails: false,
+          athlete: {
+            id: m.user.id,
+            name: m.user.name,
+            email: m.user.email,
+            image: m.user.image,
+            canViewDetails: false,
+            stats: {
+              adherence7d: null,
+              completedCount: 0,
+              plannedCount: 0
+            }
+          }
         }
       })
     )
@@ -264,20 +348,28 @@ export const teamRepository = {
       }
     }
 
-    // Generate a simple 8-char code
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase()
-
-    return await (prisma as any).teamInvite.create({
-      data: {
-        teamId,
-        email: data.email?.toLowerCase(),
-        role: data.role,
-        groupId: data.groupId,
-        code,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        status: 'PENDING'
+    for (let attempt = 0; attempt < MAX_INVITE_CODE_RETRIES; attempt++) {
+      try {
+        return await (prisma as any).teamInvite.create({
+          data: {
+            teamId,
+            email: data.email?.toLowerCase(),
+            role: data.role,
+            groupId: data.groupId,
+            code: generateInviteCode(),
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            status: 'PENDING'
+          }
+        })
+      } catch (error) {
+        if (isUniqueConstraintError(error) && attempt < MAX_INVITE_CODE_RETRIES - 1) {
+          continue
+        }
+        throw error
       }
-    })
+    }
+
+    throw new Error('Failed to generate invite code')
   },
 
   async getTeamInvites(teamId: string) {
@@ -312,10 +404,13 @@ export const teamRepository = {
       throw new Error('Invalid or expired invite code')
     }
 
-    if (
-      invite.email &&
-      invite.email !== (await (prisma as any).user.findUnique({ where: { id: userId } }))?.email
-    ) {
+    const user = await (prisma as any).user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    })
+    const userEmail = user?.email?.toLowerCase()
+
+    if (invite.email && invite.email !== userEmail) {
       throw new Error('This invite is restricted to another email address')
     }
 
@@ -335,10 +430,12 @@ export const teamRepository = {
         })
       }
 
-      await (tx as any).teamInvite.update({
-        where: { id: invite.id },
-        data: { status: 'ACCEPTED' }
-      })
+      if (invite.email) {
+        await (tx as any).teamInvite.update({
+          where: { id: invite.id },
+          data: { status: 'ACCEPTED' }
+        })
+      }
 
       return membership
     })

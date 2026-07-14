@@ -124,6 +124,7 @@ export default defineEventHandler(async (event) => {
 
   const parsedItems = Array.isArray(result.items) ? result.items : []
   const inferredFluidMl = extractFluidIntakeMl(query)
+  const hasAiHydrationItem = parsedItems.some((item: any) => item?.entryType === 'HYDRATION')
   if (parsedItems.length === 0 && inferredFluidMl <= 0) {
     return { success: false, message: 'Could not parse any food items from your query.' }
   }
@@ -214,7 +215,9 @@ export default defineEventHandler(async (event) => {
   const addedItems: any[] = []
   const hydrationUpdates: any[] = []
 
-  if (inferredFluidMl > 0) {
+  // Avoid double-counting hydration: if the AI already returned a HYDRATION item,
+  // don't also add a regex-inferred "Water" item from the raw query.
+  if (inferredFluidMl > 0 && !hasAiHydrationItem) {
     if (!itemsByDate[dateStr]) {
       itemsByDate[dateStr] = {
         items: [],
