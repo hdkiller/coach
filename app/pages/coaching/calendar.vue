@@ -66,13 +66,9 @@
             </UButton>
 
             <template #mobile>
-              <UButton
+              <LayoutNavbarIconButton
                 icon="i-heroicons-users"
-                color="neutral"
-                variant="outline"
-                size="sm"
-                class="size-11 min-h-11 min-w-11"
-                :aria-label="tr('calendar_roster', 'Roster')"
+                :label="tr('calendar_roster', 'Roster')"
                 @click="
                   () => {
                     openMobilePanel('roster')

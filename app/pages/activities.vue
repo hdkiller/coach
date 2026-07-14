@@ -65,31 +65,23 @@
             </UButton>
 
             <template #mobile>
-              <UButton
+              <LayoutNavbarIconButton
                 icon="i-heroicons-arrow-path"
-                color="neutral"
-                variant="outline"
-                size="sm"
-                class="size-11 min-h-11 min-w-11"
+                :label="t('header_refresh')"
                 :loading="status === 'pending' || integrationStore.syncingData"
-                :aria-label="t('header_refresh')"
                 @click="
                   () => {
                     void handleRefresh()
                   }
                 "
               />
-              <UButton
+              <LayoutNavbarIconButton
                 to="/chat"
                 icon="i-heroicons-chat-bubble-left-right"
+                :label="t('header_new_chat')"
                 color="primary"
                 variant="solid"
-                size="sm"
-                class="size-11 min-h-11 min-w-11 font-black uppercase tracking-widest text-[10px]"
-                :aria-label="t('header_new_chat')"
-              >
-                <span class="sr-only">{{ t('header_new_chat') }}</span>
-              </UButton>
+              />
             </template>
           </LayoutPageNavbarActions>
         </template>

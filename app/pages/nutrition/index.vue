@@ -53,30 +53,23 @@
             </UButton>
 
             <template #mobile>
-              <UButton
+              <LayoutNavbarIconButton
                 icon="i-lucide-refresh-cw"
-                color="neutral"
-                variant="outline"
-                size="sm"
-                class="size-11 min-h-11 min-w-11"
+                :label="t('nav_refresh')"
                 :loading="loading"
-                :aria-label="t('nav_refresh')"
                 @click="
                   () => {
                     void refreshData()
                   }
                 "
               />
-              <UButton
+              <LayoutNavbarIconButton
                 to="/chat"
                 icon="i-heroicons-chat-bubble-left-right"
+                :label="t('nav_new_chat')"
                 color="primary"
                 variant="solid"
-                size="sm"
-                class="font-bold"
-              >
-                <span class="sr-only">{{ t('nav_new_chat') }}</span>
-              </UButton>
+              />
             </template>
           </LayoutPageNavbarActions>
         </template>

@@ -32,6 +32,18 @@
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+@utility navbar-icon-action {
+  @apply inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-0 p-0;
+}
+
+.navbar-icon-action[data-slot='base'] {
+  @apply inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-0 p-0;
+}
+
+.navbar-icon-action [data-slot='leadingIcon'] {
+  @apply m-0 size-5 shrink-0;
+}
+
 @media (min-width: 640px) {
   .quick-capture-inset {
     padding-bottom: 0;

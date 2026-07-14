@@ -2296,13 +2296,11 @@
               </UButton>
 
               <template #mobile>
-                <UButton
+                <LayoutNavbarIconButton
+                  icon="i-heroicons-chat-bubble-left-right"
+                  label="New Chat"
                   color="primary"
                   variant="solid"
-                  icon="i-heroicons-chat-bubble-left-right"
-                  aria-label="New Chat"
-                  size="sm"
-                  class="size-11 min-h-11 min-w-11 font-bold"
                   @click="
                     () => {
                       void createNewChat()

@@ -68,32 +68,25 @@
             </UButton>
 
             <template #mobile>
-              <UButton
+              <LayoutNavbarIconButton
                 v-if="isOnboarded"
+                icon="i-heroicons-arrow-path"
+                :label="t('header_sync_data')"
                 :loading="integrationStore.syncingData"
                 :disabled="integrationStore.syncingData"
-                color="neutral"
-                variant="outline"
-                icon="i-heroicons-arrow-path"
-                size="sm"
-                class="size-11 min-h-11 min-w-11"
-                :aria-label="t('header_sync_data')"
                 @click="
                   () => {
                     void handleSync()
                   }
                 "
               />
-              <UButton
+              <LayoutNavbarIconButton
                 to="/chat"
                 icon="i-heroicons-chat-bubble-left-right"
+                :label="t('header_new_chat')"
                 color="primary"
                 variant="solid"
-                size="sm"
-                class="size-11 min-h-11 min-w-11"
-              >
-                <span class="sr-only">{{ t('header_new_chat') }}</span>
-              </UButton>
+              />
             </template>
           </LayoutPageNavbarActions>
         </template>

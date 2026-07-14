@@ -54,14 +54,12 @@
             </UButton>
 
             <template #mobile>
-              <UButton
-                :loading="generatingExplanations"
+              <LayoutNavbarIconButton
+                icon="i-heroicons-sparkles"
+                label="Generate Insights"
                 color="primary"
                 variant="solid"
-                icon="i-heroicons-sparkles"
-                size="sm"
-                class="font-bold"
-                aria-label="Generate Insights"
+                :loading="generatingExplanations"
                 @click="
                   () => {
                     void generateExplanations()
