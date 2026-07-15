@@ -11,9 +11,9 @@ export function useOnboardingStatus() {
   async function refresh() {
     isLoading.value = true
     try {
-      status.value = await $fetch<OnboardingStatus>('/api/user/onboarding-status', {
+      status.value = (await ($fetch as any)('/api/user/onboarding-status', {
         query: connectLater.value ? { connectLater: '1' } : undefined
-      })
+      })) as OnboardingStatus
     } catch (error) {
       console.error('Failed to fetch onboarding status:', error)
     } finally {
@@ -27,7 +27,7 @@ export function useOnboardingStatus() {
   }
 
   async function completeActivation(valueType = 'dashboard_insight') {
-    await $fetch('/api/user/onboarding/complete', {
+    await ($fetch as any)('/api/user/onboarding/complete', {
       method: 'POST',
       body: { valueType }
     })

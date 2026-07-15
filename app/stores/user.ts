@@ -46,6 +46,7 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const profile = ref<any>(null)
   const dataSyncStatus = ref<any>(null)
+  const missingFields = ref<string[]>([])
   const loading = ref(false)
   const generating = ref(false)
   const userLoading = ref(false)
@@ -92,7 +93,7 @@ export const useUserStore = defineStore('user', () => {
     user.value.dashboardSettings = { ...user.value.dashboardSettings, ...serializableSettings }
 
     try {
-      await $fetch('/api/user/settings', {
+      await ($fetch as any)('/api/user/settings', {
         method: 'PATCH',
         body: { dashboardSettings: serializableSettings }
       })
@@ -209,12 +210,14 @@ export const useUserStore = defineStore('user', () => {
       const data = await fetcher('/api/profile/dashboard')
       profile.value = data?.profile || null
       dataSyncStatus.value = data?.dataSyncStatus || null
+      missingFields.value = data?.missingFields || []
     } catch (error: any) {
       if (!(import.meta.server && error.statusCode === 401)) {
         console.error('Error fetching profile:', error)
       }
       profile.value = null
       dataSyncStatus.value = null
+      missingFields.value = []
     } finally {
       loading.value = false
     }
@@ -322,7 +325,7 @@ export const useUserStore = defineStore('user', () => {
     trackAthleteProfileGenerate()
     generating.value = true
     try {
-      await $fetch('/api/profile/generate', { method: 'POST' })
+      await ($fetch as any)('/api/profile/generate', { method: 'POST' })
       refreshRuns()
 
       showDashboardProgressToast(
@@ -370,7 +373,7 @@ export const useUserStore = defineStore('user', () => {
   ) {
     loading.value = true
     try {
-      await $fetch('/api/profile', {
+      await ($fetch as any)('/api/profile', {
         method: 'PATCH',
         body: { ...metrics, sportType }
       })
@@ -458,6 +461,7 @@ export const useUserStore = defineStore('user', () => {
     isTrialActive,
     trialDaysRemaining,
     dataSyncStatus,
+    missingFields,
     fetchUser,
     updateDashboardSettings,
     fetchProfile,

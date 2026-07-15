@@ -91,7 +91,7 @@ export const useIntegrationStore = defineStore('integration', () => {
     syncingData.value = true
 
     try {
-      await $fetch('/api/integrations/sync', {
+      await ($fetch as any)('/api/integrations/sync', {
         method: 'POST',
         body: { provider: 'all' }
       })

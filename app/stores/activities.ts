@@ -11,7 +11,7 @@ export const useActivityStore = defineStore('activity', () => {
 
     loading.value = true
     try {
-      const data = await $fetch('/api/activity/recent')
+      const data = await ($fetch as any)('/api/activity/recent')
       recentActivity.value = data
     } catch (error) {
       console.error('Error fetching recent activity:', error)

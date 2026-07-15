@@ -26,7 +26,7 @@ export const useReportStore = defineStore('report', () => {
     if (currentReport.value?.id === id) return currentReport.value
 
     try {
-      const data = await $fetch(`/api/reports/${id}`)
+      const data = await ($fetch as any)(`/api/reports/${id}`)
       currentReport.value = data
       return data
     } catch (error) {

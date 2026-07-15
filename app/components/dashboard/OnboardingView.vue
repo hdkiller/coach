@@ -363,7 +363,7 @@
     return providers.filter((provider) => provider.id !== primary)
   })
 
-  function connectFromSetupHub(provider: string, connect: () => void | Promise<void>) {
+  function connectFromSetupHub(provider: string, connect: () => unknown) {
     trackIntegrationConnectStart(provider, { surface: 'setup_hub' })
     void connect()
   }

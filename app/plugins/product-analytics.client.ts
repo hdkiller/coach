@@ -13,13 +13,13 @@ export default defineNuxtPlugin(() => {
       if (sessionStorage.getItem(storageKey)) return
 
       try {
-        const result = await $fetch<{
+        const result = (await ($fetch as any)('/api/user/analytics/account-created-claim', {
+          method: 'POST'
+        })) as {
           claim: boolean
           method?: string
           entry_point?: string
-        }>('/api/user/analytics/account-created-claim', {
-          method: 'POST'
-        })
+        }
 
         if (!result.claim || !result.method) return
 

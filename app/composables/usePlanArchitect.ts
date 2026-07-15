@@ -651,11 +651,11 @@ export function usePlanArchitect(planId: string) {
     try {
       const architectPayload = buildArchitectPayload(draftPlan.value)
       const publicationPayload = buildPublicationPayload(draftPlan.value)
-      await $fetch(`/api/library/plans/${planId}/architect`, {
+      await fetchAny(`/api/library/plans/${planId}/architect`, {
         method: 'PATCH',
         body: architectPayload
       })
-      await $fetch(`/api/library/plans/${planId}/publication`, {
+      await fetchAny(`/api/library/plans/${planId}/publication`, {
         method: 'PATCH',
         body: publicationPayload
       })

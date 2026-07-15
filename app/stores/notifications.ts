@@ -38,7 +38,7 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await $fetch('/api/notifications/read', {
+      await ($fetch as any)('/api/notifications/read', {
         method: 'PATCH',
         body: { id }
       })
@@ -54,7 +54,7 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   const markAllAsRead = async () => {
     try {
-      await $fetch('/api/notifications/read', {
+      await ($fetch as any)('/api/notifications/read', {
         method: 'PATCH',
         body: { all: true }
       })

@@ -23,8 +23,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
         if (detectedTimezone) {
           // Call API to update profile
-          // @ts-expect-error -- complex types
-          await $fetch('/api/profile', {
+          await ($fetch as any)('/api/profile', {
             method: 'PATCH',
             body: {
               timezone: detectedTimezone
@@ -49,7 +48,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         // or just let the backend handle the 'null' case as UTC (which it already does).
         // Explicitly setting UTC might be better for consistency if the user is truly in a weird environment.
         try {
-          await $fetch('/api/profile', {
+          await ($fetch as any)('/api/profile', {
             method: 'PATCH',
             body: { timezone: 'UTC' }
           })

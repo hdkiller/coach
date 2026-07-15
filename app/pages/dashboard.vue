@@ -518,6 +518,7 @@
     completeActivation
   } = useOnboardingStatus()
   const userStore = useUserStore()
+  const { missingFields } = storeToRefs(userStore)
 
   const isGarminConnected = computed(() => {
     return (

@@ -1,15 +1,19 @@
-function normalizeCallbackParam(
-  callbackUrl: string | string[] | undefined | null
-): string | undefined | null {
+import type { LocationQueryValue } from 'vue-router'
+
+type CallbackQueryValue =
+  LocationQueryValue | LocationQueryValue[] | string | string[] | undefined | null
+
+function normalizeCallbackParam(callbackUrl: CallbackQueryValue): string | undefined {
   if (Array.isArray(callbackUrl)) {
-    return callbackUrl[0]
+    const first = callbackUrl.find((value) => value != null)
+    return first ?? undefined
   }
 
-  return callbackUrl
+  return callbackUrl ?? undefined
 }
 
 export function sanitizeCallbackUrl(
-  callbackUrl: string | string[] | undefined | null,
+  callbackUrl: CallbackQueryValue,
   fallback = '/dashboard'
 ): string {
   const raw = normalizeCallbackParam(callbackUrl)

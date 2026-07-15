@@ -46,7 +46,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
 
     loading.value = true
     try {
-      const data = await $fetch('/api/recommendations/today')
+      const data = await ($fetch as any)('/api/recommendations/today')
       todayRecommendation.value = data ?? null
     } catch (error: any) {
       if (error?.statusCode === 404) {
@@ -64,7 +64,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
 
     generating.value = true
     try {
-      await $fetch('/api/recommendations/today', {
+      await ($fetch as any)('/api/recommendations/today', {
         method: 'POST',
         body: { userFeedback }
       })
@@ -108,7 +108,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
   async function generateAdHocWorkout(params: any) {
     generatingAdHoc.value = true
     try {
-      const { success } = await $fetch('/api/workouts/generate', {
+      const { success } = await ($fetch as any)('/api/workouts/generate', {
         method: 'POST',
         body: params
       })
@@ -186,7 +186,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     if (!id) return
 
     try {
-      await $fetch(`/api/recommendations/${id}/accept`, { method: 'POST' })
+      await ($fetch as any)(`/api/recommendations/${id}/accept`, { method: 'POST' })
 
       toast.add({
         title: 'Plan Updated',

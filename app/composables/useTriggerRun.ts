@@ -82,7 +82,7 @@ export function useTriggerRun(runId: Ref<string | null>) {
     if (!runId.value) return
 
     try {
-      const data = (await $fetch(`/api/runs/${runId.value}`)) as any
+      const data = (await ($fetch as any)(`/api/runs/${runId.value}`)) as any
       if (!Array.isArray(data)) {
         updateState(data.status, data.output, data.error)
 

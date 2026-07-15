@@ -1,5 +1,6 @@
 export function useStripe() {
   const toast = useToast()
+  const fetchAny = useFetch as any
 
   /**
    * Create a checkout session and redirect to Stripe
@@ -12,7 +13,7 @@ export function useStripe() {
     }
   ) {
     try {
-      const { data, error } = await useFetch('/api/stripe/checkout-session', {
+      const { data, error } = await fetchAny('/api/stripe/checkout-session', {
         method: 'POST',
         body: {
           priceId,
@@ -46,7 +47,7 @@ export function useStripe() {
    */
   async function openCustomerPortal(returnUrl?: string) {
     try {
-      const { data, error } = await useFetch('/api/stripe/portal-session', {
+      const { data, error } = await fetchAny('/api/stripe/portal-session', {
         method: 'POST',
         body: {
           returnUrl
@@ -78,7 +79,7 @@ export function useStripe() {
    */
   async function changePlan(priceId: string, direction: 'upgrade' | 'downgrade' = 'upgrade') {
     try {
-      const { data, error } = await useFetch('/api/stripe/change-plan', {
+      const { data, error } = await fetchAny('/api/stripe/change-plan', {
         method: 'POST',
         body: {
           priceId,
