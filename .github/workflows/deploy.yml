@@ -86,6 +86,6 @@ jobs:
     with:
       environment: preview
       trigger-env: preview
-      trigger-version: '4.5.3'
+      trigger-version: '4.5.4'
       preview-branch: false
     secrets: inherit

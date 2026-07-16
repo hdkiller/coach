@@ -14,7 +14,7 @@ on:
       trigger-version:
         description: Trigger.dev CLI version to use
         type: string
-        default: '4.5.3'
+        default: '4.5.4'
         required: false
       preview-branch:
         description: Enable preview branch deployment (auto-detects from git branch)
