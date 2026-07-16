@@ -363,13 +363,7 @@ export function buildGarminTrainingPayload(
     throw error
   }
 
-  const ownerIdRaw = options.ownerId
-  const ownerId =
-    ownerIdRaw != null && String(ownerIdRaw).trim() !== ''
-      ? Number.isFinite(Number(ownerIdRaw))
-        ? Number(ownerIdRaw)
-        : String(ownerIdRaw)
-      : undefined
+  const ownerId = toGarminOwnerId(options.ownerId)
 
   return {
     ...(ownerId != null ? { ownerId } : {}),
@@ -391,21 +385,48 @@ export function buildGarminTrainingPayload(
   }
 }
 
-function garminOwnerIdFromIntegration(integration: Integration): string | number | undefined {
-  const raw = integration.externalUserId
-  if (raw == null || String(raw).trim() === '') return undefined
+/**
+ * Training API V2 `ownerId` is a Java Long (Garmin Connect numeric id).
+ * Wellness `/user/id` returns a UUID — that must never be sent as ownerId.
+ */
+export function toGarminOwnerId(value: unknown): number | undefined {
+  if (value == null) return undefined
+  const raw = String(value).trim()
+  if (!raw || !/^\d+$/.test(raw)) return undefined
   const asNumber = Number(raw)
-  return Number.isFinite(asNumber) ? asNumber : raw
+  if (!Number.isSafeInteger(asNumber) || asNumber <= 0) return undefined
+  return asNumber
+}
+
+function stripInvalidOwnerId(payload: Record<string, unknown>): Record<string, unknown> {
+  const body = { ...payload }
+  const ownerId = toGarminOwnerId(body.ownerId)
+  if (ownerId != null) body.ownerId = ownerId
+  else delete body.ownerId
+  return body
+}
+
+async function fetchGarminWorkoutOwnerId(
+  integration: Integration,
+  workoutId: string
+): Promise<number | undefined> {
+  const response = await fetch(`${GARMIN_TRAINING_WORKOUT_V2}/${workoutId}`, {
+    method: 'GET',
+    headers: getGarminHeaders(integration.accessToken)
+  })
+  if (!response.ok) return undefined
+  const workout = (await response.json().catch(() => null)) as { ownerId?: unknown } | null
+  return toGarminOwnerId(workout?.ownerId)
 }
 
 export async function createGarminWorkout(integration: Integration, payload: any) {
   const validIntegration = await ensureValidToken(integration)
-  const body = {
-    ...payload,
-    ...(payload?.ownerId == null && validIntegration.externalUserId
-      ? { ownerId: garminOwnerIdFromIntegration(validIntegration) }
-      : {})
-  }
+  // Create does not require ownerId. Never inject the wellness UUID.
+  const numericExternalOwnerId = toGarminOwnerId(validIntegration.externalUserId)
+  const body = stripInvalidOwnerId({
+    ...(payload || {}),
+    ...(numericExternalOwnerId != null ? { ownerId: numericExternalOwnerId } : {})
+  })
   const headers = getGarminHeaders(validIntegration.accessToken)
 
   // Training API V2 docs list create on workoutportal; retrieve/update use training-api.
@@ -435,15 +456,23 @@ export async function updateGarminWorkout(
   payload: any
 ) {
   const validIntegration = await ensureValidToken(integration)
-  const ownerId = payload?.ownerId ?? garminOwnerIdFromIntegration(validIntegration)
+  let ownerId =
+    toGarminOwnerId(payload?.ownerId) ?? toGarminOwnerId(validIntegration.externalUserId)
+
+  // Wellness externalUserId is a UUID; resolve numeric ownerId from the existing workout.
+  if (ownerId == null) {
+    ownerId = await fetchGarminWorkoutOwnerId(validIntegration, workoutId)
+  }
+
   if (ownerId == null) {
     const err = new Error(
-      'Garmin update workout requires ownerId (missing Garmin externalUserId)'
+      'Garmin update workout requires numeric ownerId (wellness UUID cannot be used)'
     ) as Error & { code?: string }
     err.code = 'GARMIN_OWNER_ID_REQUIRED'
     throw err
   }
-  const body = { ...payload, ownerId }
+
+  const body = stripInvalidOwnerId({ ...(payload || {}), ownerId })
   const response = await fetch(`${GARMIN_TRAINING_WORKOUT_V2}/${workoutId}`, {
     method: 'PUT',
     headers: getGarminHeaders(validIntegration.accessToken),

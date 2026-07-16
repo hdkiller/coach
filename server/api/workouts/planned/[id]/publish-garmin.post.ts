@@ -151,10 +151,11 @@ export default defineEventHandler(async (event) => {
           await updateGarminWorkout(integration, workoutId, payload)
         } catch (e: any) {
           const message = String(e?.message || '')
-          // Stale Garmin ids or missing ownerId (Training API V2) → recreate.
+          // Stale Garmin ids, missing/invalid ownerId, or bad Long deserialize → recreate.
           if (
             message.includes('(404)') ||
-            message.includes('requires ownerId') ||
+            (message.includes('requires') && message.includes('ownerId')) ||
+            message.includes('not a valid `java.lang.Long`') ||
             e?.code === 'GARMIN_OWNER_ID_REQUIRED'
           ) {
             workoutId = null

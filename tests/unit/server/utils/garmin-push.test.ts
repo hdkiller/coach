@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildGarminTrainingPayload,
   countGarminWorkoutSteps,
-  extractGarminScheduleId
+  extractGarminScheduleId,
+  toGarminOwnerId
 } from '../../../../server/utils/garmin-push'
 
 describe('garmin push helpers', () => {
@@ -181,8 +182,8 @@ describe('garmin push helpers', () => {
     expect(payload.segments[0]!.sport).toBe('CYCLING')
   })
 
-  it('includes ownerId when provided', () => {
-    const payload = buildGarminTrainingPayload(
+  it('includes numeric ownerId and rejects wellness UUID ownerIds', () => {
+    const withNumeric = buildGarminTrainingPayload(
       {
         title: 'Owned',
         type: 'Ride',
@@ -191,6 +192,19 @@ describe('garmin push helpers', () => {
       {},
       { ownerId: '998877' }
     )
-    expect(payload.ownerId).toBe(998877)
+    expect(withNumeric.ownerId).toBe(998877)
+
+    const withUuid = buildGarminTrainingPayload(
+      {
+        title: 'Owned',
+        type: 'Ride',
+        steps: [{ type: 'Active', durationSeconds: 60 }]
+      },
+      {},
+      { ownerId: '0db20509-029f-4a45-ada0-fc230913f3b3' }
+    )
+    expect(withUuid.ownerId).toBeUndefined()
+    expect(toGarminOwnerId('0db20509-029f-4a45-ada0-fc230913f3b3')).toBeUndefined()
+    expect(toGarminOwnerId('12345')).toBe(12345)
   })
 })
