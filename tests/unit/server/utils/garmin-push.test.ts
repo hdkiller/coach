@@ -5,7 +5,8 @@ import {
   countStepsInGarminWorkoutResponse,
   extractGarminScheduleId,
   toGarminOwnerId,
-  toGarminWorkoutId
+  toGarminWorkoutId,
+  toGarminWorkoutSourceId
 } from '../../../../server/utils/garmin-push'
 
 describe('garmin push helpers', () => {
@@ -43,6 +44,32 @@ describe('garmin push helpers', () => {
     expect(step.secondaryTargetType).toBe('HEART_RATE')
     expect(step.secondaryTargetValue).toBe(128)
     expect(payload).not.toHaveProperty('steps')
+  })
+
+  it('derives a unique workoutSourceId from the planned workout id', () => {
+    const plannedId = 'aa09f554-5c2c-402e-b181-3fc6440320c4'
+    expect(toGarminWorkoutSourceId(plannedId)).toBe('aa09f5545c2c402eb181')
+    expect(toGarminWorkoutSourceId(plannedId).length).toBeLessThanOrEqual(20)
+    expect(toGarminWorkoutSourceId('')).toBe('COACH_WATTZ')
+
+    const fromWorkout = buildGarminTrainingPayload({
+      id: plannedId,
+      title: 'Source Id',
+      type: 'Ride',
+      steps: [{ type: 'Active', durationSeconds: 60 }]
+    })
+    expect(fromWorkout.workoutSourceId).toBe('aa09f5545c2c402eb181')
+
+    const fromOptions = buildGarminTrainingPayload(
+      {
+        title: 'Source Id',
+        type: 'Ride',
+        steps: [{ type: 'Active', durationSeconds: 60 }]
+      },
+      {},
+      { sourceId: plannedId }
+    )
+    expect(fromOptions.workoutSourceId).toBe('aa09f5545c2c402eb181')
   })
 
   it('prefers pace as primary for running and maps trail run to RUNNING', () => {
@@ -122,7 +149,8 @@ describe('garmin push helpers', () => {
       intensity: 'INTERVAL',
       targetType: 'POWER',
       secondaryTargetType: 'CADENCE',
-      secondaryTargetValue: 95
+      secondaryTargetValueLow: 95,
+      secondaryTargetValueHigh: 95
     })
     expect(repeatChildren[1]).toMatchObject({
       type: 'WorkoutStep',
@@ -270,7 +298,8 @@ describe('garmin push helpers', () => {
       targetValueLow: 115,
       targetValueHigh: 137,
       secondaryTargetType: 'CADENCE',
-      secondaryTargetValue: 85
+      secondaryTargetValueLow: 85,
+      secondaryTargetValueHigh: 85
     })
     expect(steps[1]).toMatchObject({
       type: 'WorkoutRepeatStep',
@@ -283,7 +312,8 @@ describe('garmin push helpers', () => {
       targetValueLow: 183,
       targetValueHigh: 202,
       secondaryTargetType: 'CADENCE',
-      secondaryTargetValue: 90
+      secondaryTargetValueLow: 90,
+      secondaryTargetValueHigh: 90
     })
     expect(countGarminWorkoutSteps(steps)).toBe(4)
     expect(

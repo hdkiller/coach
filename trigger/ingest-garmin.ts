@@ -6,10 +6,22 @@ import {
   fetchGarminDailies,
   fetchGarminSleeps,
   fetchGarminHRV,
+  fetchGarminBodyComps,
+  fetchGarminUserMetrics,
   fetchGarminActivities,
-  buildGarminTimeSlices
+  buildGarminTimeSlices,
+  refreshGarminIntegrationPermissions
 } from '../server/utils/garmin'
 import { userIngestionQueue } from './queues'
+
+const GARMIN_FETCH_TYPES = [
+  'dailies',
+  'sleeps',
+  'hrv',
+  'bodyComps',
+  'userMetrics',
+  'activities'
+] as const
 
 export const ingestGarminTask = task({
   id: 'ingest-garmin',
@@ -25,14 +37,17 @@ export const ingestGarminTask = task({
   }) => {
     const { userId } = payload
 
-    const integration = await prisma.integration.findUnique({
+    let integration = await prisma.integration.findUnique({
       where: { userId_provider: { userId, provider: 'garmin' } }
     })
 
     if (!integration) {
       logger.error(`Garmin integration not found for user ${userId}`)
-      return
+      throw new Error(`Garmin integration not found for user ${userId}`)
     }
+
+    // Best-effort: merge live export permissions into stored scope (issue 310).
+    integration = await refreshGarminIntegrationPermissions(integration)
 
     // Determine time range. Prefer timestamps, fall back to ISO strings, then to last 24h
     const now = Math.floor(Date.now() / 1000)
@@ -91,6 +106,8 @@ export const ingestGarminTask = task({
       const dailies: Awaited<ReturnType<typeof fetchGarminDailies>> = []
       const sleeps: Awaited<ReturnType<typeof fetchGarminSleeps>> = []
       const hrv: Awaited<ReturnType<typeof fetchGarminHRV>> = []
+      const bodyComps: Awaited<ReturnType<typeof fetchGarminBodyComps>> = []
+      const userMetrics: Awaited<ReturnType<typeof fetchGarminUserMetrics>> = []
       const activities: Awaited<ReturnType<typeof fetchGarminActivities>> = []
       const results: PromiseSettledResult<unknown>[] = []
 
@@ -105,6 +122,12 @@ export const ingestGarminTask = task({
           wellnessEnabled
             ? fetchGarminHRV(integration, slice.startTimestamp, slice.endTimestamp)
             : [],
+          wellnessEnabled
+            ? fetchGarminBodyComps(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminUserMetrics(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
           workoutsEnabled
             ? fetchGarminActivities(integration, slice.startTimestamp, slice.endTimestamp)
             : []
@@ -112,16 +135,21 @@ export const ingestGarminTask = task({
 
         results.push(...sliceResults)
 
-        if (sliceResults[0].status === 'fulfilled') dailies.push(...sliceResults[0].value)
-        if (sliceResults[1].status === 'fulfilled') sleeps.push(...sliceResults[1].value)
-        if (sliceResults[2].status === 'fulfilled') hrv.push(...sliceResults[2].value)
-        if (sliceResults[3].status === 'fulfilled') activities.push(...sliceResults[3].value)
+        if (sliceResults[0].status === 'fulfilled')
+          dailies.push(...(sliceResults[0].value as any[]))
+        if (sliceResults[1].status === 'fulfilled') sleeps.push(...(sliceResults[1].value as any[]))
+        if (sliceResults[2].status === 'fulfilled') hrv.push(...(sliceResults[2].value as any[]))
+        if (sliceResults[3].status === 'fulfilled')
+          bodyComps.push(...(sliceResults[3].value as any[]))
+        if (sliceResults[4].status === 'fulfilled')
+          userMetrics.push(...(sliceResults[4].value as any[]))
+        if (sliceResults[5].status === 'fulfilled')
+          activities.push(...(sliceResults[5].value as any[]))
       }
 
-      const types = ['dailies', 'sleeps', 'hrv', 'activities']
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          const type = types[index % types.length]
+          const type = GARMIN_FETCH_TYPES[index % GARMIN_FETCH_TYPES.length]
           const error = result.reason
 
           console.error(`[DEBUG] Garmin fetch failed for ${type}:`, error)
@@ -133,12 +161,16 @@ export const ingestGarminTask = task({
         dailies: dailies.length,
         sleeps: sleeps.length,
         hrv: hrv.length,
+        bodyComps: bodyComps.length,
+        userMetrics: userMetrics.length,
         activities: activities.length
       })
 
       if (dailies.length > 0) await GarminService.processWellness(userId, dailies)
       if (sleeps.length > 0) await GarminService.processSleep(userId, sleeps)
       if (hrv.length > 0) await GarminService.processHRV(userId, hrv)
+      if (bodyComps.length > 0) await GarminService.processBodyComp(userId, bodyComps)
+      if (userMetrics.length > 0) await GarminService.processUserMetrics(userId, userMetrics)
       if (activities.length > 0)
         await GarminService.processActivities(userId, activities, integration)
 
@@ -172,6 +204,8 @@ export const ingestGarminTask = task({
           dailies: dailies.length,
           sleeps: sleeps.length,
           hrv: hrv.length,
+          bodyComps: bodyComps.length,
+          userMetrics: userMetrics.length,
           activities: activities.length
         }
       }

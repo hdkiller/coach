@@ -2,6 +2,7 @@ import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { EmailDeliveryService } from '../server/utils/services/emailDeliveryService'
 import { prisma } from '../server/utils/db'
+import { deRegisterGarminUser } from '../server/utils/garmin'
 import { getEmailTemplateDefinition } from '../server/utils/email-template-registry'
 import { getInternalApiToken } from '../server/utils/internal-api-token'
 import { userBackgroundQueue } from './queues'
@@ -22,15 +23,11 @@ export const deleteUserAccountTask = task({
 
     logger.log('Starting user account deletion', { userId })
 
-    // 1. (Optional) Cleanup external resources (S3, external APIs)
+    // 1. Cleanup partner registrations that require an active token (before DB cascade).
+    // Garmin Start Guide: DELETE /user/registration on partner Delete Account / Opt-Out.
+    // Failures must not block account deletion — local wipe is still required.
     // TODO: Implement S3 cleanup if files are stored there (pdfUrl, profile images)
-    // TODO: Revoke external integration tokens if possible/necessary (Intervals, Whoop, etc.)
-    // For now, we rely on the DB deletion to remove the tokens from our side.
-
-    // 2. Delete User from Database
-    // This will cascade delete almost everything due to the schema relations.
-    // LlmUsage records will have userId set to null.
-    // ChatMessages might remain but without valid sender link (senderId is string).
+    // TODO: Revoke other external tokens (Intervals, Whoop, etc.) where APIs exist.
 
     try {
       const user = await prisma.user.findUnique({
@@ -45,6 +42,26 @@ export const deleteUserAccountTask = task({
       if (!user) {
         throw new Error(`User ${userId} not found`)
       }
+
+      const garminIntegration = await prisma.integration.findFirst({
+        where: { userId, provider: 'garmin' }
+      })
+      if (garminIntegration) {
+        try {
+          await deRegisterGarminUser(garminIntegration)
+          logger.log('Garmin user registration deleted before account wipe', { userId })
+        } catch (error) {
+          logger.warn('Garmin deregistration failed during account deletion; continuing', {
+            userId,
+            error
+          })
+        }
+      }
+
+      // 2. Delete User from Database
+      // This will cascade delete almost everything due to the schema relations.
+      // LlmUsage records will have userId set to null.
+      // ChatMessages might remain but without valid sender link (senderId is string).
 
       if (notificationEmail) {
         const template = getEmailTemplateDefinition('AccountDeletionScheduled')

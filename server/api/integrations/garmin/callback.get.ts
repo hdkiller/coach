@@ -1,7 +1,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { GarminService } from '../../../utils/services/garminService'
+import { refreshGarminIntegrationPermissions } from '../../../utils/garmin'
 
 defineRouteMeta({
   openAPI: {
@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/settings/apps?garmin_error=account-already-linked')
   }
 
-  await prisma.integration.upsert({
+  const integration = await prisma.integration.upsert({
     where: { userId_provider: { userId: session.user.id, provider: 'garmin' } },
     create: {
       userId: session.user.id,
@@ -116,6 +116,9 @@ export default defineEventHandler(async (event) => {
       errorMessage: null
     }
   })
+
+  // Best-effort: merge export permissions (HEALTH_EXPORT, WORKOUT_IMPORT, …) into scope.
+  await refreshGarminIntegrationPermissions(integration)
 
   // Start historical backfill after a short delay via Trigger.dev
   // We use a delay to ensure Garmin's Push API registration is fully propagated

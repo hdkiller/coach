@@ -40,6 +40,8 @@ import chatGeminiCommand from './chat-gemini'
 import cadenceJitterCommand from './cadence-jitter'
 import curveFreshnessCommand from './curve-freshness'
 import garminIngestCommand from './garmin-ingest'
+import garminTrainingInspectCommand from './garmin-training-inspect'
+import garminShapeProbeCommand from './garmin-shape-probe'
 import garminWebhookCommand from './webhook-garmin'
 import elevationAnomaliesCommand from './elevation-anomalies'
 import thresholdCheckCommand from './threshold-check'
@@ -91,6 +93,8 @@ debugCommand.addCommand(curveFreshnessCommand)
 debugCommand.addCommand(nutritionPlanDebugCommand)
 debugCommand.addCommand(cadenceJitterCommand)
 debugCommand.addCommand(garminIngestCommand)
+debugCommand.addCommand(garminTrainingInspectCommand)
+debugCommand.addCommand(garminShapeProbeCommand)
 debugCommand.addCommand(elevationAnomaliesCommand)
 debugCommand.addCommand(thresholdCheckCommand)
 debugCommand.addCommand(pbCheckCommand)

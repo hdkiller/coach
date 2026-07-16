@@ -71,6 +71,8 @@ export type CanonicalExportOptions = {
   zoneProfileSnapshot?: ZoneProfileSnapshot
   durationSec?: number | null
   distanceMeters?: number | null
+  /** Planned workout id — used as Garmin workoutSourceId when destination is garmin. */
+  sourceId?: string | null
   workout?: PlannedWorkoutExportSource | null
   liveSportSettings?: any | null
   liveUserFtp?: number | null
@@ -154,6 +156,7 @@ export function serializeCanonicalForProvider(
     case 'garmin':
       return buildGarminTrainingPayload(
         {
+          id: options.sourceId,
           title: options.title,
           description: options.description,
           type: options.type,
@@ -165,7 +168,8 @@ export function serializeCanonicalForProvider(
           ftp: exportContext.ftp,
           lthr: Number(exportContext.sportSettings?.lthr) || undefined,
           maxHr: Number(exportContext.sportSettings?.maxHr) || undefined
-        }
+        },
+        { sourceId: options.sourceId }
       )
     case 'rouvy':
     case 'zwo':
@@ -206,6 +210,7 @@ export function serializeCanonicalForGarmin(options: {
   zoneProfileSnapshot?: ZoneProfileSnapshot
   durationSec?: number | null
   distanceMeters?: number | null
+  sourceId?: string | null
   workout?: PlannedWorkoutExportSource | null
   liveSportSettings?: any | null
   liveUserFtp?: number | null

@@ -141,6 +141,7 @@ export default defineEventHandler(async (event) => {
         zoneProfileSnapshot: (workout.structuredWorkout as any)?.zoneProfileSnapshot,
         durationSec: workout.durationSec,
         distanceMeters: workout.distanceMeters,
+        sourceId: workout.id,
         workout,
         liveSportSettings: sportSettings
       })

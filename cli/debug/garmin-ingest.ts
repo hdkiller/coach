@@ -113,12 +113,14 @@ const garminIngestCommand = new Command('garmin-ingest')
 
         const { requestGarminBackfill } = await import('../../server/utils/garmin')
 
-        const types: Array<'activities' | 'dailies' | 'sleeps' | 'hrv'> = [
+        const types = [
           'activities',
           'dailies',
           'sleeps',
-          'hrv'
-        ]
+          'hrv',
+          'bodyComps',
+          'userMetrics'
+        ] as const
 
         for (const type of types) {
           process.stdout.write(`- Requesting ${type}... `)

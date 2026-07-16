@@ -1,8 +1,8 @@
 # App Review — Issue Tracker
 
-Last reviewed: 2026-07-14 (issues 304–306 fixed — mobile card density)
+Last reviewed: 2026-07-16 (issues 307–311 — Garmin Health/Activity compliance)
 
-Documents app-wide issues **039–306** from systematic codebase and live UI review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
+Documents app-wide issues **039–311** from systematic codebase and live UI review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
 
 **Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~96% complete)
 
@@ -41,6 +41,7 @@ Documents app-wide issues **039–306** from systematic codebase and live UI rev
 | [147](./147-user-store-cache-blocks-refetch.md)                                                                | ~~User store cache blocks refetch after switch~~ **Fixed** |
 | [152](./152-onboarding-blocks-join-callback.md)                                                                | ~~Onboarding blocks post-signup join~~ **Fixed**           |
 | [171](./171-ingest-hevy-no-date-window.md) / [172](./172-garmin-ingest-clamps-24h-window.md)                   | ~~Ingest date window bugs~~ **Fixed**                      |
+| [174](./174-garmin-ingest-silent-noop-missing-integration.md)                                                  | ~~Garmin silent noop missing integration~~ **Fixed**       |
 | [175](./175-wellness-analysis-no-quota-check.md) / [177](./177-recommend-today-processing-stuck-on-failure.md) | ~~AI quota / stuck PROCESSING~~ **Fixed**                  |
 | [187](./187-profile-tab-unmount-popper-crash.md)                                                               | ~~Profile settings popper crash (Sentry 18A)~~ **Fixed**   |
 | [190](./190-autodetect-drops-ftp-hr-thresholds.md)                                                             | ~~Autodetect drops FTP/HR thresholds~~ **Fixed**           |
@@ -257,7 +258,7 @@ Documents app-wide issues **039–306** from systematic codebase and live UI rev
 | [171](./171-ingest-hevy-no-date-window.md)                    | Hevy ingest no date window (fixed)       | High     |
 | [172](./172-garmin-ingest-clamps-24h-window.md)               | Garmin ingest clamps to 24h (fixed)      | High     |
 | [173](./173-wahoo-ingest-capped-100-workouts.md)              | Wahoo capped at 100 workouts             | Medium   |
-| [174](./174-garmin-ingest-silent-noop-missing-integration.md) | Garmin silent noop                       | Medium   |
+| [174](./174-garmin-ingest-silent-noop-missing-integration.md) | Garmin silent noop (fixed)               | Medium   |
 | [175](./175-wellness-analysis-no-quota-check.md)              | Wellness analysis no quota (fixed)       | High     |
 | [176](./176-recommend-today-inline-wellness-no-quota.md)      | Recommend-today inline wellness no quota | High     |
 | [177](./177-recommend-today-processing-stuck-on-failure.md)   | Recommend-today PROCESSING stuck (fixed) | High     |
@@ -554,6 +555,27 @@ Live 390×844 comparison of Dashboard, Recovery, Profile Settings, Athlete Profi
 - **304:** Athlete Profile uses one outer card on mobile; modules are divider-separated below `sm`. Metric grids switch to two columns on phones.
 - **305:** Shared `profileSettingsCardUi` / `athleteProfileCardUi` in `app/utils/mobile-surface-ui.ts`; single 16 px gutter on all Profile Settings tabs.
 - **306:** Recovery Context empty state flattened; mobile filters use a border-separated control row instead of a full card.
+
+## Issues 307–311 (Garmin Health / Activity compliance — 2026-07-16)
+
+Audit of Health/Activity ingest against `tmp/garmin-api` partner docs. Safe patches only — core dailies/sleep/HRV/activities + FIT path unchanged. Webhook auth ([069](./069-garmin-webhook-unauthenticated.md)) remains postponed.
+
+| ID                                                            | Title                                             | Priority | Type        | Status |
+| ------------------------------------------------------------- | ------------------------------------------------- | -------- | ----------- | ------ |
+| [307](./307-account-deletion-skips-garmin-deregistration.md)  | Account deletion skips Garmin deregistration      | Critical | Bug         | Fixed  |
+| [308](./308-garmin-push-summary-keys-mismatch.md)             | Garmin Push summary keys mismatch Health API      | High     | Bug         | Fixed  |
+| [309](./309-garmin-health-summary-types-unused.md)            | Garmin Health summary types unused (thin slice)   | Medium   | Enhancement | Fixed  |
+| [310](./310-garmin-ingest-stale-export-permissions.md)        | Garmin ingest does not refresh export permissions | Medium   | Bug         | Fixed  |
+| [311](./311-garmin-adhoc-pull-vs-push-guidance.md)            | Ad-hoc pull vs Ping/Push partner guidance         | Low      | Maintenance | Open   |
+| [174](./174-garmin-ingest-silent-noop-missing-integration.md) | Garmin ingest silent noop (also fixed this batch) | Medium   | Bug         | Fixed  |
+
+### Validation notes (307–311)
+
+- **307:** Deregister before `user.delete`; failures logged, wipe continues.
+- **308:** Prefer `bodyComps` / `stressDetails` / `allDayRespiration` / `pulseox`; legacy aliases kept.
+- **309:** Pull + backfill for bodyComps/userMetrics only; other Health types remain deferred.
+- **310:** Fail-soft permissions refresh on ingest + OAuth callback.
+- **311:** Documented only — no polling policy change yet.
 
 ## Recommended fix order (app review)
 

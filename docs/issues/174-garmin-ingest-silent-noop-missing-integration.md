@@ -3,7 +3,9 @@
 **Type:** Bug  
 **Priority:** Medium  
 **Area:** `integrations, data`  
-**Status:** Open
+**Status:** Fixed
+
+> **Fixed (2026-07-16):** `ingest-garmin` throws when the Garmin integration is missing, matching Strava/Whoop/Oura and other ingest tasks. `ingest-all` already isolates per-provider failures in try/catch.
 
 ## Description
 
@@ -19,5 +21,5 @@ Trigger without Garmin integration; task completes successfully with no output.
 
 ## Acceptance Criteria
 
-- [ ] Issue no longer reproducible
-- [ ] Appropriate fix verified
+- [x] Issue no longer reproducible
+- [x] Appropriate fix verified

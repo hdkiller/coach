@@ -356,6 +356,46 @@ export async function fetchGarminHRV(
 }
 
 /**
+ * Fetch Body Composition summaries
+ */
+export async function fetchGarminBodyComps(
+  integration: Integration,
+  startTimestamp: number,
+  endTimestamp: number,
+  token?: string
+) {
+  const params: Record<string, string> = {
+    uploadStartTimeInSeconds: startTimestamp.toString(),
+    uploadEndTimeInSeconds: endTimestamp.toString()
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/bodyComps', params)
+}
+
+/**
+ * Fetch User Metrics summaries (VO2 Max, etc.)
+ */
+export async function fetchGarminUserMetrics(
+  integration: Integration,
+  startTimestamp: number,
+  endTimestamp: number,
+  token?: string
+) {
+  const params: Record<string, string> = {
+    uploadStartTimeInSeconds: startTimestamp.toString(),
+    uploadEndTimeInSeconds: endTimestamp.toString()
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(
+    integration,
+    'https://apis.garmin.com/wellness-api/rest/userMetrics',
+    params
+  )
+}
+
+/**
  * Fetch discrete Activity summaries
  */
 export async function fetchGarminActivities(
@@ -449,12 +489,15 @@ export async function fetchGarminActivityFileByCallbackUrl(
   throw new Error('Garmin File API request failed after token refresh retry')
 }
 
+export type GarminBackfillType =
+  'activities' | 'dailies' | 'sleeps' | 'hrv' | 'bodyComps' | 'userMetrics'
+
 /**
  * Request historical data backfill from Garmin
  */
 export async function requestGarminBackfill(
   integration: Integration,
-  type: 'activities' | 'dailies' | 'sleeps' | 'hrv',
+  type: GarminBackfillType,
   startTimestamp: number,
   endTimestamp: number
 ) {
@@ -551,4 +594,32 @@ export async function fetchGarminUserPermissions(integration: Integration): Prom
   }
 
   throw new Error('Garmin permissions API request failed after token refresh retry')
+}
+
+/**
+ * Best-effort merge of live Garmin export permissions into Integration.scope.
+ * Never throws — ingest/callback must keep working if permissions are unreachable.
+ */
+export async function refreshGarminIntegrationPermissions(
+  integration: Integration
+): Promise<Integration> {
+  try {
+    const permissions = await fetchGarminUserPermissions(integration)
+    const merged = mergeGarminScopes(integration.scope, permissions)
+    if (merged.size === 0) return integration
+
+    const scope = Array.from(merged).join(' ')
+    if (scope === (integration.scope || '').trim()) return integration
+
+    return await prisma.integration.update({
+      where: { id: integration.id },
+      data: { scope }
+    })
+  } catch (error) {
+    console.warn('[Garmin] Failed to refresh user permissions', {
+      integrationId: integration.id,
+      error
+    })
+    return integration
+  }
 }

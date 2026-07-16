@@ -66,6 +66,70 @@ describe('Garmin permission helpers', () => {
       new Set(['PARTNER_WRITE', 'CONNECT_READ', 'WORKOUT_IMPORT'])
     )
   })
+
+  it('refreshGarminIntegrationPermissions merges and persists without failing ingest callers', async () => {
+    const { refreshGarminIntegrationPermissions } = await import('../../../../server/utils/garmin')
+
+    const integration = {
+      id: 'integration-perms',
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      expiresAt: new Date(Date.now() + 3600_000),
+      scope: 'PARTNER_WRITE'
+    } as any
+
+    prismaIntegrationFindUnique.mockResolvedValue(integration)
+    prismaIntegrationUpdate.mockResolvedValue({
+      ...integration,
+      scope: 'PARTNER_WRITE HEALTH_EXPORT ACTIVITY_EXPORT'
+    })
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ['HEALTH_EXPORT', 'ACTIVITY_EXPORT'],
+      headers: new Headers()
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const updated = await refreshGarminIntegrationPermissions(integration)
+
+    expect(updated.scope).toContain('HEALTH_EXPORT')
+    expect(prismaIntegrationUpdate).toHaveBeenCalledWith({
+      where: { id: 'integration-perms' },
+      data: {
+        scope: expect.stringContaining('HEALTH_EXPORT')
+      }
+    })
+  })
+
+  it('refreshGarminIntegrationPermissions returns the original integration on API failure', async () => {
+    const { refreshGarminIntegrationPermissions } = await import('../../../../server/utils/garmin')
+
+    const integration = {
+      id: 'integration-perms-fail',
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      expiresAt: new Date(Date.now() + 3600_000),
+      scope: 'PARTNER_WRITE'
+    } as any
+
+    prismaIntegrationFindUnique.mockResolvedValue(integration)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error',
+        json: async () => ({ errorMessage: 'boom' }),
+        headers: new Headers()
+      }) as any
+    )
+
+    const result = await refreshGarminIntegrationPermissions(integration)
+    expect(result).toBe(integration)
+    expect(prismaIntegrationUpdate).not.toHaveBeenCalled()
+  })
 })
 
 describe('Garmin auth retry', () => {

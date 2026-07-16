@@ -6,7 +6,8 @@ import { workoutStreamRepository } from '../repositories/workoutStreamRepository
 import {
   fetchGarminActivityFile,
   fetchGarminActivityFileByCallbackUrl,
-  requestGarminBackfill
+  requestGarminBackfill,
+  type GarminBackfillType
 } from '../garmin'
 import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { triggerWorkoutDeduplicationIfEnabled } from '../trigger-workout-deduplication'
@@ -81,6 +82,25 @@ function extractGarminNumericMetric(
   }
 
   return null
+}
+
+/**
+ * Garmin Push list keys per Health API (preferred first), plus legacy aliases we
+ * historically looked for so existing payloads keep working.
+ */
+export function extractGarminPushList(payload: unknown, ...keys: string[]): any[] {
+  if (!payload || typeof payload !== 'object') return []
+  const record = payload as Record<string, unknown>
+
+  for (const key of keys) {
+    const value = record[key]
+    if (Array.isArray(value) && value.length > 0) return value
+  }
+  for (const key of keys) {
+    const value = record[key]
+    if (Array.isArray(value)) return value
+  }
+  return []
 }
 
 export function extractGarminSpO2Percentage(record: Record<string, unknown> | null | undefined) {
@@ -176,18 +196,18 @@ export const GarminService = {
       ? payload.userPermissionsChange
       : []
 
-    // Garmin Push API sends lists of records. Identify what we received.
-    const dailies = payload.dailies || []
-    const sleeps = payload.sleeps || []
-    const hrv = payload.hrv || []
-    const activities = payload.activities || payload.manuallyUpdatedActivities || []
-    const activityFiles = Array.isArray(payload?.activityFiles) ? payload.activityFiles : []
-    const bodyComps = payload.bodyComposition || []
-    const pulseOx = payload.pulseOx || []
-    const respiration = payload.respiration || []
-    const stress = payload.stress || []
-    const userMetrics = payload.userMetrics || []
-    const moveIQ = payload.moveIQActivities || []
+    // Garmin Push API sends lists of records. Prefer Health API keys, keep legacy aliases.
+    const dailies = extractGarminPushList(payload, 'dailies')
+    const sleeps = extractGarminPushList(payload, 'sleeps')
+    const hrv = extractGarminPushList(payload, 'hrv')
+    const activities = extractGarminPushList(payload, 'activities', 'manuallyUpdatedActivities')
+    const activityFiles = extractGarminPushList(payload, 'activityFiles')
+    const bodyComps = extractGarminPushList(payload, 'bodyComps', 'bodyComposition')
+    const pulseOx = extractGarminPushList(payload, 'pulseox', 'pulseOx')
+    const respiration = extractGarminPushList(payload, 'allDayRespiration', 'respiration')
+    const stress = extractGarminPushList(payload, 'stressDetails', 'stress')
+    const userMetrics = extractGarminPushList(payload, 'userMetrics')
+    const moveIQ = extractGarminPushList(payload, 'moveIQActivities', 'moveiq')
     const hasSummaryData =
       dailies.length > 0 ||
       sleeps.length > 0 ||
@@ -361,12 +381,15 @@ export const GarminService = {
     const now = Math.floor(Date.now() / 1000) - 60
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60
 
-    // Request backfill for all major types sequentially to respect rate limits
-    const types: Array<'activities' | 'dailies' | 'sleeps' | 'hrv'> = [
+    // Request backfill for core + thin wellness extras (bodyComps / userMetrics).
+    // Other Health types stay out of scope — see docs/issues/309.
+    const types: GarminBackfillType[] = [
       'activities',
       'dailies',
       'sleeps',
-      'hrv'
+      'hrv',
+      'bodyComps',
+      'userMetrics'
     ]
 
     for (const type of types) {

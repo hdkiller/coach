@@ -39,9 +39,23 @@ type GarminMetricCandidate = {
 }
 
 const WORKOUT_PROVIDER = 'COACH_WATTZ'
+/** Training API V2 caps workoutProvider / workoutSourceId at 20 characters. */
+const GARMIN_SOURCE_ID_MAX_LEN = 20
 const GARMIN_TRAINING_WORKOUT_V2 = 'https://apis.garmin.com/training-api/workout/v2'
 const GARMIN_TRAINING_WORKOUT_CREATE_V2 = 'https://apis.garmin.com/workoutportal/workout/v2'
 const GARMIN_TRAINING_SCHEDULE = 'https://apis.garmin.com/training-api/schedule'
+
+/**
+ * Build a stable, unique workoutSourceId for Garmin (max 20 chars).
+ * Prefer the planned workout id (hyphens stripped); fall back to provider name.
+ */
+export function toGarminWorkoutSourceId(value: unknown): string {
+  const compact = String(value ?? '')
+    .trim()
+    .replace(/[^a-zA-Z0-9]/g, '')
+  if (!compact) return WORKOUT_PROVIDER
+  return compact.slice(0, GARMIN_SOURCE_ID_MAX_LEN)
+}
 
 function getGarminHeaders(accessToken: string) {
   return {
@@ -209,6 +223,21 @@ function candidateToFields(
       ...(candidate.targetValueType ? { targetValueType: candidate.targetValueType } : {})
     }
   }
+
+  // Garmin often drops scalar secondaryTargetValue for CADENCE; send a range instead.
+  if (
+    candidate.kind === 'CADENCE' &&
+    candidate.targetValue != null &&
+    candidate.targetValueLow == null &&
+    candidate.targetValueHigh == null
+  ) {
+    return {
+      secondaryTargetType: candidate.kind,
+      secondaryTargetValueLow: candidate.targetValue,
+      secondaryTargetValueHigh: candidate.targetValue
+    }
+  }
+
   return {
     secondaryTargetType: candidate.kind,
     ...(candidate.targetValue != null ? { secondaryTargetValue: candidate.targetValue } : {}),
@@ -349,7 +378,7 @@ export function countGarminWorkoutSteps(steps: Record<string, unknown>[]): numbe
 export function buildGarminTrainingPayload(
   workout: any,
   thresholds: GarminTargetThresholds = {},
-  options: { ownerId?: string | number | null } = {}
+  options: { ownerId?: string | number | null; sourceId?: string | null } = {}
 ) {
   const sport = mapSportToGarmin(workout.type)
   const garminSteps = buildGarminSteps(workout?.steps || [], sport, thresholds)
@@ -364,6 +393,9 @@ export function buildGarminTrainingPayload(
   }
 
   const ownerId = toGarminOwnerId(options.ownerId)
+  const workoutSourceId = toGarminWorkoutSourceId(
+    options.sourceId ?? workout?.id ?? workout?.sourceId
+  )
 
   return {
     ...(ownerId != null ? { ownerId } : {}),
@@ -373,7 +405,7 @@ export function buildGarminTrainingPayload(
     estimatedDurationInSecs: Number(workout.durationSec) || undefined,
     estimatedDistanceInMeters: Number(workout.distanceMeters) || undefined,
     workoutProvider: WORKOUT_PROVIDER,
-    workoutSourceId: WORKOUT_PROVIDER,
+    workoutSourceId,
     isSessionTransitionEnabled: false,
     segments: [
       {

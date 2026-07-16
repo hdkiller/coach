@@ -34,6 +34,50 @@ describe('GarminService.extractPullToken', () => {
   })
 })
 
+describe('extractGarminPushList', () => {
+  it('prefers Health API Push keys over legacy aliases', async () => {
+    const { extractGarminPushList } =
+      await import('../../../../../server/utils/services/garminService')
+
+    expect(
+      extractGarminPushList(
+        {
+          bodyComps: [{ userId: 'a', weightInGrams: 70000 }],
+          bodyComposition: [{ userId: 'b' }]
+        },
+        'bodyComps',
+        'bodyComposition'
+      )
+    ).toEqual([{ userId: 'a', weightInGrams: 70000 }])
+
+    expect(
+      extractGarminPushList(
+        { bodyComposition: [{ userId: 'legacy' }] },
+        'bodyComps',
+        'bodyComposition'
+      )
+    ).toEqual([{ userId: 'legacy' }])
+
+    expect(
+      extractGarminPushList({ stressDetails: [{ userId: 's' }] }, 'stressDetails', 'stress')
+    ).toEqual([{ userId: 's' }])
+
+    expect(
+      extractGarminPushList(
+        { allDayRespiration: [{ userId: 'r' }] },
+        'allDayRespiration',
+        'respiration'
+      )
+    ).toEqual([{ userId: 'r' }])
+
+    expect(extractGarminPushList({ pulseox: [{ userId: 'p' }] }, 'pulseox', 'pulseOx')).toEqual([
+      { userId: 'p' }
+    ])
+
+    expect(extractGarminPushList({}, 'bodyComps', 'bodyComposition')).toEqual([])
+  })
+})
+
 describe('GarminService.getActivityFileExternalIds', () => {
   it('matches activity file records back to garmin workout external ids', () => {
     expect(
