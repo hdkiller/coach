@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   buildGarminTrainingPayload,
   countGarminWorkoutSteps,
+  countStepsInGarminWorkoutResponse,
   extractGarminScheduleId,
-  toGarminOwnerId
+  toGarminOwnerId,
+  toGarminWorkoutId
 } from '../../../../server/utils/garmin-push'
 
 describe('garmin push helpers', () => {
@@ -206,5 +208,89 @@ describe('garmin push helpers', () => {
     expect(withUuid.ownerId).toBeUndefined()
     expect(toGarminOwnerId('0db20509-029f-4a45-ada0-fc230913f3b3')).toBeUndefined()
     expect(toGarminOwnerId('12345')).toBe(12345)
+    expect(toGarminWorkoutId('1633580475')).toBe(1633580475)
+  })
+
+  it('builds Tempo Power Builder ride steps with repeat + power targets', () => {
+    const payload = buildGarminTrainingPayload(
+      {
+        title: 'Tempo Power Builder',
+        type: 'Ride',
+        durationSec: 5400,
+        steps: [
+          {
+            name: 'Progressive Warmup',
+            type: 'Warmup',
+            power: { range: { end: 0.6, start: 0.5 }, units: '%ftp' },
+            cadence: 85,
+            durationSeconds: 1200
+          },
+          {
+            name: '3x',
+            reps: 3,
+            type: 'Active',
+            distance: 0,
+            steps: [
+              {
+                name: 'Tempo Effort',
+                type: 'Active',
+                power: { range: { end: 0.88, start: 0.8 }, units: '%ftp' },
+                cadence: 90,
+                durationSeconds: 900
+              }
+            ]
+          },
+          {
+            name: 'Sweet Spot Interval',
+            type: 'Active',
+            power: { range: { end: 0.94, start: 0.9 }, units: '%ftp' },
+            cadence: 85,
+            durationSeconds: 900
+          },
+          {
+            name: 'Cooldown',
+            type: 'Cooldown',
+            power: { range: { end: 0.4, start: 0.5 }, units: '%ftp' },
+            cadence: 80,
+            durationSeconds: 600
+          }
+        ]
+      },
+      { ftp: 229 }
+    )
+
+    const steps = payload.segments[0]!.steps
+    expect(steps).toHaveLength(4)
+    expect(steps[0]).toMatchObject({
+      type: 'WorkoutStep',
+      intensity: 'WARMUP',
+      durationType: 'TIME',
+      durationValue: 1200,
+      targetType: 'POWER',
+      targetValueLow: 115,
+      targetValueHigh: 137,
+      secondaryTargetType: 'CADENCE',
+      secondaryTargetValue: 85
+    })
+    expect(steps[1]).toMatchObject({
+      type: 'WorkoutRepeatStep',
+      repeatType: 'REPEAT_UNTIL_STEPS_CMPLT',
+      repeatValue: 3
+    })
+    expect((steps[1] as any).steps[0]).toMatchObject({
+      type: 'WorkoutStep',
+      targetType: 'POWER',
+      targetValueLow: 183,
+      targetValueHigh: 202,
+      secondaryTargetType: 'CADENCE',
+      secondaryTargetValue: 90
+    })
+    expect(countGarminWorkoutSteps(steps)).toBe(4)
+    expect(
+      countStepsInGarminWorkoutResponse({
+        workoutId: 1633580475,
+        segments: payload.segments
+      })
+    ).toBe(4)
   })
 })

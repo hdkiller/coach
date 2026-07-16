@@ -398,6 +398,10 @@ export function toGarminOwnerId(value: unknown): number | undefined {
   return asNumber
 }
 
+export function toGarminWorkoutId(value: unknown): number | undefined {
+  return toGarminOwnerId(value)
+}
+
 function stripInvalidOwnerId(payload: Record<string, unknown>): Record<string, unknown> {
   const body = { ...payload }
   const ownerId = toGarminOwnerId(body.ownerId)
@@ -406,17 +410,32 @@ function stripInvalidOwnerId(payload: Record<string, unknown>): Record<string, u
   return body
 }
 
-async function fetchGarminWorkoutOwnerId(
+/** Count leaf steps from a Garmin create/retrieve response (segments or legacy top-level). */
+export function countStepsInGarminWorkoutResponse(workout: unknown): number {
+  if (!workout || typeof workout !== 'object') return 0
+  const value = workout as Record<string, unknown>
+  const segments = Array.isArray(value.segments) ? value.segments : []
+  let count = 0
+  for (const segment of segments) {
+    const steps = Array.isArray((segment as any)?.steps) ? (segment as any).steps : []
+    count += countGarminWorkoutSteps(steps)
+  }
+  if (count > 0) return count
+  if (Array.isArray(value.steps)) return countGarminWorkoutSteps(value.steps as any[])
+  return 0
+}
+
+async function fetchGarminWorkout(
   integration: Integration,
   workoutId: string
-): Promise<number | undefined> {
+): Promise<Record<string, unknown> | null> {
   const response = await fetch(`${GARMIN_TRAINING_WORKOUT_V2}/${workoutId}`, {
     method: 'GET',
     headers: getGarminHeaders(integration.accessToken)
   })
-  if (!response.ok) return undefined
-  const workout = (await response.json().catch(() => null)) as { ownerId?: unknown } | null
-  return toGarminOwnerId(workout?.ownerId)
+  if (!response.ok) return null
+  const workout = (await response.json().catch(() => null)) as Record<string, unknown> | null
+  return workout
 }
 
 export async function createGarminWorkout(integration: Integration, payload: any) {
@@ -427,11 +446,12 @@ export async function createGarminWorkout(integration: Integration, payload: any
     ...(payload || {}),
     ...(numericExternalOwnerId != null ? { ownerId: numericExternalOwnerId } : {})
   })
+  // Create must not send workoutId (server assigns it).
+  delete body.workoutId
   const headers = getGarminHeaders(validIntegration.accessToken)
 
-  // Training API V2 docs list create on workoutportal; retrieve/update use training-api.
-  // Prefer the documented create URL, then fall back if that host rejects the route.
-  const createUrls = [GARMIN_TRAINING_WORKOUT_CREATE_V2, GARMIN_TRAINING_WORKOUT_V2]
+  // Prefer training-api (same host as retrieve/update). Fall back to workoutportal from the docs.
+  const createUrls = [GARMIN_TRAINING_WORKOUT_V2, GARMIN_TRAINING_WORKOUT_CREATE_V2]
   let lastError = 'unknown error'
   for (const url of createUrls) {
     const response = await fetch(url, {
@@ -439,12 +459,29 @@ export async function createGarminWorkout(integration: Integration, payload: any
       headers,
       body: JSON.stringify(body)
     })
-    if (response.ok) return response.json()
-    const error = await response.text().catch(() => response.statusText)
-    lastError = `(${response.status}): ${error}`
-    if (response.status !== 404 && response.status !== 405) {
-      throw new Error(`Garmin create workout failed ${lastError}`)
+    if (!response.ok) {
+      const error = await response.text().catch(() => response.statusText)
+      lastError = `(${response.status}): ${error}`
+      if (response.status !== 404 && response.status !== 405) {
+        throw new Error(`Garmin create workout failed ${lastError}`)
+      }
+      continue
     }
+
+    const created = await response.json()
+    const createdId = toGarminWorkoutId(created?.workoutId ?? created?.id)
+    // Some create responses omit segments; verify via retrieve when we have an id.
+    let stepCount = countStepsInGarminWorkoutResponse(created)
+    if (stepCount === 0 && createdId != null) {
+      const retrieved = await fetchGarminWorkout(validIntegration, String(createdId))
+      stepCount = countStepsInGarminWorkoutResponse(retrieved)
+    }
+    if (stepCount === 0) {
+      lastError = `(200): created workout ${createdId ?? 'unknown'} has no steps`
+      // Try the alternate create URL before giving up.
+      continue
+    }
+    return created
   }
 
   throw new Error(`Garmin create workout failed ${lastError}`)
@@ -456,12 +493,22 @@ export async function updateGarminWorkout(
   payload: any
 ) {
   const validIntegration = await ensureValidToken(integration)
+  const numericWorkoutId = toGarminWorkoutId(workoutId)
+  if (numericWorkoutId == null) {
+    const err = new Error(
+      `Garmin update workout requires numeric workoutId (got ${String(workoutId)})`
+    ) as Error & { code?: string }
+    err.code = 'GARMIN_WORKOUT_ID_INVALID'
+    throw err
+  }
+
   let ownerId =
     toGarminOwnerId(payload?.ownerId) ?? toGarminOwnerId(validIntegration.externalUserId)
 
   // Wellness externalUserId is a UUID; resolve numeric ownerId from the existing workout.
   if (ownerId == null) {
-    ownerId = await fetchGarminWorkoutOwnerId(validIntegration, workoutId)
+    const existing = await fetchGarminWorkout(validIntegration, String(numericWorkoutId))
+    ownerId = toGarminOwnerId(existing?.ownerId)
   }
 
   if (ownerId == null) {
@@ -472,8 +519,13 @@ export async function updateGarminWorkout(
     throw err
   }
 
-  const body = stripInvalidOwnerId({ ...(payload || {}), ownerId })
-  const response = await fetch(`${GARMIN_TRAINING_WORKOUT_V2}/${workoutId}`, {
+  // V2 rejects updates when path workoutId does not match body.workoutId (null → this error).
+  const body = stripInvalidOwnerId({
+    ...(payload || {}),
+    workoutId: numericWorkoutId,
+    ownerId
+  })
+  const response = await fetch(`${GARMIN_TRAINING_WORKOUT_V2}/${numericWorkoutId}`, {
     method: 'PUT',
     headers: getGarminHeaders(validIntegration.accessToken),
     body: JSON.stringify(body)
