@@ -266,7 +266,7 @@ export default defineEventHandler(async (event) => {
     })
 
     throw createError({
-      statusCode: 500,
+      statusCode: Number(error?.statusCode) || 500,
       message: error?.message || 'Failed to publish to Garmin'
     })
   }

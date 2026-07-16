@@ -1,5 +1,4 @@
 import type { Integration } from '@prisma/client'
-import { createError } from 'h3'
 import { refreshGarminToken } from './garmin'
 
 /**
@@ -356,10 +355,12 @@ export function buildGarminTrainingPayload(
   const garminSteps = buildGarminSteps(workout?.steps || [], sport, thresholds)
   const stepCount = countGarminWorkoutSteps(garminSteps)
   if (stepCount > 100) {
-    throw createError({
-      statusCode: 422,
-      message: `Garmin workouts are limited to 100 steps (this workout has ${stepCount}).`
-    })
+    // Avoid importing h3 here — this module is pulled into Trigger.dev builds.
+    const error = new Error(
+      `Garmin workouts are limited to 100 steps (this workout has ${stepCount}).`
+    ) as Error & { statusCode: number }
+    error.statusCode = 422
+    throw error
   }
 
   const ownerIdRaw = options.ownerId
