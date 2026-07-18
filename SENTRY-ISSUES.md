@@ -1,25 +1,50 @@
 # Sentry Issue Tracking
 
-Live tracker for **coach-watts** ([Sentry dashboard](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)). Last synced from Sentry: **2026-07-17**.
+Live tracker for **coach-watts** ([Sentry dashboard](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)). Last synced from Sentry: **2026-07-18**.
 
 Related docs:
 
 - [conductor/sentry-issues-resolution-plan.md](./conductor/sentry-issues-resolution-plan.md) — April 2026 batch plan (mostly completed; kept for history)
 - [docs/issues/062-chat-planned-workout-pollstartedat-crash.md](./docs/issues/062-chat-planned-workout-pollstartedat-crash.md) — COACH-WATTS-1D6 / 1D8
 - [docs/issues/196-sentry-no-cefsharp-scanner-filter.md](./docs/issues/196-sentry-no-cefsharp-scanner-filter.md) — COACH-WATTS-117 noise filter
+- [docs/issues/323-sentry-chunk-load-deploy-noise.md](./docs/issues/323-sentry-chunk-load-deploy-noise.md) — chunk-load cluster (C / 9 / 1ER)
 
 ## Active — Unresolved in Sentry
 
 Sorted by recency. These still need a fix, deploy verification, or ongoing monitoring.
 
-| Issue ID                                                           | Description                                                        | Users | Events | Last seen | Culprit | Notes                                                                                      |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------ | ----- | ------ | --------- | ------- | ------------------------------------------------------------------------------------------ |
-| [COACH-WATTS-C](https://newpush-y4.sentry.io/issues/COACH-WATTS-C) | `error loading dynamically imported module` (`/_nuxt/B886XyjX.js`) | 2     | 4      | ~1h ago   | `/chat` | **Known noise** — post-deploy chunk invalidation; `chunk-error.client.ts` + `ignoreErrors` |
-| [COACH-WATTS-9](https://newpush-y4.sentry.io/issues/COACH-WATTS-9) | `Importing a module script failed`                                 | 2     | 2      | ~1d ago   | `/chat` | Same cluster as C; assigned to lracz@newpush.com                                           |
+| Issue ID                                                               | Description                                 | Users | Events | Last seen | Culprit | Notes                                                                                                                                                                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------- | ----- | ------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [COACH-WATTS-1ER](https://newpush-y4.sentry.io/issues/COACH-WATTS-1ER) | `can't access property "p", e is undefined` | 1     | 1      | ~15h ago  | `/chat` | **Watch only** — same user/trace/replay as COACH-WATTS-C (chunk miss → Vue cascade). Dig in only if it recurs _without_ a paired chunk error. Do **not** add this message to `ignoreErrors`. |
+| [COACH-WATTS-C](https://newpush-y4.sentry.io/issues/COACH-WATTS-C)     | `error loading dynamically imported module` | 15    | 76     | ~15h ago  | `/chat` | **Known noise** (regressed). Product fix already shipped — see [Chunk load playbook](#chunk-load-playbook). Optional: Ignore/Resolve in Sentry.                                              |
+| [COACH-WATTS-9](https://newpush-y4.sentry.io/issues/COACH-WATTS-9)     | `Importing a module script failed`          | 36    | 416    | ~2d ago   | `/chat` | Same cluster as C; assigned to lracz@newpush.com. Optional: Ignore/Resolve in Sentry.                                                                                                        |
 
-No other unresolved production issues as of 2026-07-17. Dev-only noise (1EP/1EQ Garmin proxy, 1EN hero.json, 1EM/1EK useLocalStorage, 1EJ Pinia, 1EH coaching, 1DC flags, 1E5 docs 404) was resolved in Sentry.
+No other actionable coach-watts production bugs as of 2026-07-18. Chunk issues (C / 9) are handled in code; keep them here only until closed in Sentry.
+
+**Out of scope:** [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA) (`fbq is not defined`) is GTM / Meta Pixel on `platform.newpush.com`, not this app.
 
 [View all unresolved issues in Sentry →](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)
+
+## Chunk load playbook
+
+Post-deploy, stale tabs request old hashed `/_nuxt/*.js` files → dynamic import / module script failures (often on `/chat`). Secondary Vue errors can fire in the same session.
+
+**Already in place**
+
+| Layer         | Where                                    | Behavior                                                                                                                       |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Auto-reload   | `app/plugins/chunk-error.client.ts`      | `app:chunkError` + `window` `error`; one reload via `?reload=` + 10s `sessionStorage` loop guard                               |
+| Early catch   | `nuxt.config.ts` head script             | Same message matchers before the Nuxt plugin loads                                                                             |
+| Sentry filter | `sentry.client.config.ts` `ignoreErrors` | `Failed to fetch dynamically imported module`, `Importing a module script failed`, `error loading dynamically imported module` |
+
+**Next steps (no urgent code change)**
+
+1. After a real deploy, spot-check `/chat` on an old tab (Firefox Mobile / Safari): chunk fail → one reload → page works.
+2. Keep 1ER open until quiet; resolve if it stays a one-off cascade.
+3. Resolve or Ignore C / 9 in Sentry as confirmed noise once the quiet window looks good.
+4. Extend `ignoreErrors` / `beforeSend` only for new _chunk message variants_ that still slip through — never for generic minified Vue strings like `can't access property "p"`.
+
+Full write-up: [#323](./docs/issues/323-sentry-chunk-load-deploy-noise.md).
 
 ## Fix Committed — Pending Deploy Verification
 
@@ -44,7 +69,7 @@ Move to **Recently Resolved** and **resolve in Sentry** once deployed and quiet 
 | Issue ID                                                               | Description                                         | Handling                                                                                                                                         |
 | ---------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [COACH-WATTS-117](https://newpush-y4.sentry.io/issues/COACH-WATTS-117) | `Object Not Found Matching Id:*, MethodName:update` | Filtered via `ignoreErrors` in `sentry.client.config.ts` ([#196](./docs/issues/196-sentry-no-cefsharp-scanner-filter.md)); **ignored in Sentry** |
-| COACH-WATTS-D / 9 / C / 57 / 1E9                                       | Chunk / dynamic import / generic fetch failures     | `app/plugins/chunk-error.client.ts` auto-reload; deployment / network blips                                                                      |
+| COACH-WATTS-D / 9 / C / 57 / 1E9 / 1ER                                 | Chunk / dynamic import failures (+ Vue cascade)     | Auto-reload + `ignoreErrors` — see [Chunk load playbook](#chunk-load-playbook) and [#323](./docs/issues/323-sentry-chunk-load-deploy-noise.md)   |
 | COACH-WATTS-23 / 1AA / 1B9 / 1DF / 1C4 / 1E8 / 50                      | Auth session / dev.json fetch failures (incl. 404)  | Dev server restarts / deploy; not app bugs                                                                                                       |
 | COACH-WATTS-1EC / 1EG                                                  | `/api/profile/quotas` fetch 401 / no response       | Dev session blips during local work                                                                                                              |
 | [COACH-WATTS-1E4](https://newpush-y4.sentry.io/issues/COACH-WATTS-1E4) | `no such table: _content_content`                   | Nuxt Content DB not initialized in dev; filtered in `sentry.server.config.ts` `beforeSend`                                                       |
@@ -103,5 +128,6 @@ Requires `SENTRY_DSN` in `.env`. Production builds always enable Sentry when `NO
    - **Dev-only / transient HMR** → **Resolve** once source is valid and events have stopped.
    - Then move the row from **Active** or **Fix committed** to **Recently Resolved** in this file.
 4. **Agents and developers** — After triaging or fixing a Sentry issue, always update Sentry status in the same session. Do not leave handled issues unresolved in the dashboard.
-5. **Noise** — Add `ignoreErrors` patterns in `sentry.client.config.ts` only for confirmed third-party / scanner noise; document in `docs/issues/`.
+5. **Noise** — Add `ignoreErrors` patterns in `sentry.client.config.ts` only for confirmed third-party / scanner / chunk-load _message variants_; document in `docs/issues/`. Do not ignore generic minified Vue runtime messages (they can hide real bugs).
 6. **Batch plans** — Use `conductor/sentry-issues-resolution-plan.md` for multi-issue sprints; archive when complete.
+7. **Chunk loads** — Follow the [Chunk load playbook](#chunk-load-playbook); product mitigation is already shipped. Prefer Sentry Resolve/Ignore over more code unless reload fails in the wild.
