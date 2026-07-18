@@ -33,6 +33,9 @@ node_modules
 /test-results/
 /blob-report/
 /playwright/.cache/
+
+# Local screenshot capture temp files
+.tmp/
 1
 
 /app/generated/prisma

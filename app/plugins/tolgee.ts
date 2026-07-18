@@ -298,7 +298,7 @@ import {
   normalizeUiLocale,
   parseAcceptLanguageHeader,
   type UiLocale
-} from '../../shared/ui-locale'
+} from '#shared/ui-locale'
 
 const LANGUAGE_MAP: Record<string, string> = {
   ...AI_LANGUAGE_TO_UI_LOCALE,

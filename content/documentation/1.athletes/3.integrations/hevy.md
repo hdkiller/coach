@@ -18,7 +18,7 @@ description: Sync your strength training and weightlifting sessions from Hevy.
 - **Volume**: Overall training volume for each session.
 
 ::alert{type="info"}
-Note: Strength training volume is factored into your physical fatigue and recovery recommendations.
+Note: Strength training volume is factored into your physical fatigue and recovery recommendations. For building Gym templates and matching completed sessions, see [Strength Training](/documentation/athletes/strength-training).
 ::
 
 ## Troubleshooting

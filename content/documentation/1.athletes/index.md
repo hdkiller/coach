@@ -7,6 +7,7 @@ Welcome to the Coach Watts athlete guides. This section is designed to help you 
 
 ## Start here
 
+- **[Athlete User Guide](/documentation/athletes/user-guide)** — tour of Dashboard, Chat, Activities, Plan, Library, and settings
 - **[Getting Started](/documentation/athletes/getting-started)** — account setup, consent, and first connection
 - **[Dashboard & Daily Flow](/documentation/athletes/dashboard-daily-flow)** — your home screen and morning routine
 - **[AI Chat & Supported Tools](/documentation/athletes/chat-interaction)** — data-connected actions, analysis, memory, media, voice, and conversation controls
@@ -28,6 +29,9 @@ Welcome to the Coach Watts athlete guides. This section is designed to help you 
 - **[Recovery & Wellness](/documentation/athletes/recovery-wellness)** — HRV, sleep, readiness
 - **[Connect AI Assistants (MCP)](/documentation/athletes/mcp-server)** — Cursor and other AI tools
 - **[Workout, Exercise & Plan Libraries](/documentation/athletes/library)** — reusable training content and folders
+- **[Strength Training](/documentation/athletes/strength-training)** — exercises, Gym templates, schedule, and logging
+- **[Structured Workouts](/documentation/athletes/structured-workouts)** — create, schedule, export, complete, and compare
+- **[Working with a Coach](/documentation/athletes/working-with-a-coach)** — connect, permissions, and revoke access
 - **[Analytics Explorer & Workout Comparison](/documentation/athletes/analytics-tools)** — custom charts and session comparison
 
 ## Settings & data
@@ -47,5 +51,6 @@ Welcome to the Coach Watts athlete guides. This section is designed to help you 
 
 - **[FAQ](/documentation/help/faq)** — troubleshooting
 - **[Glossary](/documentation/help/glossary)** — training terminology
+- **[Account & Billing](/documentation/help/account-billing)** — plans, portal, cancel, quotas
 
 Select a topic from the sidebar to begin.

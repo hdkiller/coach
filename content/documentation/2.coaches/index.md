@@ -7,10 +7,11 @@ The coach workspace brings athlete onboarding, schedule management, performance 
 
 ## Start here
 
-1. [Connect your first athlete](/documentation/coaches/connecting-athletes).
-2. Learn the [strategic overview](/documentation/coaches/strategic-overview).
-3. Review an athlete through the [roster and athlete profile](/documentation/coaches/athlete-roster-profiles).
-4. Schedule work in the [coach calendar](/documentation/coaches/coaching-calendar).
+1. Read the [Coach Account Guide](/documentation/coaches/coach-guide) for a first-week walkthrough.
+2. [Connect your first athlete](/documentation/coaches/connecting-athletes).
+3. Learn the [strategic overview](/documentation/coaches/strategic-overview).
+4. Review an athlete through the [roster and athlete profile](/documentation/coaches/athlete-roster-profiles).
+5. Schedule work in the [coach calendar](/documentation/coaches/coaching-calendar).
 
 ## Documentation coverage map
 
@@ -22,6 +23,8 @@ The coach workspace brings athlete onboarding, schedule management, performance 
 | Coach-scoped access versus athlete account access              | [Reviewing an Athlete](/documentation/coaches/acting-as-athlete)                                                                                          |
 | Week/month scheduling, split view, moving and copying workouts | [Coaching Calendar](/documentation/coaches/coaching-calendar)                                                                                             |
 | Workout, exercise, and plan templates                          | [Coach Library & Sharing](/documentation/coaches/coach-library)                                                                                           |
+| Strength / gym programming and review                          | [Strength Training for Coaches](/documentation/coaches/strength-programming)                                                                              |
+| Apply, update, and share plan blueprints                       | [Applying & Updating Plans](/documentation/coaches/applying-plans)                                                                                        |
 | Dashboards, chart scopes, comparisons, and explorers           | [Coach Analytics](/documentation/coaches/coach-analytics)                                                                                                 |
 | Teams, staff roles, invitations, and rosters                   | [Team Management](/documentation/coaches/team-management)                                                                                                 |
 | Personal and team-scoped athlete groups                        | [Athlete Groups](/documentation/coaches/athlete-groups)                                                                                                   |

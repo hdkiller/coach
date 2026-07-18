@@ -267,6 +267,12 @@
   )
   const arrivedFromCompleteProfile = computed(() => route.query.complete === '1')
 
+  // Declared before focusMissingSection / watches that read it (avoid TDZ on sports tab).
+  const sportSettings = ref<any[]>([])
+  const sportSettingsBeforePendingSave = ref<any[] | null>(null)
+  const pendingSportSettingsSave = ref<any[] | null>(null)
+  const sportSettingsSaveWarnings = ref<Array<{ id: string; name: string; issues: string[] }>>([])
+
   const showMissingFieldsGuide = computed(
     () => missingFields.value.length > 0 && !missingFieldsGuideDismissed.value
   )
@@ -403,15 +409,11 @@
     weightSourceMode: 'AUTO'
   })
 
-  const sportSettings = ref<any[]>([])
   const dismissedSportOverlapAlerts = useStorage<string[]>('profile:sport-overlap-alerts', [])
   const nutritionSettings = ref<any>(null)
   const savingProfile = ref(false)
   const savingSportSettings = ref(false)
   const showSportSettingsWarningModal = ref(false)
-  const sportSettingsBeforePendingSave = ref<any[] | null>(null)
-  const pendingSportSettingsSave = ref<any[] | null>(null)
-  const sportSettingsSaveWarnings = ref<Array<{ id: string; name: string; issues: string[] }>>([])
 
   // Availability Logic
   const { data: availability, refresh: refreshAvailability } = await useFetch('/api/availability')

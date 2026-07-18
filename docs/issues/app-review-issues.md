@@ -1,6 +1,6 @@
 # App Review — Issue Tracker
 
-Last reviewed: 2026-07-16 (issues 312–322 — Garmin integration reliability/security follow-up)
+Last reviewed: 2026-07-18 (issues 324–325 — public documentation gaps)
 
 Documents app-wide issues **039–322** from systematic codebase and live UI review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
 
@@ -609,6 +609,21 @@ checked-in Garmin partner PDFs and OpenAPI snapshots under `tmp/garmin-api`.
 3. **321 + 320** — enforce Garmin account ownership and OAuth correlation
 4. **316 + 317** — correct permissions and backfill status
 5. **318 + 319 + 322** — data-quality and sport-mapping corrections
+
+## Issues 324–325 (Public documentation gaps — 2026-07-18)
+
+User-facing `/documentation/` coverage review. Foundation pages first; support-depth second. No competitor comparisons in public docs.
+
+| ID                                                | Title                              | Priority | Type          | Status  |
+| ------------------------------------------------- | ---------------------------------- | -------- | ------------- | ------- |
+| [324](./324-documentation-foundation-gaps.md)     | Documentation foundation gaps      | High     | Documentation | Fixed   |
+| [325](./325-documentation-support-depth.md)       | Documentation support & depth gaps | Medium   | Documentation | Partial |
+| [326](./326-documentation-screenshots-catalog.md) | Documentation screenshots catalog  | Medium   | Documentation | Fixed   |
+
+### Recommended order (324–325)
+
+1. **324** — Account & Billing help page, Athlete/Coach user guides, Strength docs
+2. **325** — Structured workout lifecycle, metrics/chart FAQs, coach plan lifecycle, login recovery
 
 ## Recommended fix order (app review)
 
