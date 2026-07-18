@@ -23,6 +23,9 @@
           <NuxtLink to="/#pricing" class="whitespace-nowrap transition-colors hover:text-white">{{
             t('footer.pricing')
           }}</NuxtLink>
+          <NuxtLink to="/calendar" class="whitespace-nowrap transition-colors hover:text-white">{{
+            t('footer.events')
+          }}</NuxtLink>
           <NuxtLink to="/works-with" class="whitespace-nowrap transition-colors hover:text-white">{{
             t('nav.integrations')
           }}</NuxtLink>

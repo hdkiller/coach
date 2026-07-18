@@ -397,13 +397,14 @@
 
   useHead(() => {
     if (!isUuid.value) {
-      return { title: 'Event | Coach Watts' }
+      // PublicEventLanding sets SEO from the event payload
+      return {}
     }
     if (!event.value) {
       return { title: 'Event Details' }
     }
     return {
-      title: `${event.value.title} | Coach Wattz`,
+      title: `${event.value.title} | Coach Watts`,
       meta: [{ name: 'description', content: `Details for ${event.value.title}` }]
     }
   })

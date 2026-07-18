@@ -85,6 +85,25 @@ export async function getPublishedPublicEventBySlug(slug: string) {
   return event
 }
 
+function startOfUtcDay(date = new Date()) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+}
+
+/** Published catalog events for the public directory (upcoming by default). */
+export async function listPublishedPublicEvents(options: { includePast?: boolean } = {}) {
+  const where: { isPublished: true; date?: { gte: Date } } = { isPublished: true }
+  if (!options.includePast) {
+    where.date = { gte: startOfUtcDay() }
+  }
+
+  const events = await prisma.publicEvent.findMany({
+    where,
+    orderBy: [{ date: 'asc' }, { title: 'asc' }]
+  })
+
+  return events.map(toPublicEventPublicView)
+}
+
 export async function getPublishedCampaignEvents(campaignId: string) {
   const links = await prisma.partnerCampaignEvent.findMany({
     where: {

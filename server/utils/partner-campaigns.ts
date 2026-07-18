@@ -140,6 +140,75 @@ export async function getPartnerCampaignBySlug(slug: string) {
   })
 }
 
+export type PartnerCampaignDirectoryCard = {
+  slug: string
+  partnerName: string
+  campaignName: string
+  grantedTier: SubscriptionTier
+  accessDurationDays: number
+  availability: PartnerCampaignAvailability
+  windowStartsAt: string | null
+  windowEndsAt: string | null
+  publicUrl: string
+  primaryEvent: {
+    slug: string
+    title: string
+    date: string
+  } | null
+}
+
+function isBrowsablePartnerAvailability(availability: PartnerCampaignAvailability) {
+  return availability !== 'DISABLED' && availability !== 'EXPIRED'
+}
+
+/** Active, non-expired partner campaigns for the public directory (no redemption counts). */
+export async function listBrowsablePartnerCampaigns(now = new Date()) {
+  const campaigns = await prisma.partnerCampaign.findMany({
+    where: { isActive: true },
+    orderBy: [{ partnerName: 'asc' }, { campaignName: 'asc' }],
+    include: {
+      campaignEvents: {
+        where: { publicEvent: { isPublished: true } },
+        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }, { createdAt: 'asc' }],
+        take: 1,
+        include: {
+          publicEvent: {
+            select: { slug: true, title: true, date: true }
+          }
+        }
+      }
+    }
+  })
+
+  return campaigns
+    .map((campaign): PartnerCampaignDirectoryCard | null => {
+      const availability = getCampaignAvailability(campaign, now)
+      if (!isBrowsablePartnerAvailability(availability)) return null
+
+      const primary = campaign.campaignEvents[0]?.publicEvent ?? null
+
+      return {
+        slug: campaign.slug,
+        partnerName: campaign.partnerName,
+        campaignName: campaign.campaignName,
+        grantedTier: campaign.grantedTier,
+        accessDurationDays: campaign.accessDurationDays,
+        availability,
+        windowStartsAt: campaign.windowStartsAt?.toISOString() ?? null,
+        windowEndsAt: campaign.windowEndsAt?.toISOString() ?? null,
+        publicUrl: `/partners/${campaign.slug}`,
+        primaryEvent: primary
+          ? {
+              slug: primary.slug,
+              title: primary.title,
+              date: primary.date.toISOString()
+            }
+          : null
+      }
+    })
+    .filter((card): card is PartnerCampaignDirectoryCard => card !== null)
+}
+
 export async function getActivePromotionalGrant(
   userId: string,
   now = new Date()

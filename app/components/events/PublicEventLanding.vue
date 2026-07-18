@@ -20,10 +20,7 @@
     trackOfficialEventRegistrationClick
   } = useAnalytics()
 
-  const loading = ref(true)
   const joining = ref(false)
-  const error = ref<string | null>(null)
-  const payload = ref<any>(null)
   const showConfirm = ref(false)
   const priority = ref<'LOW' | 'MEDIUM' | 'HIGH'>('HIGH')
   const phase = ref('BUILD')
@@ -34,6 +31,14 @@
     if (lang === 'zh') return 'zh-CN'
     return lang
   })
+
+  const {
+    data: payload,
+    pending: loading,
+    error: fetchError,
+    refresh: refreshEvent
+  } = await useFetch(() => `/api/public-events/${props.slug}`)
+  const error = computed(() => (fetchError.value ? t.value('error_event_not_found') : null))
 
   const priorityItems = computed(() => [
     { label: t.value('priority_high'), value: 'HIGH' },
@@ -51,15 +56,6 @@
   const event = computed(() => payload.value?.event)
   const enrollment = computed(() => payload.value?.enrollment)
 
-  const callbackPath = computed(() =>
-    sanitizeCallbackUrl(
-      `/events/${props.slug}?join=1${props.campaignSlug ? `&campaign=${props.campaignSlug}` : ''}`,
-      '/dashboard'
-    )
-  )
-  const signupUrl = computed(() => `/join?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
-  const loginUrl = computed(() => `/login?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
-
   const locationLabel = computed(() => {
     if (!event.value) return null
     if (event.value.isVirtual) return t.value('virtual')
@@ -70,17 +66,54 @@
     )
   })
 
+  const runtimeConfig = useRuntimeConfig()
+  const requestUrl = useRequestURL()
+
+  const seoTitle = computed(() =>
+    event.value ? `${event.value.title} | Coach Watts` : t.value('public_event_label')
+  )
+  const seoDescription = computed(() => {
+    if (!event.value) return t.value('directory_events_meta_description')
+    if (event.value.description) return event.value.description
+    const place = locationLabel.value
+    const dateLabel = new Date(event.value.date).toLocaleDateString(dateLocale.value)
+    const parts = [event.value.organizerName, dateLabel, place].filter(Boolean)
+    return parts.join(' · ')
+  })
+  const canonicalUrl = computed(() => {
+    const base = runtimeConfig.public.siteUrl || requestUrl.origin
+    return `${base}/events/${props.slug}`
+  })
+  const ogImage = computed(() => event.value?.imageUrl || undefined)
+
+  useSeoMeta({
+    title: () => seoTitle.value,
+    description: () => seoDescription.value,
+    ogTitle: () => seoTitle.value,
+    ogDescription: () => seoDescription.value,
+    ogUrl: () => canonicalUrl.value,
+    ogImage: () => ogImage.value,
+    twitterCard: 'summary_large_image',
+    twitterTitle: () => seoTitle.value,
+    twitterDescription: () => seoDescription.value,
+    twitterImage: () => ogImage.value
+  })
+
+  useHead(() => ({
+    link: [{ rel: 'canonical', href: canonicalUrl.value }]
+  }))
+
+  const callbackPath = computed(() =>
+    sanitizeCallbackUrl(
+      `/events/${props.slug}?join=1${props.campaignSlug ? `&campaign=${props.campaignSlug}` : ''}`,
+      '/dashboard'
+    )
+  )
+  const signupUrl = computed(() => `/join?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
+  const loginUrl = computed(() => `/login?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
+
   async function fetchEvent() {
-    loading.value = true
-    error.value = null
-    try {
-      payload.value = await $fetch(`/api/public-events/${props.slug}`)
-      trackPartnerEventView(props.campaignSlug || null, props.slug)
-    } catch {
-      error.value = t.value('error_event_not_found')
-    } finally {
-      loading.value = false
-    }
+    await refreshEvent()
   }
 
   async function joinEvent() {
@@ -130,14 +163,17 @@
     trackOfficialEventRegistrationClick(props.campaignSlug || null, props.slug)
   }
 
-  onMounted(fetchEvent)
-
-  watch(
-    () => props.slug,
-    () => {
-      void fetchEvent()
+  onMounted(() => {
+    if (event.value) {
+      trackPartnerEventView(props.campaignSlug || null, props.slug)
     }
-  )
+  })
+
+  watch(event, (nextEvent, previousEvent) => {
+    if (import.meta.client && nextEvent?.slug && nextEvent.slug !== previousEvent?.slug) {
+      trackPartnerEventView(props.campaignSlug || null, props.slug)
+    }
+  })
 
   watchEffect(() => {
     if (

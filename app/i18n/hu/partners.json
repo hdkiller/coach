@@ -74,5 +74,21 @@
   "toast_goal_added_desc": "Az esemény hozzáadva a Coach Watts edzési céljaidhoz",
   "toast_already_in_goals_desc": "Már a Coach Watts céljaid között van",
   "error_offer_not_found": "A partnerajánlat nem található.",
-  "error_event_not_found": "Az esemény nem található."
+  "error_event_not_found": "Az esemény nem található.",
+  "directory_events_meta_title": "Eseménynaptár | Coach Watts",
+  "directory_events_meta_description": "Böngéssz a közelgő nyilvános események között, és add hozzá őket Coach Watts edzési célként. Ez nem hivatalos versenynevezés.",
+  "directory_events_title": "Eseménynaptár",
+  "directory_events_subtitle": "Közelgő versenyek és események, amelyeket Coach Watts edzési célként adhatsz hozzá.",
+  "directory_events_empty": "Jelenleg nincs közelgő nyilvános esemény. Nézz vissza később.",
+  "directory_events_view": "Esemény megtekintése",
+  "directory_partners_meta_title": "Partnerek | Coach Watts",
+  "directory_partners_meta_description": "Böngéssz a partnerajánlatok között: időkorlátos Coach Watts hozzáférés és kapcsolódó edzési események.",
+  "directory_partners_title": "Partnerek",
+  "directory_partners_subtitle": "Időkorlátos partnerajánlatok és a hozzájuk tartozó események.",
+  "directory_partners_empty": "Jelenleg nincs elérhető partnerajánlat.",
+  "directory_partners_view": "Ajánlat megtekintése",
+  "directory_partners_primary_event": "Kiemelt esemény",
+  "directory_access_days": "{days} napos {tier}",
+  "directory_browse_partners": "Partnerek böngészése",
+  "directory_browse_events": "Események böngészése"
 }

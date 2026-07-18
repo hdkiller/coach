@@ -74,5 +74,21 @@
   "toast_goal_added_desc": "Event added to your Coach Watts training goals",
   "toast_already_in_goals_desc": "Already in your Coach Watts goals",
   "error_offer_not_found": "Partner offer not found.",
-  "error_event_not_found": "Event not found."
+  "error_event_not_found": "Event not found.",
+  "directory_events_meta_title": "Event calendar | Coach Watts",
+  "directory_events_meta_description": "Browse upcoming public events and add them as Coach Watts training goals. Not official race registration.",
+  "directory_events_title": "Event calendar",
+  "directory_events_subtitle": "Upcoming races and events you can add as Coach Watts training goals.",
+  "directory_events_empty": "No upcoming public events yet. Check back soon.",
+  "directory_events_view": "View event",
+  "directory_partners_meta_title": "Partners | Coach Watts",
+  "directory_partners_meta_description": "Browse partner offers for complimentary Coach Watts access and associated training events.",
+  "directory_partners_title": "Partners",
+  "directory_partners_subtitle": "Time-limited partner offers and the events they support.",
+  "directory_partners_empty": "No partner offers are available right now.",
+  "directory_partners_view": "View offer",
+  "directory_partners_primary_event": "Featured event",
+  "directory_access_days": "{days} days of {tier}",
+  "directory_browse_partners": "Browse partners",
+  "directory_browse_events": "Browse events"
 }

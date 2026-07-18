@@ -3,6 +3,7 @@ import type { PartnerCampaign } from '@prisma/client'
 import {
   getCampaignAvailability,
   getHighestActivePromotionalTier,
+  listBrowsablePartnerCampaigns,
   redeemPartnerCampaign
 } from '../../../../server/utils/partner-campaigns'
 
@@ -13,6 +14,7 @@ vi.mock('../../../../server/utils/db', () => ({
     user: { findUnique: vi.fn() },
     partnerCampaign: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       updateMany: vi.fn()
     },
     partnerCampaignRedemption: {
@@ -86,6 +88,38 @@ describe('partner campaigns', () => {
         redemptionCount: 50
       })
     ).toBe('CAPACITY_REACHED')
+  })
+
+  it('lists browsable partner campaigns without redemption counts', async () => {
+    vi.mocked(prisma.partnerCampaign.findMany).mockResolvedValue([
+      {
+        ...baseCampaign,
+        campaignEvents: [
+          {
+            publicEvent: {
+              slug: 'pilis-kupa-2026',
+              title: 'Pilis Kupa',
+              date: new Date('2026-09-27T12:00:00.000Z')
+            }
+          }
+        ]
+      },
+      {
+        ...baseCampaign,
+        id: 'campaign-2',
+        slug: 'expired-offer',
+        isActive: true,
+        windowEndsAt: new Date('2026-01-01T00:00:00.000Z'),
+        campaignEvents: []
+      }
+    ] as any)
+
+    const partners = await listBrowsablePartnerCampaigns(new Date('2026-07-17T00:00:00.000Z'))
+    expect(partners).toHaveLength(1)
+    expect(partners[0]?.slug).toBe('skool4cyclists')
+    expect(partners[0]?.primaryEvent?.slug).toBe('pilis-kupa-2026')
+    expect((partners[0] as any).redemptionCount).toBeUndefined()
+    expect((partners[0] as any).maxRedemptions).toBeUndefined()
   })
 
   it('returns idempotent result for duplicate redemption', async () => {

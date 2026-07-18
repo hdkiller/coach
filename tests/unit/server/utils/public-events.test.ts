@@ -12,7 +12,8 @@ import {
 vi.mock('../../../../server/utils/db', () => ({
   prisma: {
     publicEvent: {
-      findUnique: vi.fn()
+      findUnique: vi.fn(),
+      findMany: vi.fn()
     },
     event: {
       findUnique: vi.fn(),
@@ -77,6 +78,20 @@ describe('public events', () => {
     expect(view.publicUrl).toBe('/events/pilis-kupa-2026')
     expect(view.registrationUrl).toBe('https://example.com/register')
     expect((view as any).id).toBeUndefined()
+  })
+
+  it('lists published upcoming events', async () => {
+    vi.mocked(prisma.publicEvent.findMany).mockResolvedValue([baseEvent])
+    const { listPublishedPublicEvents } = await import('../../../../server/utils/public-events')
+    const events = await listPublishedPublicEvents()
+    expect(prisma.publicEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isPublished: true, date: expect.any(Object) }),
+        orderBy: [{ date: 'asc' }, { title: 'asc' }]
+      })
+    )
+    expect(events).toHaveLength(1)
+    expect(events[0]?.slug).toBe('pilis-kupa-2026')
   })
 
   it('returns only published campaign events', async () => {

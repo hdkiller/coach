@@ -299,7 +299,8 @@
 
   useSeoMeta({
     title: () => `${headline.value} | Coach Watts`,
-    description: () => benefitCopy.value || t.value('meta_partner_fallback')
+    description: () => benefitCopy.value || t.value('meta_partner_fallback'),
+    robots: 'noindex, nofollow'
   })
 </script>
 

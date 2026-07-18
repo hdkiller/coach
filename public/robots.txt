@@ -1,2 +1,4 @@
 User-Agent: *
 Disallow:
+
+Sitemap: https://coachwatts.com/sitemap.xml
