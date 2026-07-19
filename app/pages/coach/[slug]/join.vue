@@ -7,7 +7,7 @@
   </div>
 
   <div
-    v-else-if="error"
+    v-else-if="error || !joinExperience"
     class="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4"
   >
     <UCard class="w-full max-w-md">
@@ -15,7 +15,7 @@
         <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-error-500 mx-auto" />
         <h1 class="text-lg font-bold">Join page unavailable</h1>
         <p class="text-sm text-neutral-500">
-          {{ error.message || 'This coach join link is invalid or expired.' }}
+          {{ error?.message || 'This coach join link is invalid or expired.' }}
         </p>
         <UButton to="/join" color="primary" label="Enter an invite code" />
       </div>
@@ -23,11 +23,11 @@
   </div>
 
   <CoachJoinPage
-    v-else-if="joinPayload"
-    :coach="joinPayload.join.coach"
-    :join-page="joinPayload.join.joinPage"
-    :proof="joinPayload.join.proof"
-    :active-invite-available="joinPayload.join.activeInviteAvailable"
+    v-else
+    :coach="joinExperience.coach"
+    :join-page="joinExperience.joinPage"
+    :proof="joinExperience.proof"
+    :active-invite-available="joinExperience.activeInviteAvailable"
     :session="session"
     :joining="joining"
     :signup-url="signupUrl"
@@ -49,6 +49,44 @@
     }
   })
 
+  type CoachJoinExperience = {
+    coach: {
+      name: string
+      image?: string | null
+      brand?: string | null
+      headline?: string | null
+      coverImageUrl?: string | null
+      profileUrl?: string | null
+    }
+    joinPage: {
+      headline: string
+      intro: string
+      ctaLabel: string
+      welcomeTitle: string
+      welcomeBody?: string | null
+      trustTitle: string
+      trustNote: string
+      unavailableMessage: string
+      steps: Array<{ id: string; title: string; description: string }>
+      faq: Array<{ id: string; question: string; answer: string }>
+    }
+    proof: {
+      specialties: string[]
+      credentials: string[]
+      testimonial?: {
+        quote: string
+        authorName: string
+        authorRole?: string | null
+      } | null
+    }
+    activeInviteCode: string | null
+    activeInviteAvailable: boolean
+  }
+
+  type CoachJoinResponse = {
+    join: CoachJoinExperience
+  }
+
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
@@ -63,11 +101,17 @@
     error
   } = await useAsyncData(
     () => `coach-join-${slug.value}`,
-    () => $fetch(`/api/public/coaches/${slug.value}/join`),
+    () => $fetch<CoachJoinResponse>(`/api/public/coaches/${slug.value}/join`),
     { watch: [slug] }
   )
 
-  const inviteCode = computed(() => joinPayload.value?.join?.activeInviteCode || null)
+  const joinExperience = computed(() => {
+    const join = joinPayload.value?.join
+    if (!join?.coach?.name || !join.joinPage?.headline || !join.proof) return null
+    return join
+  })
+
+  const inviteCode = computed(() => joinExperience.value?.activeInviteCode || null)
 
   const callbackPath = computed(() => {
     if (inviteCode.value) {
@@ -76,12 +120,8 @@
     return `/coach/${slug.value}/join`
   })
 
-  const signupUrl = computed(
-    () => `/join?callbackUrl=${encodeURIComponent(callbackPath.value)}`
-  )
-  const loginUrl = computed(
-    () => `/login?callbackUrl=${encodeURIComponent(callbackPath.value)}`
-  )
+  const signupUrl = computed(() => `/join?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
+  const loginUrl = computed(() => `/login?callbackUrl=${encodeURIComponent(callbackPath.value)}`)
 
   async function acceptJoin() {
     if (!session.value) {

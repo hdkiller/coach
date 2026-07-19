@@ -10,7 +10,8 @@ defineRouteMeta({
   openAPI: {
     tags: ['Coaching', 'Teams'],
     summary: 'Update team member role',
-    description: 'Updates a team member role. Owners and admins can change roles; only owners can assign admin.',
+    description:
+      'Updates a team member role. Owners and admins can change roles; only owners can assign admin.',
     inputSchema: [
       {
         name: 'id',
@@ -65,7 +66,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (target.role === 'OWNER' && nextRole !== 'OWNER') {
+  // nextRole is ADMIN | COACH | ATHLETE only — assigning it to an OWNER is always a demotion
+  if (target.role === 'OWNER') {
     const isOwner = await teamRepository.checkTeamAccess(teamId, user.id, ['OWNER'])
     if (!isOwner) {
       throw createError({ statusCode: 403, message: 'Only owners can demote other owners' })
