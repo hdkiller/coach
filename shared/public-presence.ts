@@ -467,6 +467,10 @@ export function buildPublicCoachStartPath(slug?: string | null) {
   return slug ? `/coach/${slug}/start` : undefined
 }
 
+export function buildPublicCoachJoinPath(slug?: string | null) {
+  return slug ? `/coach/${slug}/join` : undefined
+}
+
 export function buildPublicAthletePath(slug?: string | null) {
   return slug ? `/athlete/${slug}` : undefined
 }

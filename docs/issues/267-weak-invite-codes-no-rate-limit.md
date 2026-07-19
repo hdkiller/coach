@@ -2,7 +2,7 @@
 
 **Priority:** High  
 **Type:** Security  
-**Status:** Open  
+**Status:** Fixed  
 **Area:** `coaching, auth, backend`
 
 ## Summary

@@ -2,7 +2,7 @@
 
 **Priority:** High  
 **Type:** Bug  
-**Status:** Open  
+**Status:** Fixed  
 **Area:** `coaching, groups, backend`
 
 ## Summary

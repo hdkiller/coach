@@ -90,23 +90,44 @@
           <div class="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full inline-block mb-4">
             <UIcon name="i-heroicons-users" class="w-12 h-12 text-neutral-400" />
           </div>
-          <h3 class="text-xl font-bold">
-            {{ tr('index_empty_title', 'Connect Your First Athlete') }}
-          </h3>
-          <p class="text-neutral-500 max-w-sm mx-auto mb-6">
-            {{
-              tr(
-                'index_empty_desc',
-                'Connecting athletes allows you to track their weekly compliance and live activity feed.'
-              )
-            }}
-          </p>
-          <UButton
-            color="primary"
-            size="lg"
-            to="/coaching/athletes"
-            :label="tr('index_empty_cta', 'Go to Athletes')"
-          />
+          <template v-if="pendingRequestCount > 0">
+            <h3 class="text-xl font-bold">
+              {{ tr('index_empty_pending_title', 'Pending coaching requests') }}
+            </h3>
+            <p class="text-neutral-500 max-w-sm mx-auto mb-6">
+              {{
+                tr(
+                  'index_empty_pending_desc',
+                  'You have athletes waiting for approval. Review them to start coaching.'
+                )
+              }}
+            </p>
+            <UButton
+              color="primary"
+              size="lg"
+              to="/coaching/athletes"
+              :label="tr('index_empty_pending_cta', 'Review pending requests')"
+            />
+          </template>
+          <template v-else>
+            <h3 class="text-xl font-bold">
+              {{ tr('index_empty_title', 'Connect Your First Athlete') }}
+            </h3>
+            <p class="text-neutral-500 max-w-sm mx-auto mb-6">
+              {{
+                tr(
+                  'index_empty_desc',
+                  'Connecting athletes allows you to track their weekly compliance and live activity feed.'
+                )
+              }}
+            </p>
+            <UButton
+              color="primary"
+              size="lg"
+              to="/coaching/athletes"
+              :label="tr('index_empty_cta', 'Go to Athletes')"
+            />
+          </template>
         </div>
 
         <!-- 2. Main Strategic Grid -->
@@ -209,6 +230,7 @@
   const router = useRouter()
   const toast = useToast()
   const loading = ref(true)
+  const pendingRequestCount = ref(0)
   const overviewData = ref<any>({
     athletes: [],
     feed: [],
@@ -220,6 +242,19 @@
     try {
       const data = await $fetch('/api/coaching/overview')
       overviewData.value = data
+      pendingRequestCount.value =
+        typeof (data as any)?.pendingRequestCount === 'number'
+          ? (data as any).pendingRequestCount
+          : 0
+
+      if (overviewData.value.athletes.length === 0 && pendingRequestCount.value === 0) {
+        try {
+          const requests = await $fetch('/api/coaching/athletes/requests')
+          pendingRequestCount.value = Array.isArray(requests) ? requests.length : 0
+        } catch {
+          // Requests endpoint may be unavailable for some roles; keep overview CTA as-is.
+        }
+      }
     } catch (e) {
       console.error(e)
       toast.add({ title: 'Failed to load coaching overview', color: 'error' })

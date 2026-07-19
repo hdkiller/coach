@@ -2,7 +2,7 @@
 
 **Priority:** Medium  
 **Type:** Security / Consistency  
-**Status:** Open  
+**Status:** Fixed  
 **Area:** `coaching, auth, backend`
 
 ## Summary

@@ -2,7 +2,7 @@
 
 **Priority:** High  
 **Type:** Security / Privacy  
-**Status:** Open  
+**Status:** Fixed  
 **Area:** `coaching, teams, privacy`
 
 ## Summary

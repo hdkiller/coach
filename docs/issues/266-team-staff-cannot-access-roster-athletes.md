@@ -2,7 +2,7 @@
 
 **Priority:** High  
 **Type:** Bug / AuthZ  
-**Status:** Open  
+**Status:** Fixed (Option B — hide View; multi-coach shared access still a product gap — see 347)  
 **Area:** `coaching, teams, auth`
 
 ## Summary

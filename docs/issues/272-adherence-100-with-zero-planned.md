@@ -2,7 +2,7 @@
 
 **Priority:** Medium  
 **Type:** Bug / UX  
-**Status:** Open  
+**Status:** Fixed
 **Area:** `coaching, analytics`
 
 ## Summary
@@ -42,3 +42,13 @@ In both list enrichment (~L209) and single-athlete enrichment (~L376).
 - [ ] Zero planned workouts → null adherence, not 100%
 - [ ] UI does not show misleading green compliance
 - [ ] Athletes with plans still show correct percentage
+
+
+## Follow-up (2026-07-19)
+
+Repository returns `null` and `AthleteCard` shows `--`, but athlete detail still renders `{{ athlete.stats.adherence7d }}%` without a null check — tracked as [336](./336-athlete-detail-adherence-null-display.md).
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

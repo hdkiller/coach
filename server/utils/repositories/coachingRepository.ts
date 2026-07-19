@@ -583,6 +583,11 @@ export const coachingRepository = {
       throw new Error('Athlete account not found')
     }
 
+    const alreadyConnected = athlete.coaches.some((rel: any) => rel.coach?.id === coachId)
+    if (alreadyConnected) {
+      throw new Error('You are already connected with this coach')
+    }
+
     const existingPending = await (prisma as any).coachingRequest.findFirst({
       where: {
         coachId,

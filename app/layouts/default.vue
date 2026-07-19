@@ -338,7 +338,7 @@
             }
           },
           {
-            label: 'Team',
+            label: 'My Coaches',
             icon: 'i-lucide-building-2',
             to: '/coaching/team',
             onSelect: () => {
@@ -634,7 +634,7 @@
                 to: '/analytics'
               },
               {
-                label: label('navigation_coaching_team', 'Team'),
+                label: label('navigation_coaching_team', 'My Coaches'),
                 icon: 'i-lucide-building-2',
                 to: '/coaching/team'
               }

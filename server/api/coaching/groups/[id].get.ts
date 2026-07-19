@@ -46,6 +46,28 @@ export default defineEventHandler(async (event) => {
         message: 'You do not have access to this team-scoped group'
       })
     }
+
+    // Non-staff (e.g. athletes) must not see other members' emails
+    const isStaff = await teamRepository.checkTeamAccess(group.teamId, user.id, [
+      'OWNER',
+      'ADMIN',
+      'COACH'
+    ])
+    if (!isStaff) {
+      return {
+        ...group,
+        members: (group.members || []).map((member: any) => {
+          if (member.athlete?.id === user.id) return member
+          return {
+            ...member,
+            athlete: {
+              ...member.athlete,
+              email: null
+            }
+          }
+        })
+      }
+    }
   } else {
     // If private, only the owner can see it
     if (group.coachId !== user.id) {

@@ -1,4 +1,4 @@
-import { buildPublicCoachPath, buildPublicCoachStartPath } from '../../shared/public-presence'
+import { buildPublicCoachPath, buildPublicCoachJoinPath } from '../../shared/public-presence'
 
 export function getCoachCoverImage(profile: any) {
   return (profile?.media || []).find((item: any) => item.kind === 'cover') || null
@@ -52,7 +52,7 @@ export function buildCoachJoinExperience(input: {
       location: profile?.settings?.location || null,
       coverImageUrl: coverImage?.url || null,
       profileUrl: buildPublicCoachPath(profile?.settings?.slug),
-      joinUrl: buildPublicCoachStartPath(profile?.settings?.slug)
+      joinUrl: buildPublicCoachJoinPath(profile?.settings?.slug)
     },
     joinPage: resolvedJoinPage,
     proof: {

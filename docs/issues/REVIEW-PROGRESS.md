@@ -1,7 +1,7 @@
 # Systematic App Review — Progress Tracker
 
 **Started:** 2026-07-08  
-**Last updated:** 2026-07-16 (Garmin follow-up review filed issues 312–322)
+**Last updated:** 2026-07-19 (coaching invite/relationship UX review filed issues 327–348)
 
 **Goal:** Comprehensive bug/UI/security audit across the full Coach Watts codebase. Documentation only — no refactors.
 
@@ -10,12 +10,12 @@
 | Metric                                             | Value                                                                   |
 | -------------------------------------------------- | ----------------------------------------------------------------------- |
 | Structure-generation issues                        | 001–038 ([issues.md](./issues.md)) — **37 / 38 fixed** (only 012 open)  |
-| App-review issues filed                            | 039–322                                                                 |
+| App-review issues filed                            | 039–348                                                                 |
 | **Postponed** (auth / third-party / OAuth / Yazio) | **21** — see [Postponed cluster](#postponed-auth--third-party-deferred) |
-| **Active (Open)**                                  | **91** app-review issues (311–322 open; 174/307–310 fixed)              |
-| **Total documented issues**                        | **322**                                                                 |
-| Review phases complete                             | 5 / 5 (core)                                                            |
-| **Overall review progress**                        | **~96%**                                                                |
+| **Active (Open)**                                  | See [app-review-issues.md](./app-review-issues.md) (incl. **327–348** coaching) |
+| **Total documented issues**                        | **348** (+ 323 Sentry noise)                                            |
+| Review phases complete                             | 5 / 5 (core) + coaching follow-up                                       |
+| **Overall review progress**                        | **~96%** (coaching area reopened for deep pass)                         |
 
 ## Methodology
 
@@ -39,7 +39,7 @@
 | 8   | Workouts (planned) & Plans      | ✅ Done    | 080, 089–090, 117–118, 119                                     | 2          |
 | 9   | Chat & AI tools                 | ✅ Done    | 062, 077–079, 123, 163–166                                     | 1–2        |
 | 10  | Nutrition                       | ✅ Done    | 067, 075, 081–084, 114, 156–157, 238–258                       | 2, 13      |
-| 11  | Coaching & Teams                | 🔄 Partial | 068, 085, 115–116, 152–154, 201, **263–275**                   | 2–3, 14    |
+| 11  | Coaching & Teams                | 🔄 Partial | 068, 085, 115–116, 152–154, 201, 263–275, **327–348**          | 2–3, 14, 26 |
 | 12  | Auth, OAuth, Session            | ✅ Done    | 058, 071, 093, 109–111, 125–126, 129                           | 1–2        |
 | 13  | Integrations & Webhooks         | ✅ Done    | 056, 059–060, 069–072, 099–108, 161, 171–174, 197, **307–322** | 1–3, 23–25 |
 | 14  | Share & Public pages            | ✅ Done    | 066, 094–096, 135–137, 155–160                                 | 2          |
@@ -126,6 +126,7 @@
 | 2026-07-16 | 23      | Garmin Health/Activity compliance audit — deregister on account delete, Push key aliases, silent-noop throw; leave unused types/permissions/pull open   | 307–311, 174 |
 | 2026-07-16 | 24      | Thin 309 (bodyComps/userMetrics pull+backfill) + 310 fail-soft permissions refresh on ingest/callback                                                   | 309–310      |
 | 2026-07-16 | 25      | Garmin follow-up: webhook routing/callback security, refresh races, sync status, permissions, backfill, mappings, OAuth ownership, course mapping       | 312–322      |
+| 2026-07-19 | 26      | Coaching deep pass: verify 263–274 fixed in code; file invite bugs (327–328), relationship/team gaps, athlete↔coach UX, privacy leak 335               | 327–348      |
 
 ## Postponed: auth & third-party (deferred 2026-07-08)
 
@@ -154,19 +155,20 @@ Skipped for now — auth/integration hardening may break ingest or requires prov
 | 070 | Yazio password plaintext storage     | Accepted for now; Yazio ingest works |
 | 158 | Developer GET leaks webhook secret   | OAuth developer portal batch         |
 
-## Next issue ID: 307
+## Next issue ID: 349
 
 ## Remaining optional work (~5%)
 
 1. **012** — Durable generation status model on `PlannedWorkout` (architecture)
-2. Exhaustive i18n grep on all 150 pages (many low-priority gaps remain beyond 199–207)
-3. `delete-user-account` trigger cleanup audit
-4. Chat attachment URL validation (candidate 224)
-5. Map outstanding Sentry issues to fixes after 187/196/197 ship
+2. **327–328** — Critical coaching invite redemption bugs (fix next)
+3. Exhaustive i18n grep on all 150 pages (many low-priority gaps remain beyond 199–207)
+4. `delete-user-account` trigger cleanup audit
+5. Chat attachment URL validation (candidate 224)
+6. Map outstanding Sentry issues to fixes after 187/196/197 ship
 
 ## Related docs
 
-- [app-review-issues.md](./app-review-issues.md) — Master index (039–306)
+- [app-review-issues.md](./app-review-issues.md) — Master index (039–348)
 - [issues.md](./issues.md) — Structure generation (001–038)
 - [issue-management.md](../04-guides/issue-management.md)
 - [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md)

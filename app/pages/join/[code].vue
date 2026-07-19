@@ -50,12 +50,16 @@
         title:
           response.type === 'TEAM'
             ? 'Successfully joined the team!'
-            : 'Successfully connected with coach!',
+            : response.type === 'COACHING'
+              ? 'Athlete connected!'
+              : 'Successfully connected with coach!',
         color: 'success'
       })
 
       if (response.type === 'TEAM' && response.teamId) {
         router.push(`/coaching/teams/${response.teamId}`)
+      } else if (response.type === 'COACHING') {
+        router.push('/coaching/athletes')
       } else {
         router.push('/coaching/team')
       }

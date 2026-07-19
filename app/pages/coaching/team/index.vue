@@ -22,7 +22,7 @@
       <div class="p-0 sm:p-6 space-y-8">
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            {{ tr('team_title', 'My Team') }}
+            {{ tr('team_title', 'My Coaches & Teams') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
@@ -31,7 +31,69 @@
           </p>
         </div>
 
-        <!-- Invite Section -->
+        <!-- 1. My Coaches List -->
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 px-4 sm:px-0">
+            My Coaches
+          </h2>
+
+          <div v-if="loading" class="space-y-0 sm:space-y-4">
+            <UCard v-for="i in 2" :key="i" :ui="mobileListCardUi">
+              <div class="flex items-center gap-3">
+                <USkeleton class="h-10 w-10 rounded-full" />
+                <USkeleton class="h-4 w-48" />
+              </div>
+            </UCard>
+          </div>
+
+          <div
+            v-else-if="coaches.length === 0"
+            class="text-center py-12 bg-neutral-50 dark:bg-neutral-800/30 rounded-none sm:rounded-lg border-y sm:border border-gray-100 dark:border-gray-800 px-4"
+          >
+            <div class="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-full mb-3 inline-block">
+              <UIcon name="i-heroicons-academic-cap" class="w-6 h-6 text-neutral-400" />
+            </div>
+            <p class="text-neutral-500 text-sm">You haven't connected with any coaches yet.</p>
+          </div>
+
+          <div v-else class="space-y-0 sm:space-y-3">
+            <UCard
+              v-for="rel in coaches"
+              :key="rel.id"
+              :ui="{ ...mobileListCardUi, body: 'p-3 sm:p-4' }"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <UAvatar :src="rel.coach.image" :alt="rel.coach.name" />
+                  <div class="min-w-0">
+                    <p class="font-bold text-sm">{{ rel.coach.name }}</p>
+                    <p class="text-xs text-neutral-500 truncate">{{ rel.coach.email }}</p>
+                    <p v-if="rel.createdAt" class="text-[10px] text-neutral-400 mt-1">
+                      Connected {{ formatFullDate(rel.createdAt) }}
+                    </p>
+                    <p class="text-[11px] text-neutral-500 mt-1">
+                      They can view your training data and schedule workouts.
+                    </p>
+                  </div>
+                </div>
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-trash"
+                  label="Remove"
+                  @click="
+                    () => {
+                      void confirmRemoveCoach(rel.coach)
+                    }
+                  "
+                />
+              </div>
+            </UCard>
+          </div>
+        </div>
+
+        <!-- 2. Invite Section -->
         <UCard
           class="overflow-hidden border-2 border-primary-500/20 bg-primary-50/30 dark:bg-primary-950/10"
           :ui="{ ...mobileListCardUi, body: 'p-4 sm:p-6' }"
@@ -72,14 +134,30 @@
                   }
                 "
               />
-              <p v-else class="text-[10px] text-neutral-500 uppercase font-bold">
-                Expires {{ formatFullDate(invite.expiresAt) }}
-              </p>
+              <template v-else>
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  label="Regenerate"
+                  icon="i-heroicons-arrow-path"
+                  size="xs"
+                  class="font-bold"
+                  :loading="generatingInvite"
+                  @click="
+                    () => {
+                      void createInvite()
+                    }
+                  "
+                />
+                <p class="text-[10px] text-neutral-500 uppercase font-bold">
+                  Expires {{ formatFullDate(invite.expiresAt) }}
+                </p>
+              </template>
             </div>
           </div>
         </UCard>
 
-        <!-- My Teams Section (For Coaches) -->
+        <!-- 3. My Teams Section (For Coaches) -->
         <div>
           <div class="flex items-center justify-between mb-4 px-4 sm:px-0">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white">Professional Teams</h2>
@@ -189,62 +267,6 @@
                   <UIcon name="i-heroicons-rectangle-group" />
                   {{ membership.team._count?.groups || 0 }} Groups
                 </div>
-              </div>
-            </UCard>
-          </div>
-        </div>
-
-        <!-- My Coaches List -->
-        <div>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 px-4 sm:px-0">
-            My Coaches
-          </h2>
-
-          <div v-if="loading" class="space-y-0 sm:space-y-4">
-            <UCard v-for="i in 2" :key="i" :ui="mobileListCardUi">
-              <div class="flex items-center gap-3">
-                <USkeleton class="h-10 w-10 rounded-full" />
-                <USkeleton class="h-4 w-48" />
-              </div>
-            </UCard>
-          </div>
-
-          <div
-            v-else-if="coaches.length === 0"
-            class="text-center py-12 bg-neutral-50 dark:bg-neutral-800/30 rounded-none sm:rounded-lg border-y sm:border border-gray-100 dark:border-gray-800 px-4"
-          >
-            <div class="bg-neutral-100 dark:bg-neutral-800 p-3 rounded-full mb-3 inline-block">
-              <UIcon name="i-heroicons-academic-cap" class="w-6 h-6 text-neutral-400" />
-            </div>
-            <p class="text-neutral-500 text-sm">You haven't connected with any coaches yet.</p>
-          </div>
-
-          <div v-else class="space-y-0 sm:space-y-3">
-            <UCard
-              v-for="rel in coaches"
-              :key="rel.id"
-              :ui="{ ...mobileListCardUi, body: 'p-3 sm:p-4' }"
-            >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <UAvatar :src="rel.coach.image" :alt="rel.coach.name" />
-                  <div>
-                    <p class="font-bold text-sm">{{ rel.coach.name }}</p>
-                    <p class="text-xs text-neutral-500">{{ rel.coach.email }}</p>
-                  </div>
-                </div>
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  size="xs"
-                  icon="i-heroicons-trash"
-                  label="Remove"
-                  @click="
-                    () => {
-                      void confirmRemoveCoach(rel.coach)
-                    }
-                  "
-                />
               </div>
             </UCard>
           </div>
@@ -386,7 +408,7 @@
   })
 
   useHead({
-    title: 'My Team | Coaching',
+    title: 'My Coaches & Teams | Coaching',
     meta: [
       {
         name: 'description',

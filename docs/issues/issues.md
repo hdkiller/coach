@@ -1,6 +1,8 @@
 # Workout Details Generation — Issue Tracker
 
-> **Broader app review (039–306):** see [app-review-issues.md](./app-review-issues.md) and [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~96% complete).
+> **Broader app review (039–348):** see [app-review-issues.md](./app-review-issues.md) and [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~96% complete).
+>
+> **Coaching follow-up (2026-07-19):** invites/relationships/team UX batch **[327–348](./app-review-issues.md#issues-327348-coaching-invites-relationships-team-ux--2026-07-19)** (plus re-verified 263–275).
 
 Last reviewed: 2026-07-09 (structure-generation batch merged — PRs [#214](https://github.com/hdkiller/coach/pull/214)–[#222](https://github.com/hdkiller/coach/pull/222) on 2026-07-08)
 

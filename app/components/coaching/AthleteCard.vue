@@ -217,7 +217,7 @@
             }
           "
         />
-        <UTooltip v-if="canInteract" text="Message Athlete">
+        <UTooltip v-if="canInteract" text="Ask AI about athlete">
           <UButton
             color="neutral"
             variant="ghost"
@@ -226,7 +226,22 @@
             @click.stop="$emit('message', athlete)"
           />
         </UTooltip>
+        <UTooltip v-if="canInteract" text="Act As Athlete">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-eye"
+            size="sm"
+            @click.stop="$emit('act-as', athlete)"
+          />
+        </UTooltip>
       </div>
+      <p
+        v-if="athlete.canViewDetails === false && !athlete.isMasked"
+        class="mt-2 text-[10px] text-neutral-400 text-center leading-snug"
+      >
+        Connect with their invite code to coach this athlete
+      </p>
     </template>
   </UCard>
 </template>
@@ -251,7 +266,7 @@
     athlete: any
   }>()
 
-  defineEmits(['view', 'message'])
+  defineEmits(['view', 'message', 'act-as'])
 
   const currentWellness = computed(() => props.athlete.wellness?.[0] || null)
   const canInteract = computed(

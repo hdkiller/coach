@@ -2,7 +2,7 @@
 
 **Priority:** Medium  
 **Type:** Bug  
-**Status:** Open  
+**Status:** Fixed  
 **Area:** `coaching, calendar, frontend`
 
 ## Summary

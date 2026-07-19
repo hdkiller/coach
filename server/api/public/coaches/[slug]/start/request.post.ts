@@ -1,6 +1,7 @@
 import { z } from 'zod/v3'
 import { requireAuth } from '../../../../../utils/auth-guard'
 import { prisma } from '../../../../../utils/db'
+import { createUserNotification } from '../../../../../utils/notifications'
 import { resolveCoachPublicProfile } from '../../../../../utils/public-presence'
 import { coachingRepository } from '../../../../../utils/repositories/coachingRepository'
 
@@ -92,16 +93,38 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const createdRequest = await coachingRepository.createCoachingRequestForAthlete({
-    coachId: coachUser.id,
-    athleteId: athlete.id,
-    answers,
-    athleteSnapshot: {
-      name: athlete.name,
-      email: athlete.email,
-      image: athlete.image
+  let createdRequest
+  try {
+    createdRequest = await coachingRepository.createCoachingRequestForAthlete({
+      coachId: coachUser.id,
+      athleteId: athlete.id,
+      answers,
+      athleteSnapshot: {
+        name: athlete.name,
+        email: athlete.email,
+        image: athlete.image
+      }
+    })
+  } catch (error: any) {
+    if (error?.message === 'You are already connected with this coach') {
+      throw createError({ statusCode: 409, message: error.message })
     }
-  })
+    throw createError({
+      statusCode: 400,
+      message: error?.message || 'Could not create coaching request.'
+    })
+  }
+
+  try {
+    await createUserNotification(coachUser.id, {
+      title: 'New coaching request',
+      message: `${athlete.name || 'An athlete'} wants to connect with you.`,
+      icon: 'i-heroicons-user-plus',
+      link: '/coaching/athletes'
+    })
+  } catch (error) {
+    console.error('[CoachStartRequest] Failed to notify coach:', error)
+  }
 
   return {
     success: true,

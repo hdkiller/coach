@@ -45,3 +45,10 @@ Miscellaneous low-severity items from the 2026-07-14 coaching pages review. Fix 
 
 - [ ] Each sub-item addressed or explicitly deferred with comment
 - [ ] No new regressions in coaching flows
+
+
+## Re-verify notes (2026-07-19)
+
+- **275b:** Calendar drag `JSON.parse` appears try/caught in current `CoachCalendarPanel.vue` — confirm before closing.
+- **275e / 116:** Still open (Message Athlete context).
+- Other 275a/c/d items still need verification.
