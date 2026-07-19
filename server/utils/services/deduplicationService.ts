@@ -216,8 +216,8 @@ export const deduplicationService = {
 
     // Prefer manual input or specific sources if reliable
     // But generally trust device data more for metrics
-    if (workout.source === 'hevy') {
-      score += 25 // High trust for Hevy as it has structured exercises
+    if (workout.source === 'hevy' || workout.source === 'liftosaur') {
+      score += 25 // High trust for strength providers with structured exercises
     } else if (workout.source === 'intervals') {
       score += 15 // Increased trust for Intervals.icu as it often aggregates well
     } else if (workout.source === 'garmin') {

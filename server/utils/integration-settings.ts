@@ -7,6 +7,7 @@ const ACTIVITY_DEFAULT_ON_PROVIDERS = new Set([
   'withings',
   'polar',
   'hevy',
+  'liftosaur',
   'strava',
   'ultrahuman'
 ])

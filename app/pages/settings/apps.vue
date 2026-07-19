@@ -58,6 +58,8 @@
       :rouvy-connected="rouvyConnected"
       :hevy-connected="hevyConnected"
       :hevy-ingest-workouts="hevyIngestWorkouts"
+      :liftosaur-connected="liftosaurConnected"
+      :liftosaur-ingest-workouts="liftosaurIngestWorkouts"
       :polar-connected="polarConnected"
       :polar-ingest-workouts="polarIngestWorkouts"
       :garmin-connected="garminConnected"
@@ -341,7 +343,7 @@
       {
         name: 'description',
         content:
-          'Manage your connected apps and integrations (Intervals.icu, Garmin Connect, WHOOP, Withings, Strava, Yazio, Fitbit).'
+          'Manage your connected apps and integrations (Intervals.icu, Garmin Connect, WHOOP, Withings, Strava, Liftosaur, Yazio, Fitbit).'
       }
     ]
   })
@@ -368,7 +370,9 @@
     const settings = integration?.settings || {}
 
     if (
-      ['garmin', 'whoop', 'oura', 'withings', 'polar', 'hevy', 'strava'].includes(provider) &&
+      ['garmin', 'whoop', 'oura', 'withings', 'polar', 'hevy', 'liftosaur', 'strava'].includes(
+        provider
+      ) &&
       settings.activityPreferenceConfigured !== true
     ) {
       return true
@@ -415,6 +419,10 @@
 
   const hevyIngestWorkouts = computed(() => isActivityIngestionEnabled('hevy'))
 
+  const liftosaurConnected = computed(() => isIntegrationConnected(integrations.value, 'liftosaur'))
+
+  const liftosaurIngestWorkouts = computed(() => isActivityIngestionEnabled('liftosaur'))
+
   const polarConnected = computed(() => isIntegrationConnected(integrations.value, 'polar'))
 
   const polarIngestWorkouts = computed(() => isActivityIngestionEnabled('polar'))
@@ -444,6 +452,7 @@
       'yazio',
       'fitbit',
       'hevy',
+      'liftosaur',
       'polar',
       'garmin',
       'wahoo',
@@ -686,6 +695,8 @@
         return 'Fitbit'
       case 'hevy':
         return 'Hevy'
+      case 'liftosaur':
+        return 'Liftosaur'
       case 'polar':
         return 'Polar'
       case 'garmin':

@@ -32,6 +32,7 @@ const triggers = [
   'ingest-fit-file',
   'ingest-fitbit',
   'ingest-hevy',
+  'ingest-liftosaur',
   'ingest-intervals-streams',
   'ingest-intervals',
   'ingest-oura',

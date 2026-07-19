@@ -122,6 +122,18 @@ export const TASK_DEPENDENCIES: Record<string, TaskDefinition> = {
     triggerId: 'ingest-strava'
   },
 
+  'ingest-liftosaur': {
+    id: 'ingest-liftosaur',
+    name: 'Sync Liftosaur',
+    description: 'Import completed strength workouts and optional body measurements from Liftosaur',
+    category: 'ingestion',
+    dependsOn: [],
+    estimatedDuration: 25,
+    required: false,
+    endpoint: '/api/integrations/sync',
+    triggerId: 'ingest-liftosaur'
+  },
+
   // ========================================
   // LEVEL 1.5: DATA CLEANUP
   // ========================================

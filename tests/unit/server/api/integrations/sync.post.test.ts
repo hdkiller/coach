@@ -169,4 +169,26 @@ describe('POST /api/integrations/sync', () => {
       expect.any(Object)
     )
   })
+
+  it('dispatches the Liftosaur ingestion task with the default date window', async () => {
+    const handler = await getHandler()
+    prismaMock.integration.findUnique.mockResolvedValue({
+      id: 'integration-liftosaur',
+      provider: 'liftosaur',
+      syncStatus: 'SUCCESS'
+    })
+
+    const response = await handler({ body: { provider: 'liftosaur' } } as any)
+
+    expect(response).toMatchObject({ success: true, provider: 'liftosaur' })
+    expect(tasks.trigger).toHaveBeenCalledWith(
+      'ingest-liftosaur',
+      expect.objectContaining({
+        userId: 'user-1',
+        startDate: '2025-12-10T00:00:00.000Z',
+        endDate: '2026-03-10T00:00:00.000Z'
+      }),
+      expect.any(Object)
+    )
+  })
 })

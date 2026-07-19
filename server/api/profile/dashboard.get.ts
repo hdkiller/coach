@@ -335,6 +335,9 @@ export default defineEventHandler(async (event) => {
         case 'strava':
           workoutProviders.push('Strava')
           break
+        case 'liftosaur':
+          workoutProviders.push('Liftosaur')
+          break
         case 'yazio':
           nutritionProviders.push('Yazio')
           break

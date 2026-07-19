@@ -138,6 +138,16 @@
       weight: 0.9
     },
     {
+      name: 'Liftosaur',
+      category: 'platforms',
+      src: 'i-lucide-dumbbell',
+      isIcon: true,
+      descKey: 'liftosaur_desc',
+      status: 'Manual Sync',
+      color: '#8356F6',
+      weight: 1.0
+    },
+    {
       name: 'Telegram',
       category: 'platforms',
       src: 'i-simple-icons-telegram',

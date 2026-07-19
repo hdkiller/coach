@@ -455,6 +455,63 @@
       </div>
     </UCard>
 
+    <!-- Liftosaur -->
+    <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-lg bg-[#8356f6] flex items-center justify-center shrink-0">
+          <UIcon name="i-lucide-dumbbell" class="w-7 h-7 text-white" />
+        </div>
+        <div>
+          <h3 class="font-semibold">Liftosaur</h3>
+          <p class="text-sm text-muted">Strength workouts and body measurements</p>
+        </div>
+      </div>
+
+      <div
+        class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
+      >
+        <div v-if="!liftosaurConnected">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('liftosaur')
+                navigateTo('/connect-liftosaur')
+              }
+            "
+          >
+            Connect
+          </UButton>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <UButton
+            color="success"
+            variant="solid"
+            size="sm"
+            class="font-bold"
+            icon="i-heroicons-arrow-path"
+            :loading="syncingProviders.has('liftosaur')"
+            @click="
+              () => {
+                void $emit('sync', 'liftosaur')
+              }
+            "
+          >
+            Sync Now
+          </UButton>
+          <UDropdownMenu :items="liftosaurActions">
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="sm"
+              icon="i-heroicons-ellipsis-vertical"
+            />
+          </UDropdownMenu>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Garmin -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
@@ -894,12 +951,15 @@
 
     <UModal
       v-model:open="advancedSyncModalOpen"
-      title="Advanced Sync"
+      :title="`${advancedSyncProviderName} Advanced Sync`"
       description="Select the historical range for data synchronization."
     >
       <template #body>
         <div class="space-y-4">
-          <p>Select how many days of historical data you would like to sync from Intervals.icu.</p>
+          <p>
+            Select how many days of historical data you would like to sync from
+            {{ advancedSyncProviderName }}.
+          </p>
           <USelectMenu
             v-model="selectedDays"
             :items="[
@@ -934,7 +994,7 @@
             :disabled="!selectedDays"
             @click="
               () => {
-                $emit('sync', 'intervals', selectedDays)
+                $emit('sync', advancedSyncProvider, selectedDays)
                 advancedSyncModalOpen = false
               }
             "
@@ -1248,6 +1308,8 @@
     rouvyConnected: boolean
     hevyConnected: boolean
     hevyIngestWorkouts: boolean
+    liftosaurConnected: boolean
+    liftosaurIngestWorkouts: boolean
     polarConnected: boolean
     polarIngestWorkouts: boolean
     garminConnected: boolean
@@ -1264,6 +1326,10 @@
   const { signIn } = useAuth()
   const { trackIntegrationConnectStart } = useAnalytics()
   const advancedSyncModalOpen = ref(false)
+  const advancedSyncProvider = ref<'intervals' | 'liftosaur'>('intervals')
+  const advancedSyncProviderName = computed(() =>
+    advancedSyncProvider.value === 'liftosaur' ? 'Liftosaur' : 'Intervals.icu'
+  )
   const ultrahumanAdvancedSyncModalOpen = ref(false)
   const intervalsSettingsModalOpen = ref(false)
   const providerSettingsModalOpen = ref(false)
@@ -1397,6 +1463,27 @@
         }
       ]
     },
+    liftosaur: {
+      provider: 'liftosaur',
+      title: 'Liftosaur Settings',
+      description: 'Choose which Liftosaur data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Completed workouts',
+          description: 'Import completed strength workouts from Liftosaur.',
+          label: 'Ingest Workouts',
+          target: 'root'
+        },
+        {
+          key: 'ingestMeasurements',
+          title: 'Body measurements',
+          description: 'Import bodyweight and body-fat measurements from Liftosaur.',
+          label: 'Ingest Measurements',
+          target: 'settings'
+        }
+      ]
+    },
     polar: {
       provider: 'polar',
       title: 'Polar Settings',
@@ -1522,6 +1609,8 @@
           return props.ultrahumanIngestWorkouts
         case 'hevy':
           return props.hevyIngestWorkouts
+        case 'liftosaur':
+          return props.liftosaurIngestWorkouts
         case 'strava':
           return props.stravaIngestWorkouts
         default:
@@ -1567,6 +1656,7 @@
         label: 'Advanced Sync',
         icon: 'i-heroicons-arrow-path-rounded-square',
         onSelect: () => {
+          advancedSyncProvider.value = 'intervals'
           advancedSyncModalOpen.value = true
         }
       },
@@ -1712,6 +1802,32 @@
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => emit('disconnect', 'hevy')
+      }
+    ]
+  ])
+
+  const liftosaurActions = computed(() => [
+    [
+      {
+        label: 'Advanced Sync',
+        icon: 'i-heroicons-arrow-path-rounded-square',
+        onSelect: () => {
+          advancedSyncProvider.value = 'liftosaur'
+          advancedSyncModalOpen.value = true
+        }
+      },
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('liftosaur')
+      }
+    ],
+    [
+      {
+        label: 'Disconnect',
+        icon: 'i-heroicons-trash',
+        color: 'error' as const,
+        onSelect: () => emit('disconnect', 'liftosaur')
       }
     ]
   ])

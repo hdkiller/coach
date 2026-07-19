@@ -26,6 +26,7 @@ const DATA_PROVIDERS = new Set([
   'withings',
   'yazio',
   'hevy',
+  'liftosaur',
   'rouvy',
   'ultrahuman'
 ])

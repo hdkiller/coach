@@ -9,6 +9,7 @@ export const PROVIDER_INGEST_TASKS: Record<string, string> = {
   strava: 'ingest-strava',
   rouvy: 'ingest-rouvy',
   hevy: 'ingest-hevy',
+  liftosaur: 'ingest-liftosaur',
   fitbit: 'ingest-fitbit',
   oura: 'ingest-oura',
   polar: 'ingest-polar',

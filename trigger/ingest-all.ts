@@ -9,6 +9,7 @@ import { ingestIntervalsTask } from './ingest-intervals'
 import { ingestYazioTask } from './ingest-yazio'
 import { ingestFitbitTask } from './ingest-fitbit'
 import { ingestHevyTask } from './ingest-hevy'
+import { ingestLiftosaurTask } from './ingest-liftosaur'
 import { ingestPolarTask } from './ingest-polar'
 import { ingestGarminTask } from './ingest-garmin'
 import { ingestRouvyTask } from './ingest-rouvy'
@@ -132,6 +133,12 @@ export const ingestAllTask = task({
             payload: { userId, startDate, endDate, fullSync: false }
           })
           break
+        case 'liftosaur':
+          tasksTrigger.push({
+            task: ingestLiftosaurTask,
+            payload: taskPayload
+          })
+          break
         case 'polar':
           tasksTrigger.push({
             task: ingestPolarTask,
@@ -196,6 +203,7 @@ export const ingestAllTask = task({
         if (item.task.id === 'ingest-yazio' && i.provider === 'yazio') return true
         if (item.task.id === 'ingest-fitbit' && i.provider === 'fitbit') return true
         if (item.task.id === ingestHevyTask.id && i.provider === 'hevy') return true
+        if (item.task.id === ingestLiftosaurTask.id && i.provider === 'liftosaur') return true
         if (item.task.id === ingestPolarTask.id && i.provider === 'polar') return true
         if (item.task.id === ingestGarminTask.id && i.provider === 'garmin') return true
         if (item.task.id === ingestRouvyTask.id && i.provider === 'rouvy') return true
