@@ -226,10 +226,20 @@ export default defineEventHandler(async (event) => {
   // 5. Build final payload
   const existing = await nutritionRepository.getByDate(userId, targetDate)
 
+  // OAuth / companion clients often POST one item at a time. Append for oauth so
+  // incremental quick-logs do not wipe prior same-source items. Session/API-key
+  // uploads still replace-by-source within meals that include incoming items.
+  // Buckets with no incoming items are left untouched (avoids clearing other meals).
   const mergeMeal = (mealKey: 'breakfast' | 'lunch' | 'dinner' | 'snacks') => {
     const existingItems = ((existing as any)?.[mealKey] as any[]) || []
-    const kept = existingItems.filter((item) => item?.source !== source)
     const incoming = (mealGroups[mealKey] as any[]) || []
+    if (incoming.length === 0) {
+      return existingItems
+    }
+    if (event.context.authType === 'oauth') {
+      return [...existingItems, ...incoming]
+    }
+    const kept = existingItems.filter((item) => item?.source !== source)
     return [...kept, ...incoming]
   }
 

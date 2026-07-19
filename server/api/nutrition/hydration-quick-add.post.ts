@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { getEffectiveUserId } from '../../utils/coaching'
+import { requireAuth } from '../../utils/auth-guard'
 import { parseCalendarDate } from '../../utils/date'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../utils/nutrition/totals'
@@ -9,8 +9,39 @@ const quickAddSchema = z.object({
   volumeMl: z.number().int().positive().max(5000)
 })
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Nutrition'],
+    summary: 'Quick-add hydration',
+    description:
+      'Appends a water volume to today’s nutrition log. Supports session, API key, and OAuth Bearer with nutrition:write.',
+    security: [{ bearerAuth: [] }],
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['date', 'volumeMl'],
+            properties: {
+              date: { type: 'string', format: 'date' },
+              volumeMl: { type: 'integer', minimum: 1, maximum: 5000 }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: { description: 'Success' },
+      400: { description: 'Invalid data' },
+      401: { description: 'Unauthorized' },
+      403: { description: 'Forbidden' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
-  const userId = await getEffectiveUserId(event)
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
   const body = quickAddSchema.parse(await readBody(event))
   const date = parseCalendarDate(body.date)
   const now = new Date()
@@ -22,6 +53,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const source =
+    event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'dashboard'
+
   const hydrationItem = normalizeFluidFields({
     id: crypto.randomUUID(),
     name: 'Water',
@@ -32,7 +66,7 @@ export default defineEventHandler(async (event) => {
     fat: 0,
     entryType: 'HYDRATION',
     logged_at: now.toISOString(),
-    source: 'dashboard'
+    source
   })
 
   let nutrition = await nutritionRepository.getByDate(userId, date)

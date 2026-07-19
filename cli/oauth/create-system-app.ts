@@ -61,7 +61,9 @@ const createSystemAppCommand = new Command('create-system-app')
         )
       }
       console.log(
-        chalk.cyan('REST scopes include chat:read and chat:write (see docs/developer/scopes.md).')
+        chalk.cyan(
+          'REST scopes include chat:*, nutrition:*, and profile:write (see docs/developer/scopes.md).'
+        )
       )
       console.log(chalk.gray('--------------------------------------------------'))
       console.log(chalk.red('IMPORTANT: Copy the secret now, it will not be shown again.'))
