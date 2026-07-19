@@ -148,6 +148,7 @@ Future feature specifications and improvement plans.
 - [**Workout Timeline Enhancements**](./06-plans/enhance-workout-timeline.md) - Improvements for the activity feed.
 - [**HR Intensity Distribution Fix**](./06-plans/fix-hr-intensity-distribution.md) - Addressing heart rate zone calculation issues.
 - [**Frontend Refactor**](./06-plans/frontend-refactor.md) - Plans for cleaning up and optimizing the UI codebase.
+- [**Mobile Companion App**](./06-plans/mobile-companion-app.md) - Baseline product/tech spec for the native iOS/Android companion (stack, scope, IA, API prerequisites).
 - [**Mobile Review Report**](./06-plans/mobile_review_report.md) - Assessment of the mobile user experience.
 - [**Performance Page Upgrade**](./06-plans/performance-page-upgrade.md) - Next steps for the performance dashboard.
 - [**Nutrition Recommendation & Planning**](./06-plans/nutrition-recommendation-and-planning.md) - Living architecture plan for meal recommendations, nutrition planning, chat tools, and grocery export.
