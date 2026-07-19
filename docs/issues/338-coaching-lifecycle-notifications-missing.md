@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** Gap
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, notifications`
 
 ## Summary
@@ -23,3 +23,8 @@ Notify coach on new Start request; notify athlete on approve/decline; optional n
 
 - [ ] Coach learns of a new Start request without opening Athletes
 - [ ] Athlete learns of approve/decline outcome
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

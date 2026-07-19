@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX / Onboarding
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, join`
 
 ## Summary
@@ -22,3 +22,8 @@ Branch toast + redirect by type: coach→`/coaching/athletes`, athlete→dashboa
 
 - [ ] Coach redeeming athlete code lands on Athletes with correct toast
 - [ ] Athlete accepting coach invite lands on a sensible next step
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

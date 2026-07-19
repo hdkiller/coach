@@ -2,7 +2,7 @@
 
 **Priority:** Critical
 **Type:** Bug
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, invites`
 
 ## Summary
@@ -39,3 +39,8 @@ Input truncates at 6 characters; Connect stays disabled or submits an incomplete
 - [ ] Coach can paste a full athlete invite code and connect
 - [ ] Help text matches actual code length
 - [ ] Team join modal (also maxlength 10) stays consistent
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

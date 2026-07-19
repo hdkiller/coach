@@ -22,6 +22,18 @@
             <UButton
               color="neutral"
               variant="ghost"
+              icon="i-heroicons-eye"
+              @click="
+                () => {
+                  void actAsAthlete()
+                }
+              "
+            >
+              {{ tr('athlete_detail_act_as', 'Act As') }}
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
               icon="i-heroicons-chat-bubble-left-right"
               @click="
                 () => {
@@ -29,7 +41,20 @@
                 }
               "
             >
-              {{ tr('athlete_detail_message', 'Message') }}
+              {{ tr('athlete_detail_message', 'Ask AI') }}
+            </UButton>
+            <UButton
+              color="error"
+              variant="ghost"
+              icon="i-heroicons-user-minus"
+              :loading="removingAthlete"
+              @click="
+                () => {
+                  void confirmRemoveAthlete()
+                }
+              "
+            >
+              {{ tr('athlete_detail_remove', 'Remove Athlete') }}
             </UButton>
           </div>
         </template>
@@ -166,9 +191,15 @@
                   </template>
                   <p
                     class="text-3xl font-black"
-                    :class="athlete.stats.adherence7d >= 80 ? 'text-green-600' : 'text-orange-500'"
+                    :class="
+                      athlete.stats.adherence7d != null
+                        ? athlete.stats.adherence7d >= 80
+                          ? 'text-green-600'
+                          : 'text-orange-500'
+                        : 'text-neutral-400'
+                    "
                   >
-                    {{ athlete.stats.adherence7d }}%
+                    {{ athlete.stats.adherence7d != null ? `${athlete.stats.adherence7d}%` : '--' }}
                   </p>
                   <p class="mt-2 text-xs text-gray-500">
                     {{ athlete.stats.completedCount }}/{{ athlete.stats.plannedCount }} sessions
@@ -624,9 +655,11 @@
   const { formatDateUTC } = useFormat()
   const route = useRoute()
   const router = useRouter()
+  const coachingStore = useCoachingStore()
   const { messageAthlete: openAthleteChat } = useCoachingMessageAthlete()
   const toast = useToast()
   const athleteId = route.params.id as string
+  const removingAthlete = ref(false)
 
   interface AthleteProfile {
     id: string
@@ -665,7 +698,7 @@
       maxHr: number | null
     }
     stats: {
-      adherence7d: number
+      adherence7d: number | null
       completedCount: number
       plannedCount: number
       overduePlannedCount: number
@@ -876,6 +909,35 @@
   function messageAthlete() {
     if (!athlete.value) return
     openAthleteChat(athlete.value)
+  }
+
+  function actAsAthlete() {
+    if (!athlete.value) return
+    const name = athlete.value.name || athlete.value.email || 'Athlete'
+    coachingStore.startActingAs(athlete.value.id, name)
+    void router.push('/dashboard')
+  }
+
+  async function confirmRemoveAthlete() {
+    if (!athlete.value) return
+    const name = athlete.value.name || athlete.value.email || 'this athlete'
+    if (!confirm(`Remove ${name} from your coaching roster? They will no longer be connected to you.`)) {
+      return
+    }
+
+    removingAthlete.value = true
+    try {
+      await $fetch(`/api/coaching/athletes/${athleteId}`, { method: 'DELETE' })
+      toast.add({ title: 'Athlete removed', color: 'success' })
+      await router.push('/coaching/athletes')
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to remove athlete',
+        color: 'error'
+      })
+    } finally {
+      removingAthlete.value = false
+    }
   }
 
   function openPlannedWorkout(_workout: { id: string }) {

@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Gap
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, teams`
 
 ## Summary
@@ -26,3 +26,8 @@
 - [ ] Staff can remove a member from UI
 - [ ] Role changes persist and match invite permission rules
 - [ ] Athletes can leave without owner intervention
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

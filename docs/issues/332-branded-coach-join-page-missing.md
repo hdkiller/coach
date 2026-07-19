@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Gap
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, public`
 
 ## Summary
@@ -22,3 +22,8 @@ Add join page that loads join API and redeems `activeInviteCode`, or remove/depr
 ## Acceptance Criteria
 
 - [ ] Branded join URL either works end-to-end or is removed from product surfaces
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

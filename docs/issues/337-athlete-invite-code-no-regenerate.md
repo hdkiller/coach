@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, invites`
 
 ## Summary
@@ -21,3 +21,8 @@ Add "Regenerate code" / "Revoke" that POSTs `/api/coaching/invite` again (existi
 ## Acceptance Criteria
 
 - [ ] Athlete can invalidate an exposed code and issue a new one immediately
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, teams`
 
 ## Summary
@@ -20,3 +20,8 @@ Gate empty-state CTAs with the same staff checks; show athlete-appropriate empty
 ## Acceptance Criteria
 
 - [ ] Athlete members do not see staff invite CTAs that fail with 403
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

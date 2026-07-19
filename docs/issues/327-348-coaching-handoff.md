@@ -44,3 +44,12 @@ Index: [app-review-issues.md](./app-review-issues.md) § Issues 327–348.
 - Documentation-only in the filing PR unless asked to implement.
 - Prefer Option B-safe defaults for authZ until product chooses Option A (347).
 - Dedup against 263–275 before reopening fixed items.
+
+
+## Implementation status (2026-07-19)
+
+Patched on `cursor/coaching-issues-review-7f31`:
+
+- **Fixed:** 327–343, 347, 116, 272 (detail adherence)
+- **Partial:** 344 (nav rename only), 348 (EN keys; ES thin)
+- **Open / deferred:** 345 (nutrition product), 346 (SUSPENDED status model)

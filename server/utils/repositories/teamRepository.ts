@@ -150,6 +150,25 @@ export const teamRepository = {
     })
   },
 
+  async getTeamMember(teamId: string, userId: string) {
+    return await (prisma as any).teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId } }
+    })
+  },
+
+  async countActiveMembersWithRole(teamId: string, role: TeamRole) {
+    return await (prisma as any).teamMember.count({
+      where: { teamId, role, status: 'ACTIVE' }
+    })
+  },
+
+  async updateMemberRole(teamId: string, userId: string, role: TeamRole) {
+    return await (prisma as any).teamMember.update({
+      where: { teamId_userId: { teamId, userId } },
+      data: { role }
+    })
+  },
+
   async removeTeamMember(teamId: string, userId: string) {
     return await (prisma as any).teamMember.delete({
       where: { teamId_userId: { teamId, userId } }

@@ -2,7 +2,7 @@
 
 **Priority:** Low
 **Type:** i18n
-**Status:** Open
+**Status:** Partial
 **Area:** `coaching, i18n`
 **Related:** [201](./201-coaching-pages-no-i18n.md) (Fixed for thin key set)
 
@@ -17,3 +17,8 @@ Extend coaching locale files; wire `tr()` / Tolgee keys for teams, groups, join,
 ## Acceptance Criteria
 
 - [ ] Primary coaching/team/join strings use i18n keys in EN + ES at minimum
+
+
+## Resolution (2026-07-19)
+
+Partial — see remaining notes in acceptance criteria / handoff.

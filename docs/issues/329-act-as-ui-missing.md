@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Gap / UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, session`
 
 ## Summary
@@ -31,3 +31,8 @@ Either expose Act As / Stop Acting As on athlete surfaces, or remove/soft-pedal 
 
 - [ ] Coaches can enter/exit Act As from UI, **or** product docs/changelog no longer claim it ships
 - [ ] Identity-switch side effects (trigger monitor, websocket) remain covered by 027/031 if re-enabled
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

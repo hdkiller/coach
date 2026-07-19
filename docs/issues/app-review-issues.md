@@ -27,8 +27,8 @@ Exact open/fixed tallies: see section tables below (263–274 mostly Fixed; 327�
 | ---------------------------------------------------------------- | ------------------------------------------------------------- |
 | [062](./062-chat-planned-workout-pollstartedat-crash.md)         | ~~Chat planned-workout card `pollStartedAt` crash~~ **Fixed** |
 | [263](./263-public-share-invite-single-use.md)                   | ~~Public coaching-share invite single-use~~ **Fixed**         |
-| [327](./327-connect-by-code-maxlength-six.md)                    | Connect-by-code truncates to 6 chars (codes are 10)           |
-| [328](./328-share-invite-link-points-to-start.md)                | Share InviteLink copies Start URL instead of join             |
+| [327](./327-connect-by-code-maxlength-six.md)                    | ~~Connect-by-code truncates to 6 chars~~ **Fixed**            |
+| [328](./328-share-invite-link-points-to-start.md)                | ~~Share InviteLink copies Start URL~~ **Fixed**               |
 | [312](./312-garmin-activity-file-callback-token-exfiltration.md) | Garmin callback can exfiltrate access tokens                  |
 | [313](./313-garmin-webhook-multi-user-batch-misrouting.md)       | Garmin multi-user webhook batches are misrouted               |
 | ~~[069](./069-garmin-webhook-unauthenticated.md)~~               | Garmin webhook — **Postponed**                                |
@@ -421,7 +421,7 @@ Systematic pass over `/coaching` pages, components, `coachingRepository`, `teamR
 | [269](./269-coaching-legacy-endpoints-skip-requireauth.md) | Older coaching endpoints skip `requireAuth` guards     | Medium   | Security         | Fixed  |
 | [270](./270-coach-calendar-panel-fetch-race.md)            | Coach calendar panel fetch race on fast navigation     | Medium   | Bug              | Fixed  |
 | [271](./271-overview-compliance-server-timezone.md)        | Overview compliance grid uses server timezone          | Medium   | Bug              | Fixed  |
-| [272](./272-adherence-100-with-zero-planned.md)            | Adherence shows 100% with zero planned workouts        | Medium   | Bug/UX           | Partial |
+| [272](./272-adherence-100-with-zero-planned.md)            | Adherence shows 100% with zero planned workouts        | Medium   | Bug/UX           | Fixed |
 | [273](./273-team-invite-email-case-sensitive.md)           | Team invite email restriction is case-sensitive        | Medium   | Bug              | Fixed  |
 | [274](./274-coaching-calendar-unbounded-range.md)          | Coaching athlete calendar accepts unbounded date range | Medium   | Bug/Performance  | Fixed  |
 | [275](./275-coaching-polish-bundle.md)                     | Coaching pages low-priority polish (275a–275e)         | Low      | Maintenance      | Open   |
@@ -632,42 +632,41 @@ User-facing `/documentation/` coverage review. Foundation pages first; support-d
 
 Second coaching pass after verifying 263–275. Focus: invite redemption bugs, athlete↔coach management, team staff workflows, coach data-browse gaps, and IA/nav friction. Prior related: 068, 085, 115–116, 152–154, 201, 263–275, 293.
 
-| ID                                                                  | Title                                                              | Priority | Type             | Status |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------ | -------- | ---------------- | ------ |
-| [327](./327-connect-by-code-maxlength-six.md)                       | Connect-by-code input truncates to 6 chars (codes are 10)          | Critical | Bug              | Open   |
-| [328](./328-share-invite-link-points-to-start.md)                   | Public share InviteLink copies Start URL instead of join           | Critical | Bug              | Open   |
-| [329](./329-act-as-ui-missing.md)                                   | Coaching Act As has no UI entry point                              | High     | Gap / UX         | Open   |
-| [330](./330-coach-cannot-remove-athlete.md)                         | Coach cannot remove / end relationship with an athlete             | High     | Gap / UX         | Open   |
-| [331](./331-coaching-team-page-ia-confusion.md)                     | Team page mixes My Coaches, invite-a-coach, and pro teams          | High     | UX / IA          | Open   |
-| [332](./332-branded-coach-join-page-missing.md)                     | Branded `/coach/[slug]/join` page missing                         | High     | Gap              | Open   |
-| [333](./333-team-invites-never-send-email.md)                       | Team email-restricted invites never send email                     | High     | Gap / UX         | Open   |
-| [334](./334-team-member-remove-role-change-missing.md)              | No team member remove or role-change UI/API                        | High     | Gap              | Open   |
-| [335](./335-group-details-email-leak.md)                            | Team group details API leaks member emails                         | High     | Security/Privacy | Open   |
-| [336](./336-athlete-detail-adherence-null-display.md)               | Athlete detail still shows `null%` for 7d adherence                | Medium   | Bug              | Open   |
-| [337](./337-athlete-invite-code-no-regenerate.md)                   | Athlete personal invite code cannot regenerate while active        | Medium   | UX               | Open   |
-| [338](./338-coaching-lifecycle-notifications-missing.md)            | No notifications for connect / request lifecycle                   | Medium   | Gap              | Open   |
-| [339](./339-already-connected-start-requests-allowed.md)            | Already-connected athletes can still submit Start requests         | Medium   | UX / Edge case   | Open   |
-| [340](./340-overview-empty-hides-pending-requests.md)               | Overview empty state hides pending Start-page requests             | Medium   | UX               | Open   |
-| [341](./341-join-success-messaging-wrong-type.md)                   | Join success toast/redirect ignores invite type                    | Medium   | UX / Onboarding  | Open   |
-| [342](./342-team-roster-empty-ctas-ignore-role.md)                  | Team roster empty-state CTAs ignore member role                    | Medium   | UX               | Open   |
-| [343](./343-my-coaches-list-too-thin.md)                            | My Coaches list too thin for athlete management                    | Medium   | UX               | Open   |
-| [344](./344-athletes-see-coach-centric-nav.md)                      | Pure athletes see coach-centric Coaching navigation                | Medium   | UX / IA          | Open   |
-| [345](./345-coach-nutrition-views-missing.md)                       | Coaches lack nutrition / fueling views for athletes                | Medium   | Enhancement      | Open   |
-| [346](./346-suspended-relationship-status-unused.md)                | `SUSPENDED` coaching relationship status is unused                 | Medium   | Gap              | Open   |
-| [347](./347-multi-coach-team-data-access-friction.md)               | Multi-coach team staff still cannot share athlete data             | Medium   | Product / UX     | Open   |
-| [348](./348-coaching-i18n-incomplete-teams-join.md)                 | Coaching teams/groups/join/public pages still largely untranslated | Low      | i18n             | Open   |
-| [116](./116-coaching-message-athlete-no-context.md)                 | Message Athlete opens AI chat without athlete context              | Medium   | UI               | Open   |
+| ID                                                                  | Title                                                              | Priority | Type             | Status  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ | -------- | ---------------- | ------- |
+| [327](./327-connect-by-code-maxlength-six.md)                       | Connect-by-code input truncates to 6 chars (codes are 10)          | Critical | Bug              | Fixed   |
+| [328](./328-share-invite-link-points-to-start.md)                   | Public share InviteLink copies Start URL instead of join           | Critical | Bug              | Fixed   |
+| [329](./329-act-as-ui-missing.md)                                   | Coaching Act As has no UI entry point                              | High     | Gap / UX         | Fixed   |
+| [330](./330-coach-cannot-remove-athlete.md)                         | Coach cannot remove / end relationship with an athlete             | High     | Gap / UX         | Fixed   |
+| [331](./331-coaching-team-page-ia-confusion.md)                     | Team page mixes My Coaches, invite-a-coach, and pro teams          | High     | UX / IA          | Fixed   |
+| [332](./332-branded-coach-join-page-missing.md)                     | Branded `/coach/[slug]/join` page missing                         | High     | Gap              | Fixed   |
+| [333](./333-team-invites-never-send-email.md)                       | Team email-restricted invites never send email                     | High     | Gap / UX         | Fixed   |
+| [334](./334-team-member-remove-role-change-missing.md)              | No team member remove or role-change UI/API                        | High     | Gap              | Fixed   |
+| [335](./335-group-details-email-leak.md)                            | Team group details API leaks member emails                         | High     | Security/Privacy | Fixed   |
+| [336](./336-athlete-detail-adherence-null-display.md)               | Athlete detail still shows `null%` for 7d adherence                | Medium   | Bug              | Fixed   |
+| [337](./337-athlete-invite-code-no-regenerate.md)                   | Athlete personal invite code cannot regenerate while active        | Medium   | UX               | Fixed   |
+| [338](./338-coaching-lifecycle-notifications-missing.md)            | No notifications for connect / request lifecycle                   | Medium   | Gap              | Fixed   |
+| [339](./339-already-connected-start-requests-allowed.md)            | Already-connected athletes can still submit Start requests         | Medium   | UX / Edge case   | Fixed   |
+| [340](./340-overview-empty-hides-pending-requests.md)               | Overview empty state hides pending Start-page requests             | Medium   | UX               | Fixed   |
+| [341](./341-join-success-messaging-wrong-type.md)                   | Join success toast/redirect ignores invite type                    | Medium   | UX / Onboarding  | Fixed   |
+| [342](./342-team-roster-empty-ctas-ignore-role.md)                  | Team roster empty-state CTAs ignore member role                    | Medium   | UX               | Fixed   |
+| [343](./343-my-coaches-list-too-thin.md)                            | My Coaches list too thin for athlete management                    | Medium   | UX               | Fixed   |
+| [344](./344-athletes-see-coach-centric-nav.md)                      | Pure athletes see coach-centric Coaching navigation                | Medium   | UX / IA          | Partial |
+| [345](./345-coach-nutrition-views-missing.md)                       | Coaches lack nutrition / fueling views for athletes                | Medium   | Enhancement      | Open    |
+| [346](./346-suspended-relationship-status-unused.md)                | `SUSPENDED` coaching relationship status is unused                 | Medium   | Gap              | Open    |
+| [347](./347-multi-coach-team-data-access-friction.md)               | Multi-coach team staff still cannot share athlete data             | Medium   | Product / UX     | Fixed   |
+| [348](./348-coaching-i18n-incomplete-teams-join.md)                 | Coaching teams/groups/join/public pages still largely untranslated | Low      | i18n             | Partial |
+| [116](./116-coaching-message-athlete-no-context.md)                 | Message Athlete opens AI chat without athlete context              | Medium   | UI               | Fixed   |
 
-### Suggested fix order (coaching 327–348)
+### Implementation note (327–348 — 2026-07-19)
 
-1. **327 + 328** — invite redemption broken in production UX (connect code + share URL)
-2. **335** — group email privacy leak
-3. **332 + 333** — finish branded join / honest team email invites
-4. **330 + 334** — relationship & team membership offboarding
-5. **331 + 344 + 343** — athlete/coach IA (Team page + nav + My Coaches)
-6. **329 + 347 + 345** — Act As / multi-coach access / nutrition product decisions
-7. **336–342, 338–341** — adherence null, regenerate, notifications, Start/Overview/join polish
-8. **346 + 348 + 116 + 275** — status model, i18n, message context, polish
+Most items patched on `cursor/coaching-issues-review-7f31`. Remaining open: **345** (coach nutrition product), **346** (SUSPENDED model). Partial: **344** (nav rename to My Coaches; full role-aware nav deferred), **348** (EN keys; ES still thin).
+
+### Suggested fix order (remaining)
+
+1. **345 / 346** — product decisions if still desired
+2. **344** — optional athlete-only coaching nav
+3. **348 + 275** — i18n / polish leftovers
 
 ## Recommended fix order (app review)
 

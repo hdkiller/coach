@@ -3,7 +3,8 @@ export function useCoachingMessageAthlete() {
 
   function messageAthlete(athlete: { id?: string; name?: string | null; email?: string | null }) {
     const athleteName = athlete.name || athlete.email || 'this athlete'
-    const initialMessage = `I'd like to discuss ${athleteName}'s training. What should we focus on?`
+    const idPart = athlete.id ? ` (id: ${athlete.id})` : ''
+    const initialMessage = `I'd like to discuss athlete ${athleteName}${idPart}. What should we focus on?`
 
     void router.push({
       path: '/chat',

@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, overview`
 
 ## Summary
@@ -22,3 +22,8 @@ Include pending request count/CTA on Overview (or badge on nav Athletes link).
 ## Acceptance Criteria
 
 - [ ] Coach with pending requests sees them (or a clear CTA) from Overview even with zero athletes
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

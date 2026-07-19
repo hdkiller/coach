@@ -1,21 +1,24 @@
 <script setup lang="ts">
   import QRCode from 'qrcode'
-  import { buildPublicCoachStartPath } from '#shared/public-presence'
 
   const props = defineProps<{
     code: string
+    /** @deprecated Kept for call-site compatibility; join URLs always redeem this code. */
     coachSlug?: string | null
     label?: string
     variant?: 'soft' | 'subtle' | 'outline' | 'ghost'
   }>()
 
   const toast = useToast()
-  const config = useRuntimeConfig()
 
+  /**
+   * Always redeem the specific invite code via `/join/{code}`.
+   * Never point at `/start` (request-only) or `/coach/{slug}/join` (latest
+   * public invite only — may not match this code).
+   */
   const joinUrl = computed(() => {
     const base = import.meta.client ? window.location.origin : 'https://coachwatts.com'
-    const brandedPath = buildPublicCoachStartPath(props.coachSlug)
-    return brandedPath ? `${base}${brandedPath}` : `${base}/join/${props.code.toUpperCase()}`
+    return `${base}/join/${props.code.toUpperCase()}`
   })
 
   function copyUrl() {
@@ -28,7 +31,6 @@
     toast.add({ title: 'Code copied!', color: 'primary' })
   }
 
-  // QR Code Logic
   const isQrModalOpen = ref(false)
   const qrCodeDataUrl = ref('')
 
@@ -50,8 +52,9 @@
   }
 
   watch(isQrModalOpen, (val) => {
-    if (val && !qrCodeDataUrl.value) {
-      generateQrCode()
+    if (val) {
+      qrCodeDataUrl.value = ''
+      void generateQrCode()
     }
   })
 </script>
@@ -107,7 +110,6 @@
       </div>
     </div>
 
-    <!-- QR Code Modal -->
     <UModal v-model:open="isQrModalOpen" title="Invite QR Code">
       <template #body>
         <div class="flex flex-col items-center p-6 space-y-6">

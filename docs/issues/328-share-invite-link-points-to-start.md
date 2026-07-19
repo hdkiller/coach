@@ -2,7 +2,7 @@
 
 **Priority:** Critical
 **Type:** Bug
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, invites, public`
 
 ## Summary
@@ -41,3 +41,8 @@ Copy/QR points at Start page; invite code is unused by that URL.
 
 - [ ] Copy Join URL / QR for a public share invite redeem the invite without Start-page approval
 - [ ] Start page remains available as a separate intake path
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

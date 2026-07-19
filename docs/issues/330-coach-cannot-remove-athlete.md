@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Gap / UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, relationships`
 
 ## Summary
@@ -29,3 +29,8 @@ Coach can end or suspend coaching access for an athlete (with confirmation), rem
 
 - [ ] Coach can remove an athlete and loses access to private coach APIs for that athlete
 - [ ] Athlete is notified or sees coach disappear from My Coaches
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

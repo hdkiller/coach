@@ -1,4 +1,5 @@
 import { requireAuth } from '../../../../../utils/auth-guard'
+import { createUserNotification } from '../../../../../utils/notifications'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['coaching:write'])
@@ -9,7 +10,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    return await coachingRepository.approveCoachingRequest(user.id, requestId)
+    const result = await coachingRepository.approveCoachingRequest(user.id, requestId)
+
+    try {
+      await createUserNotification(result.request.athleteId, {
+        title: 'Coaching request approved',
+        message: `${user.name || 'Your coach'} accepted your coaching request.`,
+        icon: 'i-heroicons-check-circle',
+        link: '/coaching'
+      })
+    } catch (notifyError) {
+      console.error('[ApproveCoachingRequest] Failed to notify athlete:', notifyError)
+    }
+
+    return result
   } catch (error: any) {
     throw createError({
       statusCode: error?.message === 'Request not found' ? 404 : 400,

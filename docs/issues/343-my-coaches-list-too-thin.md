@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, athletes`
 
 ## Summary
@@ -21,3 +21,8 @@ Enrich coach cards; link to public presence when slug exists; short "What they c
 ## Acceptance Criteria
 
 - [ ] Athlete can understand who coaches them and revoke with informed consent
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX / Edge case
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, public, requests`
 
 ## Summary
@@ -22,3 +22,8 @@ Short-circuit when ACTIVE with this coach; show Connected / Pending states on St
 
 - [ ] Connected athletes cannot create a new PENDING request for the same coach
 - [ ] UI explains current connection/pending state
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

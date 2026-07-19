@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** UX / IA
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, navigation`
 
 ## Summary
@@ -23,3 +23,8 @@
 
 - [ ] Athlete can find "My Coaches" without opening professional-team empty states first
 - [ ] Coach creating an org is not mixed with athlete invite-code CTA language
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

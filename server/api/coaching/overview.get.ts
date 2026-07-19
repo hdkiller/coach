@@ -28,12 +28,18 @@ export default defineEventHandler(async (event) => {
   const userAuth = await requireAuth(event, ['coaching:read'])
   const coachId = userAuth.id
 
-  const athleteRelationships = await coachingRepository.getAthletesForCoach(coachId)
+  const [athleteRelationships, pendingRequests] = await Promise.all([
+    coachingRepository.getAthletesForCoach(coachId),
+    coachingRepository.getPendingCoachingRequestsForCoach(coachId)
+  ])
+  const pendingRequestCount = pendingRequests.length
+
   if (athleteRelationships.length === 0) {
     return {
       athletes: [],
       feed: [],
-      weekDays: []
+      weekDays: [],
+      pendingRequestCount
     }
   }
 
@@ -158,6 +164,7 @@ export default defineEventHandler(async (event) => {
     weekDays: days.map((d) => ({
       label: format(d, 'EEE'),
       date: d
-    }))
+    })),
+    pendingRequestCount
   }
 })

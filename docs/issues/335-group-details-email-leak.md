@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Security / Privacy
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, teams, privacy`
 
 ## Summary
@@ -32,3 +32,8 @@ Restrict GET to staff/group owner, and/or strip emails for non-staff viewers.
 
 - [ ] Athlete members cannot read other athletes' emails via group API
 - [ ] Staff still see emails when appropriate
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

@@ -3,7 +3,7 @@
 **Type:** UI  
 **Priority:** Medium  
 **Area:** `coaching, ai`  
-**Status:** Open
+**Status:** Fixed
 
 ## Summary
 
@@ -40,3 +40,8 @@ Pass `athleteId` / context query params the chat layer understands; rename contr
 
 - [ ] Coach AI chat receives identifiable athlete context when opened from coaching UI
 - [ ] Labeling does not imply an in-app DM was sent to the athlete
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

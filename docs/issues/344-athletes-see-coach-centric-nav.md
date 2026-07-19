@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** UX / IA
-**Status:** Open
+**Status:** Partial
 **Area:** `coaching, navigation`
 
 ## Summary
@@ -21,3 +21,8 @@ Role-aware nav (athlete: My Coaches + join paths; coach: full suite), or land at
 ## Acceptance Criteria
 
 - [ ] Athlete without a roster is not dumped into coach empty states as the primary path
+
+
+## Resolution (2026-07-19)
+
+Partial — see remaining notes in acceptance criteria / handoff.

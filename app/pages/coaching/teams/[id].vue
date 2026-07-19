@@ -81,7 +81,10 @@
               >
                 <UIcon name="i-heroicons-users" class="w-12 h-12 text-neutral-300 mb-2" />
                 <p class="text-neutral-500">No athletes in this team roster yet.</p>
-                <div class="flex items-center justify-center gap-2 mt-4">
+                <div
+                  v-if="['OWNER', 'ADMIN', 'COACH'].includes(myRole)"
+                  class="flex items-center justify-center gap-2 mt-4"
+                >
                   <UButton
                     color="primary"
                     variant="link"
@@ -106,13 +109,28 @@
                 </div>
               </div>
               <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-6">
-                <CoachingAthleteCard
-                  v-for="rel in roster"
-                  :key="rel.id"
-                  :athlete="rel.athlete"
-                  @view="viewAthlete"
-                  @message="messageAthlete"
-                />
+                <div v-for="rel in roster" :key="rel.id" class="relative group/roster">
+                  <CoachingAthleteCard
+                    :athlete="rel.athlete"
+                    @view="viewAthlete"
+                    @message="messageAthlete"
+                    @act-as="actAsAthlete"
+                  />
+                  <UButton
+                    v-if="canManageMembers && rel.athlete?.id"
+                    color="error"
+                    variant="ghost"
+                    icon="i-heroicons-trash"
+                    size="xs"
+                    class="absolute top-2 right-2 opacity-0 group-hover/roster:opacity-100 transition-opacity"
+                    :loading="removingMemberId === rel.athlete.id"
+                    @click="
+                      () => {
+                        void removeMember(rel.athlete.id, rel.athlete.name || rel.athlete.email)
+                      }
+                    "
+                  />
+                </div>
               </div>
 
               <UCard
@@ -217,6 +235,7 @@
                   :athlete="rel.athlete"
                   @view="viewAthlete"
                   @message="messageAthlete"
+                  @act-as="actAsAthlete"
                 />
               </div>
               <div
@@ -233,18 +252,64 @@
           <!-- Staff Tab -->
           <template #staff>
             <div class="space-y-4 pt-4">
-              <h3 class="text-lg font-bold">Team Staff</h3>
+              <div class="flex items-center justify-between px-4 sm:px-0">
+                <h3 class="text-lg font-bold">Team Staff</h3>
+                <UButton
+                  v-if="myRole && myRole !== 'OWNER'"
+                  color="error"
+                  variant="soft"
+                  label="Leave Team"
+                  icon="i-heroicons-arrow-right-start-on-rectangle"
+                  size="xs"
+                  class="font-bold"
+                  :loading="leavingTeam"
+                  @click="
+                    () => {
+                      void leaveTeam()
+                    }
+                  "
+                />
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UCard v-for="member in staffMembers" :key="member.id" :ui="mobileListCardUi">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
                       <UAvatar :src="member.user.image" :alt="member.user.name" />
-                      <div>
-                        <p class="font-bold text-sm">{{ member.user.name }}</p>
-                        <p class="text-xs text-neutral-500">{{ member.user.email }}</p>
+                      <div class="min-w-0">
+                        <p class="font-bold text-sm truncate">{{ member.user.name }}</p>
+                        <p class="text-xs text-neutral-500 truncate">{{ member.user.email }}</p>
                       </div>
                     </div>
-                    <UBadge color="neutral" variant="soft" size="xs">{{ member.role }}</UBadge>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <USelect
+                        v-if="canManageMembers && member.userId !== currentUserId"
+                        :model-value="member.role"
+                        :items="staffRoleOptions"
+                        size="xs"
+                        class="w-28"
+                        @update:model-value="
+                          (role) => {
+                            void updateMemberRole(member.userId, String(role))
+                          }
+                        "
+                      />
+                      <UBadge v-else color="neutral" variant="soft" size="xs">{{
+                        member.role
+                      }}</UBadge>
+                      <UButton
+                        v-if="canRemoveMember(member)"
+                        color="error"
+                        variant="ghost"
+                        icon="i-heroicons-trash"
+                        size="xs"
+                        :loading="removingMemberId === member.userId"
+                        @click="
+                          () => {
+                            void removeMember(member.userId, member.user.name || member.user.email)
+                          }
+                        "
+                      />
+                    </div>
                   </div>
                 </UCard>
               </div>
@@ -323,7 +388,7 @@
                 </div>
               </div>
 
-              <!-- Danger Zone -->
+              <!-- Danger Zone / Leave -->
               <div
                 v-if="myRole === 'OWNER'"
                 class="pt-8 border-t border-gray-100 dark:border-gray-800"
@@ -353,6 +418,33 @@
                   </div>
                 </UCard>
               </div>
+              <div
+                v-else-if="myRole"
+                class="pt-8 border-t border-gray-100 dark:border-gray-800"
+              >
+                <h3 class="text-lg font-bold mb-2">Membership</h3>
+                <UCard :ui="{ ...mobileListCardUi, body: 'p-4' }">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="font-bold text-sm">Leave Team</p>
+                      <p class="text-xs text-neutral-500">
+                        Remove yourself from this team. You will lose access to the roster.
+                      </p>
+                    </div>
+                    <UButton
+                      color="error"
+                      variant="soft"
+                      label="Leave Team"
+                      :loading="leavingTeam"
+                      @click="
+                        () => {
+                          void leaveTeam()
+                        }
+                      "
+                    />
+                  </div>
+                </UCard>
+              </div>
             </div>
           </template>
         </UTabs>
@@ -370,7 +462,7 @@
       <div class="space-y-4">
         <UFormField
           label="Restricted to Email"
-          help="Optional: If provided, only this email address can use the code."
+          help="Optional: Restrict this invite to one email address. We'll email them the join link when provided."
         >
           <UInput
             v-model="newInvite.email"
@@ -583,7 +675,9 @@
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
+  const coachingStore = useCoachingStore()
   const { messageAthlete } = useCoachingMessageAthlete()
+  const currentUserId = computed(() => useUserStore().user?.id)
 
   const team = ref<any>(null)
   const roster = ref<any[]>([])
@@ -599,6 +693,15 @@
   const athleteCodeToJoin = ref('')
   const activeGroupId = ref('all')
   const shareInviteGroupId = ref<string | undefined>(undefined)
+  const removingMemberId = ref<string | null>(null)
+  const leavingTeam = ref(false)
+  const updatingRoleId = ref<string | null>(null)
+
+  const staffRoleOptions = [
+    { label: 'Coach', value: 'COACH' },
+    { label: 'Admin', value: 'ADMIN' },
+    { label: 'Owner', value: 'OWNER' }
+  ]
 
   const newInvite = ref({
     email: '',
@@ -620,6 +723,19 @@
   ])
 
   const canShareAthleteInvite = computed(() => ['OWNER', 'ADMIN', 'COACH'].includes(myRole.value))
+  const canManageMembers = computed(() => ['OWNER', 'ADMIN'].includes(myRole.value || ''))
+
+  const ownerCount = computed(
+    () => team.value?.members?.filter((m: any) => m.role === 'OWNER').length || 0
+  )
+
+  function canRemoveMember(member: { userId: string; role: string }) {
+    if (!canManageMembers.value) return false
+    if (member.userId === currentUserId.value && member.role === 'OWNER' && ownerCount.value <= 1) {
+      return false
+    }
+    return true
+  }
 
   const shareableAthleteInvite = computed(() => {
     return (
@@ -643,6 +759,8 @@
 
     if (['OWNER', 'ADMIN'].includes(myRole.value)) {
       items.push({ label: 'Management', slot: 'settings', icon: 'i-heroicons-cog-6-tooth' })
+    } else if (myRole.value) {
+      items.push({ label: 'Settings', slot: 'settings', icon: 'i-heroicons-cog-6-tooth' })
     }
 
     return items
@@ -809,6 +927,80 @@
   function viewAthlete(athlete: any) {
     if (athlete?.canViewDetails === false || athlete?.isMasked) return
     router.push(`/coaching/athletes/${athlete.id}`)
+  }
+
+  function actAsAthlete(athlete: any) {
+    if (!athlete?.id || athlete?.canViewDetails === false || athlete?.isMasked) return
+    const name = athlete.name || athlete.email || 'Athlete'
+    coachingStore.startActingAs(athlete.id, name)
+    void router.push('/dashboard')
+  }
+
+  async function removeMember(userId: string, displayName?: string) {
+    if (!team.value?.id || !userId) return
+    const label = displayName || 'this member'
+    if (!confirm(`Remove ${label} from the team?`)) return
+
+    removingMemberId.value = userId
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
+        method: 'DELETE'
+      })
+      toast.add({ title: 'Member removed', color: 'success' })
+      if (userId === currentUserId.value) {
+        await router.push('/coaching/team')
+        return
+      }
+      await refreshTeam()
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to remove member',
+        color: 'error'
+      })
+    } finally {
+      removingMemberId.value = null
+    }
+  }
+
+  async function leaveTeam() {
+    if (!team.value?.id || !currentUserId.value) return
+    if (!confirm(`Leave "${team.value.name}"? You will lose access to this team.`)) return
+
+    leavingTeam.value = true
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/members/${currentUserId.value}`, {
+        method: 'DELETE'
+      })
+      toast.add({ title: 'You left the team', color: 'success' })
+      await router.push('/coaching/team')
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to leave team',
+        color: 'error'
+      })
+    } finally {
+      leavingTeam.value = false
+    }
+  }
+
+  async function updateMemberRole(userId: string, role: string) {
+    if (!team.value?.id || !userId || !role) return
+    updatingRoleId.value = userId
+    try {
+      await $fetch(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
+        method: 'PATCH',
+        body: { role }
+      })
+      toast.add({ title: 'Role updated', color: 'success' })
+      await refreshTeam()
+    } catch (err: any) {
+      toast.add({
+        title: err.data?.message || 'Failed to update role',
+        color: 'error'
+      })
+    } finally {
+      updatingRoleId.value = null
+    }
   }
 
   async function confirmDeleteTeam() {

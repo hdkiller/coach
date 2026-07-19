@@ -1,5 +1,6 @@
 import { z } from 'zod/v3'
 import { requireAuth } from '../../../../utils/auth-guard'
+import { sendTeamInviteEmail } from '../../../../utils/team-invite-email'
 import { teamRepository } from '../../../../utils/repositories/teamRepository'
 
 const createInviteSchema = z.object({
@@ -60,6 +61,28 @@ export default defineEventHandler(async (event) => {
   }
 
   const invite = await teamRepository.createTeamInvite(teamId, result.data)
+
+  if (invite.email) {
+    const team = await teamRepository.getTeamDetails(teamId)
+    const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
+    const joinUrl = `${baseUrl}/join/${invite.code}`
+
+    try {
+      await sendTeamInviteEmail({
+        to: invite.email,
+        teamName: team?.name || 'a team',
+        role: invite.role,
+        joinUrl,
+        code: invite.code
+      })
+    } catch (error: any) {
+      await teamRepository.revokeInvite(teamId, invite.id)
+      throw createError({
+        statusCode: 500,
+        message: error.message || 'Failed to send invitation email'
+      })
+    }
+  }
 
   setResponseStatus(event, 201)
   return invite

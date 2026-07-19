@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** Bug
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, athletes`
 **Related:** [272](./272-adherence-100-with-zero-planned.md) (Partial)
 
@@ -23,3 +23,8 @@ Match AthleteCard: show `--` when null; fix TypeScript type.
 ## Acceptance Criteria
 
 - [ ] Zero-plan athletes show `--` on detail overview, not `null%`
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

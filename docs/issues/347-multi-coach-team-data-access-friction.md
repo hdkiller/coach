@@ -2,7 +2,7 @@
 
 **Priority:** Medium
 **Type:** Product / UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, teams, authz`
 **Related:** [266](./266-team-staff-cannot-access-roster-athletes.md) (Fixed via Option B)
 
@@ -26,3 +26,8 @@ Choose and ship one model:
 
 - [ ] Staff invite / roster UI states whether team role grants athlete-data access
 - [ ] If Option A chosen, APIs and UI aligned with tests
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

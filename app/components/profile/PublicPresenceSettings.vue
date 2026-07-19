@@ -535,6 +535,7 @@
     buildDefaultCoachPublicProfile,
     buildPublicAthletePath,
     buildPublicCoachHomePath,
+    buildPublicCoachJoinPath,
     buildPublicCoachStartPath,
     buildPublicCoachPath
   } from '#shared/public-presence'
@@ -673,7 +674,7 @@
     coachPreviewUrl.value ? `${coachPreviewUrl.value}?edit=1` : undefined
   )
   const coachJoinPreviewUrl = computed(() =>
-    buildPublicCoachHomePath(coachProfile.value.settings.slug)
+    buildPublicCoachJoinPath(coachProfile.value.settings.slug)
   )
   const coachStartPreviewUrl = computed(() =>
     buildPublicCoachStartPath(coachProfile.value.settings.slug)

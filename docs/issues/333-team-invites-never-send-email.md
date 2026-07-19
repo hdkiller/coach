@@ -2,7 +2,7 @@
 
 **Priority:** High
 **Type:** Gap / UX
-**Status:** Open
+**Status:** Fixed
 **Area:** `coaching, teams, invites`
 
 ## Summary
@@ -23,3 +23,8 @@ Send a team invite email (mirror coach-athlete template) **or** relabel the fiel
 
 - [ ] Staff are not led to believe an email was sent when it was not
 - [ ] If email is supported, failure handling matches athlete-invite behavior
+
+
+## Resolution (2026-07-19)
+
+Implemented on branch `cursor/coaching-issues-review-7f31`.

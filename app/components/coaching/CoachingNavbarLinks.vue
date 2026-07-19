@@ -22,7 +22,7 @@
       to: '/analytics'
     },
     {
-      label: 'Team',
+      label: 'My Coaches',
       icon: 'i-lucide-building-2',
       to: '/coaching/team'
     }
