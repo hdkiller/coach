@@ -16,9 +16,13 @@
           <template #header>
             <div class="flex items-center gap-4">
               <div
-                class="w-12 h-12 rounded-lg bg-[#8356f6] flex items-center justify-center shrink-0"
+                class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden rounded-lg"
               >
-                <UIcon name="i-lucide-dumbbell" class="w-7 h-7 text-white" />
+                <img
+                  src="/images/logos/liftosaur.svg"
+                  alt="Liftosaur Logo"
+                  class="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h2 class="text-xl font-semibold">{{ p('title', 'Connect Liftosaur') }}</h2>

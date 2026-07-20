@@ -458,8 +458,12 @@
     <!-- Liftosaur -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
-        <div class="w-12 h-12 rounded-lg bg-[#8356f6] flex items-center justify-center shrink-0">
-          <UIcon name="i-lucide-dumbbell" class="w-7 h-7 text-white" />
+        <div class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden rounded-lg">
+          <img
+            src="/images/logos/liftosaur.svg"
+            alt="Liftosaur Logo"
+            class="w-full h-full object-cover"
+          />
         </div>
         <div>
           <h3 class="font-semibold">Liftosaur</h3>

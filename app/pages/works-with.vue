@@ -140,8 +140,7 @@
     {
       name: 'Liftosaur',
       category: 'platforms',
-      src: 'i-lucide-dumbbell',
-      isIcon: true,
+      src: '/images/logos/liftosaur.svg',
       descKey: 'liftosaur_desc',
       status: 'Manual Sync',
       color: '#8356F6',
