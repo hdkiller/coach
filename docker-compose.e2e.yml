@@ -1,11 +1,7 @@
 version: '3.8'
 
-# Dedicated E2E stack — isolated from local dev (Postgres 5439 / Redis 6379).
-# Usage:
-#   pnpm e2e:setup     # infra + migrate/seed + app
-#   pnpm e2e:up:infra  # Postgres + Redis only (host-run app via pnpm e2e:app:host)
-#   pnpm e2e:down
-
+# Dedicated Postgres for E2E tests — isolated from dev data on port 5439.
+# Start with: pnpm e2e:db:up
 services:
   postgres-e2e:
     image: postgres:16-alpine
@@ -23,78 +19,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  redis-e2e:
-    image: docker.dragonflydb.io/dragonflydb/dragonfly
-    container_name: coach-redis-e2e
-    ulimits:
-      memlock: -1
-    command:
-      [
-        '--default_lua_flags=allow-undeclared-keys',
-        '--requirepass=dragonfly',
-        '--admin_port=6380',
-        '--admin_nopass'
-      ]
-    ports:
-      - '6389:6379'
-    healthcheck:
-      test: ['CMD-SHELL', 'redis-cli -a dragonfly ping | grep -q PONG']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  app-e2e:
-    build:
-      context: .
-      dockerfile: Dockerfile.e2e
-    container_name: coach-app-e2e
-    ports:
-      - '3199:3000'
-    env_file:
-      - path: .env.e2e
-        required: false
-      - path: .env.e2e.example
-        required: false
-    environment:
-      # In-compose service hostnames (override host-oriented .env.e2e values)
-      DATABASE_URL: postgresql://watts:password@postgres-e2e:5432/coach_e2e?connection_limit=5&pool_timeout=10&connect_timeout=10
-      REDIS_URL: redis://:dragonfly@redis-e2e:6379/0
-      E2E_MODE: 'true'
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      NITRO_HOST: 0.0.0.0
-      PORT: '3000'
-      NUXT_AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
-      NUXT_AUTH_ORIGIN: http://localhost:3199/api/auth
-      NUXT_PUBLIC_SITE_URL: http://localhost:3199/
-      DISABLE_EMAILS: 'true'
-      TOLGEE_API_ENABLED: 'false'
-      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'false'
-      CHAT_TURN_RUNNER_ENABLED: 'false'
-      GOOGLE_CLIENT_ID: e2e-placeholder
-      GOOGLE_CLIENT_SECRET: e2e-placeholder
-      STRAVA_CLIENT_ID: e2e-placeholder
-      STRAVA_CLIENT_SECRET: e2e-placeholder
-      INTERVALS_CLIENT_ID: e2e-placeholder
-      INTERVALS_CLIENT_SECRET: e2e-placeholder
-    depends_on:
-      postgres-e2e:
-        condition: service_healthy
-      redis-e2e:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
 
 volumes:
   postgres_e2e_data:
