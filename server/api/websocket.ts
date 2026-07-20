@@ -1,6 +1,6 @@
 import { defineWebSocketHandler } from 'h3'
 import { prisma } from '../utils/db'
-import { verifyWsToken } from '../utils/ws-auth'
+import { verifyWsToken, wsAuthHasScopes } from '../utils/ws-auth'
 import { checkQuota } from '../utils/quotas/engine'
 import { peerContext } from '../utils/ws-state'
 import { chatService } from '../utils/services/chatService'
@@ -24,12 +24,13 @@ export default defineWebSocketHandler({
       const data = JSON.parse(text)
 
       if (data.type === 'authenticate') {
-        const userId = verifyWsToken(data.token)
-        if (userId) {
+        const auth = verifyWsToken(data.token)
+        if (auth) {
           const ctx = peerContext.get(peer) || {}
-          ctx.userId = userId
+          ctx.userId = auth.userId
+          ctx.scopes = auth.scopes
           peerContext.set(peer, ctx)
-          peer.send(JSON.stringify({ type: 'authenticated', userId }))
+          peer.send(JSON.stringify({ type: 'authenticated', userId: auth.userId }))
         } else {
           peer.send(
             JSON.stringify({
@@ -50,6 +51,17 @@ export default defineWebSocketHandler({
               type: 'error',
               code: 'UNAUTHORIZED',
               message: 'Authentication required for chat'
+            })
+          )
+          return
+        }
+
+        if (!wsAuthHasScopes(ctx.scopes, ['chat:write'])) {
+          peer.send(
+            JSON.stringify({
+              type: 'error',
+              code: 'INSUFFICIENT_SCOPE',
+              message: 'Insufficient permissions. Required scopes: chat:write'
             })
           )
           return

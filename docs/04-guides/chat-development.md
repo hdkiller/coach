@@ -143,7 +143,7 @@ The intended chat transport model is:
 - websocket for live deltas and upserts
 - HTTP polling only as fallback
 
-Mobile companion clients mint the WS token with Bearer via `GET /api/websocket-token` (same short-lived token as cookie sessions). Do not introduce a separate SSE stream for chat.
+Mobile companion clients mint the WS token with Bearer via `GET /api/websocket-token` (same short-lived token as cookie sessions). OAuth scopes are embedded in the token: `chat:read` is required to receive `chat_*` events, and `chat:write` is required for inbound `chat_message`. Do not introduce a separate SSE stream for chat.
 
 ### Important Consequence
 

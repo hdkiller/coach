@@ -145,8 +145,8 @@ The Official Mobile App uses the same durable-turn + WebSocket model (not a sepa
 
 1. OAuth PKCE Bearer with `chat:read` / `chat:write`
 2. `POST /api/chat/messages` starts a turn (HTTP response stays a short UI Message Stream with transient `data-chat-turn` only)
-3. `GET /api/websocket-token` with the same Bearer mints the short-lived WS token (cookie sessions still work for web)
-4. Connect `/api/websocket` and consume `chat_assistant_text_delta`, `chat_message_upsert`, and turn status events
+3. `GET /api/websocket-token` with the same Bearer mints a short-lived WS token that embeds the Bearer’s granted scopes (cookie sessions mint unrestricted tokens)
+4. Connect `/api/websocket` — `chat_*` delivery requires `chat:read`; inbound `chat_message` requires `chat:write`
 5. `GET /api/chat/rooms/:id/state` (Bearer + `chat:read`) for `activeTurnId` / `activeTurnStatus`
 6. `GET /api/chat/messages` polling remains the degraded safety net
 

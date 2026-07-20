@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
+import { tokenHasScopes } from './oauth/scopes'
 
 const WS_TOKEN_TTL_MS = 10 * 1000
 
@@ -7,13 +8,28 @@ type WsTokenPayload = {
   purpose: 'websocket_auth'
   exp: number
   nonce: string
+  /**
+   * Granted OAuth scopes captured at mint time.
+   * `null` = unrestricted (cookie session / API key).
+   * Missing on legacy tokens is treated as `[]` (deny privileged ops).
+   */
+  scopes: string[] | null
+}
+
+export type WsAuthResult = {
+  userId: string
+  /** `null` = unrestricted (session / API key). */
+  scopes: string[] | null
 }
 
 function getWsAuthSecret() {
   return process.env.INTERNAL_API_TOKEN || process.env.NUXT_SESSION_PASSWORD || null
 }
 
-export function generateWsToken(userId: string): string {
+/**
+ * @param scopes - OAuth scopes to embed, or `null` for unrestricted session/API-key access.
+ */
+export function generateWsToken(userId: string, scopes: string[] | null = null): string {
   const secret = getWsAuthSecret()
   if (!secret) {
     throw new Error('WS auth secret is not configured')
@@ -23,7 +39,8 @@ export function generateWsToken(userId: string): string {
     sub: userId,
     purpose: 'websocket_auth',
     exp: Date.now() + WS_TOKEN_TTL_MS,
-    nonce: randomBytes(8).toString('hex')
+    nonce: randomBytes(8).toString('hex'),
+    scopes
   }
 
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
@@ -34,7 +51,7 @@ export function generateWsToken(userId: string): string {
   return `${payloadB64}.${signature}`
 }
 
-export function verifyWsToken(token: string): string | null {
+export function verifyWsToken(token: string): WsAuthResult | null {
   try {
     const secret = getWsAuthSecret()
     if (!secret) return null
@@ -61,8 +78,24 @@ export function verifyWsToken(token: string): string | null {
     if (payload.purpose !== 'websocket_auth' || !payload.sub) return null
     if (Date.now() > payload.exp) return null
 
-    return payload.sub
+    // Legacy tokens (no scopes field) → empty grants, not unrestricted.
+    const scopes = Object.prototype.hasOwnProperty.call(payload, 'scopes') ? payload.scopes : []
+
+    return {
+      userId: payload.sub,
+      scopes: scopes === null ? null : Array.isArray(scopes) ? scopes : []
+    }
   } catch {
     return null
   }
+}
+
+/** Whether a WS auth result includes the required scope (`null` scopes = unrestricted). */
+export function wsAuthHasScopes(
+  scopes: string[] | null | undefined,
+  requiredScopes: string[]
+): boolean {
+  if (scopes === null) return true
+  if (!scopes) return requiredScopes.length === 0
+  return tokenHasScopes(scopes, requiredScopes)
 }
