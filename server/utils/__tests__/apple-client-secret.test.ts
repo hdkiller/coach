@@ -14,7 +14,9 @@ describe('createAppleClientSecret', () => {
       expiresInSeconds: 3600
     })
 
-    const [headerB64, payloadB64, sig] = jwt.split('.')
+    const parts = jwt.split('.')
+    expect(parts).toHaveLength(3)
+    const [headerB64, payloadB64, sig] = parts as [string, string, string]
     expect(sig).toBeTruthy()
     const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8'))
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
