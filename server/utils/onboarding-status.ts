@@ -1,6 +1,7 @@
 import {
   buildOnboardingSteps,
   deriveCurrentStep,
+  deriveMobileActivation,
   deriveSignupMethod,
   resolveOnboardingPresentation,
   type ImportState,
@@ -82,6 +83,8 @@ export async function resolveOnboardingStatus(
     where: { id: userId },
     select: {
       currentFitnessScore: true,
+      termsAcceptedAt: true,
+      healthConsentAcceptedAt: true,
       accounts: {
         select: { provider: true },
         orderBy: { createdAt: 'asc' }
@@ -109,7 +112,9 @@ export async function resolveOnboardingStatus(
     nutritionCount,
     reportCount,
     todayRecommendation,
-    restartLog
+    restartLog,
+    primaryGoal,
+    activePlan
   ] = await Promise.all([
     workoutRepository.count(userId, { includeDuplicates: true }),
     wellnessRepository.count(userId),
@@ -121,7 +126,24 @@ export async function resolveOnboardingStatus(
       }
     }),
     activityRecommendationRepository.findToday(userId, today),
-    getActiveOnboardingRestart(userId)
+    getActiveOnboardingRestart(userId),
+    prisma.goal.findFirst({
+      where: {
+        userId,
+        status: { not: 'ARCHIVED' }
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      select: { id: true }
+    }),
+    prisma.trainingPlan.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        isTemplate: false
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true }
+    })
   ])
 
   const activationComplete = await hasFirstValueViewedSinceRestart(userId, restartLog?.createdAt)
@@ -139,8 +161,13 @@ export async function resolveOnboardingStatus(
   const hasFirstInsight = Boolean(
     todayRecommendation ||
     reportCount > 0 ||
-    (user.currentFitnessScore !== null && user.currentFitnessScore !== undefined)
+    (user.currentFitnessScore !== null && user.currentFitnessScore !== undefined) ||
+    activationComplete
   )
+
+  const hasConsent = Boolean(user.termsAcceptedAt && user.healthConsentAcceptedAt)
+  const hasPrimaryGoal = Boolean(primaryGoal)
+  const hasActivePlan = Boolean(activePlan)
 
   const failedProviders = user.integrations
     .filter((integration) => integration.syncStatus === 'FAILED')
@@ -189,6 +216,17 @@ export async function resolveOnboardingStatus(
     }
   }
 
+  const mobile = deriveMobileActivation({
+    hasConsent,
+    hasPrimaryGoal,
+    hasActivePlan,
+    hasFirstInsight,
+    activationComplete,
+    hasUsableData,
+    hasIntegration,
+    connectLater: options.connectLater ?? false
+  })
+
   return {
     signupMethod,
     currentStep,
@@ -199,13 +237,21 @@ export async function resolveOnboardingStatus(
     hasAnyData,
     hasUsableData,
     hasFirstInsight,
-    activationComplete,
+    activationComplete: presentation.activationComplete,
     showFullSetupHub: presentation.showFullSetupHub,
     showCompactSetupCard: presentation.showCompactSetupCard,
     primaryProvider,
     workoutCount,
     wellnessCount,
     nutritionCount,
-    importErrorMessage
+    importErrorMessage,
+    hasConsent,
+    hasPrimaryGoal,
+    hasActivePlan,
+    softActivated: mobile.softActivated,
+    fullyActivated: mobile.fullyActivated,
+    mobileActivationStep: mobile.mobileActivationStep,
+    primaryGoalId: primaryGoal?.id ?? null,
+    activePlanId: activePlan?.id ?? null
   }
 }

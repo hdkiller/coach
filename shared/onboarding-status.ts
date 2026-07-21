@@ -1,6 +1,9 @@
 export type OnboardingStepId =
   'account_ready' | 'connect_data' | 'import_data' | 'analysis' | 'first_value'
 
+/** Mobile activation wizard step (UX order; connect last). */
+export type MobileActivationStepId = 'consent' | 'goal' | 'plan' | 'insight' | 'connect' | 'done'
+
 export type OnboardingStepStatus = 'complete' | 'active' | 'pending' | 'failed'
 
 export type ImportState = 'idle' | 'importing' | 'ready' | 'empty' | 'failed'
@@ -30,6 +33,25 @@ export interface OnboardingStatus {
   wellnessCount: number
   nutritionCount: number
   importErrorMessage: string | null
+  /** Legal + health consent accepted */
+  hasConsent: boolean
+  /** At least one non-archived goal */
+  hasPrimaryGoal: boolean
+  /** Active (non-template) training plan */
+  hasActivePlan: boolean
+  /**
+   * Soft-activated: consent + goal + plan + insight (first value).
+   * May enter companion tabs before data connects.
+   */
+  softActivated: boolean
+  /**
+   * Fully activated: soft + usable training/wellness data.
+   */
+  fullyActivated: boolean
+  /** Next mobile wizard step (consent → … → connect → done) */
+  mobileActivationStep: MobileActivationStepId
+  primaryGoalId: string | null
+  activePlanId: string | null
 }
 
 export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
@@ -120,4 +142,46 @@ export function resolveOnboardingPresentation(input: {
     showFullSetupHub,
     showCompactSetupCard
   }
+}
+
+export function deriveMobileActivation(input: {
+  hasConsent: boolean
+  hasPrimaryGoal: boolean
+  hasActivePlan: boolean
+  hasFirstInsight: boolean
+  activationComplete: boolean
+  hasUsableData: boolean
+  hasIntegration: boolean
+  connectLater: boolean
+}): Pick<OnboardingStatus, 'softActivated' | 'fullyActivated' | 'mobileActivationStep'> {
+  // Existing companion athletes with data: do not force the new goal/plan wizard.
+  if (input.hasConsent && input.hasUsableData) {
+    return {
+      softActivated: true,
+      fullyActivated: true,
+      mobileActivationStep: 'done'
+    }
+  }
+
+  const insightDone = input.hasFirstInsight || input.activationComplete
+  const softActivated =
+    input.hasConsent && input.hasPrimaryGoal && input.hasActivePlan && insightDone
+  const fullyActivated = softActivated && input.hasUsableData
+
+  let mobileActivationStep: MobileActivationStepId
+  if (!input.hasConsent) {
+    mobileActivationStep = 'consent'
+  } else if (!input.hasPrimaryGoal) {
+    mobileActivationStep = 'goal'
+  } else if (!input.hasActivePlan) {
+    mobileActivationStep = 'plan'
+  } else if (!insightDone) {
+    mobileActivationStep = 'insight'
+  } else if (!fullyActivated && !input.connectLater) {
+    mobileActivationStep = 'connect'
+  } else {
+    mobileActivationStep = 'done'
+  }
+
+  return { softActivated, fullyActivated, mobileActivationStep }
 }

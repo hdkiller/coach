@@ -44,6 +44,17 @@ The recommended product goal is:
 
 The initial north-star metric should be **D1 activated users**: new accounts that reach `first_value_viewed` within 24 hours. Supporting metrics are successful account creation, consent completion, first integration connection, first data import, and time to first value.
 
+### Mobile activation companion (2026-07-21)
+
+Mobile and web share `GET /api/user/onboarding-status` flags for soft vs full activation:
+
+| State               | Criteria                                             | Behavior                                        |
+| ------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| **Soft-activated**  | consent + primary goal + active plan + first insight | Companion tabs allowed; Finish-setup until data |
+| **Fully activated** | soft + usable workout/wellness data                  | Normal companion; setup prompts dismiss         |
+
+Wizard UX order (friction-aware): consent → goal lite → plan lite → insight → **connect last** (Health Sync preferred; Skip / `connectLater` OK). Dependency order for _full_ activation remains data → goal → plan → insight. Athletes who already have usable data are grandfathered past the mobile wizard.
+
 ## Current journey (implementation audit)
 
 ### 1. Acquisition and account creation

@@ -1,16 +1,12 @@
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['plan:write'])
+  const userId = user.id
 
   // Check Quota
   try {
@@ -35,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const block = await prisma.trainingBlock.findFirst({
     where: {
       id: blockId,
-      plan: { userId: (session.user as any).id }
+      plan: { userId }
     }
   })
 
@@ -59,7 +55,7 @@ export default defineEventHandler(async (event) => {
   const handle = await tasks.trigger(
     'generate-weekly-plan',
     {
-      userId: (session.user as any).id,
+      userId,
       startDate: week.startDate,
       daysToPlan: 7, // Always plan the full week
       userInstructions: instructions, // Pass the new instructions

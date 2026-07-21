@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildOnboardingSteps,
   deriveCurrentStep,
+  deriveMobileActivation,
   deriveSignupMethod,
   resolveOnboardingPresentation
 } from '../../../shared/onboarding-status'
@@ -67,5 +68,38 @@ describe('resolveOnboardingPresentation', () => {
         connectLater: true
       }).showFullSetupHub
     ).toBe(false)
+  })
+})
+
+describe('deriveMobileActivation', () => {
+  const base = {
+    hasConsent: true,
+    hasPrimaryGoal: true,
+    hasActivePlan: true,
+    hasFirstInsight: true,
+    activationComplete: true,
+    hasUsableData: false,
+    hasIntegration: false,
+    connectLater: false
+  }
+
+  it('keeps connect step until skip or usable data', () => {
+    const result = deriveMobileActivation(base)
+    expect(result.softActivated).toBe(true)
+    expect(result.fullyActivated).toBe(false)
+    expect(result.mobileActivationStep).toBe('connect')
+  })
+
+  it('completes wizard after connect later', () => {
+    expect(deriveMobileActivation({ ...base, connectLater: true }).mobileActivationStep).toBe(
+      'done'
+    )
+  })
+
+  it('routes to goal when consent exists but no goal', () => {
+    expect(
+      deriveMobileActivation({ ...base, hasPrimaryGoal: false, hasActivePlan: false })
+        .mobileActivationStep
+    ).toBe('goal')
   })
 })

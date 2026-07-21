@@ -1,6 +1,6 @@
 import { prisma } from '../../utils/db'
 import { z } from 'zod/v3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { generateStructuredAnalysis } from '../../utils/gemini'
 
@@ -22,10 +22,7 @@ const initializePlanSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const authUser = await requireAuth(event, ['plan:write'])
 
   const body = await readBody(event)
   const validation = initializePlanSchema.safeParse(body)
@@ -46,7 +43,7 @@ export default defineEventHandler(async (event) => {
     recoveryRhythm,
     startingPhase
   } = validation.data
-  const userId = (session.user as any).id
+  const userId = authUser.id
 
   // 1. Fetch Goal to get target date
   const goal = await prisma.goal.findUnique({

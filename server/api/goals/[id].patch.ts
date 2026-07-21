@@ -1,5 +1,5 @@
-import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -60,16 +60,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['goal:write'])
+  const userId = user.id
   const id = event.context.params?.id
 
   if (!id) {

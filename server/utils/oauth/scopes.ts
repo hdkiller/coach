@@ -13,6 +13,7 @@ export const REST_OAUTH_SCOPES = [
   'availability:read',
   'availability:write',
   'plan:read',
+  'plan:write',
   'coaching:read',
   'coaching:write',
   'chat:read',

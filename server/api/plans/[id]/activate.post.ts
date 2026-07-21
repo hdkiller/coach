@@ -1,20 +1,17 @@
 import { trainingPlanRepository } from '../../../utils/repositories/trainingPlanRepository'
 import { trainingBlockRepository } from '../../../utils/repositories/trainingBlockRepository'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getUserTimezone, getUserLocalDate, getStartOfDayUTC } from '../../../utils/date'
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 import { buildTemplateStructureWriteData } from '../../../utils/canonical-planned-workout-write'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const authUser = await requireAuth(event, ['plan:write'])
 
   const planId = getRouterParam(event, 'id')
-  const userId = (session.user as any).id
+  const userId = authUser.id
 
   if (!planId) throw createError({ statusCode: 400, message: 'Plan ID required' })
 
