@@ -43,6 +43,13 @@ export default defineEventHandler(async (event) => {
     // Strip data URI prefix if present
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64
 
+    if (!base64Data) {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid imageBase64 payload.'
+      })
+    }
+
     const modelId = resolveModelId('gemini-3.1-flash-lite')
     const result = await generateObject({
       model: google(modelId),
@@ -58,7 +65,7 @@ export default defineEventHandler(async (event) => {
             {
               type: 'image',
               image: Buffer.from(base64Data, 'base64'),
-              mimeType
+              mediaType: mimeType
             }
           ]
         }
