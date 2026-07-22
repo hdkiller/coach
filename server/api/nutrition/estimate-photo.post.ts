@@ -11,7 +11,23 @@ const google = createGoogle({
 
 const estimateRequestSchema = z.object({
   imageBase64: z.string(),
-  mimeType: z.string().optional()
+  mimeType: z.string().optional(),
+  context: z
+    .object({
+      selectedDate: z.string().optional(),
+      targetCalories: z.number().optional(),
+      targetProtein: z.number().optional(),
+      targetCarbs: z.number().optional(),
+      targetFat: z.number().optional(),
+      todayWorkoutSummary: z.string().optional()
+    })
+    .optional()
+})
+
+const detectedFoodItemSchema = z.object({
+  name: z.string().describe('Name of identified food item or ingredient'),
+  portion: z.string().optional().describe('Estimated portion size, e.g. 150g or 1 cup'),
+  calories: z.number().optional().describe('Estimated calories for this item in kcal')
 })
 
 const nutritionEstimateSchema = z.object({
@@ -21,7 +37,16 @@ const nutritionEstimateSchema = z.object({
   carbs: z.number().describe('Estimated carbohydrates in grams'),
   fat: z.number().describe('Estimated fat in grams'),
   meal: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'OTHER']).describe('Suggested meal slot'),
-  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).describe('Estimation confidence level')
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).describe('Estimation confidence level'),
+  coachInsight: z
+    .string()
+    .describe(
+      'A concise 1-2 sentence coach insight about this meal for an endurance athlete (e.g. macro distribution, quality, or fueling timing)'
+    ),
+  items: z
+    .array(detectedFoodItemSchema)
+    .optional()
+    .describe('Individual food items or components detected on the plate')
 })
 
 export default defineEventHandler(async (event) => {
@@ -37,7 +62,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { imageBase64, mimeType = 'image/jpeg' } = parsed.data
+  const { imageBase64, mimeType = 'image/jpeg', context } = parsed.data
 
   try {
     // Strip data URI prefix if present
@@ -50,6 +75,25 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    let promptText =
+      'Analyze this meal photo carefully. Identify individual food items on the plate, estimate portion sizes, and return the meal name, total estimated calories (kcal), protein (g), carbs (g), fat (g), suggested meal slot, estimation confidence level, itemized components list, and a concise 1-2 sentence coach insight tailored for an endurance athlete.'
+
+    if (context) {
+      const contextLines: string[] = []
+      if (context.selectedDate) contextLines.push(`Log Date: ${context.selectedDate}`)
+      if (context.targetCalories) {
+        contextLines.push(
+          `Daily Targets: ${context.targetCalories} kcal (P: ${context.targetProtein || 0}g, C: ${context.targetCarbs || 0}g, F: ${context.targetFat || 0}g)`
+        )
+      }
+      if (context.todayWorkoutSummary)
+        contextLines.push(`Today's Workout: ${context.todayWorkoutSummary}`)
+
+      if (contextLines.length > 0) {
+        promptText += `\n\nAthlete Daily Context:\n${contextLines.join('\n')}\nUse this context to tailor the coach insight (e.g. post-workout recovery quality, carb filling, or daily target fit).`
+      }
+    }
+
     const modelId = resolveModelId('gemini-3.1-flash-lite')
     const result = await generateObject({
       model: google(modelId),
@@ -60,7 +104,7 @@ export default defineEventHandler(async (event) => {
           content: [
             {
               type: 'text',
-              text: 'Analyze this meal photo carefully. Identify the food items, estimate portion sizes, and return the meal name, estimated calories (kcal), protein (g), carbs (g), fat (g), and suggested meal slot.'
+              text: promptText
             },
             {
               type: 'image',
