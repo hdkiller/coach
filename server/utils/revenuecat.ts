@@ -34,10 +34,13 @@ type RevenueCatFetchOptions = {
   body?: Record<string, string>
 }
 
-const revenueCatFetch = $fetch as unknown as <T>(
-  url: string,
-  options: RevenueCatFetchOptions
-) => Promise<T>
+function revenueCatFetch<T>(url: string, options: RevenueCatFetchOptions): Promise<T> {
+  const fetchExternal = $fetch as unknown as (
+    requestUrl: string,
+    requestOptions: RevenueCatFetchOptions
+  ) => Promise<T>
+  return fetchExternal(url, options)
+}
 
 function requiredRevenueCatKey(): string {
   const key = useRuntimeConfig().revenueCatSecretApiKey
