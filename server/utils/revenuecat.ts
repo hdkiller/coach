@@ -28,6 +28,17 @@ type RevenueCatSubscriberResponse = {
   }
 }
 
+type RevenueCatRequestOptions = {
+  method?: 'POST'
+  headers: Record<string, string>
+  body?: Record<string, string>
+}
+
+const revenueCatFetch = $fetch as unknown as <T = unknown>(
+  url: string,
+  options: RevenueCatRequestOptions
+) => Promise<T>
+
 function requiredRevenueCatKey(): string {
   const key = useRuntimeConfig().revenueCatSecretApiKey
   if (!key)
@@ -37,11 +48,10 @@ function requiredRevenueCatKey(): string {
 
 export async function fetchRevenueCatSubscriber(userId: string) {
   const config = useRuntimeConfig()
-  const response = await $fetch(
+  return await revenueCatFetch<RevenueCatSubscriberResponse>(
     `${config.revenueCatApiBaseUrl || 'https://api.revenuecat.com/v1'}/subscribers/${encodeURIComponent(userId)}`,
     { headers: { Authorization: `Bearer ${requiredRevenueCatKey()}`, Accept: 'application/json' } }
   )
-  return response as RevenueCatSubscriberResponse
 }
 
 export async function reconcileRevenueCatSubscriber(userId: string) {
@@ -151,14 +161,17 @@ export async function trackStripeInRevenueCat(userId: string, subscriptionId: st
   const config = useRuntimeConfig()
   if (!config.revenueCatStripePublicApiKey) return
   try {
-    await $fetch(`${config.revenueCatApiBaseUrl || 'https://api.revenuecat.com/v1'}/receipts`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.revenueCatStripePublicApiKey}`,
-        'X-Platform': 'stripe'
-      },
-      body: { app_user_id: userId, fetch_token: subscriptionId }
-    })
+    await revenueCatFetch(
+      `${config.revenueCatApiBaseUrl || 'https://api.revenuecat.com/v1'}/receipts`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.revenueCatStripePublicApiKey}`,
+          'X-Platform': 'stripe'
+        },
+        body: { app_user_id: userId, fetch_token: subscriptionId }
+      }
+    )
   } catch (error) {
     console.error('RevenueCat Stripe tracking failed; Stripe remains canonical until retry', error)
   }
