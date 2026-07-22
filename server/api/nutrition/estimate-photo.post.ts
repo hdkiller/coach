@@ -41,7 +41,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Strip data URI prefix if present
-    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64
+    const base64Data = imageBase64.includes(',')
+      ? imageBase64.slice(imageBase64.indexOf(',') + 1)
+      : imageBase64
 
     const modelId = resolveModelId('gemini-3.1-flash-lite')
     const result = await generateObject({
@@ -58,7 +60,7 @@ export default defineEventHandler(async (event) => {
             {
               type: 'image',
               image: Buffer.from(base64Data, 'base64'),
-              mimeType
+              mediaType: mimeType
             }
           ]
         }
