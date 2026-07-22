@@ -42,7 +42,7 @@ function eventStatus(event: RevenueCatEvent): ProviderSubscriptionStatus {
   })
 }
 
-async function rejectWebhook(action: string, metadata: Prisma.InputJsonValue) {
+async function rejectWebhook(action: string, metadata: Record<string, unknown>) {
   await auditLogRepository.log({ action, resourceType: 'SUBSCRIPTION', metadata })
 }
 
