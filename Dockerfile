@@ -24,7 +24,7 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 ENV CHAT_TURN_RUNNER_ENABLED=false
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm typecheck
+RUN NODE_OPTIONS=--max-old-space-size=16384 pnpm typecheck
 RUN NODE_OPTIONS=--max-old-space-size=16384 pnpm build
 
 # Stage 3: Production image
