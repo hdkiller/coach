@@ -3,6 +3,7 @@ export type GeminiModel = 'flash' | 'pro'
 /** Deprecated model IDs mapped to their current replacements. */
 export const MODEL_ALIASES = {
   'gemini-2.5-flash': 'gemini-3.1-flash-lite-preview',
+  'gemini-3.1-flash-lite': 'gemini-3.1-flash-lite-preview',
   'gemini-3-pro-preview': 'gemini-3-flash-preview'
 } as const
 
