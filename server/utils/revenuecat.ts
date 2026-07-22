@@ -37,10 +37,11 @@ function requiredRevenueCatKey(): string {
 
 export async function fetchRevenueCatSubscriber(userId: string) {
   const config = useRuntimeConfig()
-  return await $fetch<RevenueCatSubscriberResponse>(
+  const response = await $fetch(
     `${config.revenueCatApiBaseUrl || 'https://api.revenuecat.com/v1'}/subscribers/${encodeURIComponent(userId)}`,
     { headers: { Authorization: `Bearer ${requiredRevenueCatKey()}`, Accept: 'application/json' } }
   )
+  return response as RevenueCatSubscriberResponse
 }
 
 export async function reconcileRevenueCatSubscriber(userId: string) {
