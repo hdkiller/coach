@@ -379,6 +379,8 @@ export function buildReadRepairSystemInstruction(systemInstruction: string) {
 - Call the needed read tools if you still lack facts, then you MUST produce a clear textual answer for the athlete.
 - Do not end the turn with only tool calls and no assistant text.
 - Prefer a concise coaching summary over dumping raw tool JSON.
+- Write a prose coaching reply the athlete can read without tables or UI cards. Lead with the answer, then 3-6 short bullets with numbers.
+- If get_workout_analysis shows aiAnalysisStatus NOT_STARTED, PENDING, PROCESSING, or FAILED, say that clearly and summarize available metrics from get_workout_details.
 - If tools already answered the question, summarize the key guidance now.`
 }
 
@@ -538,8 +540,30 @@ function buildWorkoutAnalysisFallback(analysis: any): string | null {
         ? analysis.overallQualityExplanation.trim()
         : ''
   const markdown = typeof analysis?.aiAnalysis === 'string' ? analysis.aiAnalysis.trim() : ''
+  const status =
+    typeof analysis?.aiAnalysisStatus === 'string' ? analysis.aiAnalysisStatus.toUpperCase() : ''
 
-  if (!summary && !markdown && !structured) return null
+  if (!summary && !markdown && !structured) {
+    if (!status || status === 'COMPLETED') return null
+
+    const title = analysis?.title || 'Workout'
+    const dateLine = analysis?.date ? ` (${analysis.date})` : ''
+    if (status === 'PENDING' || status === 'PROCESSING' || status === 'IN_PROGRESS') {
+      return [
+        `Deep analysis for **${title}**${dateLine} is still generating.`,
+        '',
+        'I have the session loaded. Ask again shortly for the full breakdown.'
+      ].join('\n')
+    }
+    if (status === 'NOT_STARTED' || status === 'FAILED') {
+      return [
+        `Deep analysis for **${title}**${dateLine} is not available yet${status === 'FAILED' ? ' (the previous attempt failed)' : ''}.`,
+        '',
+        'I can still cover the raw session metrics now, and the full analysis can be queued from this workout.'
+      ].join('\n')
+    }
+    return null
+  }
 
   const title = analysis?.title || structured?.title || 'Workout analysis'
   const lines = [`## ${title}`]

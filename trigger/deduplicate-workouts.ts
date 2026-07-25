@@ -6,9 +6,7 @@ import { attachStreamsToWorkouts } from '../server/utils/repositories/workoutStr
 import { recalculateStressAfterDate } from '../server/utils/calculate-workout-stress'
 import { userBackgroundQueue } from './queues'
 import { deduplicationService } from '../server/utils/services/deduplicationService'
-import { analyzeWorkoutTask } from './analyze-workout'
-import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
-import { isWorkoutEligibleForAutomaticInsights } from '../server/utils/automatic-workout-insights'
+import { enqueueAutomaticWorkoutAnalysesForUser } from '../server/utils/workout-analysis-enqueue'
 
 export const deduplicateWorkoutsTask = task({
   id: 'deduplicate-workouts',
@@ -45,12 +43,6 @@ export const deduplicateWorkoutsTask = task({
         actualUserId = user.id
         logger.log('Resolved user ID', { email: userId, actualUserId })
       }
-
-      // Fetch user settings for auto-analysis
-      const userSettings = await prisma.user.findUnique({
-        where: { id: actualUserId },
-        select: { aiAutoAnalyzeWorkouts: true }
-      })
 
       // Here we explicitly want ALL workouts, including potential duplicates, to analyze them.
       // So we use includeDuplicates: true
@@ -188,90 +180,8 @@ export const deduplicateWorkoutsTask = task({
         await recalculateStressAfterDate(actualUserId, earliestDate)
       }
 
-      // Auto-Analyze Primary Workouts
-      // We check if the user has enabled auto-analysis
-      if (userSettings?.aiAutoAnalyzeWorkouts) {
-        logger.log('🤖 [Auto-Analyze] Checking for unanalyzed workouts (last 30 days)...')
-
-        const thirtyDaysAgo = new Date()
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-        // Find primary workouts that:
-        // 1. Are recent (last 30 days)
-        // 2. Have NOT been analyzed yet (or status is null/NOT_STARTED)
-        // 3. Are NOT duplicates (isDuplicate = false)
-        const unanalyzedWorkouts = await prisma.workout.findMany({
-          where: {
-            userId: actualUserId,
-            date: { gte: thirtyDaysAgo },
-            isDuplicate: false,
-            OR: [
-              { aiAnalysisStatus: null },
-              { aiAnalysisStatus: 'NOT_STARTED' },
-              { aiAnalysisStatus: 'FAILED' } // Retry failed ones too? Maybe safer to stick to NOT_STARTED.
-            ]
-          },
-          select: { id: true, title: true, date: true, type: true, aiAnalysisStatus: true }
-        })
-
-        const eligibleWorkouts = unanalyzedWorkouts.filter((workout) =>
-          isWorkoutEligibleForAutomaticInsights(workout.type)
-        )
-
-        if (eligibleWorkouts.length > 0) {
-          logger.log(
-            `🤖 [Auto-Analyze] Found ${eligibleWorkouts.length} eligible unanalyzed workouts. Triggering analysis...`
-          )
-          for (const workout of eligibleWorkouts) {
-            logger.log(
-              `🤖 [Auto-Analyze] Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`
-            )
-            const claimed = await prisma.workout.updateMany({
-              where: {
-                id: workout.id,
-                aiAnalysisStatus: workout.aiAnalysisStatus
-              },
-              data: { aiAnalysisStatus: 'PENDING' }
-            })
-
-            if (claimed.count === 0) {
-              logger.log('🤖 [Auto-Analyze] Workout was already claimed by another run', {
-                workoutId: workout.id
-              })
-              continue
-            }
-
-            try {
-              await analyzeWorkoutTask.trigger(
-                {
-                  workoutId: workout.id,
-                  source: 'AUTOMATIC'
-                },
-                {
-                  concurrencyKey: actualUserId,
-                  tags: [`user:${actualUserId}`, `workout:${workout.id}`]
-                }
-              )
-              // Log the action
-              await auditLogRepository.log({
-                userId: actualUserId,
-                action: 'AUTO_ANALYZE_WORKOUT',
-                resourceType: 'Workout',
-                resourceId: workout.id,
-                metadata: { title: workout.title, date: workout.date.toISOString() }
-              })
-            } catch (error) {
-              await prisma.workout.updateMany({
-                where: { id: workout.id, aiAnalysisStatus: 'PENDING' },
-                data: { aiAnalysisStatus: workout.aiAnalysisStatus || 'NOT_STARTED' }
-              })
-              throw error
-            }
-          }
-        } else {
-          logger.log('🤖 [Auto-Analyze] No eligible unanalyzed workouts found in the last 30 days.')
-        }
-      }
+      const analysis = await enqueueAutomaticWorkoutAnalysesForUser(actualUserId)
+      logger.log('🤖 [Auto-Analyze] Enqueue complete', analysis)
 
       return {
         success: true,
