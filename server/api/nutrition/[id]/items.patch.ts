@@ -1,9 +1,8 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { z } from 'zod/v3'
 import { metabolicService } from '../../../utils/services/metabolicService'
 import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
-import { MEAL_LINKED_WATER_ML } from '../../../utils/nutrition/hydration'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
 
 const ABSORPTION_TYPES = ['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD'] as const
@@ -48,12 +47,8 @@ const PatchSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
 
