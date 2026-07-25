@@ -56,11 +56,11 @@ services:
       HOST: 0.0.0.0
       NITRO_HOST: 0.0.0.0
       PORT: '3199'
-      NEXTAUTH_URL: 'http://127.0.0.1:3199'
+      NEXTAUTH_URL: 'http://127.0.0.1:3199/api/auth'
       NEXTAUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
       NUXT_AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
-      NUXT_AUTH_ORIGIN: 'http://127.0.0.1:3199'
-      AUTH_ORIGIN: 'http://127.0.0.1:3199'
+      NUXT_AUTH_ORIGIN: 'http://127.0.0.1:3199/api/auth'
+      AUTH_ORIGIN: 'http://127.0.0.1:3199/api/auth'
       AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
       DISABLE_EMAILS: 'true'
