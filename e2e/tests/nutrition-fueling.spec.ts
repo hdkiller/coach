@@ -388,6 +388,68 @@ test.describe('Nutrition fueling plan', () => {
     expect(splitPre.length).toBe(2)
   })
 
+  test('reports training hours even when a session needs no intra window', async ({
+    authedPage
+  }) => {
+    // The stacked day is a run plus two gym blocks: none of them earns an intra-workout window,
+    // so the Fluid Balance breakdown cannot recover training time by summing windows.
+    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const totals = plan.fuelingPlan.dailyTotals
+
+    expect(ofType(plan, 'INTRA_WORKOUT')).toHaveLength(0)
+    expect(totals.trainingHours).toBeGreaterThan(0)
+    expect(totals.trainingHours).toBeCloseTo((1800 + 3600 + 480) / 3600, 2)
+    // Sweat loss from those sessions still has to reach the day's fluid target.
+    expect(totals.fluid).toBeGreaterThan(2000)
+  })
+
+  test('a shared pre window belongs to every session in its block', async ({ authedPage }) => {
+    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const pre = ofType(plan, 'PRE_WORKOUT')[0]
+    const post = ofType(plan, 'POST_WORKOUT')[0]
+
+    // The planned-workout page filters a day's windows down to one session; without the full id
+    // list every session but the first loses the shared pre window.
+    for (const window of [pre, post]) {
+      expect(window.plannedWorkoutIds).toContain('e2e-fuel-stacked-a')
+      expect(window.plannedWorkoutIds).toContain('e2e-fuel-stacked-b')
+      expect(window.plannedWorkoutIds).toContain('e2e-fuel-stacked-c')
+    }
+  })
+
+  test('a session inside a merged block still shows its pre and post windows', async ({
+    authedPage
+  }) => {
+    await buildPlan(authedPage, STACKED_DAY)
+
+    // The block's pre window is anchored to the first session and the post window to the last, so
+    // the opening session used to lose its recovery window and the closing one its pre window.
+    await authedPage.goto('/workouts/planned/e2e-fuel-stacked-a', {
+      waitUntil: 'domcontentloaded'
+    })
+
+    await expect(authedPage.getByText('Pre-Workout Target')).toBeVisible({ timeout: 20000 })
+    await expect(authedPage.getByText('Post-Workout Recovery')).toBeVisible({ timeout: 20000 })
+  })
+
+  test('calendar shows a fuel state for a day with no intra-workout window', async ({
+    authedPage
+  }) => {
+    const plan = await buildPlan(authedPage, STACKED_DAY)
+    expect(ofType(plan, 'INTRA_WORKOUT')).toHaveLength(0)
+
+    await authedPage.goto('/activities', { waitUntil: 'domcontentloaded' })
+
+    const cell = authedPage.locator(
+      `[data-testid="calendar-day-cell"][data-date="${dateKey(STACKED_DAY)}"]`
+    )
+    await expect(cell).toBeVisible({ timeout: 20000 })
+
+    // The dot used to be parsed out of the intra window's description, so a gym day showed none.
+    await expect(cell).not.toHaveAttribute('data-fuel-state', '', { timeout: 20000 })
+    await expect(cell.locator('[title^="Fuel State"]')).toBeVisible()
+  })
+
   test('weekly plan renders windows in clock order with times and calories', async ({
     authedPage
   }) => {
