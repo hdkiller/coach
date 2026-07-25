@@ -498,6 +498,61 @@ test.describe('Nutrition fueling plan', () => {
     await prisma.nutrition.deleteMany({ where: { userId: athleteId, date: dayStart } })
   })
 
+  test('projects a hard future day using its own carb target, not the lowest fuel state', async ({
+    authedPage
+  }) => {
+    // A day with no saved nutrition row used to be projected at fuelState1Min, so the energy
+    // horizon showed a glycogen crash on sessions the plan actually fuels.
+    // Beyond the seeded week, so both days are unambiguously in the future. Today's projection
+    // suppresses synthetic meals for hours that have already passed, which would mask the effect.
+    const hardDay = dayOffset(8)
+    const easyDay = dayOffset(9)
+    await clearDay(hardDay)
+    await clearDay(easyDay)
+
+    await seedPlanned(hardDay, [
+      {
+        id: 'e2e-fuel-horizon-hard',
+        title: 'E2E Long Endurance Ride',
+        type: 'Ride',
+        durationSec: 5 * 3600,
+        startTime: '08:00',
+        workIntensity: 0.75,
+        tss: 250
+      }
+    ])
+
+    // Neither day has a persisted plan, so both are projected.
+    const response = await authedPage.request.get(
+      `/api/nutrition/metabolic-wave?startDate=${dateKey(hardDay)}&endDate=${dateKey(easyDay)}`
+    )
+    expect(response.ok(), await response.text()).toBeTruthy()
+    const wave = await response.json()
+
+    const pointsFor = (date: Date) =>
+      (wave.points ?? []).filter((p: any) => p.dateKey === dateKey(date))
+
+    const projectedIntake = (date: Date) =>
+      pointsFor(date)
+        .filter((p: any) => p.eventType === 'meal')
+        .reduce((sum: number, p: any) => sum + Number(p.eventCarbs || 0), 0)
+
+    expect(pointsFor(hardDay).length).toBeGreaterThan(0)
+    expect(pointsFor(easyDay).length).toBeGreaterThan(0)
+
+    // Compared against a rest day rather than a fixed number, so the assertion tracks the athlete's
+    // own settings. Pinned to the state 1 floor, a five hour ride projected barely more than a day
+    // off; driven by the day's real target it projects substantially more.
+    const hardIntake = projectedIntake(hardDay)
+    const restIntake = projectedIntake(easyDay)
+
+    expect(restIntake).toBeGreaterThan(0)
+    expect(hardIntake).toBeGreaterThan(restIntake * 1.4)
+
+    await clearDay(hardDay)
+    await clearDay(easyDay)
+  })
+
   test('weekly plan renders windows in clock order with times and calories', async ({
     authedPage
   }) => {

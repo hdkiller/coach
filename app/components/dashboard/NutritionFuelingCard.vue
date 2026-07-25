@@ -879,10 +879,10 @@
     if (props.nutrition?.fuelingPlan?.dailyTotals?.fuelState) {
       return props.nutrition.fuelingPlan.dailyTotals.fuelState
     }
-    // Priority 2: Nutrition record 'state' column (DB source)
-    if (props.nutrition?.state) {
-      return props.nutrition.state
-    }
+    // `nutrition.state` is deliberately not consulted here. It is the glycogen tank's depletion
+    // tier from the live status (3 means empty), not the plan's fuel state (3 means a high-carb
+    // performance day) - the two run in opposite directions, so a depleted athlete was labelled
+    // "Performance". There is no such column on the nutrition record either.
 
     if (!plan.value) return 1
 

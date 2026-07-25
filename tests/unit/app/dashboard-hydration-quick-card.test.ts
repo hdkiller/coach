@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DashboardHydrationQuickCard from '../../../app/components/dashboard/HydrationQuickCard.vue'
 
@@ -17,6 +17,7 @@ describe('DashboardHydrationQuickCard', () => {
   it('renders hydration totals with fallback target when no plan is present', () => {
     const wrapper = mount(DashboardHydrationQuickCard, {
       props: {
+        settings: {},
         date: '2026-03-31',
         showHeader: true,
         nutrition: {
@@ -53,6 +54,7 @@ describe('DashboardHydrationQuickCard', () => {
 
     const wrapper = mount(DashboardHydrationQuickCard, {
       props: {
+        settings: {},
         date: '2026-03-31',
         nutrition: {
           waterMl: 2565,
@@ -82,7 +84,8 @@ describe('DashboardHydrationQuickCard', () => {
       .findAll('button')
       .find((button) => button.text().includes('+250ml'))
     await quickAddButton!.trigger('click')
-    await Promise.resolve()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
 
     expect(fetchMock).toHaveBeenCalledWith('/api/nutrition/hydration-quick-add', {
       method: 'POST',
@@ -100,6 +103,7 @@ describe('DashboardHydrationQuickCard', () => {
 
     const wrapper = mount(DashboardHydrationQuickCard, {
       props: {
+        settings: {},
         date: '2026-03-31',
         nutrition: {
           waterMl: 2565,
@@ -129,7 +133,8 @@ describe('DashboardHydrationQuickCard', () => {
       .findAll('button')
       .find((button) => button.text().includes('+500ml'))
     await quickAddButton!.trigger('click')
-    await Promise.resolve()
+    await flushPromises()
+    await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('2.6L')
   })

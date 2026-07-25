@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildDayFuelingPlan,
+  estimateDailyCarbTargetGrams,
   getSportFuelingClass,
   normalizeIntensity,
   resolveDayFuelState,
@@ -331,5 +332,41 @@ describe('buildDayFuelingPlan', () => {
     })
 
     expect(reduced.dailyTotals.carbs).toBeLessThan(normal.dailyTotals.carbs)
+  })
+})
+
+describe('estimateDailyCarbTargetGrams', () => {
+  it('matches the target the full builder produces', () => {
+    const workouts = [workout({ durationSec: 2 * 3600, workIntensity: 0.9 })]
+    const plan = buildDayFuelingPlan(profile, workouts, { date: DAY, mealSlots })
+
+    expect(estimateDailyCarbTargetGrams(profile, workouts, { date: DAY })).toBe(
+      plan.dailyTotals.carbs
+    )
+  })
+
+  it('scales a hard day well above the lowest fuel state minimum', () => {
+    // The energy projection used to fall back on fuelState1Min for any day without a saved plan.
+    const floor = profile.weight * (profile.fuelState1Min ?? 2.5)
+    const hardDay = estimateDailyCarbTargetGrams(
+      profile,
+      [workout({ durationSec: 4 * 3600, workIntensity: 0.85 })],
+      { date: DAY }
+    )
+
+    expect(hardDay).toBeGreaterThan(floor * 1.5)
+  })
+
+  it('returns the rest-day target when nothing is scheduled', () => {
+    const rest = buildDayFuelingPlan(profile, [], { date: DAY, mealSlots })
+    expect(estimateDailyCarbTargetGrams(profile, [], { date: DAY })).toBe(rest.dailyTotals.carbs)
+  })
+
+  it('applies a remediation carb adjustment', () => {
+    const base = estimateDailyCarbTargetGrams(profile, [], { date: DAY })
+    const boosted = estimateDailyCarbTargetGrams(profile, [], { date: DAY, carbAdjustment: 1.25 })
+
+    expect(boosted).toBeGreaterThan(base)
+    expect(boosted).toBe(Math.round(base * 1.25))
   })
 })

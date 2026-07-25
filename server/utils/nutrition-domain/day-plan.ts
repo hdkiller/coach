@@ -250,6 +250,37 @@ export function resolveDayFuelState(
   return { state, carbRange: carbRanges[state as 1 | 2 | 3] }
 }
 
+function carbTargetFromRange(
+  profile: FuelingProfile,
+  carbRange: { min: number; max: number },
+  multiplier: number
+): number {
+  return profile.weight * ((carbRange.min + carbRange.max) / 2) * multiplier
+}
+
+/**
+ * The day's carbohydrate target, without building the windows.
+ *
+ * For callers that need to reason about a day the plan has not been generated for yet - the energy
+ * projection, for instance - so they do not have to fall back on the lowest fuel state's minimum.
+ */
+export function estimateDailyCarbTargetGrams(
+  profile: FuelingProfile,
+  workoutInputs: DayWorkoutInput[],
+  options: { date?: Date; carbAdjustment?: number } = {}
+): number {
+  const dayStart = options.date ? new Date(options.date) : new Date()
+  const workouts = normalizeWorkouts(workoutInputs, dayStart)
+  const { carbRange } = resolveDayFuelState(profile, workouts)
+
+  const multiplier =
+    (profile.fuelingSensitivity || 1.0) *
+    (1 + (profile.targetAdjustmentPercent || 0) / 100) *
+    (options.carbAdjustment ?? 1)
+
+  return Math.round(carbTargetFromRange(profile, carbRange, multiplier))
+}
+
 /**
  * Intra-workout carbohydrate rate. Unlike the previous implementation this is sport aware: you do
  * not drink 75g/h of maltodextrin through a gym session.
@@ -338,11 +369,7 @@ export function buildDayFuelingPlan(
   // --- 1. DAILY MACRO TARGETS (computed once, from the whole day) ---
   const { state, carbRange } = resolveDayFuelState(profile, workouts)
   const dailyCarbs = Math.round(
-    profile.weight *
-      ((carbRange.min + carbRange.max) / 2) *
-      sensitivity *
-      adjustmentMultiplier *
-      carbAdjustment
+    carbTargetFromRange(profile, carbRange, sensitivity * adjustmentMultiplier * carbAdjustment)
   )
   const dailyProtein = Math.round(profile.weight * (profile.baseProteinPerKg || 1.6))
   const dailyFat = Math.round(profile.weight * (profile.baseFatPerKg || 1.0))

@@ -100,7 +100,7 @@
   async function stopImpersonation() {
     stoppingImpersonation.value = true
     try {
-      await $fetch('/api/admin/stop-impersonation', { method: 'POST' })
+      await ($fetch as any)('/api/admin/stop-impersonation', { method: 'POST' })
       toast.add({
         title: 'Impersonation stopped',
         description: 'Returning to admin account',
@@ -1132,14 +1132,17 @@
   })
 
   // Smart Item Data Fetching
-  const { data: recentWorkouts } = await useFetch('/api/workouts', {
+  const { data: recentWorkouts } = await useFetch<any[]>('/api/workouts', {
     query: { limit: 3 },
     key: 'recent-workouts-search'
   })
 
-  const { data: upcomingWorkouts } = await useFetch('/api/workouts/planned/upcoming', {
-    key: 'upcoming-workouts-search'
-  })
+  const { data: upcomingWorkouts } = await useFetch<{ workouts: any[] }>(
+    '/api/workouts/planned/upcoming',
+    {
+      key: 'upcoming-workouts-search'
+    }
+  )
 </script>
 
 <template>

@@ -13,11 +13,19 @@ export default defineVitestConfig({
         if (source === 'pg') {
           return path.resolve(rootDir, 'tests/unit/mocks/pg.ts')
         }
+        if (
+          source === '#build/fetch' ||
+          source.endsWith('/fetch.mjs') ||
+          source.includes('fetch.mjs')
+        ) {
+          return path.resolve(rootDir, 'tests/unit/mocks/fetch.ts')
+        }
       }
     }
   ],
   resolve: {
     alias: {
+      '#build/fetch': path.resolve(rootDir, './tests/unit/mocks/fetch.ts'),
       '#auth': path.resolve(rootDir, './tests/unit/mocks/auth.ts'),
       pg: path.resolve(rootDir, './tests/unit/mocks/pg.ts')
     }

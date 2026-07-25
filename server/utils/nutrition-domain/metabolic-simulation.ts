@@ -17,6 +17,22 @@ import {
 import { extractWorkoutTemperatureC, getEstimatedSweatRateLph } from '../nutrition/sweat-rate'
 import { pickMealScheduledTime } from '../nutrition/meal-pattern'
 
+/**
+ * Applied on top of the tabulated drain rate. Carbohydrate use in the tank has always carried this
+ * uplift; the calorie side did not, which left `kcalBalance` disagreeing with `carbBalance` for the
+ * same session.
+ */
+export const WORKOUT_DRAIN_MULTIPLIER = 1.25
+
+/** Gut absorption ceiling per 15 minute interval (~90g/hr). */
+export const INTERVAL_CARB_ABSORPTION_CAP_G = 22.5
+
+/** Share of resting energy expenditure met from carbohydrate. */
+export const RESTING_CARB_FRACTION = 0.4
+
+/** Sedentary uplift applied to BMR for everyday non-training movement. */
+export const RESTING_ACTIVITY_FACTOR = 1.2
+
 export function getGramsPerMin(intensity: number): number {
   if (intensity >= 0.9) return 4.5
   if (intensity >= 0.75) return 2.75
@@ -142,7 +158,7 @@ export function calculateGlycogenState(
   const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
   const minsSinceMidnight = differenceInMinutes(currentTime, dayStart)
   const dailyBmr = settings?.bmr || 1600
-  const gramsDrainedBmr = ((dailyBmr * 0.4) / 4) * (minsSinceMidnight / 1440)
+  const gramsDrainedBmr = ((dailyBmr * RESTING_CARB_FRACTION) / 4) * (minsSinceMidnight / 1440)
 
   currentGrams -= gramsDrainedBmr
 
@@ -161,7 +177,7 @@ export function calculateGlycogenState(
     const durationMin =
       (workout.duration || workout.durationSec || workout.plannedDuration || 3600) / 60
 
-    const gramsPerMin = getGramsPerMin(intensity) * 1.25
+    const gramsPerMin = getGramsPerMin(intensity) * WORKOUT_DRAIN_MULTIPLIER
     const drainGramsTotal = gramsPerMin * durationMin
     const drainAmountPct = (drainGramsTotal / C_cap) * 100
 
@@ -270,8 +286,13 @@ export function calculateEnergyTimeline(
   let cumulativeCarbDelta = 0
 
   const dailyBmr = settings?.bmr || 1600
-  const intervalRestDrainGrams = (dailyBmr * 0.4) / (4 * 96)
-  const intervalRestDrainKcal = (dailyBmr * 1.2) / 96
+  // NOTE: these two are deliberately left inconsistent for now. The carbohydrate drain is taken as
+  // 40% of bare BMR, while the calorie drain applies a 1.2 sedentary uplift first. Reconciling them
+  // moves every athlete's glycogen curve, so it needs a physiological decision rather than a tidy-up:
+  // either rest burns carbohydrate 20% faster than modelled, or the calorie balance drains 17% too
+  // fast. Whichever is chosen, both lines should derive from the same daily figure.
+  const intervalRestDrainGrams = (dailyBmr * RESTING_CARB_FRACTION) / (4 * 96)
+  const intervalRestDrainKcal = (dailyBmr * RESTING_ACTIVITY_FACTOR) / 96
   const intervalRestFluidLoss = 50 / 96
 
   const actualMeals: any[] = []
@@ -539,9 +560,9 @@ export function calculateEnergyTimeline(
       currentFluidDeficit += intervalRestFluidLoss
 
       if (activeWorkout) {
-        const drop = activeWorkout.drainGramsPerInterval * 1.25
+        const drop = activeWorkout.drainGramsPerInterval * WORKOUT_DRAIN_MULTIPLIER
         currentGrams -= drop
-        cumulativeKcalDelta -= activeWorkout.drainKcalPerInterval
+        cumulativeKcalDelta -= activeWorkout.drainKcalPerInterval * WORKOUT_DRAIN_MULTIPLIER
         cumulativeCarbDelta -= drop
         currentFluidDeficit += activeWorkout.drainFluidPerInterval
       }
@@ -573,9 +594,13 @@ export function calculateEnergyTimeline(
         }
       })
 
-      const cappedGramsIn = Math.min(intervalGramsIn, 22.5)
+      // Roughly 90g/hr, the ceiling on what the gut can take up. Whatever the cap holds back has
+      // not been absorbed, so its energy must be held back with it - otherwise a big meal credited
+      // calories the athlete could not yet have used.
+      const cappedGramsIn = Math.min(intervalGramsIn, INTERVAL_CARB_ABSORPTION_CAP_G)
+      const absorbedRatio = intervalGramsIn > 0 ? cappedGramsIn / intervalGramsIn : 0
       currentGrams += cappedGramsIn
-      cumulativeKcalDelta += intervalKcalIn
+      cumulativeKcalDelta += intervalKcalIn * absorbedRatio
       cumulativeCarbDelta += cappedGramsIn
 
       if (isPassiveWindow && !manualFluidHours.has(hourKey)) {

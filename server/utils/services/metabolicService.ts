@@ -16,6 +16,7 @@ import {
   calculateEnergyTimeline,
   calculateGlycogenState,
   buildDayFuelingPlan,
+  estimateDailyCarbTargetGrams,
   selectRelevantWorkouts,
   synthesizeRefills,
   ABSORPTION_PROFILES,
@@ -272,7 +273,13 @@ export const metabolicService = {
     const summary = calculateGlycogenState(
       dayNutrition || {
         date: date.toISOString(),
-        carbsGoal: settings.fuelState1Min * weightKg
+        // Same reasoning as the projection in getWaveRange: a day without a saved plan still has a
+        // real target, and defaulting to the lowest fuel state's minimum understates it.
+        carbsGoal: estimateDailyCarbTargetGrams(
+          { weight: weightKg, ftp: user?.ftp || 250, ...settings } as any,
+          dayWorkouts as any,
+          { date }
+        )
       },
       dayWorkouts,
       { ...settings, weight: weightKg }, // Inject converted weight
@@ -970,10 +977,23 @@ export const metabolicService = {
           )
         : []
 
+      // Days the plan has not been generated for still need a believable carbohydrate target.
+      // Defaulting to the lowest fuel state's minimum projected every future session as though the
+      // athlete would under-eat it, so the horizon showed a glycogen crash that the plan avoids.
+      const projectedCarbsGoal = estimateDailyCarbTargetGrams(
+        {
+          weight: weightKg,
+          ftp: user?.ftp || 250,
+          ...settings
+        } as any,
+        dayWorkouts as any,
+        { date }
+      )
+
       const points = calculateEnergyTimeline(
         dayNutrition || {
           date: date.toISOString(),
-          carbsGoal: settings.fuelState1Min * weightKg
+          carbsGoal: projectedCarbsGoal
         },
         dayWorkouts,
         { ...settings, weight: weightKg }, // Inject converted weight
