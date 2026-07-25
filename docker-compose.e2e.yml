@@ -58,7 +58,7 @@ services:
       PORT: '3000'
       NUXT_AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
       NUXT_AUTH_ORIGIN: 'http://localhost:3199'
-      AUTH_ORIGIN: 'http://localhost:3199'
+      AUTH_ORIGIN: 'http://127.0.0.1:3000'
       AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
       NUXT_PUBLIC_SITE_URL: 'http://localhost:3199/'
       DISABLE_EMAILS: 'true'
