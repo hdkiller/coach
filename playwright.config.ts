@@ -13,7 +13,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 4 : undefined,
   timeout: 120_000,
   reporter: [['list'], ['html', { open: 'never' }]],
   globalSetup: fileURLToPath(new URL('./e2e/global-setup.ts', import.meta.url)),
