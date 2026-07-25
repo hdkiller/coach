@@ -503,7 +503,7 @@
 
               <!-- Power Settings -->
               <section
-                id="sport-power"
+                :id="sectionDomId('sport-power', index)"
                 class="space-y-4"
                 :class="sectionHighlightClass('sport-power')"
               >
@@ -734,7 +734,11 @@
               </section>
 
               <!-- Heart Rate Settings -->
-              <section id="sport-hr" class="space-y-4" :class="sectionHighlightClass('sport-hr')">
+              <section
+                :id="sectionDomId('sport-hr', index)"
+                class="space-y-4"
+                :class="sectionHighlightClass('sport-hr')"
+              >
                 <h4
                   class="text-sm font-medium text-gray-500 uppercase tracking-wider border-b pb-2 dark:border-gray-800 flex items-center gap-2"
                 >
@@ -862,12 +866,12 @@
 
                 <!-- HR Zones Editor -->
                 <div
-                  v-if="editingIndex === index"
-                  id="sport-zones"
+                  :id="sectionDomId('sport-zones', index)"
                   class="mt-4"
                   :class="sectionHighlightClass('sport-zones')"
                 >
                   <ProfileZoneEditor
+                    v-if="editingIndex === index"
                     v-model="editForm.hrZones"
                     :title="t('zones_title_hr')"
                     units="bpm"
@@ -887,28 +891,32 @@
                       >
                     </template>
                   </ProfileZoneEditor>
-                </div>
-                <div
-                  v-else-if="item.content.hrZones?.length"
-                  id="sport-zones"
-                  class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
-                  :class="sectionHighlightClass('sport-zones')"
-                >
-                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">
-                    {{ t('zones_title_hr') }}
-                  </div>
-                  <div class="space-y-2">
-                    <div
-                      v-for="(zone, zIdx) in item.content.hrZones"
-                      :key="zIdx"
-                      class="p-2 border dark:border-gray-800 rounded text-xs flex justify-between bg-white dark:bg-gray-900"
-                    >
-                      <span class="text-muted truncate mr-1">{{ zone.name }}</span>
-                      <span class="font-mono font-bold"
-                        >{{ zone.min }}-{{ zone.max
-                        }}<span class="text-[10px] ml-0.5 text-gray-400">bpm</span></span
-                      >
+                  <div
+                    v-else-if="item.content.hrZones?.length"
+                    class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
+                  >
+                    <div class="text-xs font-bold uppercase text-gray-400 mb-3">
+                      {{ t('zones_title_hr') }}
                     </div>
+                    <div class="space-y-2">
+                      <div
+                        v-for="(zone, zIdx) in item.content.hrZones"
+                        :key="zIdx"
+                        class="p-2 border dark:border-gray-800 rounded text-xs flex justify-between bg-white dark:bg-gray-900"
+                      >
+                        <span class="text-muted truncate mr-1">{{ zone.name }}</span>
+                        <span class="font-mono font-bold"
+                          >{{ zone.min }}-{{ zone.max
+                          }}<span class="text-[10px] ml-0.5 text-gray-400">bpm</span></span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    v-else
+                    class="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400"
+                  >
+                    {{ t('zones_empty') }}
                   </div>
                 </div>
               </section>
@@ -1675,6 +1683,7 @@
     profile?: any
     highlightSections?: string[]
     focusSection?: string | null
+    focusRequestId?: number
   }>()
 
   const emit = defineEmits(['update:settings', 'autodetect'])
@@ -1770,14 +1779,20 @@
       : ''
   }
 
+  function sectionDomId(sectionId: string, profileIndex: number) {
+    return `${sectionId}-${profileIndex}`
+  }
+
   function getDefaultProfileIndex() {
     const index = accordionItems.value.findIndex((item) => item.content.isDefault)
     return index >= 0 ? index : 0
   }
 
-  function scrollToSection(sectionId: string) {
+  function scrollToSection(sectionId: string, profileIndex: number) {
     nextTick(() => {
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      document
+        .getElementById(sectionDomId(sectionId, profileIndex))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
   }
 
@@ -1788,17 +1803,22 @@
     const item = accordionItems.value[index]
     if (!item) return
 
-    openItems.value = [item.value]
+    const openValues = [item.value]
+    if (editingIndex.value !== null && editingIndex.value !== index) {
+      const editingItem = accordionItems.value[editingIndex.value]
+      if (editingItem) openValues.push(editingItem.value)
+    }
+    openItems.value = [...new Set(openValues)]
 
-    if (editingIndex.value !== index) {
+    if (editingIndex.value === null) {
       startEdit(index, item.content)
     }
 
-    scrollToSection(sectionId)
+    scrollToSection(sectionId, index)
   }
 
   watch(
-    () => [props.settings?.length, props.focusSection] as const,
+    () => [props.settings?.length, props.focusSection, props.focusRequestId] as const,
     ([length, section]) => {
       if (!section || !section.startsWith('sport-') || !length) return
       focusSportSection(section)

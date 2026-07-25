@@ -412,17 +412,9 @@
                     on {{ formatDateUTC(method.linkedAt, 'PPP') }}
                   </span>
                 </p>
-                <p v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5">
-                  ID: {{ method.profileId }}
-                </p>
               </div>
-              <p v-else-if="method.isIntegrated" class="flex flex-col">
-                <span class="text-xs text-amber-500 font-medium">{{
-                  t('basic_login_methods_linked')
-                }}</span>
-                <span v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5"
-                  >ID: {{ method.profileId }}</span
-                >
+              <p v-else-if="method.isIntegrated" class="text-xs text-amber-500 font-medium">
+                {{ t('basic_login_methods_linked') }}
               </p>
               <p v-else class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('basic_login_methods_not_connected') }}
@@ -563,6 +555,7 @@
     loading?: boolean
     highlightSections?: string[]
     focusSection?: string | null
+    focusRequestId?: number
   }>()
 
   const emit = defineEmits(['update:modelValue', 'autodetect', 'navigate'])
@@ -583,8 +576,7 @@
         iconClass: 'text-gray-900 dark:text-white',
         isConnected: accounts.some((a: any) => a.provider === 'google'),
         isIntegrated: false, // Google is login-only for now
-        linkedAt: accounts.find((a: any) => a.provider === 'google')?.createdAt,
-        profileId: accounts.find((a: any) => a.provider === 'google')?.providerAccountId
+        linkedAt: accounts.find((a: any) => a.provider === 'google')?.createdAt
       },
       {
         id: 'strava',
@@ -593,10 +585,7 @@
         iconClass: 'text-[#FC4C02]',
         isConnected: accounts.some((a: any) => a.provider === 'strava'),
         isIntegrated: integrations.some((i: any) => i.provider === 'strava'),
-        linkedAt: accounts.find((a: any) => a.provider === 'strava')?.createdAt,
-        profileId:
-          accounts.find((a: any) => a.provider === 'strava')?.providerAccountId ||
-          integrations.find((i: any) => i.provider === 'strava')?.externalUserId
+        linkedAt: accounts.find((a: any) => a.provider === 'strava')?.createdAt
       },
       {
         id: 'intervals',
@@ -605,10 +594,7 @@
         iconClass: 'text-primary',
         isConnected: accounts.some((a: any) => a.provider === 'intervals'),
         isIntegrated: integrations.some((i: any) => i.provider === 'intervals'),
-        linkedAt: accounts.find((a: any) => a.provider === 'intervals')?.createdAt,
-        profileId:
-          accounts.find((a: any) => a.provider === 'intervals')?.providerAccountId ||
-          integrations.find((i: any) => i.provider === 'intervals')?.externalUserId
+        linkedAt: accounts.find((a: any) => a.provider === 'intervals')?.createdAt
       }
     ]
   })
@@ -872,8 +858,8 @@
   }
 
   watch(
-    () => props.focusSection,
-    (section) => {
+    () => [props.focusSection, props.focusRequestId] as const,
+    ([section]) => {
       if (section === 'body-metrics') scrollToSection('body-metrics')
     },
     { immediate: true }

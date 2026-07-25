@@ -35,6 +35,7 @@
             :loading="savingProfile"
             :highlight-sections="highlightedSections"
             :focus-section="focusSection"
+            :focus-request-id="focusRequestId"
             @update:model-value="handleProfileUpdate"
             @autodetect="handleAutodetect"
             @navigate="(tab) => setActiveTab(tab)"
@@ -93,6 +94,7 @@
                 :profile="profile"
                 :highlight-sections="highlightedSections"
                 :focus-section="focusSection"
+                :focus-request-id="focusRequestId"
                 @update:settings="updateSportSettings"
                 @autodetect="handleAutodetect"
               />
@@ -260,6 +262,7 @@
   const router = useRouter()
   const activeTab = ref((route.query.tab as string) || 'basic')
   const focusSection = ref<MissingProfileSectionId | null>(null)
+  const focusRequestId = ref(0)
   const highlightedSections = ref<MissingProfileSectionId[]>([])
   const missingFieldsGuideDismissed = ref(false)
   const pendingFocus = ref<{ sectionId: MissingProfileSectionId; tab: 'basic' | 'sports' } | null>(
@@ -291,6 +294,7 @@
 
     pendingFocus.value = null
     focusSection.value = sectionId
+    focusRequestId.value += 1
     highlightedSections.value = [sectionId]
 
     router.replace({

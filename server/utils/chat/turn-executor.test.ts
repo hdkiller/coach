@@ -282,6 +282,8 @@ describe('write repair prompt helpers', () => {
     expect(result).toContain('tool-enabled read turn')
     expect(result).toContain('MUST produce a clear textual answer')
     expect(result).toContain('Do not end the turn with only tool calls')
+    expect(result).toContain('prose coaching reply')
+    expect(result).toContain('get_workout_analysis')
   })
 
   it('synthesizes a planned-workout fallback from successful tool results', () => {
@@ -375,6 +377,40 @@ describe('write repair prompt helpers', () => {
 
     expect(result).toContain('## Morning Run')
     expect(result).toContain('Well-paced aerobic session.')
+  })
+
+  it('explains missing workout analysis instead of returning null', () => {
+    const result = buildEmptyResponseFallbackFromToolResults([
+      {
+        toolName: 'get_workout_analysis',
+        result: {
+          title: 'VO2Max Sharpener',
+          date: '2026-07-23',
+          aiAnalysisStatus: 'NOT_STARTED',
+          aiAnalysisJson: null,
+          aiAnalysis: null
+        }
+      }
+    ])
+
+    expect(result).toContain('VO2Max Sharpener')
+    expect(result).toContain('not available yet')
+    expect(result).toContain('raw session metrics')
+  })
+
+  it('explains in-progress workout analysis', () => {
+    const result = buildEmptyResponseFallbackFromToolResults([
+      {
+        toolName: 'get_workout_analysis',
+        result: {
+          title: 'Afternoon Ride',
+          date: '2026-07-22',
+          aiAnalysisStatus: 'PENDING'
+        }
+      }
+    ])
+
+    expect(result).toContain('still generating')
   })
 
   it('builds a concise fallback for completed workout details', () => {
