@@ -21,7 +21,7 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 ENV SOURCEMAP=false
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=7168 pnpm build
 
 FROM base AS runner
 ENV NODE_ENV=production
