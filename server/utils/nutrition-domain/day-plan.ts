@@ -419,6 +419,9 @@ export function buildDayFuelingPlan(
         description: preDescription,
         status: 'PENDING',
         plannedWorkoutId: block.workouts[0]?.id,
+        // A block-level window belongs to every session in the block, not just the first. Consumers
+        // that filter a day's windows down to one workout need all of them.
+        plannedWorkoutIds: block.workouts.map((w) => w.id).filter(Boolean),
         workoutTitle: blockTitle
       } as SerializedFuelingWindow)
     )
@@ -478,6 +481,7 @@ export function buildDayFuelingPlan(
           status: 'PENDING',
           supplements: extractSupplements(workout.durationHours, workout.normalizedIntensity),
           plannedWorkoutId: workout.id,
+          plannedWorkoutIds: workout.id ? [workout.id] : [],
           workoutTitle: workout.title
         } as SerializedFuelingWindow)
       )
@@ -520,6 +524,7 @@ export function buildDayFuelingPlan(
         description: postDescription,
         status: 'PENDING',
         plannedWorkoutId: block.workouts[block.workouts.length - 1]?.id,
+        plannedWorkoutIds: block.workouts.map((w) => w.id).filter(Boolean),
         workoutTitle: blockTitle
       } as SerializedFuelingWindow)
     )
@@ -602,6 +607,7 @@ export function buildDayFuelingPlan(
       activityCalories: breakdown.activityCalories,
       adjustmentCalories: breakdown.adjustmentCalories,
       fuelState: state,
+      trainingHours: Number(workouts.reduce((sum, w) => sum + w.durationHours, 0).toFixed(3)),
       workoutCalories: breakdown.workouts.map((w) => ({
         title: w.title,
         calories: w.calories,

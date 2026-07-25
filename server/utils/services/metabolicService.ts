@@ -509,7 +509,10 @@ export const metabolicService = {
         carbs,
         absorptionType,
         timing: inWindow ? 'Now (in fueling window)' : `In ~${Math.max(0, minutesToStart)} min`,
-        basedOnWindowType: activeOrNext.type
+        basedOnWindowType: activeOrNext.type,
+        // Identity of the window this suggestion is for, so locking a meal from the live feed
+        // targets it rather than the first window that happens to share its type.
+        basedOnWindowKey: activeOrNext.windowKey
       }
     }
 

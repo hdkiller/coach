@@ -147,11 +147,18 @@ export interface SerializedFuelingWindow {
   targetSodium: number // mg
   targetKcal?: number // kcal, derived from the macro targets
   description: string
+  /** Contextual coaching line shown with the window (carb loading, hydration debt, boosts). */
+  advice?: string
   label?: string
   slotName?: string
   status: 'PENDING' | 'HIT' | 'MISSED' | 'PARTIAL'
   supplements?: string[]
   plannedWorkoutId?: string
+  /**
+   * Every session this window serves. Block-level pre/post windows cover more than one workout, so
+   * `plannedWorkoutId` alone cannot answer "does this window belong to workout X".
+   */
+  plannedWorkoutIds?: string[]
   workoutTitle?: string
   ordinal?: number
 }
@@ -170,6 +177,11 @@ export interface SerializedFuelingPlan {
     activityCalories: number
     adjustmentCalories: number
     fuelState: number
+    /**
+     * Total planned training time for the day. Carried explicitly because intra-workout windows are
+     * only emitted for sessions that need in-session fuel, so they cannot be summed to recover it.
+     */
+    trainingHours?: number
     workoutCalories?: {
       title: string
       calories: number
