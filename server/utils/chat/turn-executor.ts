@@ -829,6 +829,15 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   let terminalTimeoutReason: string | null = null
   let terminalFailureReason: string | null = null
   const executionAbortController = new AbortController()
+  const executionHost = {
+    deploymentId:
+      process.env.RENDER_GIT_COMMIT ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.TRIGGER_DEPLOYMENT_ID ||
+      'unknown',
+    serviceId: process.env.RENDER_SERVICE_ID || process.env.FLY_APP_NAME || 'app-worker',
+    processId: process.pid
+  }
 
   try {
     await checkQuota(turn.userId, 'chat')
@@ -871,7 +880,8 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       slowResponse: false,
       firstOutputLatencyMs: null,
       executionDurationMs: null,
-      executionPhase: currentPhase
+      executionPhase: currentPhase,
+      executionHost
     })
   })
   if (!startedTurn) {
@@ -891,12 +901,18 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   const ownedRunId = executionRunId!
   await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_STARTED, {
     roomId: turn.roomId,
-    userMessageId: turn.userMessageId
+    userMessageId: turn.userMessageId,
+    runId: ownedRunId,
+    executionHost
   } as any)
 
   const heartbeatTimer = setInterval(() => {
     void chatTurnService
-      .heartbeat(turn.id, undefined, ownedRunId)
+      .heartbeatWithTelemetry(turn.id, ownedRunId, {
+        executionPhase: currentPhase,
+        heartbeatPhaseAt: new Date().toISOString(),
+        executionHost
+      })
       .then((result) => {
         if (result.count === 0 && !executionAbortController.signal.aborted) {
           terminalFailureReason = 'Turn ownership changed during execution.'

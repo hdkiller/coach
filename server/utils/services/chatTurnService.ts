@@ -345,6 +345,23 @@ class ChatTurnService {
     })
   }
 
+  async heartbeatWithTelemetry(turnId: string, runId: string, telemetry: Record<string, unknown>) {
+    const turn = await prisma.chatTurn.findUnique({
+      where: { id: turnId },
+      select: { runId: true, metadata: true }
+    })
+
+    if (!turn || turn.runId !== runId) return { count: 0 }
+
+    return await prisma.chatTurn.updateMany({
+      where: { id: turnId, runId },
+      data: {
+        lastHeartbeatAt: new Date(),
+        metadata: this.mergeTurnMetadata(turn as any, telemetry)
+      }
+    })
+  }
+
   async recordEvent(turnId: string, type: string, data?: Prisma.InputJsonValue) {
     return await prisma.chatTurnEvent.create({
       data: {
