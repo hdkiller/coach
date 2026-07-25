@@ -131,7 +131,7 @@ Historical documents, incident reports, and past status updates.
 
 ### Bug Fix Reports
 
-- [**Sentry Issue Tracking**](../SENTRY-ISSUES.md) - Living document tracking resolved and outstanding Sentry issues. **Resolve handled issues in Sentry** when fixing or triaging (see Maintenance Guidelines).
+- [**Sentry Issue Tracking**](../SENTRY-ISSUES.md) - Living document for org `newpush-y4` / project `coach-watts` (not mobile `watt-mind`). **Resolve handled issues in Sentry** when fixing or triaging (see Maintenance Guidelines).
 - [**Account Query Error**](./05-archive/bug-fixes/account-query-error.md)
 - [**Chat Tool Calling Fixes**](./05-archive/bug-fixes/chat-tool-calling-fixes.md)
 - [**Strava Training Load Fix**](./05-archive/bug-fixes/strava-training-load-fix.md)

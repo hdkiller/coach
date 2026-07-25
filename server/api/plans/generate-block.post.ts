@@ -1,17 +1,14 @@
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { trainingBlockRepository } from '../../utils/repositories/trainingBlockRepository'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const authUser = await requireAuth(event, ['plan:write'])
 
   const { blockId } = await readBody(event)
-  const userId = (session.user as any).id
+  const userId = authUser.id
 
   // 0. Check Quota
   try {

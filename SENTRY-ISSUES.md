@@ -1,6 +1,26 @@
 # Sentry Issue Tracking
 
-Live tracker for **coach-watts** ([Sentry dashboard](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)). Last synced from Sentry: **2026-07-18**.
+Live tracker for **this repo** ([Sentry dashboard](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)). Last synced from Sentry: **2026-07-24**.
+
+## Which Sentry project (agents — read this first)
+
+| Field            | Value                                                                          |
+| ---------------- | ------------------------------------------------------------------------------ |
+| **Organization** | `newpush-y4`                                                                   |
+| **Project**      | `coach-watts`                                                                  |
+| **Region URL**   | `https://de.sentry.io`                                                         |
+| **Dashboard**    | https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved |
+| **Env vars**     | `SENTRY_ORG=newpush-y4`, `SENTRY_PROJECT=coach-watts` (see `.env`)             |
+
+When using the Sentry MCP (`search_issues`, `search_events`, `get_sentry_resource`, `update_issue`), **always** pass:
+
+- `organizationSlug: "newpush-y4"`
+- `regionUrl: "https://de.sentry.io"`
+- `projectSlug: "coach-watts"` (or filter with `project:coach-watts`)
+
+**Do not use** `watt-mind` / `coach-watts-app` — that is the **mobile companion app** (separate codebase). Issue IDs there look like `COACH-WATTS-APP-*`. This web/backend app uses `COACH-WATTS-*` (no `-APP`).
+
+Also out of scope for this tracker: `newpush-y4` / `platform` (e.g. [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA)).
 
 Related docs:
 
@@ -13,15 +33,24 @@ Related docs:
 
 Sorted by recency. These still need a fix, deploy verification, or ongoing monitoring.
 
-| Issue ID                                                               | Description                                 | Users | Events | Last seen | Culprit | Notes                                                                                                                                                                                        |
-| ---------------------------------------------------------------------- | ------------------------------------------- | ----- | ------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [COACH-WATTS-1ER](https://newpush-y4.sentry.io/issues/COACH-WATTS-1ER) | `can't access property "p", e is undefined` | 1     | 1      | ~15h ago  | `/chat` | **Watch only** — same user/trace/replay as COACH-WATTS-C (chunk miss → Vue cascade). Dig in only if it recurs _without_ a paired chunk error. Do **not** add this message to `ignoreErrors`. |
-| [COACH-WATTS-C](https://newpush-y4.sentry.io/issues/COACH-WATTS-C)     | `error loading dynamically imported module` | 15    | 76     | ~15h ago  | `/chat` | **Known noise** (regressed). Product fix already shipped — see [Chunk load playbook](#chunk-load-playbook). Optional: Ignore/Resolve in Sentry.                                              |
-| [COACH-WATTS-9](https://newpush-y4.sentry.io/issues/COACH-WATTS-9)     | `Importing a module script failed`          | 36    | 416    | ~2d ago   | `/chat` | Same cluster as C; assigned to lracz@newpush.com. Optional: Ignore/Resolve in Sentry.                                                                                                        |
+| Issue ID                                                               | Description                                 | Users | Events | Last seen | Culprit       | Notes                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------- | ------------------------------------------- | ----- | ------ | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [COACH-WATTS-1ES](https://newpush-y4.sentry.io/issues/COACH-WATTS-1ES) | `visibleElements` of undefined              | 1     | 1      | ~5d ago   | `/dashboard`  | Chart.js animator `beforeDraw` after dashboard sync on `vps.wyknas.site` (`release coach@0.5.24`). Same family as prior annotation init races; `ensureChartJsAnnotationDefaults` / `safeChartUpdate` may not cover destroy-during-animation. **Watch / harden chart destroy**. |
+| [COACH-WATTS-9](https://newpush-y4.sentry.io/issues/COACH-WATTS-9)     | `Importing a module script failed`          | 10    | 12     | ~21h ago  | `/chat`       | Chunk-load cluster — see playbook. Prod events still trickling; product mitigation shipped. Optional: Ignore/Resolve.                                                                                                                                                          |
+| [COACH-WATTS-1B9](https://newpush-y4.sentry.io/issues/COACH-WATTS-1B9) | Auth session fetch load failed              | 7     | 7      | ~1d ago   | `/activities` | Mixed prod/dev session blips — Known Noise.                                                                                                                                                                                                                                    |
+| [COACH-WATTS-1ER](https://newpush-y4.sentry.io/issues/COACH-WATTS-1ER) | `can't access property "p", e is undefined` | 1     | 2      | ~2d ago   | `/chat`       | **Watch only** — Vue cascade after chunk miss (paired with C). Do **not** add to `ignoreErrors`.                                                                                                                                                                               |
+| [COACH-WATTS-C](https://newpush-y4.sentry.io/issues/COACH-WATTS-C)     | `error loading dynamically imported module` | 7     | 15     | ~2d ago   | `/chat`       | **Known noise**. Product fix shipped — see [Chunk load playbook](#chunk-load-playbook). Optional: Ignore/Resolve.                                                                                                                                                              |
 
-No other actionable coach-watts production bugs as of 2026-07-18. Chunk issues (C / 9) are handled in code; keep them here only until closed in Sentry.
+### Investigation summary (2026-07-24)
 
-**Out of scope:** [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA) (`fbq is not defined`) is GTM / Meta Pixel on `platform.newpush.com`, not this app.
+| Priority         | Issues            | Verdict                                                                                                  |
+| ---------------- | ----------------- | -------------------------------------------------------------------------------------------------------- |
+| Closed           | **1EP, 1EV, 1ET** | Resolved in Sentry + filtered in `sentry.server.config.ts` (local Trigger down / chat abort / vite IPC). |
+| Optional hygiene | **9, C, 1B9**     | Already mitigated / known noise; close in Sentry when quiet.                                             |
+| Maybe code       | **1ES**           | Single prod Chart.js teardown race on dashboard; low urgency (1 event).                                  |
+| Watch            | **1ER**           | Only dig if it appears without a paired chunk-load error.                                                |
+
+**Out of scope:** [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA) (`fbq is not defined`) is GTM / Meta Pixel on `platform.newpush.com`, not this app. Mobile app errors live under `watt-mind` / `coach-watts-app`.
 
 [View all unresolved issues in Sentry →](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)
 
@@ -66,23 +95,25 @@ Move to **Recently Resolved** and **resolve in Sentry** once deployed and quiet 
 
 ## Known Noise / Handled
 
-| Issue ID                                                               | Description                                         | Handling                                                                                                                                         |
-| ---------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [COACH-WATTS-117](https://newpush-y4.sentry.io/issues/COACH-WATTS-117) | `Object Not Found Matching Id:*, MethodName:update` | Filtered via `ignoreErrors` in `sentry.client.config.ts` ([#196](./docs/issues/196-sentry-no-cefsharp-scanner-filter.md)); **ignored in Sentry** |
-| COACH-WATTS-D / 9 / C / 57 / 1E9 / 1ER                                 | Chunk / dynamic import failures (+ Vue cascade)     | Auto-reload + `ignoreErrors` — see [Chunk load playbook](#chunk-load-playbook) and [#323](./docs/issues/323-sentry-chunk-load-deploy-noise.md)   |
-| COACH-WATTS-23 / 1AA / 1B9 / 1DF / 1C4 / 1E8 / 50                      | Auth session / dev.json fetch failures (incl. 404)  | Dev server restarts / deploy; not app bugs                                                                                                       |
-| COACH-WATTS-1EC / 1EG                                                  | `/api/profile/quotas` fetch 401 / no response       | Dev session blips during local work                                                                                                              |
-| [COACH-WATTS-1E4](https://newpush-y4.sentry.io/issues/COACH-WATTS-1E4) | `no such table: _content_content`                   | Nuxt Content DB not initialized in dev; filtered in `sentry.server.config.ts` `beforeSend`                                                       |
-| COACH-WATTS-1EB / 1DG / 1DH / 1DE                                      | Vite `?macro=true` syntax errors                    | Transient dev HMR / in-progress edits                                                                                                            |
-| COACH-WATTS-1EP / 1EQ                                                  | Garmin authorize `Bad Gateway` on localhost         | Local proxy to `:7900` down / teammate `SENTRY_ENABLED`; **resolved in Sentry 2026-07-17**                                                       |
-| COACH-WATTS-1EN / 1EM / 1EK / 1EJ / 1EH / 1DC / 1E5                    | Local HMR / dashboard / docs noise                  | Pre–opt-in-gate or local-only; **resolved in Sentry 2026-07-17**                                                                                 |
-| [COACH-WATTS-MP](https://newpush-y4.sentry.io/issues/COACH-WATTS-MP)   | `runtime.sendMessage(). Tab not found`              | Browser extension noise                                                                                                                          |
+| Issue ID                                                               | Description                                              | Handling                                                                                                                                         |
+| ---------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [COACH-WATTS-117](https://newpush-y4.sentry.io/issues/COACH-WATTS-117) | `Object Not Found Matching Id:*, MethodName:update`      | Filtered via `ignoreErrors` in `sentry.client.config.ts` ([#196](./docs/issues/196-sentry-no-cefsharp-scanner-filter.md)); **ignored in Sentry** |
+| COACH-WATTS-D / 9 / C / 57 / 1E9 / 1ER                                 | Chunk / dynamic import failures (+ Vue cascade)          | Auto-reload + `ignoreErrors` — see [Chunk load playbook](#chunk-load-playbook) and [#323](./docs/issues/323-sentry-chunk-load-deploy-noise.md)   |
+| COACH-WATTS-23 / 1AA / 1B9 / 1DF / 1C4 / 1E8 / 50                      | Auth session / dev.json fetch failures (incl. 404)       | Dev server restarts / deploy; not app bugs                                                                                                       |
+| COACH-WATTS-1EC / 1EG                                                  | `/api/profile/quotas` fetch 401 / no response            | Dev session blips during local work                                                                                                              |
+| [COACH-WATTS-1E4](https://newpush-y4.sentry.io/issues/COACH-WATTS-1E4) | `no such table: _content_content`                        | Nuxt Content DB not initialized in dev; filtered in `sentry.server.config.ts` `beforeSend`                                                       |
+| COACH-WATTS-1EB / 1DG / 1DH / 1DE                                      | Vite `?macro=true` syntax errors                         | Transient dev HMR / in-progress edits                                                                                                            |
+| COACH-WATTS-1EP / 1EV / 1ET                                            | Local Trigger `:8000` 502 / chat `terminated` / vite IPC | Dev-only with `SENTRY_ENABLED`; **resolved in Sentry 2026-07-24**; filtered in `sentry.server.config.ts` `beforeSend`                            |
+| COACH-WATTS-1EQ                                                        | Garmin authorize `Bad Gateway` on localhost              | Local proxy to `:7900` down / teammate `SENTRY_ENABLED`; **resolved in Sentry 2026-07-17**                                                       |
+| COACH-WATTS-1EN / 1EM / 1EK / 1EJ / 1EH / 1DC / 1E5                    | Local HMR / dashboard / docs noise                       | Pre–opt-in-gate or local-only; **resolved in Sentry 2026-07-17**                                                                                 |
+| [COACH-WATTS-MP](https://newpush-y4.sentry.io/issues/COACH-WATTS-MP)   | `runtime.sendMessage(). Tab not found`                   | Browser extension noise                                                                                                                          |
 
 ## Recently Resolved
 
 | Issue ID                                                                                                                                                                                                                                                                                                                                                                                                                                             | Description                                    | Resolution                                                                                                                              |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| [COACH-WATTS-1EP](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EP) / [1EQ](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EQ)                                                                                                                                                                                                                                                                                                                  | Garmin authorize Bad Gateway (dev)             | Local Garmin proxy noise; resolved in Sentry 2026-07-17                                                                                 |
+| [COACH-WATTS-1EP](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EP) / [1EV](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EV) / [1ET](https://newpush-y4.sentry.io/issues/COACH-WATTS-1ET)                                                                                                                                                                                                                                                     | Local Trigger / chat abort / vite IPC noise    | Resolved in Sentry 2026-07-24; `beforeSend` filters in `sentry.server.config.ts`                                                        |
+| [COACH-WATTS-1EQ](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EQ)                                                                                                                                                                                                                                                                                                                                                                               | Garmin authorize Bad Gateway (dev)             | Local Garmin proxy noise; resolved in Sentry 2026-07-17                                                                                 |
 | [COACH-WATTS-1EN](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EN) / [1EM](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EM) / [1EK](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EK) / [1EJ](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EJ) / [1EH](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EH) / [1DC](https://newpush-y4.sentry.io/issues/COACH-WATTS-1DC) / [1E5](https://newpush-y4.sentry.io/issues/COACH-WATTS-1E5) | Local HMR / dashboard / docs noise             | Dev-only; resolved in Sentry 2026-07-17                                                                                                 |
 | [COACH-WATTS-1EF](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EF)                                                                                                                                                                                                                                                                                                                                                                               | `$setup.t.value is not a function`             | `accountMenuAriaLabel` computed in `MobileSidebarFooter.vue` ([#303](./docs/issues/303-mobile-sidebar-footer-aria-label-regression.md)) |
 | [COACH-WATTS-1EE](https://newpush-y4.sentry.io/issues/COACH-WATTS-1EE)                                                                                                                                                                                                                                                                                                                                                                               | `Cannot access 'tr' before initialization`     | Recovery `useHead`/`tr` ordering ([#282](./docs/issues/282-recovery-head-unmount-breaks-navigation.md))                                 |
@@ -120,7 +151,7 @@ Requires `SENTRY_DSN` in `.env`. Production builds always enable Sentry when `NO
 
 ## Maintenance Guidelines
 
-1. **Sync from Sentry** — Run `/seer` or ask the agent to refresh unresolved issues; update the **Active** table above.
+1. **Sync from Sentry** — Ask the agent to refresh unresolved issues from **`newpush-y4` / `coach-watts` only** (never `watt-mind`); update the **Active** table above.
 2. **New critical issues** — Add a row to **Active** and, if actionable, a matching `docs/issues/NNN-*.md` entry.
 3. **When an issue is handled, close it in Sentry** — This is mandatory, not optional:
    - **Code fix shipped** and quiet for 24–48h → **Resolve** in Sentry with a short comment (commit, doc link, or root cause).

@@ -34,6 +34,8 @@ async function main() {
       athlete: seeded.athlete.email,
       admin: seeded.admin.email,
       mobileClientId: seeded.mobileApp.clientId,
+      primaryGoalId: seeded.softActivation.goal.id,
+      activePlanId: seeded.softActivation.plan.id,
       todayRecommendationId: seeded.todayRecommendation.id,
       expectedMobileClientId: E2E_MOBILE_CLIENT_ID
     })

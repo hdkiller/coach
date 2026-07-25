@@ -1,15 +1,12 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { prisma } from '../../../utils/db'
 import { getUserLocalDate, getUserTimezone } from '../../../utils/date'
 import { trainingPlanRepository } from '../../../utils/repositories/trainingPlanRepository'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const authUser = await requireAuth(event, ['plan:write'])
 
-  const userId = (session.user as any).id
+  const userId = authUser.id
   const planId = getRouterParam(event, 'id')
 
   if (!planId) {

@@ -1,16 +1,13 @@
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRepository'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const authUser = await requireAuth(event, ['plan:write'])
 
   const { planId, adaptationType } = await readBody(event)
-  const userId = (session.user as any).id
+  const userId = authUser.id
 
   if (!planId || !adaptationType) {
     throw createError({ statusCode: 400, message: 'Plan ID and Adaptation Type are required' })

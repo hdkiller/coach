@@ -1,5 +1,4 @@
-import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
+import { requireAuth } from '../../../utils/auth-guard'
 import { trainingWeekRepository } from '../../../utils/repositories/trainingWeekRepository'
 import { z } from 'zod/v3'
 
@@ -12,16 +11,7 @@ const updateWeekSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true }
-  })
-  if (!user) throw createError({ statusCode: 401, message: 'User not found' })
+  const user = await requireAuth(event, ['plan:write'])
 
   const weekId = getRouterParam(event, 'id')
   const body = await readBody(event)

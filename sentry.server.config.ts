@@ -26,7 +26,15 @@ if (!config.public.sentryEnabled || !config.public.sentryDsn) {
         return null
       }
 
-      const message = event.exception?.values?.[0]?.value || event.message || ''
+      const exceptionValues = event.exception?.values ?? []
+      const messages = [event.message, ...exceptionValues.map((value) => value?.value)].filter(
+        (value): value is string => typeof value === 'string' && value.length > 0
+      )
+      const message = messages[0] || ''
+      const combinedMessage = messages.join('\n')
+      const requestUrl = event.request?.url || event.transaction || ''
+      const isDevelopment = (process.env.NODE_ENV || 'development') !== 'production'
+
       if (typeof message === 'string') {
         if (message.includes('no such table: _content_content')) {
           return null
@@ -49,6 +57,29 @@ if (!config.public.sentryEnabled || !config.public.sentryDsn) {
           message.includes('useLocalStorage is not defined')
         ) {
           return null
+        }
+
+        // Local-dev noise when SENTRY_ENABLED=true (COACH-WATTS-1EP / 1EV / 1ET).
+        if (combinedMessage.includes('IPC connection closed')) {
+          return null
+        }
+
+        if (isDevelopment) {
+          if (
+            requestUrl.includes('/api/runs') &&
+            (combinedMessage.includes('Bad Gateway') ||
+              combinedMessage.includes('ECONNREFUSED') ||
+              combinedMessage.includes('fetch failed'))
+          ) {
+            return null
+          }
+
+          if (
+            requestUrl.includes('/api/chat/messages') &&
+            (message === 'terminated' || combinedMessage.includes('other side closed'))
+          ) {
+            return null
+          }
         }
       }
 

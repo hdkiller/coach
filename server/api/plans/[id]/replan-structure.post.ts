@@ -1,5 +1,4 @@
-import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
+import { requireAuth } from '../../../utils/auth-guard'
 import { planService } from '../../../utils/services/planService'
 import { z } from 'zod/v3'
 
@@ -19,16 +18,7 @@ const replanSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true }
-  })
-  if (!user) throw createError({ statusCode: 401, message: 'User not found' })
+  const user = await requireAuth(event, ['plan:write'])
 
   const planId = getRouterParam(event, 'id')
   const body = await readBody(event)

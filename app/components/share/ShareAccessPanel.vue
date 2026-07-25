@@ -164,7 +164,7 @@
     </div>
 
     <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-      <UFormField label="Link expiry" class="mb-3 w-full max-w-xs text-left">
+      <UFormField v-if="isGeneratedMode" label="Link expiry" class="mb-3 w-full max-w-xs text-left">
         <USelect
           :model-value="expiryValue"
           :items="expiryOptions"
@@ -175,7 +175,11 @@
       </UFormField>
       <UIcon name="i-heroicons-link" class="mb-2 h-8 w-8 text-gray-400" />
       <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Create a share link, then post it or send it directly.
+        {{
+          isGeneratedMode
+            ? 'Create a share link, then post it or send it directly.'
+            : 'Could not load the share link. Please try again.'
+        }}
       </p>
       <UButton
         color="primary"
@@ -186,7 +190,7 @@
           }
         "
       >
-        Generate Link
+        {{ isGeneratedMode ? 'Generate Link' : 'Retry' }}
       </UButton>
     </div>
   </div>

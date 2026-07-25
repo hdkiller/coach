@@ -1,6 +1,6 @@
-import { getServerSession } from '../../utils/session'
 import { createGoogle } from '@ai-sdk/google'
 import { generateText } from 'ai'
+import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { calculateLlmCost } from '../../utils/ai-config'
 import { assertQuotaAllowed } from '../../utils/quotas/http'
@@ -26,15 +26,9 @@ function normalizeAudioMediaType(mediaType?: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
-  if (!userId) {
-    throw createError({ statusCode: 401, message: 'User ID not found' })
-  }
+  // Session, API key, and OAuth Bearer (mobile PKCE) — same as other chat write APIs.
+  const user = await requireAuth(event, ['chat:write'])
+  const userId = user.id
 
   await assertQuotaAllowed(
     userId,

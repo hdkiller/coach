@@ -51,6 +51,9 @@ When the developer accepts your fix plan (e.g., using `/support resolve <ticket_
 
 ## 3. Sentry Issues
 
+**Project for this repo:** org `newpush-y4`, project `coach-watts`, region `https://de.sentry.io`.
+Do **not** pull from `watt-mind` / `coach-watts-app` (mobile companion). See [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md) → _Which Sentry project_.
+
 When a bug is also tracked in Sentry (see [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md)), **resolve it in Sentry in the same session** once it is handled:
 
 1. **After a code fix** — Resolve in Sentry once deployed and quiet for 24–48h. Add a short activity comment (commit, root cause, or doc link).

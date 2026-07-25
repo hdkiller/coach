@@ -2,7 +2,7 @@
 
 Status: Draft (living document)  
 Owner: Product + Engineering  
-Last Updated: 2026-07-21
+Last Updated: 2026-07-24
 
 ## 1. Purpose
 
@@ -39,22 +39,23 @@ It should be updated as implementation decisions land. It does **not** replace f
 
 ## 2. Product positioning
 
-**Coach Watts web** remains the control room: deep plan adapt/replan, analytics/explorer, coaching teams, nutrition planning depth, library editing, billing, admin.
+**Coach Watts web** remains the control room for **leftovers**: plan templates / save-as-template / public share, Intervals.icu publish, analytics/explorer, coaching teams, library editing, billing administration, admin.
 
-**The mobile app** is an **activation companion**. It answers:
+**The mobile app** is an **activation companion + Plan companion**. It answers:
 
 1. Day one: Can I become a coached athlete without opening the web app?
 2. Every morning after: What should I do today, and can I check in / ask the coach on my phone?
+3. When life blows up: Can I regenerate, adapt, or replan — and see my nutrition plan — without opening web?
 
-Accounts may be created and activated entirely on device. Web is not a required setup step.
+Accounts may be created and activated entirely on device. Web is not a required setup step for day-to-day plan life.
 
 ### Design constraints
 
-1. **Activate, then accompany** — goal + plan lite + insight on device; then the daily loop.
-2. **Lite over architect** — plan _kickoff_ in-app; PlanDashboard, adaptation wizards, analytics stay on web.
+1. **Activate, then accompany** — goal + plan + insight on device; then the daily loop **plus** Plan tab.
+2. **Plan owns plan life** — create / generate / adapt / replan / abandon and nutrition weekly plan live on the Plan tab (thumb-first patterns). Templates, share links, and Intervals publish stay on web.
 3. **Connect last, clean** — data is required for _full_ activation but sits late in the wizard and is skippable. Prefer Health Sync over OAuth apps (Strava login confusion must not block the door).
 4. **Shared server truth** — `onboarding-status` (extended for goal/plan) is the source of truth for both web and mobile.
-5. **Do not clone `/dashboard`**.
+5. **Do not clone `/dashboard`** onto Today — Plan is the season/week surface.
 
 ### Activation model
 
@@ -65,8 +66,10 @@ Accounts may be created and activated entirely on device. Web is not a required 
 **Wizard UX order** (friction-aware, not the same as dependency order):
 
 ```
-consent → goal lite → plan lite → first insight → connect data (last; Skip OK)
+consent → goal lite → plan generator → first insight → connect data (last; Skip OK)
 ```
+
+Activation plan step reuses the same Plan generator module as the standing Plan tab.
 
 See also [new-user onboarding conversion plan](./new-user-onboarding-conversion-plan.md) — definitions should converge so web and mobile share soft vs full activation.
 
@@ -130,32 +133,44 @@ Mobile-first path (accounts that never touch web):
 
 1. Sign-**up** + native **consent** (terms + health/biometric)
 2. **Goal lite** — primary goal capture; optional AI suggest
-3. **Plan lite wizard** — availability → generate → preview → activate (not PlanDashboard)
+3. **Plan generator** — availability → generate → preview → activate (same module as Plan tab; not a desktop PlanDashboard clone)
 4. **First insight** — week reveal and/or today’s recommendation
 5. **Connect data last** — Health Sync primary; Connected Apps lite secondary; Skip → soft-activated + Finish-setup card
 6. Server-driven resume via extended `onboarding-status`
 
 Fully activated = data → goal → plan → insight. Soft-activated may use the companion before data lands.
 
+### 4.2b Next — Plan companion tab (`watts-mobile` OpenSpec train)
+
+| Change                       | Focus                                                       |
+| ---------------------------- | ----------------------------------------------------------- |
+| `plan-tab-shell`             | 5th tab Plan; Training \| Nutrition; active-plan read shell |
+| `plan-generator-full`        | Full generator pipeline + job UX; activation reuses module  |
+| `plan-adapt-replan`          | Adapt / replan / abandon / start new                        |
+| `plan-structure-edit`        | Week tune, reschedule/move, block CRUD (mobile patterns)    |
+| `nutrition-plan-on-plan-tab` | Weekly meal plan, generate, meal actions, grocery           |
+
+Upcoming planned list on More stays **separate** from Plan for now.
+
 ### 4.3 Explicit non-goals
 
 Do **not** ship native equivalents of:
 
-- Full **plan architect** (PlanDashboard, block/week editor, adaptation wizard, drag-reschedule)
-- Analytics builder, performance explorer, workout comparison, calendar heatmaps
+- Plan **templates** / save-as-template / public plan **share** / catalog
+- **Publish** planned workouts to Intervals.icu (device push later)
+- Analytics builder, performance explorer, workout comparison, Today calendar heatmaps
 - Multi-athlete coaching / teams
-- Nutrition planning / grocery lists (meal-plan generate, grocery, day regenerate)
 - Workout library editing
-- Billing, admin, developer portal
+- Billing administration, admin, developer portal
 - Full Profile Settings / sport zone editors — **except** Nutrition settings (Profile → Nutrition parity) and Sports thresholds lite
 
-**Narrowed:** goal capture, plan _kickoff_, Health Sync, Connected Apps **lite**, and **Nutrition settings** are **in scope**. Use Open web for depth.
+**In scope (2026-07-24):** Plan tab training generator + adapt/replan + structure edit; Plan tab nutrition weekly plan / generate / meal actions / grocery; activation reuses Plan generator.
 
 ### 4.4 Later
 
 - Structured workout push to Garmin / Wahoo / Intervals.icu
 - Stronger offline-first Today
-- Plan adapt via Coach tools (confirm-gated) without full native architect
+- Optional plan/week-ready push when generator jobs complete
 
 ---
 
@@ -163,25 +178,26 @@ Do **not** ship native equivalents of:
 
 ### 5.1 Primary navigation
 
-Bottom tabs — **four maximum**:
+Bottom tabs — **five**:
 
 | Tab       | Route (suggested) | Role                                             |
 | --------- | ----------------- | ------------------------------------------------ |
 | **Today** | `/(tabs)/today`   | Home. One scroll, one decision.                  |
+| **Plan**  | `/(tabs)/plan`    | Season/week training + nutrition plan.           |
 | **Log**   | `/(tabs)/log`     | Check-in + wellness. Input-first.                |
 | **Coach** | `/(tabs)/coach`   | Chat (+ optional recent recommendation context). |
-| **More**  | `/(tabs)/more`    | Activities, notifications, settings, open web.   |
+| **More**  | `/(tabs)/more`    | Activities, Upcoming, notifications, settings.   |
 
-Unread badge belongs on **More** (or a bell in the Today header) — not a fifth tab.
+Unread badge belongs on **More** (or a bell in the Today header).
 
 ### 5.2 Push / stack screens (not tabs)
 
 | Screen                       | Purpose                                                     |
 | ---------------------------- | ----------------------------------------------------------- |
-| Activation wizard            | Consent → goal → plan lite → insight → connect              |
+| Activation wizard            | Consent → goal → plan generator → insight → connect         |
 | Goal lite / Goals hub        | Activation + More → Goals list/detail/**create**            |
 | Events hub                   | Upcoming Events list/detail/**create** (edit/delete on web) |
-| Plan lite                    | Availability → generate → preview → activate                |
+| Plan tab / generator         | Training \| Nutrition; create → generate → adapt → replan   |
 | Recommendation detail        | Full reasoning + modifications                              |
 | Planned workout detail       | Intervals / zones / duration                                |
 | Activity summary             | Lightweight completed-session view                          |
@@ -272,9 +288,9 @@ Use **REST** OAuth scope names from `REST_OAUTH_SCOPES` (e.g. `recommendation:re
 | `workout:read` / `workout:write`               | Recent/planned; analyze; complete/skip                                                   |
 | `health:read` / `health:write`                 | Recovery, check-in                                                                       |
 | `recommendation:read` / `recommendation:write` | Today + accept/dismiss / generate                                                        |
-| `plan:read` / `plan:write`                     | Planned workouts + plan lite initialize/activate                                         |
+| `plan:read` / `plan:write`                     | Active plan + initialize/activate/generate/adapt/replan/structure                        |
 | `goal:read` / `goal:write`                     | Events list/detail + event lite create + goal lite (activation + hub create) + Goals hub |
-| `nutrition:read` / `nutrition:write`           | Nutrition quick-log + Profile nutrition settings                                         |
+| `nutrition:read` / `nutrition:write`           | Quick-log + Profile nutrition settings + nutrition plan / grocery                        |
 | `chat:read` / `chat:write`                     | Coach tab                                                                                |
 | `offline_access`                               | Refresh tokens                                                                           |
 
@@ -298,7 +314,8 @@ Prefer a thin **companion-oriented** BFF or curated existing endpoints. Do not f
 | Onboarding / consent      | `GET /api/user/onboarding-status` + consent write (Bearer)                    | Extend steps for goal/plan; shared soft vs full activation with web                                             |
 | Goal lite                 | `GET/POST/PATCH /api/goals` (+ optional suggest/review)                       | Activation + hub lite create; edit/delete/AI stay web; `goal:read` / `goal:write`                               |
 | Upcoming events           | `GET /api/events`, `GET /api/events/:id`, Bearer `POST /api/events`           | Lite create on mobile; edit/delete web; write scope prefer `goal:write`                                         |
-| Plan lite                 | `plans/initialize` + activate (Bearer)                                        | Preview first week; not full PlanDashboard                                                                      |
+| Plan companion            | `plans/initialize` + activate + generate-block/ai-week + adapt + structure    | Plan tab owns lifecycle; templates/share/Intervals publish stay web                                             |
+| Nutrition plan            | `nutrition/plan` + generate + meal actions + grocery (Bearer)                 | Plan tab Nutrition segment                                                                                      |
 | Recommendation actions    | existing accept / dismiss / today generate                                    | REST `recommendation:write`                                                                                     |
 | Wellness check-in         | existing wellness POST/PATCH                                                  | Map to `health:write`                                                                                           |
 | Recent activities         | workouts list (limited, recent)                                               | Cap page size for mobile                                                                                        |
@@ -462,14 +479,15 @@ Decisions should be recorded here when made.
 
 ## 14. Decision log
 
-| Date       | Decision                                     | Rationale                                                             |
-| ---------- | -------------------------------------------- | --------------------------------------------------------------------- |
-| 2026-07-14 | Companion, not full port                     | Protect focus on daily athlete loop; web keeps depth                  |
-| 2026-07-14 | Expo + TypeScript                            | Align with existing Nuxt/TS team skills; OTA-friendly                 |
-| 2026-07-14 | Four-tab IA: Today / Log / Coach / More      | One job per tab; avoid dashboard clone                                |
-| 2026-07-14 | OAuth PKCE + Bearer tokens                   | Existing IdP; cookie sessions are web-only                            |
-| 2026-07-19 | Chat scopes `chat:read` / `chat:write`       | Match existing chat REST guards; Official Mobile App may request them |
-| 2026-07-19 | Chat streaming via WebSocket + poll fallback | Parity with web; Bearer can mint WS token; no SSE                     |
+| Date       | Decision                                     | Rationale                                                                                                                        |
+| ---------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-14 | Companion, not full port                     | Protect focus on daily athlete loop; web keeps depth                                                                             |
+| 2026-07-14 | Expo + TypeScript                            | Align with existing Nuxt/TS team skills; OTA-friendly                                                                            |
+| 2026-07-14 | Four-tab IA: Today / Log / Coach / More      | One job per tab; avoid dashboard clone — **superseded 2026-07-24**                                                               |
+| 2026-07-14 | OAuth PKCE + Bearer tokens                   | Existing IdP; cookie sessions are web-only                                                                                       |
+| 2026-07-19 | Chat scopes `chat:read` / `chat:write`       | Match existing chat REST guards; Official Mobile App may request them                                                            |
+| 2026-07-19 | Chat streaming via WebSocket + poll fallback | Parity with web; Bearer can mint WS token; no SSE                                                                                |
+| 2026-07-24 | Five-tab IA + Plan companion                 | Today · Plan · Log · Coach · More; Plan owns generator/adapt/replan + nutrition plan; templates/share/Intervals publish stay web |
 
 ---
 

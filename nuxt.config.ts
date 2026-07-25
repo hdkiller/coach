@@ -177,9 +177,12 @@ export default defineNuxtConfig({
     '@vue-email/nuxt'
   ],
 
+  // Always ship the real nuxt-gtag client plugin. Docker/CI builds do not have
+  // NUXT_PUBLIC_GTAG_ID at build time; Dokploy injects it at runtime. Gating
+  // `enabled` on the build-time env installed mocks forever and killed tracking.
   gtag: {
-    enabled: !!process.env.NUXT_PUBLIC_GTAG_ID,
-    id: process.env.NUXT_PUBLIC_GTAG_ID
+    enabled: true,
+    id: process.env.NUXT_PUBLIC_GTAG_ID || ''
   },
 
   vueEmail: {
@@ -355,8 +358,10 @@ export default defineNuxtConfig({
             : undefined
       },
       gtag: {
-        id: process.env.NUXT_PUBLIC_GTAG_ID,
-        enabled: !!process.env.NUXT_PUBLIC_GTAG_ID
+        // Overridden at runtime by NUXT_PUBLIC_GTAG_ID (Dokploy). Empty at build
+        // is fine — the client plugin no-ops until an id is present.
+        id: process.env.NUXT_PUBLIC_GTAG_ID || '',
+        enabled: true
       },
       realtimeBusEnabled: !!process.env.REDIS_URL
     }

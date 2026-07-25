@@ -82,15 +82,58 @@ Use `POST /api/__e2e/token` (or `e2e/helpers/token.ts`) instead of full PKCE dur
 
 ## Scripts
 
-| Script                         | Purpose                          |
-| ------------------------------ | -------------------------------- |
-| `e2e:setup`                    | Infra + DB prepare + Docker app  |
-| `e2e:up` / `e2e:down`          | Full compose up/down             |
-| `e2e:up:infra`                 | Postgres + Redis only            |
-| `e2e:build`                    | Rebuild `app-e2e` image          |
-| `e2e:db:prepare` / `e2e:reset` | Migrate, truncate, seed          |
-| `e2e:app:host`                 | Nuxt dev on host with `.env.e2e` |
-| `test:e2e`                     | Playwright                       |
+| Script                           | Purpose                            |
+| -------------------------------- | ---------------------------------- |
+| `e2e:setup`                      | Infra + DB prepare + Docker app    |
+| `e2e:up` / `e2e:down`            | Full compose up/down               |
+| `e2e:up:infra`                   | Postgres + Redis only              |
+| `e2e:build`                      | Rebuild `app-e2e` image            |
+| `e2e:db:prepare` / `e2e:reset`   | Migrate, truncate, seed            |
+| `e2e:app:host`                   | Nuxt dev on host with `.env.e2e`   |
+| `test:e2e`                       | Playwright                         |
+| `test:e2e:ui`                    | Playwright UI Mode (local stack)   |
+| `e2e:sync`                       | rsync working tree → Mac Mini      |
+| `e2e:remote`                     | sync + run Playwright on Mini      |
+| `e2e:remote:up`                  | ensure Mini infra + app only       |
+| `e2e:remote:ui`                  | ensure Mini + tunnel + UI Mode     |
+| `e2e:tunnel` / `e2e:tunnel:stop` | SSH forwards for :3199/:5440/:6389 |
+
+## Mac Mini (preferred remote host)
+
+Office Mini (`hdkiller@100.111.49.87` / Tailscale) runs the same e2e stack so the laptop stays free. Inventory notes: `~/Develop/hdkiller/docs/servers/mac-mini.md`.
+
+| Command                                | Where  | What                                                    |
+| -------------------------------------- | ------ | ------------------------------------------------------- |
+| `pnpm e2e:sync`                        | laptop | rsync working tree → `~/Develop/coach-wattz` on Mini    |
+| `pnpm e2e:remote`                      | laptop | sync (default) + SSH into Mini + infra/app + Playwright |
+| `E2E_REMOTE_SYNC=0 pnpm e2e:remote`    | laptop | skip rsync                                              |
+| `pnpm e2e:remote:up`                   | laptop | ensure Mini stack (no tests); sync off by default       |
+| `pnpm e2e:remote:ui`                   | laptop | ensure Mini + tunnel + open Playwright UI locally       |
+| `E2E_REMOTE_SYNC=1 pnpm e2e:remote:ui` | laptop | rsync first, then UI                                    |
+| `pnpm e2e:tunnel`                      | laptop | SSH tunnel only (`127.0.0.1:3199` → Mini)               |
+| `pnpm e2e:tunnel:stop`                 | laptop | tear down tunnel                                        |
+
+```bash
+pnpm e2e:remote        # headless suite on Mini
+pnpm e2e:remote:ui     # interactive UI on laptop, stack on Mini
+```
+
+`e2e:remote:ui` keeps Playwright UI on this machine (Chrome for Testing) while the app/DB/Redis stay on the Mini via localhost tunnels. Sync is **off** by default for a fast reopen; pass `E2E_REMOTE_SYNC=1` after local code changes.
+
+On the Mini, `ensure-mini-stack.sh` / `remote-run.sh`:
+
+1. Ensures `.env.e2e`, `pnpm install`, (optional) Playwright Chromium
+2. Starts Docker infra (`postgres-e2e` / `redis-e2e`)
+3. Starts (or reuses) host Nuxt on `:3199` (`pnpm e2e:app:host`)
+4. (`remote-run` only) Runs `pnpm test:e2e`
+
+Serve log: `/tmp/coach-wattz-e2e-serve.log`
+
+Overrides: `E2E_REMOTE_HOST`, `E2E_REMOTE_DIR`. Mini has no GitHub SSH key for this repo — prefer `e2e:sync` over `git pull` for code updates.
+
+Direct Mini app (no tunnel): [http://100.111.49.87:3199/](http://100.111.49.87:3199/)
+
+watts-mobile Maestro on the Mini can point at the same API (`http://localhost:3199` / Android `http://10.0.2.2:3199`).
 
 ## Notes
 

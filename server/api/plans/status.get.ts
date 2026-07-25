@@ -1,11 +1,8 @@
 import { runs } from '@trigger.dev/sdk/v3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  await requireAuth(event, ['plan:read'])
 
   const { jobId } = getQuery(event)
 

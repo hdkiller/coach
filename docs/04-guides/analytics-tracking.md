@@ -7,8 +7,8 @@ This document outlines the Google Analytics 4 (GA4) and Google Tag Manager (GTM)
 ## Core Integration
 
 - **Module**: `nuxt-gtag`
-- **GTM ID**: Configured via `NUXT_PUBLIC_GTAG_ID` environment variable.
-- **Activation**: The module is conditionally enabled only if the ID is provided in the environment.
+- **GTM ID**: Configured via `NUXT_PUBLIC_GTAG_ID` environment variable (Dokploy runtime env for production).
+- **Activation**: The module is always included in the build so Docker/CI images keep the real client plugin. The tag script loads only when `NUXT_PUBLIC_GTAG_ID` is present at runtime (the plugin no-ops if the id is empty). Do **not** gate `gtag.enabled` on build-time env — that baked mocks into production and stopped collection.
 - **User Identity**: Managed via `app/plugins/analytics.client.ts`. It automatically sets `user_id` and `subscription_tier` for all events when a user is logged in.
 
 ## User Properties (Persistent)

@@ -7,6 +7,7 @@ describe('buildAcquisitionContext', () => {
       buildAcquisitionContext(
         {
           ref: 'hall-of-fame',
+          via: 'ab23cd45ef',
           utm_source: 'newsletter',
           utm_medium: 'email',
           utm_campaign: 'launch'
@@ -16,6 +17,7 @@ describe('buildAcquisitionContext', () => {
     ).toEqual({
       entry_point: 'join',
       referral_type: 'hall-of-fame',
+      referral_code: 'AB23CD45EF',
       utm_source: 'newsletter',
       utm_medium: 'email',
       utm_campaign: 'launch'

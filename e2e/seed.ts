@@ -150,14 +150,94 @@ export async function seedE2eTodayRecommendation(prisma: PrismaClient, userId: s
   })
 }
 
+/**
+ * Soft-activate the companion athlete: consent (users seed) + primary goal +
+ * active plan + today recommendation (insight). Connect-last may stay pending
+ * so mobile opens the Today shell (Finish-setup card) instead of the wizard.
+ */
+export async function seedE2eSoftActivation(prisma: PrismaClient, userId: string) {
+  const targetDate = new Date('2026-10-23T00:00:00.000Z')
+
+  let goal = await prisma.goal.findFirst({
+    where: { userId, status: { not: 'ARCHIVED' } },
+    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }]
+  })
+
+  if (!goal) {
+    goal = await prisma.goal.create({
+      data: {
+        userId,
+        type: 'EVENT',
+        title: 'E2E Autumn gran fondo',
+        description: 'Deterministic primary goal for companion Maestro / Playwright.',
+        status: 'ACTIVE',
+        priority: 'HIGH',
+        targetDate,
+        eventDate: targetDate,
+        eventType: 'gran_fondo'
+      }
+    })
+  } else {
+    goal = await prisma.goal.update({
+      where: { id: goal.id },
+      data: {
+        type: 'EVENT',
+        title: 'E2E Autumn gran fondo',
+        status: 'ACTIVE',
+        priority: 'HIGH',
+        targetDate,
+        eventDate: targetDate
+      }
+    })
+  }
+
+  let plan = await prisma.trainingPlan.findFirst({
+    where: { userId, status: 'ACTIVE', isTemplate: false },
+    orderBy: { updatedAt: 'desc' }
+  })
+
+  if (!plan) {
+    plan = await prisma.trainingPlan.create({
+      data: {
+        userId,
+        goalId: goal.id,
+        name: 'E2E Base Plan',
+        status: 'ACTIVE',
+        isTemplate: false,
+        startDate: utcTodayDateOnly(),
+        targetDate,
+        primarySport: 'cycling',
+        goalLabel: 'E2E Autumn gran fondo'
+      }
+    })
+  } else {
+    plan = await prisma.trainingPlan.update({
+      where: { id: plan.id },
+      data: {
+        goalId: goal.id,
+        name: 'E2E Base Plan',
+        status: 'ACTIVE',
+        isTemplate: false,
+        targetDate,
+        primarySport: 'cycling',
+        goalLabel: 'E2E Autumn gran fondo'
+      }
+    })
+  }
+
+  return { goal, plan }
+}
+
 export async function seedE2eData(prisma: PrismaClient) {
   const users = await seedE2eUsers(prisma)
   const mobileApp = await seedE2eMobileOAuthApp(prisma, users.admin.id)
+  const softActivation = await seedE2eSoftActivation(prisma, users.athlete.id)
   const todayRecommendation = await seedE2eTodayRecommendation(prisma, users.athlete.id)
 
   return {
     ...users,
     mobileApp,
+    softActivation,
     todayRecommendation
   }
 }

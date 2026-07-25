@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../../utils/session'
+import { requireAuth } from '../../../../utils/auth-guard'
 import { prisma } from '../../../../utils/db'
 import { shiftPlanDates, calculateWeekTargets } from '../../../../utils/plan-logic'
 import { trainingBlockRepository } from '../../../../utils/repositories/trainingBlockRepository'
@@ -15,16 +15,7 @@ const updateBlockSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.email) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true }
-  })
-  if (!user) throw createError({ statusCode: 401, message: 'User not found' })
+  const user = await requireAuth(event, ['plan:write'])
 
   const planId = getRouterParam(event, 'id')
   const blockId = getRouterParam(event, 'blockId')

@@ -16,6 +16,8 @@ export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTIC
 export type AcquisitionContext = {
   entry_point?: string
   referral_type?: string
+  /** Personal athlete referral code (`via=`). Distinct from campaign `ref` / referral_type. */
+  referral_code?: string
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
@@ -32,6 +34,7 @@ export function buildAcquisitionContext(
   for (const key of [
     'referral_type',
     'ref',
+    'via',
     'utm_source',
     'utm_medium',
     'utm_campaign',
@@ -42,6 +45,8 @@ export function buildAcquisitionContext(
     if (typeof value === 'string' && value.trim()) {
       if (key === 'ref') {
         context.referral_type = value
+      } else if (key === 'via') {
+        context.referral_code = value.trim().toUpperCase()
       } else {
         context[key] = value
       }

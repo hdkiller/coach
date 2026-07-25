@@ -24,9 +24,15 @@
                 class="h-[72vw] w-[72vw] max-h-72 max-w-72 rounded-lg sm:h-48 sm:w-48"
               />
               <USkeleton
-                v-else
+                v-else-if="loadingShareLink || !!shareLink"
                 class="h-[72vw] w-[72vw] max-h-72 max-w-72 rounded-lg sm:h-48 sm:w-48"
               />
+              <div
+                v-else
+                class="flex h-[72vw] w-[72vw] max-h-72 max-w-72 items-center justify-center rounded-lg bg-gray-50 text-gray-400 sm:h-48 sm:w-48 dark:bg-gray-100"
+              >
+                <UIcon name="i-heroicons-qr-code" class="h-12 w-12" />
+              </div>
 
               <!-- Decorative Corner Accents -->
               <div
@@ -70,10 +76,15 @@
         <ShareAccessPanel
           mode="static"
           :link="shareLink"
-          :loading="false"
+          :loading="loadingShareLink"
           expiry-value="never"
           resource-label="site"
           :share-title="shareTitle"
+          @generate="
+            () => {
+              void handleRetryShareLink()
+            }
+          "
           @copy="handleShareCopy"
           @network-click="handleNetworkClick"
         />
@@ -124,10 +135,11 @@
   const hasShareIntent = ref(false)
   const claimingReward = ref(false)
   const qrCodeDataUrl = ref('')
+  const shareLink = ref('')
+  const loadingShareLink = ref(false)
   const { t } = useTranslate('dashboard')
   const userStore = useUserStore()
   const toast = useToast()
-  const runtimeConfig = useRuntimeConfig()
   const {
     trackShareModalOpen,
     trackShareLinkCopy,
@@ -140,21 +152,38 @@
   } = useAnalytics()
 
   const shareCompleted = ref(false)
-
-  const shareLink = computed(() => {
-    const baseUrl = runtimeConfig.public.siteUrl || 'https://coachwatts.com'
-    const url = new URL(baseUrl)
-    url.searchParams.set('utm_source', 'in_app_share')
-    url.searchParams.set(
-      'utm_medium',
-      rewardEnabled ? 'dashboard_system_message' : 'dashboard_footer'
-    )
-    url.searchParams.set('utm_campaign', 'share_coach_watts')
-    return url.toString()
-  })
   const shareTitle = computed(() => t.value('share_modal_share_title'))
 
+  async function loadShareLink() {
+    loadingShareLink.value = true
+    try {
+      const response = await $fetch<{ code: string; shareUrl: string }>('/api/referrals/me', {
+        query: { medium: 'web_share' }
+      })
+      shareLink.value = response.shareUrl
+    } catch (error) {
+      console.error('Failed to load referral share link:', error)
+      toast.add({
+        title: t.value('share_modal_qr_unavailable_title'),
+        description: t.value('share_modal_qr_unavailable_desc'),
+        color: 'error'
+      })
+      shareLink.value = ''
+      qrCodeDataUrl.value = ''
+    } finally {
+      loadingShareLink.value = false
+    }
+  }
+
+  async function handleRetryShareLink() {
+    await loadShareLink()
+    if (shareLink.value) {
+      await generateQrCode()
+    }
+  }
+
   async function generateQrCode() {
+    if (!shareLink.value) return
     try {
       const canvas = document.createElement('canvas')
       await QRCode.toCanvas(canvas, shareLink.value, {
@@ -216,6 +245,7 @@
   }
 
   async function handleShareCopy() {
+    if (!shareLink.value) return
     try {
       await navigator.clipboard.writeText(shareLink.value)
       hasShareIntent.value = true
@@ -292,7 +322,9 @@
       if (isOpen) {
         hasShareIntent.value = false
         shareCompleted.value = false
-        if (!qrCodeDataUrl.value) {
+        qrCodeDataUrl.value = ''
+        await loadShareLink()
+        if (shareLink.value) {
           await generateQrCode()
         }
         trackShareModalOpen()

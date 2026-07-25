@@ -90,6 +90,12 @@ model User {
   trialEndsAt                        DateTime?
   shareRewardClaimedAt               DateTime?
   shareRewardDaysGranted             Int?                         @default(0)
+  referralCode                       String?                      @unique
+  referredByUserId                   String?
+  referredBy                         User?                        @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
+  referralsGiven                     User[]                       @relation("UserReferrals")
+  referralsAsReferrer                Referral[]                   @relation("ReferralReferrer")
+  referralAsReferee                  Referral?                    @relation("ReferralReferee")
   stripeCustomerId                   String?                      @unique
   stripeSubscriptionId               String?                      @unique
   subscriptionPeriodEnd              DateTime?
@@ -192,6 +198,25 @@ model User {
   @@index([createdAt])
   @@index([deactivatedAt])
   @@index([subscriptionTier])
+  @@index([referredByUserId])
+}
+
+model Referral {
+  id             String         @id @default(uuid())
+  referrerUserId String
+  refereeUserId  String         @unique
+  code           String
+  source         String         @default("link")
+  status         ReferralStatus @default(ATTRIBUTED)
+  attributedAt   DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  referrer       User           @relation("ReferralReferrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referee        User           @relation("ReferralReferee", fields: [refereeUserId], references: [id], onDelete: Cascade)
+
+  @@index([referrerUserId])
+  @@index([code])
+  @@index([status])
 }
 
 model SportSettings {
@@ -2054,6 +2079,12 @@ model LlmOperationOverride {
   analysisLevelSettings   LlmAnalysisLevelSettings @relation(fields: [analysisLevelSettingsId], references: [id], onDelete: Cascade)
 
   @@unique([analysisLevelSettingsId, operation])
+}
+
+enum ReferralStatus {
+  ATTRIBUTED
+  REWARDED
+  REVOKED
 }
 
 enum SubscriptionTier {

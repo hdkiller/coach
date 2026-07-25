@@ -98,7 +98,7 @@ Implication: the checklist promises a journey the application does not render or
 
 ### What exists
 
-- `nuxt-gtag` is enabled when `NUXT_PUBLIC_GTAG_ID` is set.
+- `nuxt-gtag` is always included in the build; the tag loads when `NUXT_PUBLIC_GTAG_ID` is set at runtime.
 - Authenticated events receive opaque `user_id`; subscription tier and UI theme are also set.
 - App navigation is tracked globally.
 - Relevant existing events include `sign_up`, `login`, `onboarding_view`, `onboarding_complete`, `integration_connect_start`, `integration_connect_success`, `daily_checkin_start`, and `daily_checkin_complete`.

@@ -1,9 +1,25 @@
 import { z } from 'zod/v3'
+import { requireAuth } from '../../utils/auth-guard'
 import { nutritionSettingsRepository } from '../../utils/repositories/nutritionSettingsRepository'
-import { getServerSession } from '../../utils/session'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import { prisma } from '../../utils/db'
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['Profile'],
+    summary: 'Update nutrition settings',
+    description:
+      'Upserts nutrition calibration settings. When tracking is on, recalculates fueling plans for today and the next 13 days.',
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Updated nutrition settings' },
+      400: { description: 'Invalid input' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
 
 const SETTINGS_RECALC_DAYS = 14
 
@@ -56,11 +72,8 @@ const updateSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
-  const userId = session.user.id
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
 
   const body = await readBody(event)
   const result = updateSchema.safeParse(body)

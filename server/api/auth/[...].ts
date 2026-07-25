@@ -14,6 +14,18 @@ import {
 } from '../../utils/deferred-provider-ingest'
 import { recordAccountCreated } from '../../utils/product-analytics'
 import { isAppleSignInConfigured, resolveAppleClientSecret } from '../../utils/apple-client-secret'
+import { attributeReferralFromEvent } from '../../utils/referrals'
+
+async function tryAttributeReferralDuringAuth(userId: string) {
+  try {
+    const { getRequestEvent } = await import('nitropack/runtime')
+    const event = getRequestEvent()
+    if (!event) return
+    await attributeReferralFromEvent(event, userId)
+  } catch (error) {
+    console.error('[Auth] Referral attribution skipped during auth event:', error)
+  }
+}
 
 const adapter = PrismaAdapter(prisma)
 const originalLinkAccount = adapter.linkAccount
@@ -312,6 +324,8 @@ export default NuxtAuthHandler({
 
         console.log(`[Auth] New user ${user.id} trial set until ${trialEndsAt.toISOString()}`)
 
+        await tryAttributeReferralDuringAuth(user.id)
+
         // Trigger Welcome Email
         await tasks.trigger('send-email', {
           userId: user.id,
@@ -341,6 +355,7 @@ export default NuxtAuthHandler({
         } catch (error) {
           console.error('[Auth] Failed to record account_created analytics:', error)
         }
+        await tryAttributeReferralDuringAuth(user.id)
       }
 
       if (account.provider === 'intervals') {

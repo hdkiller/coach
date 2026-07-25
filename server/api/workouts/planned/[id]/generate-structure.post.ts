@@ -1,14 +1,11 @@
-import { getServerSession } from '../../../../utils/session'
+import { requireAuth } from '../../../../utils/auth-guard'
 import { prisma } from '../../../../utils/db'
 import { checkQuota } from '../../../../utils/quotas/engine'
 import { enqueuePlannedWorkoutStructureGeneration } from '../../../../utils/planned-workout-structure-trigger'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-  const userId = session.user.id
+  const authUser = await requireAuth(event, ['workout:write'])
+  const userId = authUser.id
 
   const id = getRouterParam(event, 'id')
   if (!id) {
