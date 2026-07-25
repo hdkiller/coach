@@ -158,6 +158,10 @@ export async function createPlannedWorkoutForUser(userId: string, body: any) {
     fuelingStrategy: body.fuelingStrategy || 'STANDARD',
     completed: false,
     syncStatus,
+    managedBy: 'USER',
+    ...(typeof body.trainingWeekId === 'string' && body.trainingWeekId
+      ? { trainingWeekId: body.trainingWeekId }
+      : {}),
     ...(structureWrite ? structureWrite.data : {}),
     rawJson: intervalsWorkout || {}
   })
@@ -219,6 +223,20 @@ export async function updatePlannedWorkoutForUser(userId: string, workoutId: str
     })
   }
 
+  // Content edits (not date-only moves) re-tag AI-managed sessions as athlete-owned
+  // so RECALCULATE_WEEK / plan cleanup preserve them instead of silently deleting.
+  const isContentEdit =
+    body.title !== undefined ||
+    body.description !== undefined ||
+    body.type !== undefined ||
+    body.durationSec !== undefined ||
+    body.duration_minutes !== undefined ||
+    body.tss !== undefined ||
+    body.workIntensity !== undefined ||
+    body.fuelingStrategy !== undefined ||
+    body.structuredWorkout !== undefined ||
+    body.startTime !== undefined
+
   const updated = (await plannedWorkoutRepository.update(workoutId, userId, {
     ...(forcedDate && { date: forcedDate }),
     ...(body.title && { title: body.title }),
@@ -233,6 +251,7 @@ export async function updatePlannedWorkoutForUser(userId: string, workoutId: str
       !body.structuredWorkout && { workIntensity: body.workIntensity }),
     ...(body.fuelingStrategy !== undefined && { fuelingStrategy: body.fuelingStrategy }),
     modifiedLocally: true,
+    ...(isContentEdit && existing.managedBy !== 'USER' ? { managedBy: 'USER' } : {}),
     ...(importPlannedWorkouts && !body.structuredWorkout && { syncStatus: 'PENDING' })
   })) as any
 

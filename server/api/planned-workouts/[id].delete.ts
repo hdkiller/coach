@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { deletePlannedWorkoutForUser } from '../../utils/planned-workout-service'
 
 defineRouteMeta({
@@ -36,16 +36,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  // Match PATCH: planned workout writes use workout:write (not plan:write).
+  const authUser = await requireAuth(event, ['workout:write'])
+  const userId = authUser.id
   const workoutId = event.context.params?.id
 
   if (!workoutId) {
