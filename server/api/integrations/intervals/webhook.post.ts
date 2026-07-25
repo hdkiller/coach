@@ -1,4 +1,5 @@
 import { logWebhookRequest } from '../../../utils/webhook-logger'
+import { isValidIntervalsWebhookSecret } from '../../../utils/intervals-webhook-auth'
 
 defineRouteMeta({
   openAPI: {
@@ -37,12 +38,10 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const secret = process.env.INTERVALS_WEBHOOK_SECRET
-
   const body = await readBody(event)
   const headers = getRequestHeaders(event)
 
-  if (!body || body.secret !== secret) {
+  if (!body || !isValidIntervalsWebhookSecret(body.secret)) {
     console.warn('[Intervals Webhook] Unauthorized or missing secret')
     throw createError({
       statusCode: 401,

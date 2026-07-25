@@ -141,46 +141,76 @@ export const startCommand = new Command('start')
           const { payload, headers } = job.data
           const events = payload.events || []
 
-          // Log raw request receipt in worker instead of API
-          const log = await logWebhookRequest({
-            provider: 'intervals',
-            eventType: events[0]?.type || 'UNKNOWN',
-            payload,
-            headers,
-            status: 'PENDING'
-          })
+          // Redis-first requests need a parent log. SQL fallback requests already
+          // have one and must keep that identity through terminal dispatch.
+          const parentLogId =
+            logId ||
+            (
+              await logWebhookRequest({
+                provider: 'intervals-bulk',
+                eventType: events[0]?.type || 'UNKNOWN',
+                payload,
+                headers,
+                status: 'PENDING'
+              })
+            )?.id
 
           let queuedCount = 0
-          for (const intervalEvent of events) {
-            const { athlete_id, type: eventType } = intervalEvent
-            if (!athlete_id) continue
+          try {
+            for (const intervalEvent of events) {
+              const { athlete_id, type: eventType } = intervalEvent
+              if (!athlete_id) continue
 
-            // Verify integration exists in worker instead of API
-            const integration = await prisma.integration.findFirst({
-              where: {
-                provider: 'intervals',
-                externalUserId: athlete_id.toString()
+              const integration = await prisma.integration.findFirst({
+                where: {
+                  provider: 'intervals',
+                  externalUserId: athlete_id.toString()
+                }
+              })
+
+              if (!integration) {
+                console.warn(
+                  `[BulkJob ${job.id}] No integration found for athlete_id: ${athlete_id}`
+                )
+                continue
               }
-            })
 
-            if (!integration) {
-              console.warn(`[BulkJob ${job.id}] No integration found for athlete_id: ${athlete_id}`)
-              continue
+              const childLog = await logWebhookRequest({
+                provider: 'intervals',
+                eventType: eventType || 'UNKNOWN',
+                payload: intervalEvent,
+                headers,
+                status: 'PENDING'
+              })
+
+              await webhookQueue.add('intervals-webhook', {
+                provider: 'intervals',
+                type: eventType,
+                userId: integration.userId,
+                event: intervalEvent,
+                logId: childLog?.id
+              })
+              queuedCount++
             }
 
-            // Enqueue individual event for standard processing
-            await webhookQueue.add('intervals-webhook', {
-              provider: 'intervals',
-              type: eventType,
-              userId: integration.userId,
-              event: intervalEvent,
-              logId: log?.id
-            })
-            queuedCount++
+            if (parentLogId) {
+              await updateWebhookStatus(
+                parentLogId,
+                queuedCount > 0 ? 'PROCESSED' : 'IGNORED',
+                `Dispatched ${queuedCount} child events`
+              )
+            }
+            return { queuedCount }
+          } catch (error) {
+            if (parentLogId) {
+              await updateWebhookStatus(
+                parentLogId,
+                'FAILED',
+                error instanceof Error ? error.message : String(error)
+              )
+            }
+            throw error
           }
-
-          if (log) await updateWebhookStatus(log.id, 'QUEUED', `Queued ${queuedCount} events`)
-          return { queuedCount }
         }
 
         if (provider === 'oauth-generic') {
