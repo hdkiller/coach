@@ -417,13 +417,14 @@ test.describe('Nutrition fueling plan', () => {
     }
   })
 
-  test('a session inside a merged block still shows its pre and post windows', async ({
+  test('a session inside a merged block shows both its pre and post windows', async ({
     authedPage
   }) => {
     await buildPlan(authedPage, STACKED_DAY)
 
-    // The block's pre window is anchored to the first session and the post window to the last, so
-    // the opening session used to lose its recovery window and the closing one its pre window.
+    // This asserts the rendered outcome, not the day-plan filter beneath it: the page prefers the
+    // per-workout fueling endpoint and only falls back to filtering the day's windows by session
+    // id, so the filter itself is covered by the plannedWorkoutIds assertions above.
     await authedPage.goto('/workouts/planned/e2e-fuel-stacked-a', {
       waitUntil: 'domcontentloaded'
     })
@@ -448,6 +449,53 @@ test.describe('Nutrition fueling plan', () => {
     // The dot used to be parsed out of the intra window's description, so a gym day showed none.
     await expect(cell).not.toHaveAttribute('data-fuel-state', '', { timeout: 20000 })
     await expect(cell.locator('[title^="Fuel State"]')).toBeVisible()
+  })
+
+  test('never reports absorbing more carbohydrate than was logged', async ({ authedPage }) => {
+    // The glycogen tank is driven by how much of each meal has been absorbed so far. The midpoint
+    // approximation this replaced peaked well above the meal size a few hours in, then decayed
+    // back toward zero, so the tank read high all afternoon and collapsed in the evening.
+    const today = new Date()
+    const todayKey = today.toISOString().slice(0, 10)
+    const dayStart = new Date(`${todayKey}T00:00:00.000Z`)
+    const loggedCarbs = 60
+    const loggedAt = new Date(today.getTime() - 3 * 60 * 60 * 1000)
+
+    await prisma.nutrition.deleteMany({ where: { userId: athleteId, date: dayStart } })
+    await prisma.nutrition.create({
+      data: {
+        userId: athleteId,
+        date: dayStart,
+        carbs: loggedCarbs,
+        calories: loggedCarbs * 4,
+        protein: 0,
+        fat: 0,
+        carbsGoal: 300,
+        caloriesGoal: 2400,
+        breakfast: [
+          {
+            id: 'e2e-absorption-meal',
+            name: 'E2E Porridge',
+            carbs: loggedCarbs,
+            protein: 0,
+            fat: 0,
+            calories: loggedCarbs * 4,
+            logged_at: loggedAt.toISOString()
+          }
+        ] as any
+      }
+    })
+
+    const response = await authedPage.request.get(`/api/nutrition/${todayKey}`)
+    expect(response.ok(), await response.text()).toBeTruthy()
+    const day = await response.json()
+
+    const absorbed = Number(day?.breakdown?.replenishment?.actualCarbs)
+    expect(Number.isFinite(absorbed)).toBeTruthy()
+    expect(absorbed).toBeGreaterThan(0)
+    expect(absorbed).toBeLessThanOrEqual(loggedCarbs)
+
+    await prisma.nutrition.deleteMany({ where: { userId: athleteId, date: dayStart } })
   })
 
   test('weekly plan renders windows in clock order with times and calories', async ({

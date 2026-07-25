@@ -1,6 +1,10 @@
 /**
  * Nutrition Absorption Utilities
  * Implements Glycemic Response Modeling using Ra (Rate of Appearance) curves.
+ *
+ * Each profile is a Gamma curve defined by `delay` (minutes before anything appears), `peak` (the
+ * mode, measured from the end of the delay) and `k` (shape). `duration` is descriptive only - the
+ * curve has no hard end, and by the stated duration roughly 75-95% of the meal has appeared.
  */
 
 export const ABSORPTION_PROFILES = {
@@ -84,7 +88,41 @@ export function getRa(minsSince: number, amount: number, profile: AbsorptionProf
 }
 
 /**
- * Calculates total grams absorbed in a specific interval [t1, t2]
+ * Fraction of a meal that has appeared in circulation by `minsSince`.
+ *
+ * This is the cumulative distribution of the same Gamma curve `getRa` describes. For integer shape
+ * k it has a closed form:
+ *
+ *   F(x) = 1 - e^(-x/theta) * sum_{i=0}^{k-1} (x/theta)^i / i!
+ *
+ * Every profile uses an integer k, so this is exact rather than approximated.
+ */
+export function getAbsorbedFraction(minsSince: number, profile: AbsorptionProfile): number {
+  const x = minsSince - profile.delay
+  if (!Number.isFinite(x) || x <= 0) return 0
+
+  const theta = profile.peak / (profile.k - 1)
+  if (!(theta > 0)) return 0
+
+  const z = x / theta
+  let term = 1
+  let sum = 1
+  for (let i = 1; i < profile.k; i++) {
+    term *= z / i
+    sum += term
+  }
+
+  const fraction = 1 - Math.exp(-z) * sum
+  return Math.min(1, Math.max(0, fraction))
+}
+
+/**
+ * Calculates total grams absorbed in a specific interval [t1, t2].
+ *
+ * Evaluated as the difference of two cumulative fractions. The previous implementation sampled the
+ * rate at the interval midpoint and multiplied by the full width, which was only defensible for
+ * short steps: callers passing the whole elapsed span (`0` to `minsSince`) got a figure that rose
+ * above the meal's own carbohydrate content and then fell back toward zero as the rate tailed off.
  */
 export function getAbsorbedInInterval(
   t1: number,
@@ -92,14 +130,13 @@ export function getAbsorbedInInterval(
   amount: number,
   profile: AbsorptionProfile
 ): number {
-  if (t2 <= profile.delay) return 0
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 <= t1) return 0
 
-  // For a 15 min interval, we can approximate by sampling at the midpoint
-  // or by using the average of start and end
-  const mid = (Math.max(t1, profile.delay) + t2) / 2
-  const ra = getRa(mid, amount, profile)
+  const from = getAbsorbedFraction(t1, profile)
+  const to = getAbsorbedFraction(t2, profile)
 
-  return ra * (t2 - t1)
+  return Math.max(0, amount * (to - from))
 }
 
 /**

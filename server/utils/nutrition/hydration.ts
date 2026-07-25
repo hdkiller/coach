@@ -7,6 +7,31 @@ export const HYDRATION_DEBT_FLUSH_THRESHOLD_ML = 3000
 export const HYDRATION_DEBT_NUDGE_THRESHOLD_ML = 2000
 export const INTRA_WORKOUT_TARGET_ML_PER_HOUR = 700
 
+/**
+ * How much fluid the athlete should have taken by this point in an in-session window.
+ *
+ * The window's own `targetFluid` comes from their sweat rate and the session's temperature, so it
+ * is prorated in preference to the flat per-hour constant. Falling back on the constant keeps this
+ * usable for windows that carry no fluid target.
+ */
+export function getIntraWorkoutFluidTargetByNowMl(
+  window: { targetFluid?: number | null; startTime?: string | Date; endTime?: string | Date },
+  elapsedHours: number
+): number {
+  const elapsed = Math.max(0, Number(elapsedHours) || 0)
+  const windowFluidMl = Number(window?.targetFluid || 0)
+
+  const start = window?.startTime ? new Date(window.startTime).getTime() : NaN
+  const end = window?.endTime ? new Date(window.endTime).getTime() : NaN
+  const totalHours = Number.isFinite(start) && Number.isFinite(end) ? (end - start) / 3600000 : 0
+
+  if (windowFluidMl > 0 && totalHours > 0) {
+    return Math.round(windowFluidMl * Math.min(1, elapsed / totalHours))
+  }
+
+  return Math.round(elapsed * INTRA_WORKOUT_TARGET_ML_PER_HOUR)
+}
+
 export type HydrationRingStatus = 'green' | 'yellow' | 'red'
 
 export function getHydrationRingStatus(hydrationDebtMl: number): HydrationRingStatus {
@@ -64,6 +89,26 @@ const FLUID_KEYWORDS = [
 
 const OUNCE_TO_ML = 29.5735
 
+const WORD_NUMBERS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6
+}
+
+/** Reads a leading container count, in digits or words. Absent or nonsensical counts mean one. */
+function parseCount(raw?: string): number {
+  if (!raw) return 1
+  const word = WORD_NUMBERS[raw]
+  if (word) return word
+  const digits = Number(raw)
+  if (!Number.isFinite(digits) || digits < 1) return 1
+  // Guard against a stray year or quantity in grams being read as a drink count.
+  return Math.min(12, Math.floor(digits))
+}
+
 function inferContainerMl(container: string): number {
   const normalized = container.toLowerCase()
   if (normalized.includes('large')) return 500
@@ -99,10 +144,15 @@ export function extractFluidIntakeMl(text: string): number {
   // If the user already gave an explicit volume ("500ml bottle"), don't also add a
   // container estimate (which would double count).
   if (!hasExplicitVolume) {
-    const containerPattern = /\b(large|medium|small)?\s*(bottle|glass|cup|flask)\b/gi
+    // A leading count is common ("2 bottles", "three glasses") and was previously dropped, so a
+    // round of drinks logged as one phrase counted as a single container.
+    const containerPattern =
+      /\b(\d+|one|two|three|four|five|six)?\s*(large|medium|small)?\s*(bottles?|glass(?:es)?|cups?|flasks?)\b/gi
     for (const match of Array.from(lower.matchAll(containerPattern))) {
-      const descriptor = `${match[1] || ''} ${match[2] || ''}`.trim()
-      totalMl += inferContainerMl(descriptor)
+      const descriptor = `${match[2] || ''} ${match[3] || ''}`.trim()
+      const perContainerMl = inferContainerMl(descriptor)
+      if (!perContainerMl) continue
+      totalMl += perContainerMl * parseCount(match[1])
     }
   }
 

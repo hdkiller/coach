@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod/v3'
@@ -8,7 +8,7 @@ import { nutritionPlanService } from '../../../utils/services/nutritionPlanServi
 import { getUserNutritionSettings } from '../../../utils/nutrition/settings'
 import {
   extractFluidIntakeMl,
-  INTRA_WORKOUT_TARGET_ML_PER_HOUR,
+  getIntraWorkoutFluidTargetByNowMl,
   MEAL_LINKED_WATER_ML
 } from '../../../utils/nutrition/hydration'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
@@ -60,12 +60,8 @@ const FoodItemSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
   const timezone = await getUserTimezone(userId)
   const settings = await getUserNutritionSettings(userId)
   const id = getRouterParam(event, 'id')
@@ -316,7 +312,7 @@ export default defineEventHandler(async (event) => {
             (end.getTime() - start.getTime()) / 3600000
           )
         )
-        const targetByNowMl = Math.round(elapsedHours * INTRA_WORKOUT_TARGET_ML_PER_HOUR)
+        const targetByNowMl = getIntraWorkoutFluidTargetByNowMl(intraWindow, elapsedHours)
         intraWorkout = {
           type: 'INTRA_WORKOUT',
           targetByNowMl,

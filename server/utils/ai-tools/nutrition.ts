@@ -19,7 +19,7 @@ import {
 import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../services/metabolicService'
-import { INTRA_WORKOUT_TARGET_ML_PER_HOUR } from '../nutrition/hydration'
+import { getIntraWorkoutFluidTargetByNowMl } from '../nutrition/hydration'
 import { mealRecommendationService } from '../services/mealRecommendationService'
 import { nutritionPlanService } from '../services/nutritionPlanService'
 import type { AiSettings } from '../ai-user-settings'
@@ -469,7 +469,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             (end.getTime() - start.getTime()) / 3600000
           )
         )
-        const targetByNowMl = Math.round(elapsedHours * INTRA_WORKOUT_TARGET_ML_PER_HOUR)
+        const targetByNowMl = getIntraWorkoutFluidTargetByNowMl(intraWindow, elapsedHours)
         intraStatus = {
           targetByNowMl,
           loggedMl: Math.round(volume_ml),
