@@ -1,0 +1,83 @@
+name: E2E
+
+# Manual only — never runs on push/PR. Targets the dedicated Mac Mini runner
+# labeled `e2e` so deploy/CI jobs on `shadow` are never blocked.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to test (branch, tag, or SHA)
+        required: true
+        default: develop
+        type: string
+
+concurrency:
+  group: e2e-mac-mini
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: [self-hosted, e2e]
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare e2e env
+        run: |
+          if [ ! -f .env.e2e ]; then
+            cp .env.e2e.example .env.e2e
+          fi
+
+      - name: Free e2e ports / previous stack
+        run: |
+          pnpm e2e:down || true
+          if lsof -tiTCP:3199 -sTCP:LISTEN >/dev/null 2>&1; then
+            lsof -tiTCP:3199 -sTCP:LISTEN | xargs kill || true
+            sleep 2
+          fi
+
+      - name: Build and start Docker e2e stack
+        run: pnpm e2e:setup
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run Playwright
+        run: pnpm test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Tear down e2e stack
+        if: always()
+        run: pnpm e2e:down
