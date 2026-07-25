@@ -434,7 +434,7 @@ export default defineNuxtConfig({
   },
 
   sourcemap: {
-    client: 'hidden'
+    client: process.env.SOURCEMAP === 'false' ? false : 'hidden'
   },
 
   nuxtApiShield: {
