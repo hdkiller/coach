@@ -7,6 +7,48 @@ import type {
   SerializedFuelingWindow
 } from '../server/utils/nutrition-domain'
 
+/**
+ * Picks the recovery window that belongs to the session that was just completed.
+ *
+ * A day can hold more than one post-workout window, so taking the first would boost the morning
+ * recovery meal after a hard evening session. Windows record which sessions they serve; when that
+ * is unavailable (older plans, or a completed workout the plan does not know about) the window
+ * starting closest to the end of the session is the best available guess.
+ */
+export function findRecoveryWindowIndex(
+  plan: SerializedFuelingPlan,
+  session: { workoutId: string; plannedWorkoutId?: string | null; endedAt: Date }
+): number {
+  const windows = Array.isArray(plan?.windows) ? plan.windows : []
+  const candidates = windows
+    .map((window, index) => ({ window, index }))
+    .filter((entry) => entry.window.type === 'POST_WORKOUT')
+
+  if (candidates.length === 0) return -1
+  if (candidates.length === 1) return candidates[0]!.index
+
+  const ids = [session.workoutId, session.plannedWorkoutId].filter(Boolean) as string[]
+  const byId = candidates.find((entry) => {
+    const owned = Array.isArray(entry.window.plannedWorkoutIds)
+      ? entry.window.plannedWorkoutIds
+      : []
+    return (
+      owned.some((id) => ids.includes(id)) ||
+      (entry.window.plannedWorkoutId ? ids.includes(entry.window.plannedWorkoutId) : false)
+    )
+  })
+  if (byId) return byId.index
+
+  const endedAt = session.endedAt.getTime()
+  const nearest = candidates.reduce((best, entry) => {
+    const distance = Math.abs(new Date(entry.window.startTime).getTime() - endedAt)
+    const bestDistance = Math.abs(new Date(best.window.startTime).getTime() - endedAt)
+    return distance < bestDistance ? entry : best
+  })
+
+  return nearest.index
+}
+
 export const adjustFuelingPostWorkoutTask = task({
   id: 'adjust-fueling-post-workout',
   run: async (payload: { workoutId: string; userId: string }) => {
@@ -59,7 +101,11 @@ export const adjustFuelingPostWorkoutTask = task({
 
     // 3. Update Plan
     const plan = nutrition.fuelingPlan as unknown as SerializedFuelingPlan
-    const postWindowIndex = plan.windows.findIndex((w) => w.type === 'POST_WORKOUT')
+    const postWindowIndex = findRecoveryWindowIndex(plan, {
+      workoutId,
+      plannedWorkoutId: planned.id,
+      endedAt: new Date(workout.date.getTime() + (workout.durationSec || 0) * 1000)
+    })
 
     if (postWindowIndex === -1) {
       // Add a post-workout window if missing?

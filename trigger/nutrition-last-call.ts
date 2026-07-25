@@ -53,7 +53,24 @@ export const nutritionLastCallTask = schedules.task({
       }
 
       const plan = nutrition.fuelingPlan as unknown as SerializedFuelingPlan
-      const preWindow = plan.windows.find((w) => w.type === 'PRE_WORKOUT')
+
+      // A day can hold several pre-workout windows. Nudging about this session using the first
+      // one on the day would read the wrong window's status on a two-session day.
+      const windows = Array.isArray(plan?.windows) ? plan.windows : []
+      const preWindows = windows.filter((w) => w.type === 'PRE_WORKOUT')
+      const preWindow =
+        preWindows.find((w) => {
+          const owned = Array.isArray(w.plannedWorkoutIds) ? w.plannedWorkoutIds : []
+          return owned.includes(workout.id) || w.plannedWorkoutId === workout.id
+        }) ??
+        // Older plans carry no session ids; fall back to the window closest to this start time.
+        preWindows.reduce<(typeof preWindows)[number] | undefined>((best, candidate) => {
+          if (!best) return candidate
+          const target = workout.date.getTime()
+          const candidateGap = Math.abs(new Date(candidate.endTime).getTime() - target)
+          const bestGap = Math.abs(new Date(best.endTime).getTime() - target)
+          return candidateGap < bestGap ? candidate : best
+        }, undefined)
 
       if (!preWindow) continue
 
