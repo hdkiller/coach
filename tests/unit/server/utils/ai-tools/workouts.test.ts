@@ -7,7 +7,8 @@ import { prisma } from '../../../../../server/utils/db'
 vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
   workoutRepository: {
     getForUser: vi.fn(),
-    getById: vi.fn()
+    getById: vi.fn(),
+    update: vi.fn()
   }
 }))
 
@@ -281,6 +282,55 @@ describe('workoutTools', () => {
         aiAnalysis: '# Legacy workout report',
         aiAnalysisJson: null
       })
+    })
+  })
+
+  describe('update_workout', () => {
+    it('reports that completed workout edits are local only', async () => {
+      vi.mocked(workoutRepository.getById).mockResolvedValue({
+        id: 'w1',
+        userId,
+        title: 'Morning Ride',
+        type: 'Ride',
+        date: new Date('2026-07-24T08:00:00Z'),
+        durationSec: 3600,
+        tss: 58
+      } as any)
+      vi.mocked(workoutRepository.update).mockResolvedValue({
+        id: 'w1',
+        title: 'Morning Ride',
+        type: 'Ride',
+        date: new Date('2026-07-24T08:00:00Z'),
+        durationSec: 3600,
+        tss: 110
+      } as any)
+
+      const result = await tools.update_workout.execute(
+        { workout_id: 'w1', tss: 110 },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(result).toMatchObject({
+        success: true,
+        entity_type: 'completed_workout',
+        sync_scope: 'local_only',
+        message: expect.stringContaining('Intervals.icu activity metrics are not changed')
+      })
+    })
+
+    it('does not route planned workout IDs through the completed workout tool', async () => {
+      vi.mocked(workoutRepository.getById).mockResolvedValue(null)
+
+      const result = await tools.update_workout.execute(
+        { workout_id: 'planned-1', tss: 80 },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(result).toEqual({
+        error:
+          'Completed workout not found. Planned workouts must be changed with the planned-workout tools.'
+      })
+      expect(workoutRepository.update).not.toHaveBeenCalled()
     })
   })
 })

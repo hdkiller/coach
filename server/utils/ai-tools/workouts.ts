@@ -3,7 +3,6 @@ import { z } from 'zod/v3'
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { attachStreamToWorkout } from '../repositories/workoutStreamRepository'
-import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import {
   getStartOfDaysAgoUTC,
   formatUserDate,
@@ -13,7 +12,6 @@ import {
 } from '../../utils/date'
 import type { AiSettings } from '../ai-user-settings'
 import { hasProtectedIntervalsTags, mergeWorkoutTags } from '../workout-tags'
-import { getPendingSyncStatus } from '../structured-workout-persistence'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import { metabolicService } from '../services/metabolicService'
 import { isNutritionTrackingEnabled } from '../nutrition/feature'
@@ -420,21 +418,12 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       feel
     }) => {
       const workout = await workoutRepository.getById(workout_id, userId)
-      const plannedWorkout = workout
-        ? null
-        : await plannedWorkoutRepository.getById(workout_id, userId, {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              date: true,
-              durationSec: true,
-              tss: true,
-              syncStatus: true
-            }
-          })
-
-      if (!workout && !plannedWorkout) return { error: 'Workout not found' }
+      if (!workout) {
+        return {
+          error:
+            'Completed workout not found. Planned workouts must be changed with the planned-workout tools.'
+        }
+      }
 
       try {
         const updateData: Record<string, any> = {}
@@ -466,50 +455,13 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
           return { error: 'No fields provided to update.' }
         }
 
-        if (plannedWorkout) {
-          const plannedUpdateData: Record<string, any> = {
-            modifiedLocally: true,
-            syncStatus: getPendingSyncStatus((plannedWorkout as any).syncStatus),
-            syncError: null
-          }
-          if (title !== undefined) plannedUpdateData.title = title
-          if (type !== undefined) plannedUpdateData.type = type
-          if (description !== undefined) plannedUpdateData.description = description
-          if (duration_seconds !== undefined) plannedUpdateData.durationSec = duration_seconds
-          if (distance_meters !== undefined) plannedUpdateData.distanceMeters = distance_meters
-          if (tss !== undefined) plannedUpdateData.tss = tss
-
-          if (date !== undefined) {
-            const parsedDate = new Date(date)
-            if (Number.isNaN(parsedDate.getTime())) {
-              return { error: 'Invalid date format. Use ISO date/time or YYYY-MM-DD.' }
-            }
-            plannedUpdateData.date = parsedDate
-          }
-
-          const updatedPlannedWorkout = await plannedWorkoutRepository.update(
-            workout_id,
-            userId,
-            plannedUpdateData
-          )
-          return {
-            success: true,
-            message: 'Planned workout update prepared successfully.',
-            workout: {
-              id: updatedPlannedWorkout.id,
-              title: updatedPlannedWorkout.title,
-              type: updatedPlannedWorkout.type,
-              date: formatUserDate(updatedPlannedWorkout.date, timezone),
-              duration: updatedPlannedWorkout.durationSec,
-              tss: updatedPlannedWorkout.tss
-            }
-          }
-        }
-
         const updatedWorkout = await workoutRepository.update(workout_id, updateData)
         return {
           success: true,
-          message: 'Workout update prepared successfully.',
+          message:
+            'Completed workout updated locally. Intervals.icu activity metrics are not changed by this action.',
+          entity_type: 'completed_workout',
+          sync_scope: 'local_only',
           workout: {
             id: updatedWorkout.id,
             title: updatedWorkout.title,
