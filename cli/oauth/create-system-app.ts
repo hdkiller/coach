@@ -6,7 +6,7 @@ import pg from 'pg'
 import chalk from 'chalk'
 
 const createSystemAppCommand = new Command('create-system-app')
-  .description('Create a trusted system OAuth application')
+  .description('Create or update a trusted system OAuth application')
   .requiredOption('--name <name>', 'Application name')
   .requiredOption('--owner-email <email>', 'Owner email address')
   .option('--source-name <sourceName>', 'Short source attribution label, e.g. Raycast')
@@ -22,7 +22,7 @@ const createSystemAppCommand = new Command('create-system-app')
     'Mark as public client for native PKCE (no client secret required at token exchange)',
     false
   )
-  .option('--prod', 'Create in production database')
+  .option('--prod', 'Create or update in production database')
   .action(async (options) => {
     const isProd = options.prod
     const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
@@ -59,23 +59,48 @@ const createSystemAppCommand = new Command('create-system-app')
 
       const crypto = await import('node:crypto')
       const clientId = options.clientId || crypto.randomUUID()
-      const clientSecret = crypto.randomBytes(32).toString('hex')
 
-      const app = await prisma.oAuthApp.create({
-        data: {
-          owner: { connect: { id: user.id } },
-          name: options.name,
-          sourceName: options.sourceName || null,
-          clientId,
-          clientSecret,
-          redirectUris,
-          isTrusted: true,
-          isOfficial: Boolean(options.official),
-          isPublicClient: Boolean(options.publicClient)
-        }
+      const existingApp = await prisma.oAuthApp.findUnique({
+        where: { clientId }
       })
 
-      console.log(chalk.green('\n✅ System application created successfully!'))
+      let app
+      if (existingApp) {
+        // Merge redirect URIs without duplicates
+        const mergedRedirectUris = Array.from(
+          new Set([...existingApp.redirectUris, ...redirectUris])
+        )
+
+        app = await prisma.oAuthApp.update({
+          where: { clientId },
+          data: {
+            name: options.name,
+            sourceName: options.sourceName || existingApp.sourceName,
+            redirectUris: mergedRedirectUris,
+            isTrusted: true,
+            isOfficial: Boolean(options.official),
+            isPublicClient: Boolean(options.publicClient)
+          }
+        })
+        console.log(chalk.green('\n✅ System application updated successfully!'))
+      } else {
+        const clientSecret = crypto.randomBytes(32).toString('hex')
+        app = await prisma.oAuthApp.create({
+          data: {
+            owner: { connect: { id: user.id } },
+            name: options.name,
+            sourceName: options.sourceName || null,
+            clientId,
+            clientSecret,
+            redirectUris,
+            isTrusted: true,
+            isOfficial: Boolean(options.official),
+            isPublicClient: Boolean(options.publicClient)
+          }
+        })
+        console.log(chalk.green('\n✅ System application created successfully!'))
+      }
+
       console.log(chalk.gray('--------------------------------------------------'))
       console.log(`${chalk.bold('Name:')}            ${app.name}`)
       if (app.sourceName) {
@@ -83,7 +108,7 @@ const createSystemAppCommand = new Command('create-system-app')
       }
       console.log(`${chalk.bold('Client ID:')}       ${app.clientId}`)
       console.log(`${chalk.bold('Client Secret:')}   ${chalk.yellow(app.clientSecret)}`)
-      console.log(`${chalk.bold('Redirect URIs:')}   ${redirectUris.join(', ')}`)
+      console.log(`${chalk.bold('Redirect URIs:')}   ${app.redirectUris.join(', ')}`)
       console.log(`${chalk.bold('Trusted:')}         true`)
       console.log(`${chalk.bold('Official:')}        ${Boolean(app.isOfficial)}`)
       console.log(`${chalk.bold('Public Client:')}   ${Boolean(app.isPublicClient)}`)
@@ -97,7 +122,7 @@ const createSystemAppCommand = new Command('create-system-app')
       }
       console.log(chalk.gray('--------------------------------------------------\n'))
     } catch (error) {
-      console.error(chalk.red('Failed to create system app:'), error)
+      console.error(chalk.red('Failed to create/update system app:'), error)
     } finally {
       await prisma.$disconnect()
       await pool.end()
