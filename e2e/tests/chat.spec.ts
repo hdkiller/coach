@@ -19,4 +19,12 @@ test.describe('AI Chat Interface', () => {
       await expect(chat.messageInput).toHaveValue('What is my recommended FTP?')
     }
   })
+
+  test('displays chat container and response elements without crashing', async ({ authedPage }) => {
+    const chat = new ChatPage(authedPage)
+    await chat.goto()
+
+    await expect(authedPage).toHaveURL(/\/chat/)
+    await expect(chat.messageInput).toBeVisible({ timeout: 15000 })
+  })
 })

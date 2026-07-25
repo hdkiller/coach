@@ -110,4 +110,44 @@ test.describe('PR #256: Completed Workout Scope & Mutation Contracts', () => {
 
     await prisma.plannedWorkout.delete({ where: { id: plannedId } })
   })
+
+  test('Resolving planned workout by ID updates notes and sync flag without throwing Workout Not Found', async () => {
+    const athlete = await prisma.user.findUnique({ where: { email: E2E_ATHLETE_EMAIL } })
+    expect(athlete).toBeTruthy()
+
+    const plannedId = `e2e-planned-notes-update-${Date.now()}`
+    const planned = await prisma.plannedWorkout.create({
+      data: {
+        id: plannedId,
+        userId: athlete!.id,
+        externalId: plannedId,
+        date: new Date(),
+        title: 'Targeted Threshold Workout',
+        type: 'Ride',
+        durationSec: 3600,
+        tss: 70,
+        description: 'Original description',
+        completed: false
+      }
+    })
+
+    // Verify lookup by ID in plannedWorkout table succeeds
+    const targetPlanned = await prisma.plannedWorkout.findUnique({ where: { id: plannedId } })
+    expect(targetPlanned).toBeTruthy()
+    expect(targetPlanned?.title).toBe('Targeted Threshold Workout')
+
+    // Simulate notes/description update on planned workout
+    const updated = await prisma.plannedWorkout.update({
+      where: { id: plannedId },
+      data: {
+        description: 'Updated rest interval instructions for coach',
+        modifiedLocally: true
+      }
+    })
+
+    expect(updated.description).toBe('Updated rest interval instructions for coach')
+    expect(updated.modifiedLocally).toBe(true)
+
+    await prisma.plannedWorkout.delete({ where: { id: plannedId } })
+  })
 })

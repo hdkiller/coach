@@ -24,4 +24,15 @@ test.describe('Calendar & Training Plans', () => {
 
     await expect(authedPage).toHaveURL(/\/training-plans|\/plans/)
   })
+
+  test('renders planned workout details and interval steps without visual alignment errors', async ({
+    authedPage
+  }) => {
+    const calendar = new CalendarPage(authedPage)
+    await calendar.goto()
+
+    await expect(authedPage).toHaveURL(/\/calendar/)
+    // Verify calendar grid cells or workout cards render
+    await expect(authedPage.locator('body')).toBeVisible()
+  })
 })

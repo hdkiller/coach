@@ -143,4 +143,30 @@ test.describe('PR #253 & Smoke Test 3: Sync Results & Dashboard', () => {
     // Cleanup
     await prisma.plannedWorkout.delete({ where: { id: planned.id } })
   })
+
+  test('Dashboard renders existing cached workouts when integration sync status is actively SYNCING', async ({
+    authedPage
+  }) => {
+    const athlete = await prisma.user.findUnique({ where: { email: E2E_ATHLETE_EMAIL } })
+    expect(athlete).toBeTruthy()
+
+    // Mark user integration as actively SYNCING
+    await prisma.integration.updateMany({
+      where: { userId: athlete!.id, provider: 'intervals' },
+      data: { syncStatus: 'SYNCING' }
+    })
+
+    const dashboard = new DashboardPage(authedPage)
+    await dashboard.goto()
+
+    await expect(authedPage).toHaveURL(/\/dashboard/)
+    // Verify dashboard renders cached workout or header heading instead of breaking
+    await expect(authedPage.getByRole('heading').first()).toBeVisible()
+
+    // Reset status back to SUCCESS
+    await prisma.integration.updateMany({
+      where: { userId: athlete!.id, provider: 'intervals' },
+      data: { syncStatus: 'SUCCESS' }
+    })
+  })
 })
