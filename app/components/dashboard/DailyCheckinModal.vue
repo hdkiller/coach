@@ -532,6 +532,7 @@
   })
 
   async function fetchToday(silent = false) {
+    if (import.meta.server) return
     try {
       if (!silent) loading.value = true
       error.value = null

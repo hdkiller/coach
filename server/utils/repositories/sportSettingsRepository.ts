@@ -100,8 +100,21 @@ export const sportSettingsRepository = {
         loadPreference: 'HR_PACE_POWER'
       })
     return await prisma.sportSettings
-      .create({
-        data: {
+      .upsert({
+        where: {
+          userId_source_externalId: {
+            userId,
+            source: 'system',
+            externalId: `default_${userId}`
+          }
+        },
+        update: {
+          ftp: legacyProfile.ftp,
+          lthr: legacyProfile.lthr,
+          maxHr: legacyProfile.maxHr,
+          restingHr: legacyProfile.restingHr
+        },
+        create: {
           userId,
           name: 'Default',
           isDefault: true,

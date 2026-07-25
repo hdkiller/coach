@@ -947,6 +947,7 @@
   )
 
   async function fetchWellnessData(date: Date) {
+    if (import.meta.server) return
     loading.value = true
     fetchError.value = null
 
