@@ -1,6 +1,9 @@
 <template>
   <div
     ref="dayCell"
+    data-testid="calendar-day-cell"
+    :data-date="dayDateKey"
+    :data-fuel-state="fuelState ?? ''"
     class="min-h-[150px] p-2 bg-white dark:bg-gray-900 transition-colors flex flex-col relative"
     :class="{
       'opacity-50': isOtherMonth,
@@ -777,13 +780,25 @@
     return activityWithWellness?.wellness || null
   })
 
+  const dayDateKey = computed(() => {
+    const d = props.date
+    if (!(d instanceof Date) || Number.isNaN(d.getTime())) return ''
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${d.getFullYear()}-${month}-${day}`
+  })
+
   const fuelState = computed(() => {
     const nutrition = dayNutrition.value as any
     const plan = nutrition?.fuelingPlan
     if (!plan) return null
 
-    // Estimate state from daily carb target if not explicitly stored
-    // or if we have it in the description of INTRA_WORKOUT window
+    // The plan states the day's fuel state outright.
+    const fromPlan = Number(plan.dailyTotals?.fuelState)
+    if (Number.isFinite(fromPlan) && fromPlan >= 1) return fromPlan
+
+    // Older plans only carried it inside the intra-workout window's description. Sessions that
+    // need no in-session carbohydrate produce no such window, so this is a fallback, not the rule.
     const intraWindow = plan.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')
     if (intraWindow?.description?.includes('Fuel State 3')) return 3
     if (intraWindow?.description?.includes('Fuel State 2')) return 2

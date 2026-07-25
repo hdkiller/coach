@@ -700,6 +700,12 @@
   // Computed
   const fuelState = computed(() => {
     if (!nutrition.value?.fuelingPlan) return 1
+
+    // The plan reports the day's fuel state directly. The description-parsing fallback below only
+    // held while every session produced an intra-workout window, which is no longer the case.
+    const fromPlan = Number(nutrition.value.fuelingPlan.dailyTotals?.fuelState)
+    if (Number.isFinite(fromPlan) && fromPlan >= 1) return fromPlan
+
     const intra = nutrition.value.fuelingPlan.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')
     if (intra?.description?.includes('State 3')) return 3
     if (intra?.description?.includes('State 2')) return 2

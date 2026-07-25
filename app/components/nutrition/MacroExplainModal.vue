@@ -456,6 +456,20 @@
           value: `${adjustmentValue > 0 ? '+' : ''}${Math.round(adjustmentValue)} kcal`
         })
       }
+
+      // The day's calorie target is the higher of its energy budget and what its macro targets
+      // already imply. When the macros win, the lines above stop adding up to the number on screen,
+      // so the difference is named rather than left as an unexplained gap.
+      const energyBudget = baseCalories + Number(fp.activityCalories || 0) + Number(adjustmentValue)
+      const macroFloor = Math.round(Number(props.target || 0) - energyBudget)
+      if (macroFloor > 5) {
+        items.push({
+          label: 'Macro Floor',
+          description:
+            'Your carb, protein and fat targets already require more energy than the day-budget above. The target is raised to match them.',
+          value: `+${macroFloor} kcal`
+        })
+      }
     }
 
     return items

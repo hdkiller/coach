@@ -295,7 +295,10 @@
         absorptionType: props.feed.mealRecommendation.absorptionType,
         timing: props.feed.mealRecommendation.timing,
         item: props.feed.mealRecommendation.item,
-        basedOnWindowType: props.feed.mealRecommendation.windowType || 'fueling window'
+        basedOnWindowType: props.feed.mealRecommendation.windowType || 'fueling window',
+        // The AI recommendation carries no window identity of its own; bind it to the window it
+        // is being shown against so a lock lands on the right one.
+        windowKey: props.feed.nextWindow?.windowKey
       }
     }
     return props.feed?.suggestedIntake

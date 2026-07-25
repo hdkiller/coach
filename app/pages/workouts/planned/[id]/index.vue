@@ -1617,7 +1617,13 @@
     const windows = Array.isArray(dayPlan.windows) ? dayPlan.windows : []
     if (!workoutId || windows.length === 0) return dayPlan
 
-    const matchedWindows = windows.filter((w: any) => w?.plannedWorkoutId === workoutId)
+    // Pre/post windows can serve a whole block of back-to-back sessions, so match on the full id
+    // list when the plan provides one. Matching only plannedWorkoutId drops the shared pre window
+    // from every session in the block except the first.
+    const matchedWindows = windows.filter((w: any) => {
+      const ids = Array.isArray(w?.plannedWorkoutIds) ? w.plannedWorkoutIds : []
+      return ids.includes(workoutId) || w?.plannedWorkoutId === workoutId
+    })
     if (matchedWindows.length === 0) return dayPlan
 
     return {
@@ -1627,6 +1633,15 @@
   })
   const fuelState = computed(() => {
     if (!fuelingPlan.value) return 1
+
+    // The plan states this outright. Parsing it out of an intra-window description only worked
+    // while every session had one; sessions that need no in-session carbs no longer do.
+    const fromPlan = Number(
+      fuelingPlan.value.dailyTotals?.fuelState ??
+        dayNutrition.value?.fuelingPlan?.dailyTotals?.fuelState
+    )
+    if (Number.isFinite(fromPlan) && fromPlan >= 1) return fromPlan
+
     const intra = fuelingPlan.value.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')
     if (intra?.description?.includes('State 3')) return 3
     if (intra?.description?.includes('State 2')) return 2

@@ -405,6 +405,9 @@
     const windowsToAssign = overlappingWindows.length > 1 ? overlappingWindows : [selectedWindow]
     return windowsToAssign.map((window: any) => ({
       windowType: window.type,
+      // Identity of this exact window. Without it a day with two pre-workout windows collapses
+      // both onto one planned meal.
+      windowKey: window.windowKey || window.type,
       slotName: window.slotName || window.label || '',
       label: window.label,
       targetCarbs: Number(window.targetCarbs || 0),
@@ -426,14 +429,7 @@
     const currentlyAssignedCarbs = day.windows
       .filter((candidate: any) =>
         windowAssignments.some(
-          (assignment: any) =>
-            assignment.windowType === candidate.type &&
-            String(assignment.slotName || '')
-              .trim()
-              .toLowerCase() ===
-              String(candidate.slotName || candidate.label || '')
-                .trim()
-                .toLowerCase()
+          (assignment: any) => assignment.windowKey === (candidate.windowKey || candidate.type)
         )
       )
       .reduce((sum: number, candidate: any) => {

@@ -943,7 +943,11 @@
         targetProtein: context.protein || context.targetProtein || 0,
         targetKcal: context.kcal || context.targetKcal || 0,
         windowType: context.basedOnWindowType || context.type,
-        windowKey: context.windowKey || context.basedOnWindowType || context.type,
+        windowKey:
+          context.windowKey ||
+          context.basedOnWindowKey ||
+          context.basedOnWindowType ||
+          context.type,
         slotName: context.slotName || context.label || '',
         windowAssignments: Array.isArray(context.windowAssignments)
           ? context.windowAssignments

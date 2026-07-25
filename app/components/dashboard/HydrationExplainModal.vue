@@ -127,14 +127,22 @@
       ) as any[]
   )
 
-  const workoutDurationHours = computed(() =>
-    intraWindows.value.reduce((sum: number, w: any) => {
+  /**
+   * Prefer the training time the plan reports. Summing intra-workout windows under-counts, because
+   * sessions that need no in-session carbohydrate (a gym hour, an easy short run) produce no intra
+   * window at all — their sweat loss still counts toward the day's fluid target.
+   */
+  const workoutDurationHours = computed(() => {
+    const fromPlan = Number(props.nutrition?.fuelingPlan?.dailyTotals?.trainingHours)
+    if (Number.isFinite(fromPlan) && fromPlan > 0) return fromPlan
+
+    return intraWindows.value.reduce((sum: number, w: any) => {
       const start = new Date(w.startTime)
       const end = new Date(w.endTime)
       const hrs = Math.max(0, (end.getTime() - start.getTime()) / 3600000)
       return sum + hrs
     }, 0)
-  )
+  })
 
   const baseHydrationMl = 2000
   const workoutReplacementMl = computed(() => Math.max(0, targetMl.value - baseHydrationMl))
