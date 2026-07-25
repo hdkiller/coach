@@ -205,29 +205,32 @@ export default defineNuxtConfig({
       routes: []
     },
     experimental: {
-      openAPI: true,
+      openAPI: process.env.SOURCEMAP !== 'false',
       websocket: true,
       tasks: true,
       asyncContext: true
     },
-    openAPI: {
-      production: 'runtime',
-      route: '/_openapi.json',
-      meta: {
-        title: 'Coach Watts API',
-        description: 'AI-powered endurance coaching platform API',
-        version: pkg.version
-      },
-      ui: {
-        scalar: {
-          route: '/_docs/scalar',
-          theme: 'purple'
-        },
-        swagger: {
-          route: '/_docs/swagger'
-        }
-      }
-    },
+    openAPI:
+      process.env.SOURCEMAP === 'false'
+        ? false
+        : {
+            production: 'runtime',
+            route: '/_openapi.json',
+            meta: {
+              title: 'Coach Watts API',
+              description: 'AI-powered endurance coaching platform API',
+              version: pkg.version
+            },
+            ui: {
+              scalar: {
+                route: '/_docs/scalar',
+                theme: 'purple'
+              },
+              swagger: {
+                route: '/_docs/swagger'
+              }
+            }
+          },
     // Ensure unhead is properly bundled/traced
     externals: {
       // @vue-email/compiler dynamically loads vue-email at runtime.
