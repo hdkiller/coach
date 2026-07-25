@@ -157,6 +157,8 @@
   "share_modal_title_reward": "Share Coach Watts",
   "sync_toast_description": "Your data has been updated successfully!",
   "sync_toast_title": "Sync Complete",
+  "sync_toast_partial_title": "Sync Partially Complete",
+  "sync_toast_partial_description": "Your data was refreshed, but {count} connected app failed to sync. Check integrations for details. | Your data was refreshed, but {count} connected apps failed to sync. Check integrations for details.",
   "system_message_no_commitment": "No commitment • Cancel anytime",
   "system_message_reward": "One-time reward • +3 days",
   "training_recommendation_accept_button": "Accept",

@@ -48,8 +48,11 @@ export const ingestAllTask = task({
     // We do this first so external systems are up-to-date before we fetch from them.
     try {
       logger.log('📤 Triggering Sync Queue Processing (Push)...')
-      await processSyncQueueTask.trigger({})
-      logger.log('✅ Sync Queue flushed')
+      const queueRun = await processSyncQueueTask.triggerAndWait({})
+      if (!queueRun.ok) {
+        throw new Error(`Sync queue processing failed: ${String(queueRun.error)}`)
+      }
+      logger.log('✅ Sync Queue processing completed')
     } catch (error) {
       logger.warn('⚠️ Failed to trigger sync queue processing', { error })
     }
