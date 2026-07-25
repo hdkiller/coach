@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { metabolicService } from '../../utils/services/metabolicService'
 
 defineRouteMeta({
@@ -49,16 +49,8 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  const authUser = await requireAuth(event, ['nutrition:read'])
+  const userId = authUser.id
   const query = getQuery(event)
   const daysAhead = query.daysAhead ? parseInt(query.daysAhead as string) : 3
 

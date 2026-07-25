@@ -1,11 +1,12 @@
-import { getEffectiveUserId } from '../../utils/coaching'
+import { requireAuth } from '../../utils/auth-guard'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserTimezone, getUserLocalDate, getStartOfLocalDateUTC } from '../../utils/date'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { getProfileForItem, getAbsorbedInInterval } from '../../utils/nutrition-domain/absorption'
 
 export default defineEventHandler(async (event) => {
-  const userId = await getEffectiveUserId(event)
+  const authUser = await requireAuth(event, ['nutrition:read'])
+  const userId = authUser.id
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)
   const now = new Date()

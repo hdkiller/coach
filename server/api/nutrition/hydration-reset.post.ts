@@ -1,10 +1,11 @@
-import { getEffectiveUserId } from '../../utils/coaching'
+import { requireAuth } from '../../utils/auth-guard'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 
 export default defineEventHandler(async (event) => {
-  const userId = await getEffectiveUserId(event)
+  const authUser = await requireAuth(event, ['nutrition:write'])
+  const userId = authUser.id
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)
   const state = await metabolicService.getMetabolicStateForDate(userId, today)

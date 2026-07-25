@@ -157,11 +157,11 @@
   async function loadShareLink() {
     loadingShareLink.value = true
     try {
-      const response = await $fetch<{ code: string; shareUrl: string }>('/api/referrals/me', {
+      const response = (await ($fetch as any)('/api/referrals/me', {
         query: { medium: 'web_share' }
-      })
+      })) as { code: string; shareUrl: string }
       shareLink.value = response.shareUrl
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load referral share link:', error)
       toast.add({
         title: t.value('share_modal_qr_unavailable_title'),

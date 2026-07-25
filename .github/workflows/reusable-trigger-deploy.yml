@@ -46,7 +46,13 @@ jobs:
   deploy:
     name: Deploy Trigger.dev Tasks
     runs-on: self-hosted
+    timeout-minutes: 30
     environment: ${{ inputs.environment }}
+    # Job-level (not workflow-level) so the group stays distinct from the caller's
+    # concurrency group — same-name groups between caller and reusable workflow deadlock.
+    concurrency:
+      group: trigger-deploy-${{ inputs.environment }}-${{ inputs.trigger-env || inputs.environment }}
+      cancel-in-progress: false
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy' }}
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}

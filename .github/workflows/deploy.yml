@@ -6,10 +6,25 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  # Never build two images for the same branch at once — they race on the `latest`
+  # tag and on the shared :buildcache ref. Newer pushes queue instead of cancelling
+  # so a half-pushed image is never left behind.
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   build-and-deploy:
     name: Build and Deploy
+    needs: ci
     runs-on: self-hosted
+    timeout-minutes: 60
     environment: preview
     permissions:
       contents: read
@@ -61,11 +76,32 @@ jobs:
         env:
           DOKPLOY_WEBHOOK: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
         run: |
-          if [ -n "$DOKPLOY_WEBHOOK" ]; then
-            curl -X POST "$DOKPLOY_WEBHOOK"
-          else
+          set -uo pipefail
+          if [ -z "${DOKPLOY_WEBHOOK:-}" ]; then
             echo "::warning::DOKPLOY_WEBHOOK_URL is not set. Skipping webhook trigger."
+            exit 0
           fi
+
+          RESPONSE_BODY=$(mktemp)
+          HTTP_CODE=$(curl -sS -X POST \
+            --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 10 --max-time 60 \
+            -o "${RESPONSE_BODY}" \
+            -w '%{http_code}' \
+            "${DOKPLOY_WEBHOOK}") || HTTP_CODE="000"
+
+          # A non-2xx response used to pass silently: the image was pushed, nothing
+          # was deployed, and the Discord notification still said "success".
+          case "${HTTP_CODE}" in
+            2??)
+              echo "✅ Dokploy deployment triggered (HTTP ${HTTP_CODE})"
+              ;;
+            *)
+              echo "::error::Dokploy webhook failed (HTTP ${HTTP_CODE}). Image was pushed to ghcr.io but the deployment was NOT triggered."
+              head -c 2000 "${RESPONSE_BODY}" || true
+              exit 1
+              ;;
+          esac
 
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1

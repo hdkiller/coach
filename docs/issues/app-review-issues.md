@@ -1,8 +1,8 @@
 # App Review — Issue Tracker
 
-Last reviewed: 2026-07-22 (issues 364–368 — Expo push gaps)
+Last reviewed: 2026-07-25 (issues 369–377 — CI/CD pipeline review)
 
-Documents app-wide issues **039–368** from systematic codebase, live UI, and production telemetry review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
+Documents app-wide issues **039–377** from systematic codebase, live UI, and production telemetry review. Complements structure-generation tracker [issues.md](./issues.md) (001–038, **37 / 38 fixed**).
 
 **Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md) (~96% complete)
 
@@ -744,6 +744,40 @@ Push inventory/policy from watts-marketing `knowledge/push/`. Device register +
 3. **366** — wire analysis + coaching Expo
 4. **367** — decide SYNC_COMPLETED (default: no OS spam) — policy decided; cleanup remains
 5. **368** — receipts / ops hardening
+
+## Issues 369–377: CI/CD pipeline review — 2026-07-25
+
+Review of the six GitHub Actions workflows and the production `Dockerfile`. Five
+findings were fixed in the same pass and are **not** tracked here:
+
+- CI did not gate the deploy (`ci.yml` is now a reusable workflow that `deploy.yml` needs)
+- Redundant typecheck inside the Docker builder stage (removed — CI gates it now)
+- No `concurrency` on any workflow (added to all six)
+- No `timeout-minutes` on any job (added to all)
+- Dokploy webhook could not fail the build (now checks the HTTP status)
+
+| ID                                                         | Title                                                     | Priority | Type        | Status |
+| ---------------------------------------------------------- | --------------------------------------------------------- | -------- | ----------- | ------ |
+| [369](./369-docker-latest-tag-unconditional.md)            | `latest` image tag published from any branch              | Medium   | Bug         | Open   |
+| [370](./370-mcp-private-key-on-command-line.md)            | MCP registry private key passed in `argv`                 | High     | Bug         | Open   |
+| [371](./371-mcp-publisher-binary-unpinned.md)              | `mcp-publisher` downloaded unpinned and unverified        | Medium   | Maintenance | Open   |
+| [372](./372-ci-toolchain-drift.md)                         | Workflows disagree on Node / pnpm / Trigger CLI versions  | Medium   | Maintenance | Open   |
+| [373](./373-actions-not-sha-pinned.md)                     | Third-party actions tag-pinned, not SHA-pinned            | Medium   | Maintenance | Open   |
+| [374](./374-e2e-and-mcp-tests-not-in-ci.md)                | Playwright E2E and MCP suites never run in CI             | Medium   | Maintenance | Open   |
+| [375](./375-production-image-hardening.md)                 | Prod image ships dev deps, runs as root, no healthcheck   | Medium   | Maintenance | Open   |
+| [376](./376-stale-debug-trigger-auth-workflow.md)          | Stale `debug-trigger-auth` workflow on self-hosted runner | Low      | Maintenance | Open   |
+| [377](./377-production-deploy-uses-preview-environment.md) | Production deploy scoped to environment named `preview`   | Low      | Maintenance | Open   |
+
+### Suggested fix order (369–377)
+
+1. **370** — secret out of `argv`; smallest change, highest severity
+2. **371** — pin and checksum `mcp-publisher` (same workflow, same PR)
+3. **369** — needs a Dokploy config check first; decides whether branch deploys are real
+4. **372** — one toolchain source of truth, unblocks confident version bumps
+5. **374** — `test:mcp` into CI is cheap; E2E placement is a separate decision
+6. **373** — SHA pinning plus Dependabot for `github-actions`
+7. **375** — prod-deps stage, non-root user, healthcheck; verify boot before it ships
+8. **376 + 377** — housekeeping and environment naming; do together
 
 ## Recommended fix order (app review)
 

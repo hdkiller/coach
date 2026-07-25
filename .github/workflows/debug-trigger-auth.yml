@@ -3,9 +3,14 @@ name: Debug Trigger Auth
 on:
   workflow_dispatch:
 
+concurrency:
+  group: debug-trigger-auth
+  cancel-in-progress: true
+
 jobs:
   debug:
     runs-on: self-hosted
+    timeout-minutes: 15
     environment: preview
     steps:
       - uses: actions/checkout@v4

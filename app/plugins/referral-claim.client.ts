@@ -13,7 +13,7 @@ export default defineNuxtPlugin(() => {
 
     inFlight.value = true
     try {
-      await $fetch('/api/referrals/claim', { method: 'POST' })
+      await ($fetch as any)('/api/referrals/claim', { method: 'POST' })
       claimed.value = true
     } catch {
       // Leave claimed false so logout/re-auth or /join?via= can retry.

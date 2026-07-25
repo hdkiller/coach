@@ -2,14 +2,24 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches:
-      - master
+  # Called by deploy.yml so master pushes gate the Docker build on lint/typecheck/tests
+  # instead of racing it. Do not add a `push` trigger back — that would double-run CI.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  # PR runs supersede each other; workflow_call runs are keyed per-commit so they
+  # never queue behind (or deadlock with) the calling deploy workflow's group.
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +42,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,6 +68,7 @@ jobs:
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

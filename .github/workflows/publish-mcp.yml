@@ -5,9 +5,14 @@ on:
     tags: ['mcp-v*']
   workflow_dispatch:
 
+concurrency:
+  group: publish-mcp
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: mcp-registry-publish
     permissions:
       contents: read

@@ -1031,19 +1031,19 @@
   async function fetchDataSummary() {
     try {
       const [workouts, wellness, planned, nutrition] = await Promise.all([
-        $fetch('/api/workouts').catch((e) => {
+        $fetch('/api/workouts').catch((e: unknown) => {
           console.error('Workouts error:', e)
           return []
         }),
-        $fetch('/api/wellness').catch((e) => {
+        $fetch('/api/wellness').catch((e: unknown) => {
           console.error('Wellness error:', e)
           return []
         }),
-        $fetch('/api/planned-workouts').catch((e) => {
+        $fetch('/api/planned-workouts').catch((e: unknown) => {
           console.error('Planned workouts error:', e)
           return []
         }),
-        $fetch('/api/nutrition').catch((e) => {
+        $fetch('/api/nutrition').catch((e: unknown) => {
           console.error('Nutrition error:', e)
           return { count: 0, nutrition: [] }
         })

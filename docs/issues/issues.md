@@ -7,6 +7,8 @@
 > **Email platform gaps (2026-07-22):** **[353–363](./app-review-issues.md#issues-353363-email-platform-gaps--2026-07-22)**.
 >
 > **Expo push gaps (2026-07-22):** **[364–368](./app-review-issues.md#issues-364368-expo-push-gaps--2026-07-22)**.
+>
+> **CI/CD pipeline review (2026-07-25):** **[369–377](./app-review-issues.md#issues-369377-cicd-pipeline-review--2026-07-25)**.
 
 Last reviewed: 2026-07-09 (structure-generation batch merged — PRs [#214](https://github.com/hdkiller/coach/pull/214)–[#222](https://github.com/hdkiller/coach/pull/222) on 2026-07-08)
 

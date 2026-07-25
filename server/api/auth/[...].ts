@@ -18,9 +18,8 @@ import { attributeReferralFromEvent } from '../../utils/referrals'
 
 async function tryAttributeReferralDuringAuth(userId: string) {
   try {
-    const { getRequestEvent } = await import('nitropack/runtime')
-    const event = getRequestEvent()
-    if (!event) return
+    const { useEvent } = await import('nitropack/runtime')
+    const event = useEvent()
     await attributeReferralFromEvent(event, userId)
   } catch (error) {
     console.error('[Auth] Referral attribution skipped during auth event:', error)

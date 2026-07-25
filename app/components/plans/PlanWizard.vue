@@ -1606,7 +1606,7 @@
 
     void $fetch(`/api/plans/${generatedPlan.value.id}/abandon`, {
       method: 'POST'
-    }).catch((error) => {
+    }).catch((error: unknown) => {
       console.error('[PlanWizard] Failed to abandon draft plan on close:', error)
     })
   })
