@@ -1,14 +1,10 @@
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { recommendNutritionMealTask } from '../../../../trigger/recommend-nutrition-meal'
 import { prisma } from '../../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const userId = (session.user as any).id
+  const user = await requireAuth(event, ['nutrition:write'])
+  const userId = user.id
   const body = await readBody(event)
 
   if (!body.date) {

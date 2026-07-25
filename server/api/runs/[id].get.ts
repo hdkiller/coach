@@ -1,11 +1,9 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { runs } from '@trigger.dev/sdk/v3'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  // Bearer + session; no scope gate — ownership is enforced via run tags below.
+  const user = await requireAuth(event)
 
   const runId = getRouterParam(event, 'id')
   if (!runId) {
@@ -17,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
     // Security check: Ensure the run belongs to the user via tags
     // This assumes all user-specific runs are tagged with "user:{userId}"
-    const hasUserTag = run.tags?.includes(`user:${session.user.id}`)
+    const hasUserTag = run.tags?.includes(`user:${user.id}`)
 
     // If you have system-wide runs that users need to see but aren't tagged,
     // you might need to relax this or add specific logic.
