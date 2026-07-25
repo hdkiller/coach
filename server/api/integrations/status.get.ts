@@ -1,4 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
+import { resolveProviderSyncBlock } from '../../utils/integration-sync-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -114,6 +115,26 @@ export default defineEventHandler(async (event) => {
   }))
 
   const allIntegrations = [...user.integrations, ...oauthIntegrations]
+
+  // A task can be terminated before its finally block runs. Reconcile persisted
+  // SYNCING state with Trigger.dev whenever the user reads integration status.
+  for (const integration of user.integrations) {
+    if (integration.syncStatus !== 'SYNCING') continue
+
+    try {
+      const block = await resolveProviderSyncBlock(user.id, integration)
+      if (!block.blocked) {
+        integration.syncStatus = 'FAILED'
+        integration.errorMessage = 'Previous sync did not complete'
+      }
+    } catch (error) {
+      console.error('Failed to reconcile integration sync status', {
+        integrationId: integration.id,
+        provider: integration.provider,
+        error
+      })
+    }
+  }
 
   // Self-healing: If user has an intervals account but no intervals integration, create it
   const hasIntervalsAccount = user.accounts.some((a) => a.provider === 'intervals')
