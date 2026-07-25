@@ -193,15 +193,17 @@
 
   const emit = defineEmits(['open-score-modal', 'open-training-load'])
 
-  // Fetch athlete profile scores
-  const { data: scoresData, pending: loadingScores } = (useFetch as any)(
-    '/api/scores/athlete-profile',
-    {
-      lazy: true,
-      server: false,
-      watch: [() => integrationStore.intervalsConnected]
-    }
-  )
+  // Scores exist for any onboarded athlete, regardless of integration provider.
+  const {
+    data: scoresData,
+    pending: loadingScores,
+    refresh: refreshScores
+  } = (useFetch as any)('/api/scores/athlete-profile', {
+    lazy: true,
+    server: false,
+    immediate: true,
+    watch: [isOnboarded]
+  })
 
   const profileScores = computed(() => scoresData.value?.scores || null)
   const scoresHistory = computed(() => scoresData.value?.history || [])
@@ -210,7 +212,11 @@
   )
 
   // Fetch PMC data for TL/ATL/TSB if enabled
-  const { data: pmcData, pending: loadingPMC } = (useFetch as any)('/api/performance/pmc', {
+  const {
+    data: pmcData,
+    pending: loadingPMC,
+    refresh: refreshPmc
+  } = (useFetch as any)('/api/performance/pmc', {
     lazy: true,
     server: false,
     query: computed(() => ({
@@ -218,7 +224,11 @@
       displayMode: trainingLoadDisplayMode.value
     })),
     immediate: true,
-    watch: [() => integrationStore.intervalsConnected, trainingLoadDisplayMode]
+    watch: [isOnboarded, trainingLoadDisplayMode]
+  })
+
+  defineExpose({
+    refresh: () => Promise.all([refreshScores(), refreshPmc()])
   })
 
   const pmcSummary = computed(() => pmcData.value?.summary || null)

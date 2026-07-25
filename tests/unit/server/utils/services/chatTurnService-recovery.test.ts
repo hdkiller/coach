@@ -4,6 +4,7 @@ import { chatTurnService } from '../../../../../server/utils/services/chatTurnSe
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
+  findUnique: vi.fn(),
   updateMany: vi.fn(),
   messageUpdate: vi.fn(),
   eventCreate: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
     chatTurn: {
       findMany: mocks.findMany,
+      findUnique: mocks.findUnique,
       updateMany: mocks.updateMany
     },
     $transaction: mocks.transaction
@@ -224,5 +226,44 @@ describe('chat turn restart recovery', () => {
       where: { id: 'turn-1', runId: 'run-current' },
       data: { lastHeartbeatAt: expect.any(Date), status: 'RUNNING' }
     })
+  })
+
+  it('persists the current execution phase with an owned heartbeat', async () => {
+    mocks.findUnique.mockResolvedValue({
+      runId: 'run-current',
+      metadata: { recoveryAttempts: 0 }
+    })
+    mocks.updateMany.mockResolvedValue({ count: 1 })
+
+    await expect(
+      chatTurnService.heartbeatWithTelemetry('turn-1', 'run-current', {
+        executionPhase: 'tool_step',
+        deploymentId: 'deploy-1'
+      })
+    ).resolves.toEqual({ count: 1 })
+
+    expect(mocks.updateMany).toHaveBeenCalledWith({
+      where: { id: 'turn-1', runId: 'run-current' },
+      data: {
+        lastHeartbeatAt: expect.any(Date),
+        metadata: {
+          recoveryAttempts: 0,
+          executionPhase: 'tool_step',
+          deploymentId: 'deploy-1'
+        }
+      }
+    })
+  })
+
+  it('does not write telemetry after ownership changes', async () => {
+    mocks.findUnique.mockResolvedValue({ runId: 'run-new', metadata: {} })
+
+    await expect(
+      chatTurnService.heartbeatWithTelemetry('turn-1', 'run-old', {
+        executionPhase: 'streaming'
+      })
+    ).resolves.toEqual({ count: 0 })
+
+    expect(mocks.updateMany).not.toHaveBeenCalled()
   })
 })

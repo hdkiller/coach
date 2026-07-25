@@ -379,6 +379,8 @@ export function buildReadRepairSystemInstruction(systemInstruction: string) {
 - Call the needed read tools if you still lack facts, then you MUST produce a clear textual answer for the athlete.
 - Do not end the turn with only tool calls and no assistant text.
 - Prefer a concise coaching summary over dumping raw tool JSON.
+- Write a prose coaching reply the athlete can read without tables or UI cards. Lead with the answer, then 3-6 short bullets with numbers.
+- If get_workout_analysis shows aiAnalysisStatus NOT_STARTED, PENDING, PROCESSING, or FAILED, say that clearly and summarize available metrics from get_workout_details.
 - If tools already answered the question, summarize the key guidance now.`
 }
 
@@ -538,8 +540,30 @@ function buildWorkoutAnalysisFallback(analysis: any): string | null {
         ? analysis.overallQualityExplanation.trim()
         : ''
   const markdown = typeof analysis?.aiAnalysis === 'string' ? analysis.aiAnalysis.trim() : ''
+  const status =
+    typeof analysis?.aiAnalysisStatus === 'string' ? analysis.aiAnalysisStatus.toUpperCase() : ''
 
-  if (!summary && !markdown && !structured) return null
+  if (!summary && !markdown && !structured) {
+    if (!status || status === 'COMPLETED') return null
+
+    const title = analysis?.title || 'Workout'
+    const dateLine = analysis?.date ? ` (${analysis.date})` : ''
+    if (status === 'PENDING' || status === 'PROCESSING' || status === 'IN_PROGRESS') {
+      return [
+        `Deep analysis for **${title}**${dateLine} is still generating.`,
+        '',
+        'I have the session loaded. Ask again shortly for the full breakdown.'
+      ].join('\n')
+    }
+    if (status === 'NOT_STARTED' || status === 'FAILED') {
+      return [
+        `Deep analysis for **${title}**${dateLine} is not available yet${status === 'FAILED' ? ' (the previous attempt failed)' : ''}.`,
+        '',
+        'I can still cover the raw session metrics now, and the full analysis can be queued from this workout.'
+      ].join('\n')
+    }
+    return null
+  }
 
   const title = analysis?.title || structured?.title || 'Workout analysis'
   const lines = [`## ${title}`]
@@ -805,6 +829,15 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   let terminalTimeoutReason: string | null = null
   let terminalFailureReason: string | null = null
   const executionAbortController = new AbortController()
+  const executionHost = {
+    deploymentId:
+      process.env.RENDER_GIT_COMMIT ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.TRIGGER_DEPLOYMENT_ID ||
+      'unknown',
+    serviceId: process.env.RENDER_SERVICE_ID || process.env.FLY_APP_NAME || 'app-worker',
+    processId: process.pid
+  }
 
   try {
     await checkQuota(turn.userId, 'chat')
@@ -847,7 +880,8 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       slowResponse: false,
       firstOutputLatencyMs: null,
       executionDurationMs: null,
-      executionPhase: currentPhase
+      executionPhase: currentPhase,
+      executionHost
     })
   })
   if (!startedTurn) {
@@ -867,12 +901,18 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   const ownedRunId = executionRunId!
   await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_STARTED, {
     roomId: turn.roomId,
-    userMessageId: turn.userMessageId
+    userMessageId: turn.userMessageId,
+    runId: ownedRunId,
+    executionHost
   } as any)
 
   const heartbeatTimer = setInterval(() => {
     void chatTurnService
-      .heartbeat(turn.id, undefined, ownedRunId)
+      .heartbeatWithTelemetry(turn.id, ownedRunId, {
+        executionPhase: currentPhase,
+        heartbeatPhaseAt: new Date().toISOString(),
+        executionHost
+      })
       .then((result) => {
         if (result.count === 0 && !executionAbortController.signal.aborted) {
           terminalFailureReason = 'Turn ownership changed during execution.'

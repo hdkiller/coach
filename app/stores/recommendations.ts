@@ -13,11 +13,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
   const { refresh: refreshRuns } = useUserRuns()
   const { onTaskCompleted, onTaskFailed } = useUserRunsState()
 
-  // We need to know if intervals is connected to fetch
-  const integrationStore = useIntegrationStore()
-
   async function fetchTodayWorkout() {
-    if (!integrationStore.intervalsConnected) return
     loadingWorkout.value = true
     try {
       const data = (await ($fetch as any)('/api/workouts/planned/today')) as any[]
@@ -41,9 +37,6 @@ export const useRecommendationStore = defineStore('recommendation', () => {
   }
 
   async function fetchTodayRecommendation() {
-    // If not connected, don't fetch (or handle appropriately)
-    if (!integrationStore.intervalsConnected) return
-
     loading.value = true
     try {
       const data = await ($fetch as any)('/api/recommendations/today')

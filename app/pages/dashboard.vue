@@ -243,6 +243,7 @@
 
                   <!-- Performance Overview Card -->
                   <DashboardPerformanceScoresCard
+                    ref="performanceScoresCard"
                     @open-score-modal="openScoreModal"
                     @open-training-load="openTrainingLoadModal"
                   />
@@ -548,6 +549,7 @@
       userStore.user?.nutritionTrackingEnabled !== false
   )
   const isOnboarded = computed(() => activationComplete.value)
+  const performanceScoresCard = ref<{ refresh: () => Promise<unknown> } | null>(null)
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
@@ -572,16 +574,24 @@
     ])
   }
 
-  async function handleIngestAllComplete() {
+  async function handleIngestAllComplete(run: {
+    output?: { success?: boolean; failedCount?: number; results?: any[] }
+  }) {
     await handleIngestTaskComplete()
+    await performanceScoresCard.value?.refresh()
+
+    const failedCount = Number(run.output?.failedCount || 0)
+    const fullySuccessful = run.output?.success !== false && failedCount === 0
 
     showDashboardProgressToast(
       toast,
       {
-        title: t.value('sync_toast_title'),
-        description: t.value('sync_toast_description'),
-        color: 'success',
-        icon: 'i-heroicons-check-circle',
+        title: fullySuccessful ? t.value('sync_toast_title') : t.value('sync_toast_partial_title'),
+        description: fullySuccessful
+          ? t.value('sync_toast_description')
+          : t.value('sync_toast_partial_description', { count: failedCount }),
+        color: fullySuccessful ? 'success' : 'warning',
+        icon: fullySuccessful ? 'i-heroicons-check-circle' : 'i-heroicons-exclamation-triangle',
         duration: 2500
       },
       'dashboard.sync.complete'

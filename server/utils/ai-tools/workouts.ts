@@ -3,7 +3,6 @@ import { z } from 'zod/v3'
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { attachStreamToWorkout } from '../repositories/workoutStreamRepository'
-import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import {
   getStartOfDaysAgoUTC,
   formatUserDate,
@@ -11,13 +10,12 @@ import {
   getStartOfDayUTC,
   getEndOfDayUTC
 } from '../../utils/date'
-import { analyzeWorkoutTask } from '../../../trigger/analyze-workout'
 import type { AiSettings } from '../ai-user-settings'
 import { hasProtectedIntervalsTags, mergeWorkoutTags } from '../workout-tags'
-import { getPendingSyncStatus } from '../structured-workout-persistence'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import { metabolicService } from '../services/metabolicService'
 import { isNutritionTrackingEnabled } from '../nutrition/feature'
+import { enqueueWorkoutAnalysis } from '../workout-analysis-enqueue'
 
 export const workoutTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_recent_workouts: tool({
@@ -271,10 +269,38 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         typeof workout.aiAnalysisJson === 'object' &&
         !Array.isArray(workout.aiAnalysisJson)
 
+      let queueResult: Awaited<ReturnType<typeof enqueueWorkoutAnalysis>> | undefined
+      if (workout.aiAnalysisStatus === 'NOT_STARTED' || workout.aiAnalysisStatus === 'FAILED') {
+        try {
+          queueResult = await enqueueWorkoutAnalysis({
+            workoutId: workout_id,
+            userId,
+            currentStatus: workout.aiAnalysisStatus,
+            source: 'MANUAL'
+          })
+        } catch (error: any) {
+          return {
+            ...analysisResult,
+            ...(hasStructuredAnalysis ? {} : { aiAnalysis }),
+            date: formatUserDate(workout.date, timezone),
+            message: `Deep analysis is not ready and could not be queued automatically (${error?.message || 'unknown error'}).`
+          }
+        }
+      }
+
       return {
         ...analysisResult,
+        ...(queueResult ? { aiAnalysisStatus: queueResult.status } : {}),
         ...(hasStructuredAnalysis ? {} : { aiAnalysis }),
-        date: formatUserDate(workout.date, timezone)
+        date: formatUserDate(workout.date, timezone),
+        ...(queueResult?.queued
+          ? {
+              analysis_queued: true,
+              analysis_run_id: queueResult.runId,
+              message:
+                'Deep analysis was missing, so it has been queued. Summarize the available metrics now and tell the athlete to ask again shortly for the full breakdown.'
+            }
+          : {})
       }
     }
   }),
@@ -291,20 +317,22 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       if (!workout) return { error: 'Workout not found' }
 
       try {
-        const handle = await analyzeWorkoutTask.trigger(
-          { workoutId: workout_id },
-          {
-            tags: [`user:${userId}`, `workout:${workout_id}`],
-            concurrencyKey: userId
-          }
-        )
-        await workoutRepository.updateStatus(workout_id, 'PENDING')
+        const result = await enqueueWorkoutAnalysis({
+          workoutId: workout_id,
+          userId,
+          currentStatus: workout.aiAnalysisStatus,
+          source: 'MANUAL',
+          allowReanalysis: true
+        })
         return {
           success: true,
-          message: 'Workout re-analysis has been queued for processing.',
+          message: result.queued
+            ? 'Workout re-analysis has been queued for processing.'
+            : `Workout analysis is already ${result.status.toLowerCase()}.`,
           job_type: 'workout_analysis',
           job_id: workout_id,
-          run_id: handle.id
+          run_id: result.runId,
+          queued: result.queued
         }
       } catch (e: any) {
         return { error: `Failed to trigger analysis: ${e.message}` }
@@ -390,21 +418,12 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       feel
     }) => {
       const workout = await workoutRepository.getById(workout_id, userId)
-      const plannedWorkout = workout
-        ? null
-        : await plannedWorkoutRepository.getById(workout_id, userId, {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              date: true,
-              durationSec: true,
-              tss: true,
-              syncStatus: true
-            }
-          })
-
-      if (!workout && !plannedWorkout) return { error: 'Workout not found' }
+      if (!workout) {
+        return {
+          error:
+            'Completed workout not found. Planned workouts must be changed with the planned-workout tools.'
+        }
+      }
 
       try {
         const updateData: Record<string, any> = {}
@@ -436,50 +455,13 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
           return { error: 'No fields provided to update.' }
         }
 
-        if (plannedWorkout) {
-          const plannedUpdateData: Record<string, any> = {
-            modifiedLocally: true,
-            syncStatus: getPendingSyncStatus((plannedWorkout as any).syncStatus),
-            syncError: null
-          }
-          if (title !== undefined) plannedUpdateData.title = title
-          if (type !== undefined) plannedUpdateData.type = type
-          if (description !== undefined) plannedUpdateData.description = description
-          if (duration_seconds !== undefined) plannedUpdateData.durationSec = duration_seconds
-          if (distance_meters !== undefined) plannedUpdateData.distanceMeters = distance_meters
-          if (tss !== undefined) plannedUpdateData.tss = tss
-
-          if (date !== undefined) {
-            const parsedDate = new Date(date)
-            if (Number.isNaN(parsedDate.getTime())) {
-              return { error: 'Invalid date format. Use ISO date/time or YYYY-MM-DD.' }
-            }
-            plannedUpdateData.date = parsedDate
-          }
-
-          const updatedPlannedWorkout = await plannedWorkoutRepository.update(
-            workout_id,
-            userId,
-            plannedUpdateData
-          )
-          return {
-            success: true,
-            message: 'Planned workout update prepared successfully.',
-            workout: {
-              id: updatedPlannedWorkout.id,
-              title: updatedPlannedWorkout.title,
-              type: updatedPlannedWorkout.type,
-              date: formatUserDate(updatedPlannedWorkout.date, timezone),
-              duration: updatedPlannedWorkout.durationSec,
-              tss: updatedPlannedWorkout.tss
-            }
-          }
-        }
-
         const updatedWorkout = await workoutRepository.update(workout_id, updateData)
         return {
           success: true,
-          message: 'Workout update prepared successfully.',
+          message:
+            'Completed workout updated locally. Intervals.icu activity metrics are not changed by this action.',
+          entity_type: 'completed_workout',
+          sync_scope: 'local_only',
           workout: {
             id: updatedWorkout.id,
             title: updatedWorkout.title,

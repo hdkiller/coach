@@ -25,6 +25,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import type { IngestionResult } from './types'
+import { enqueueAutomaticWorkoutAnalysesForUser } from '../server/utils/workout-analysis-enqueue'
 
 export const ingestAllTask = task({
   id: 'ingest-all',
@@ -48,8 +49,11 @@ export const ingestAllTask = task({
     // We do this first so external systems are up-to-date before we fetch from them.
     try {
       logger.log('📤 Triggering Sync Queue Processing (Push)...')
-      await processSyncQueueTask.trigger({})
-      logger.log('✅ Sync Queue flushed')
+      const queueRun = await processSyncQueueTask.triggerAndWait({})
+      if (!queueRun.ok) {
+        throw new Error(`Sync queue processing failed: ${String(queueRun.error)}`)
+      }
+      logger.log('✅ Sync Queue processing completed')
     } catch (error) {
       logger.warn('⚠️ Failed to trigger sync queue processing', { error })
     }
@@ -333,6 +337,16 @@ export const ingestAllTask = task({
         }
       } catch (err) {
         logger.error('❌ Failed to chain deduplicate-workouts', { err })
+      }
+    }
+
+    // Run independently of deduplication and include existing 30-day backlog.
+    if (successCount > 0) {
+      try {
+        const analysis = await enqueueAutomaticWorkoutAnalysesForUser(userId)
+        logger.log('🤖 Automatic workout analysis enqueue complete', analysis)
+      } catch (error) {
+        logger.error('❌ Failed to enqueue automatic workout analysis', { error })
       }
     }
 
