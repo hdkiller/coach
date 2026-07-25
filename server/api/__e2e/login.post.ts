@@ -37,6 +37,12 @@ export default defineEventHandler(async (event) => {
     path: '/',
     expires
   })
+  setCookie(event, '__Secure-next-auth.session-token', sessionToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    expires
+  })
 
   return {
     ok: true,
