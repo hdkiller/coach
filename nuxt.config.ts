@@ -200,6 +200,10 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    prerender: {
+      crawlLinks: false,
+      routes: []
+    },
     experimental: {
       openAPI: true,
       websocket: true,
