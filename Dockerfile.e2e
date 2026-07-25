@@ -27,7 +27,7 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV NITRO_HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=3199
 
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/node_modules ./node_modules
@@ -44,6 +44,6 @@ COPY --from=builder /app/start.sh ./start.sh
 
 RUN chmod +x ./start.sh
 
-EXPOSE 3000
+EXPOSE 3199
 
 CMD ["./start.sh"]

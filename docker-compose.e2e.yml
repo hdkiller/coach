@@ -45,7 +45,7 @@ services:
       dockerfile: Dockerfile.e2e
     container_name: coach-app-e2e
     ports:
-      - '3199:3000'
+      - '3199:3199'
     environment:
       # In-compose service hostnames (override host-oriented .env.e2e values).
       # Quote URLs: unquoted `&` is a YAML anchor.
@@ -55,7 +55,7 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       NITRO_HOST: 0.0.0.0
-      PORT: '3000'
+      PORT: '3199'
       NUXT_AUTH_SECRET: e2e-test-auth-secret-change-me-min-32-chars
       NUXT_AUTH_ORIGIN: 'http://127.0.0.1:3199'
       AUTH_ORIGIN: 'http://127.0.0.1:3199'
@@ -84,7 +84,7 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          "fetch('http://127.0.0.1:3199/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
         ]
       interval: 10s
       timeout: 5s
