@@ -97,7 +97,7 @@
   "profile_banner_missing_prefix": "We missen:",
   "profile_banner_missing_suffix": ". Het verstrekken van deze informatie is cruciaal voor nauwkeurige coachingbegeleiding.",
   "profile_banner_title": "Vul je profiel aan voor gepersonaliseerde inzichten",
-  "recent_activity_empty": "Geen recente activiteit gevonden. Je gegevens worden gesynchroniseerd...",
+  "recent_activity_empty": "Geen recente activiteit in de afgelopen dagen.",
   "recent_activity_header": "Recente activiteit",
   "recent_activity_history_divider": "Geschiedenis",
   "recent_activity_last_days": "Afgelopen {count} dagen",

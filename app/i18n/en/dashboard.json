@@ -97,7 +97,7 @@
   "profile_banner_missing_prefix": "We're missing:",
   "profile_banner_missing_suffix": ". Providing this information is critical for accurate coaching guidance.",
   "profile_banner_title": "Complete your profile for personalized insights",
-  "recent_activity_empty": "No recent activity found. Your data is syncing...",
+  "recent_activity_empty": "No recent activity in the last few days.",
   "recent_activity_header": "Recent Activity",
   "recent_activity_history_divider": "History",
   "recent_activity_last_days": "Last {count} Days",
