@@ -95,7 +95,9 @@
         class="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-800 dark:bg-gray-900"
       >
         <p class="text-[9px] font-black uppercase tracking-wider text-gray-500">Days Complete</p>
-        <p class="text-lg font-black">{{ weeklyStats.daysComplete }}</p>
+        <p data-testid="plan-days-complete" class="text-lg font-black">
+          {{ weeklyStats.daysComplete }}
+        </p>
       </div>
       <div
         class="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-800 dark:bg-gray-900"
@@ -115,7 +117,16 @@
         class="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-800 dark:bg-gray-900"
       >
         <p class="text-[9px] font-black uppercase tracking-wider text-gray-500">Plan Sync Age</p>
-        <p class="text-lg font-black">{{ planSyncAgeLabel }}</p>
+        <p
+          data-testid="plan-sync-age"
+          class="text-lg font-black"
+          :class="planSyncStale ? 'text-warning-600' : ''"
+        >
+          {{ planSyncAgeLabel }}
+        </p>
+        <p v-if="planSyncStale" class="text-[9px] font-bold text-warning-600">
+          Re-sync to match current training
+        </p>
       </div>
     </div>
 
@@ -143,6 +154,11 @@
           <tr
             v-for="day in planDays"
             :key="day.date"
+            data-testid="plan-day-row"
+            :data-date="day.date"
+            :data-state="day.state"
+            :data-total-carbs="day.totalCarbs"
+            :data-loaded="planLoaded ? 'true' : 'false'"
             class="cursor-pointer transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
             @click="
               () => {
@@ -343,12 +359,26 @@
             <div
               v-for="(win, idx) in activeDay.windows"
               :key="`${activeDay.date}-${win.type}-${win.label || ''}-${idx}`"
+              data-testid="plan-window-row"
+              :data-window-key="win.windowKey || win.type"
+              :data-window-kcal="win.targetKcal"
+              :data-window-start="win.startTime || ''"
+              :data-window-status="win.status"
               class="rounded-lg border border-gray-200 p-2 dark:border-gray-800"
               :class="{ 'ring-2 ring-primary-300': selectedWindowKey === windowKey(win, idx) }"
             >
               <div class="flex items-center justify-between gap-2">
                 <div>
-                  <p class="text-sm font-bold">{{ formatWindowLabel(win) }}</p>
+                  <p class="text-sm font-bold">
+                    <span
+                      v-if="formatWindowTime(win)"
+                      data-testid="plan-window-time"
+                      class="mr-2 tabular-nums text-gray-500"
+                    >
+                      {{ formatWindowTime(win) }}
+                    </span>
+                    {{ formatWindowLabel(win) }}
+                  </p>
                   <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">
                     {{ win.targetCarbs }}g C / {{ win.targetProtein }}g P /
                     {{ win.targetKcal }} kcal
@@ -540,6 +570,7 @@
   import { addDays, format, parseISO } from 'date-fns'
 
   const toast = useToast()
+  const userStore = useUserStore()
 
   interface DayWorkout {
     id: string
@@ -553,8 +584,10 @@
 
   interface FuelWindow {
     type: string
+    windowKey?: string
     label?: string
     slotName?: string
+    startTime?: string
     targetCarbs: number
     targetProtein: number
     targetKcal: number
@@ -576,6 +609,8 @@
     keyMeals: string[]
     hasWorkoutWindows: boolean
     criticalMissingCount: number
+    missingCount: number
+    plannableCount: number
   }
 
   const props = defineProps<{
@@ -590,10 +625,12 @@
   }>()
 
   const loading = ref(false)
+  /** True once a fetch has settled, so the grid can distinguish "empty" from "not loaded yet". */
+  const planLoaded = ref(false)
   const plan = ref<any>(null)
   const workoutsByDate = ref<Record<string, DayWorkout[]>>({})
   const drawerOpen = ref(false)
-  const activeDay = ref<PlanDay | null>(null)
+  const activeDayDate = ref('')
   const selectedWindowKey = ref('')
   const expandedMealKeys = ref<string[]>([])
 
@@ -609,12 +646,25 @@
     return window?.slotName || window?.label || (window?.type === 'DAILY_BASE' ? 'Meal' : '')
   }
 
+  function resolveWindowKey(window: any) {
+    if (!window) return ''
+    if (window.windowKey) return String(window.windowKey)
+    if (window.type === 'DAILY_BASE') return toDailyBaseKey(getSlotNameFromWindow(window))
+    return `${window.type}#1`
+  }
+
   function matchesMealToWindow(meal: any, window: any) {
     if (!meal || !window) return false
-    if (window.type !== 'DAILY_BASE') return meal.windowType === window.type
-    if (meal.windowType === 'DAILY_BASE') return true
-    if (!String(meal.windowType || '').startsWith('DAILY_BASE:')) return false
-    return meal.windowType === toDailyBaseKey(getSlotNameFromWindow(window))
+
+    const key = resolveWindowKey(window)
+    if (meal.windowType === key) return true
+
+    // Meals locked before windows had stable keys stored the bare type; those belong to the first
+    // window of that type on the day, not to every one of them.
+    if (meal.windowType === window.type && key === `${window.type}#1`) return true
+    if (window.type === 'DAILY_BASE' && meal.windowType === 'DAILY_BASE') return true
+
+    return false
   }
 
   function toDateKey(value: unknown) {
@@ -637,14 +687,22 @@
     )
   }
 
-  function windowOrder(type: string) {
-    const normalized = String(type || '').toUpperCase()
-    if (normalized.startsWith('DAILY_BASE')) return 10
-    if (normalized === 'PRE_WORKOUT') return 20
-    if (normalized === 'INTRA_WORKOUT') return 30
-    if (normalized === 'POST_WORKOUT') return 40
-    if (normalized === 'REFILL') return 50
-    return 60
+  /**
+   * Windows are ordered by clock time. Ordering by type instead used to render a two-session day
+   * as PRE PRE INTRA INTRA POST POST, which reads nothing like the day you actually eat.
+   */
+  function compareWindowsByTime(a: FuelWindow, b: FuelWindow) {
+    const aTime = a.startTime ? new Date(a.startTime).getTime() : Number.MAX_SAFE_INTEGER
+    const bTime = b.startTime ? new Date(b.startTime).getTime() : Number.MAX_SAFE_INTEGER
+    if (aTime !== bTime) return aTime - bTime
+    return String(a.windowKey || a.type).localeCompare(String(b.windowKey || b.type))
+  }
+
+  function formatWindowTime(window: FuelWindow) {
+    if (!window.startTime) return ''
+    const parsed = new Date(window.startTime)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return format(parsed, 'HH:mm')
   }
 
   function normalizeWindowLabel(window: any) {
@@ -669,9 +727,20 @@
     )
   }
 
-  function getFuelState(totalCarbs: number) {
-    if (totalCarbs >= 360) return 3
-    if (totalCarbs >= 220) return 2
+  /**
+   * The plan already carries the fuel state the engine chose. Recomputing it here from absolute
+   * carb thresholds contradicted the server for anyone who is not around 75kg, so those thresholds
+   * are only a fallback for days the engine has not costed yet - and even then they scale by
+   * bodyweight rather than assuming one.
+   */
+  function getFuelState(daySummary: any, totalCarbs: number, weightKg: number) {
+    const fromPlan = Number(daySummary?.fuelingPlan?.dailyTotals?.fuelState)
+    if (Number.isFinite(fromPlan) && fromPlan >= 1) return fromPlan
+
+    const weight = weightKg > 0 ? weightKg : 75
+    const gramsPerKg = totalCarbs / weight
+    if (gramsPerKg >= 6.5) return 3
+    if (gramsPerKg >= 4.2) return 2
     return 1
   }
 
@@ -716,6 +785,7 @@
       console.error('Failed to fetch weekly nutrition dashboard data:', e)
     } finally {
       loading.value = false
+      planLoaded.value = true
     }
   }
 
@@ -740,8 +810,10 @@
 
         return {
           type: meal.windowType,
+          windowKey: meal.windowType,
           slotName,
           label: slotName || meal.windowType,
+          startTime: meal.scheduledAt || undefined,
           targetCarbs: Number(totals.carbs || 0),
           targetProtein: Number(totals.protein || 0),
           targetKcal: Number(totals.kcal || 0),
@@ -761,8 +833,10 @@
             const totals = mealJson.totals || {}
             return {
               type: window.type,
+              windowKey: resolveWindowKey(window),
               label: window.label,
               slotName: window.slotName,
+              startTime: window.startTime,
               targetCarbs: Number(window.targetCarbs ?? totals.carbs ?? 0),
               targetProtein: Number(window.targetProtein ?? totals.protein ?? 0),
               targetKcal: Number(window.targetKcal ?? totals.kcal ?? 0),
@@ -791,7 +865,9 @@
 
         return {
           type: windowType,
+          windowKey: windowType,
           label: slotLabel,
+          startTime: meal.scheduledAt || undefined,
           targetCarbs: Number(totals.carbs || 0),
           targetProtein: Number(totals.protein || 0),
           targetKcal: Number(totals.kcal || 0),
@@ -803,9 +879,7 @@
         }
       })
 
-      const windows = [...baseWindows, ...appendedLockedWindows].sort(
-        (a, b) => windowOrder(a.type) - windowOrder(b.type)
-      )
+      const windows = [...baseWindows, ...appendedLockedWindows].sort(compareWindowsByTime)
 
       const workoutsFromRange = workoutsByDate.value[dateKey] || []
       const workoutsFromSummary = daySummary?.fuelingPlan?.workouts || []
@@ -832,12 +906,19 @@
         (window) => isWorkoutWindow(window.type) && Number(window.targetCarbs || 0) > 0
       )
 
+      const isUnplanned = (window: FuelWindow) =>
+        (window.status === 'target' || window.status === 'skipped') &&
+        Number(window.targetCarbs || 0) > 0
+
+      // "Critical" stays limited to workout windows - those are the ones with a timing constraint.
       const criticalMissingCount = windows.filter(
-        (window) =>
-          isWorkoutWindow(window.type) &&
-          (window.status === 'target' || window.status === 'skipped') &&
-          Number(window.targetCarbs || 0) > 0
+        (window) => isWorkoutWindow(window.type) && isUnplanned(window)
       ).length
+
+      // Completeness covers every window with a target. Rest days used to have no windows at all
+      // and so counted as complete without a single meal planned.
+      const missingCount = windows.filter(isUnplanned).length
+      const plannableCount = windows.filter((window) => Number(window.targetCarbs || 0) > 0).length
 
       const keyMeals = windows
         .filter((window) => window.mealTitle)
@@ -859,10 +940,12 @@
         windows,
         totalCarbs: Number(totalCarbsTarget || 0),
         plannedCarbs: Number(plannedCarbs || 0),
-        state: getFuelState(Number(totalCarbsTarget || 0)),
+        state: getFuelState(daySummary, Number(totalCarbsTarget || 0), userStore.currentWeightKg),
         keyMeals,
         hasWorkoutWindows,
-        criticalMissingCount
+        criticalMissingCount,
+        missingCount,
+        plannableCount
       })
 
       current = addDays(current, 1)
@@ -871,9 +954,20 @@
     return days
   })
 
+  /**
+   * Resolved from the current plan data rather than captured when the row is clicked. Holding a
+   * snapshot meant a drawer opened before the plan finished loading stayed empty for good.
+   */
+  const activeDay = computed<PlanDay | null>(
+    () => planDays.value.find((day) => day.date === activeDayDate.value) ?? null
+  )
+
   const weeklyStats = computed(() => {
-    const daysComplete = planDays.value.filter((day) => day.criticalMissingCount === 0).length
-    const daysWithGaps = planDays.value.filter((day) => day.criticalMissingCount > 0).length
+    // A day counts as complete only if it had something to plan and everything got planned.
+    const daysComplete = planDays.value.filter(
+      (day) => day.plannableCount > 0 && day.missingCount === 0
+    ).length
+    const daysWithGaps = planDays.value.filter((day) => day.missingCount > 0).length
     const targetCarbs = Math.round(planDays.value.reduce((sum, day) => sum + day.totalCarbs, 0))
     const plannedCarbs = Math.round(planDays.value.reduce((sum, day) => sum + day.plannedCarbs, 0))
 
@@ -886,16 +980,31 @@
   })
 
   const planSyncAgeLabel = computed(() => {
-    if (!plan.value?.updatedAt) return 'unknown'
-    const updatedAt = new Date(plan.value.updatedAt)
-    if (Number.isNaN(updatedAt.getTime())) return 'unknown'
+    // The windows shown here come from the summary snapshot, so its generation time is what "sync
+    // age" means. plan.updatedAt moves every time a meal is locked, which made a week-old set of
+    // windows report itself as freshly synced.
+    const generatedAt = plan.value?.summaryJson?.generatedAt
+    if (!generatedAt) return 'never'
 
-    const ageMs = Date.now() - updatedAt.getTime()
-    const ageMinutes = Math.floor(ageMs / (60 * 1000))
+    const generated = new Date(generatedAt)
+    if (Number.isNaN(generated.getTime())) return 'unknown'
+
+    const ageMinutes = Math.floor((Date.now() - generated.getTime()) / (60 * 1000))
+    if (ageMinutes < 1) return 'just now'
     if (ageMinutes < 60) return `${ageMinutes}m`
     const ageHours = Math.floor(ageMinutes / 60)
     if (ageHours < 24) return `${ageHours}h`
     return `${Math.floor(ageHours / 24)}d`
+  })
+
+  /** Warns when the snapshot is old enough that the training behind it has probably moved on. */
+  const planSyncStale = computed(() => {
+    const generatedAt = plan.value?.summaryJson?.generatedAt
+    if (!generatedAt) return Boolean(plan.value)
+
+    const generated = new Date(generatedAt)
+    if (Number.isNaN(generated.getTime())) return false
+    return Date.now() - generated.getTime() > 24 * 60 * 60 * 1000
   })
 
   const drawerTitle = computed(() => {
@@ -991,7 +1100,7 @@
   }
 
   function openDayDrawer(day: PlanDay, window?: FuelWindow) {
-    activeDay.value = day
+    activeDayDate.value = day.date
     expandedMealKeys.value = []
     if (window) {
       const idx = day.windows.findIndex(
@@ -1015,6 +1124,8 @@
       targetProtein: window.targetProtein,
       targetKcal: window.targetKcal,
       type: window.type,
+      // Identity of this specific window; the type alone cannot address one of several.
+      windowKey: window.windowKey || resolveWindowKey(window),
       slotName: window.slotName || window.label || ''
     })
   }

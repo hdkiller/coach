@@ -8,6 +8,8 @@ import { mealRecommendationService } from './mealRecommendationService'
 
 type WindowAssignment = {
   windowType: string
+  /** Stable per-day identity, e.g. `PRE_WORKOUT#2`. Falls back to the window type when absent. */
+  windowKey?: string
   slotName?: string
   label?: string
   targetCarbs?: number
@@ -77,9 +79,24 @@ export const nutritionPlanService = {
     return `${toDateKey(date)}|${windowType}`
   },
 
-  normalizeWindowType(windowType: string, slotName?: string, label?: string) {
+  /**
+   * Persistence key for a window.
+   *
+   * A day can hold several windows of the same type (two sessions produce two PRE_WORKOUT
+   * windows), so the type alone cannot identify one. The day builder stamps each window with a
+   * `windowKey`; anything older falls back to the bare type, which addresses the first window of
+   * that type.
+   */
+  normalizeWindowType(windowType: string, slotName?: string, label?: string, windowKey?: string) {
+    if (windowKey) return windowKey
     if (windowType !== 'DAILY_BASE') return windowType
     return this.toDailyBaseWindowKey(slotName || label)
+  },
+
+  resolveWindowKey(window: any) {
+    if (!window) return ''
+    if (window.windowKey) return String(window.windowKey)
+    return this.normalizeWindowType(window.type, window.slotName, window.label)
   },
 
   getWeekStartUtc(date: Date | string) {
@@ -158,14 +175,7 @@ export const nutritionPlanService = {
     const windows = Array.isArray(daySummary?.fuelingPlan?.windows)
       ? daySummary.fuelingPlan.windows
       : []
-    return windows.find((window: any) => {
-      const normalizedWindowType = this.normalizeWindowType(
-        window.type,
-        window.slotName,
-        window.label
-      )
-      return normalizedWindowType === windowType
-    })
+    return windows.find((window: any) => this.resolveWindowKey(window) === windowType)
   },
 
   buildTargetJson(window: any, fallbackTotals?: any) {
@@ -200,8 +210,13 @@ export const nutritionPlanService = {
 
   matchPlanMealToWindow(planMeal: any, window: any) {
     if (!planMeal || !window) return false
-    const expectedWindowType = this.normalizeWindowType(window.type, window.slotName, window.label)
-    return planMeal.windowType === expectedWindowType
+
+    const expectedWindowType = this.resolveWindowKey(window)
+    if (planMeal.windowType === expectedWindowType) return true
+
+    // Rows written before stable keys existed stored the bare type. Those can only have referred
+    // to the first window of that type on the day, so match them there and nowhere else.
+    return planMeal.windowType === window.type && expectedWindowType === `${window.type}#1`
   },
 
   isWindowMealActive(planMeal: any) {
@@ -313,6 +328,7 @@ export const nutritionPlanService = {
     slotName?: string,
     options?: {
       windowAssignments?: WindowAssignment[]
+      windowKey?: string
     }
   ) {
     const timezone = await getUserTimezone(userId)
@@ -320,7 +336,7 @@ export const nutritionPlanService = {
     const rawAssignments =
       Array.isArray(options?.windowAssignments) && options.windowAssignments.length > 0
         ? options.windowAssignments
-        : [{ windowType, slotName }]
+        : [{ windowType, slotName, windowKey: options?.windowKey }]
 
     const normalizedAssignments = rawAssignments
       .map((assignment) => ({
@@ -328,7 +344,8 @@ export const nutritionPlanService = {
         normalizedWindowType: this.normalizeWindowType(
           assignment.windowType,
           assignment.slotName,
-          assignment.label
+          assignment.label,
+          assignment.windowKey
         )
       }))
       .filter(
@@ -496,18 +513,9 @@ export const nutritionPlanService = {
         if (!assignment) continue
 
         const lockedMeal = persistedPlanMeals[i]
-        const windowIndex = fuelingPlan.windows.findIndex((window: any) => {
-          if (assignment.windowType === 'DAILY_BASE') {
-            const slot = (assignment.slotName || '').trim().toLowerCase()
-            const label = (window.label || '').trim().toLowerCase()
-            const description = (window.description || '').trim().toLowerCase()
-            return (
-              window.type === 'DAILY_BASE' &&
-              (!slot || label.includes(slot) || description.includes(slot))
-            )
-          }
-          return window.type === assignment.windowType
-        })
+        const windowIndex = fuelingPlan.windows.findIndex(
+          (window: any) => this.resolveWindowKey(window) === assignment.normalizedWindowType
+        )
 
         if (windowIndex === -1) continue
         fuelingPlan.windows[windowIndex] = {
@@ -595,12 +603,11 @@ export const nutritionPlanService = {
         ? (nutritionData.fuelingPlan as any).windows
         : []
 
+      // Windows already chosen for this day, so the same template is not proposed twice.
+      const usedTemplateIds = new Set<string>()
+
       for (const window of windows) {
-        const normalizedWindowType = this.normalizeWindowType(
-          window.type,
-          window.slotName,
-          window.label
-        )
+        const normalizedWindowType = this.resolveWindowKey(window)
         const key = this.getWindowAssignmentKey(day, normalizedWindowType)
         const existingMeal = existingMeals.get(key)
 
@@ -630,8 +637,13 @@ export const nutritionPlanService = {
           }
         )
 
-        const selectedOption = catalogOptions[0]
+        // Prefer the best-scoring option this day has not already used. Rotation is per-day only;
+        // the same meal can still recur across the week.
+        const selectedOption =
+          catalogOptions.find((option: any) => option?.id && !usedTemplateIds.has(option.id)) ||
+          catalogOptions[0]
         if (!selectedOption) continue
+        if (selectedOption.id) usedTemplateIds.add(selectedOption.id)
 
         await prisma.nutritionPlanMeal.upsert({
           where: {

@@ -50,7 +50,8 @@ describe('sportSettingsRepository', () => {
         maxHr: 180,
         restingHr: 50
       } as any)
-      vi.mocked(prisma.sportSettings.create).mockResolvedValue({
+      // createDefault upserts on the external id so concurrent callers cannot race a duplicate.
+      vi.mocked(prisma.sportSettings.upsert).mockResolvedValue({
         isDefault: true,
         id: 'new-def',
         ftp: 200
@@ -58,9 +59,9 @@ describe('sportSettingsRepository', () => {
 
       const result = await sportSettingsRepository.getByUserId(userId)
 
-      expect(prisma.sportSettings.create).toHaveBeenCalledWith(
+      expect(prisma.sportSettings.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
+          create: expect.objectContaining({
             userId,
             isDefault: true,
             ftp: 200,

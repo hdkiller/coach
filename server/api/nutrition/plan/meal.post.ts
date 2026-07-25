@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
       body.meal,
       body.slotName,
       {
+        windowKey: body.windowKey,
         windowAssignments: Array.isArray(body.windowAssignments)
           ? body.windowAssignments
           : undefined

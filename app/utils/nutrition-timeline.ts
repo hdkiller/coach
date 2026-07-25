@@ -2,12 +2,7 @@ import { addMinutes } from 'date-fns'
 import { fromZonedTime } from 'date-fns-tz'
 
 export type WindowType =
-  | 'PRE_WORKOUT'
-  | 'INTRA_WORKOUT'
-  | 'POST_WORKOUT'
-  | 'TRANSITION'
-  | 'DAILY_BASE'
-  | 'WORKOUT_EVENT'
+  'PRE_WORKOUT' | 'INTRA_WORKOUT' | 'POST_WORKOUT' | 'TRANSITION' | 'DAILY_BASE' | 'WORKOUT_EVENT'
 
 export interface TimelineItem {
   id: string
@@ -369,7 +364,11 @@ export function mapNutritionToTimeline(
     }
   })
 
-  // 4. Add Daily Base gaps and assign scheduled meals to all windows
+  // 4. Add Daily Base gaps and assign scheduled meals to all windows.
+  // The fueling plan now supplies real DAILY_BASE windows; synthesizing gap fillers on top of them
+  // would render an empty baseline block between every real meal, so gap filling is only used when
+  // the plan has no baseline windows of its own.
+  const planHasBaseWindows = timelineWithEvents.some((w) => w.type === 'DAILY_BASE')
   const finalTimeline: FuelingTimelineWindow[] = []
   let lastTime = dayStart
 
@@ -386,7 +385,7 @@ export function mapNutritionToTimeline(
   }
 
   timelineWithEvents.forEach((window) => {
-    if (window.startTime > lastTime) {
+    if (!planHasBaseWindows && window.startTime > lastTime) {
       const gapWindow: FuelingTimelineWindow = {
         type: 'DAILY_BASE',
         startTime: lastTime,
@@ -411,7 +410,7 @@ export function mapNutritionToTimeline(
     lastTime = window.endTime
   })
 
-  if (lastTime < dayEnd) {
+  if (!planHasBaseWindows && lastTime < dayEnd) {
     const gapWindow: FuelingTimelineWindow = {
       type: 'DAILY_BASE',
       startTime: lastTime,
@@ -489,9 +488,21 @@ export function mapNutritionToTimeline(
     }
 
     if (itemTime && !isNaN(itemTime.getTime())) {
-      const window = finalTimeline.find(
-        (w) => w.type !== 'WORKOUT_EVENT' && itemTime! >= w.startTime && itemTime! < w.endTime
-      )
+      const slottable = finalTimeline.filter((w) => w.type !== 'WORKOUT_EVENT')
+      let window = slottable.find((w) => itemTime! >= w.startTime && itemTime! < w.endTime)
+
+      // Without gap-filler windows the day is no longer wall-to-wall, so an item logged between
+      // windows would otherwise vanish from the timeline. Attach it to the closest one instead.
+      if (!window && slottable.length > 0) {
+        window = slottable.reduce((closest, candidate) => {
+          const distance = (w: FuelingTimelineWindow) =>
+            itemTime! < w.startTime
+              ? w.startTime.getTime() - itemTime!.getTime()
+              : itemTime!.getTime() - w.endTime.getTime()
+          return distance(candidate) < distance(closest) ? candidate : closest
+        })
+      }
+
       if (window) window.items.push({ ...item, _heuristic_time: itemTime.toISOString() })
     } else {
       if (item.meal === 'breakfast') {

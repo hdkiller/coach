@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { calculateFuelingStrategy } from '../../../../../server/utils/nutrition-domain/fueling-plan'
 import {
   calculateDailyCalorieBreakdown,
-  calculateFuelingStrategy,
   calculateMacroTargetCalories
-} from '../../../../../server/utils/nutrition-domain/fueling-plan'
+} from '../../../../../server/utils/nutrition-domain/energy'
 
 describe('calculateMacroTargetCalories', () => {
   it('converts macro targets to a canonical calorie target', () => {
@@ -43,6 +43,64 @@ describe('calculateFuelingStrategy', () => {
       )
     )
     expect(plan.dailyTotals.calories).not.toBe(plan.dailyTotals.baseCalories)
+  })
+
+  it('shares the day builder fuel-state rule instead of keying off peak intensity', () => {
+    // An 8 minute session tagged 31 TSS implies IF ~1.5. The old per-workout engine promoted the
+    // whole day to state 3 on that alone.
+    const plan = calculateFuelingStrategy(
+      {
+        weight: 80,
+        ftp: 250,
+        currentCarbMax: 90,
+        bmr: 1600,
+        activityLevel: 'ACTIVE',
+        baseCaloriesMode: 'AUTO',
+        targetAdjustmentPercent: 0
+      },
+      {
+        id: 'w-short',
+        title: 'Full-Body Strength Session',
+        durationSec: 480,
+        tss: 31,
+        workIntensity: 1.5,
+        type: 'WeightTraining',
+        date: new Date('2026-04-13T00:00:00.000Z')
+      }
+    )
+
+    expect(plan.dailyTotals.fuelState).toBeLessThan(3)
+  })
+
+  it('keeps physiological window targets rather than absorbing the whole daily budget', () => {
+    const plan = calculateFuelingStrategy(
+      {
+        weight: 80,
+        ftp: 250,
+        currentCarbMax: 90,
+        bmr: 1600,
+        activityLevel: 'ACTIVE',
+        baseCaloriesMode: 'AUTO',
+        targetAdjustmentPercent: 0
+      },
+      {
+        id: 'w-1',
+        title: 'Tempo',
+        durationSec: 3600,
+        intensityFactor: 0.75,
+        type: 'Ride',
+        date: new Date('2026-04-13T00:00:00.000Z')
+      }
+    )
+
+    const windowCarbs = plan.windows.reduce((sum, w) => sum + w.targetCarbs, 0)
+
+    expect(plan.windows.length).toBeGreaterThan(0)
+    // This view has no meal slots, so its windows must cover less than the day.
+    expect(windowCarbs).toBeLessThan(plan.dailyTotals.carbs)
+    plan.windows.forEach((w) => {
+      expect(w.targetKcal).toBe(w.targetCarbs * 4 + w.targetProtein * 4 + w.targetFat * 9)
+    })
   })
 })
 

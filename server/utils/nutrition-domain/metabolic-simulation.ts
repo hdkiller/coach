@@ -338,7 +338,11 @@ export function calculateEnergyTimeline(
     })
   }
 
-  if (effectiveCarbsGoal > 0) {
+  // The fueling plan now carries its own DAILY_BASE windows. Only fall back to synthesizing them
+  // from the meal pattern when the plan has none, otherwise every baseline meal is counted twice.
+  const planHasBaseWindows = syntheticCandidates.some((c) => c.type === 'DAILY_BASE')
+
+  if (effectiveCarbsGoal > 0 && !planHasBaseWindows) {
     const pattern =
       settings?.mealPattern && settings.mealPattern.length > 0
         ? settings.mealPattern

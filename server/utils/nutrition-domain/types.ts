@@ -132,6 +132,12 @@ export interface SerializedFuelingWindow {
     | 'DAILY_BASE'
     | 'TRANSITION'
     | 'WORKOUT_EVENT'
+  /**
+   * Stable identity for the window within its day, e.g. `PRE_WORKOUT#1` or `DAILY_BASE:breakfast`.
+   * Used as the persistence key for planned meals so that several windows of the same type on one
+   * day no longer collapse onto a single NutritionPlanMeal row.
+   */
+  windowKey?: string
   startTime: string // ISO string
   endTime: string // ISO string
   targetCarbs: number // grams
@@ -139,11 +145,15 @@ export interface SerializedFuelingWindow {
   targetFat: number // grams
   targetFluid: number // ml
   targetSodium: number // mg
+  targetKcal?: number // kcal, derived from the macro targets
   description: string
+  label?: string
+  slotName?: string
   status: 'PENDING' | 'HIT' | 'MISSED' | 'PARTIAL'
   supplements?: string[]
   plannedWorkoutId?: string
   workoutTitle?: string
+  ordinal?: number
 }
 
 export interface SerializedFuelingPlan {

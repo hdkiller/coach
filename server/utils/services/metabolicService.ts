@@ -15,10 +15,7 @@ import {
 import {
   calculateEnergyTimeline,
   calculateGlycogenState,
-  calculateFuelingStrategy,
-  calculateDailyCalorieBreakdown,
-  calculateMacroTargetCalories,
-  mergeFuelingWindows,
+  buildDayFuelingPlan,
   selectRelevantWorkouts,
   synthesizeRefills,
   ABSORPTION_PROFILES,
@@ -74,31 +71,57 @@ export const metabolicService = {
     return normalized ? `DAILY_BASE:${normalized}` : 'DAILY_BASE'
   },
 
+  /**
+   * Stable persistence key for a window. Several windows of the same type can exist on one day
+   * (two sessions => two PRE windows), so the type alone is not an identity.
+   */
+  getWindowKey(window: any, timezone: string): string {
+    if (window?.windowKey) return String(window.windowKey)
+
+    if (window?.type === 'DAILY_BASE') {
+      const slotName = (
+        window.slotName ||
+        window.label ||
+        this.getMealSlotName(new Date(window.startTime), timezone)
+      )
+        ?.toString()
+        ?.trim()
+      return this.getDailyBaseWindowKey(slotName)
+    }
+
+    // Windows persisted before stable keys existed carry no ordinal; treat them as the first.
+    return `${window?.type}#1`
+  },
+
   matchPlanMealToWindow(planMeal: any, window: any, timezone: string) {
     if (!planMeal || !window) return false
 
-    if (window.type !== 'DAILY_BASE') {
-      return planMeal.windowType === window.type
-    }
+    const windowKey = this.getWindowKey(window, timezone)
+    if (planMeal.windowType === windowKey) return true
 
-    if (planMeal.windowType === 'DAILY_BASE') {
-      return true
-    }
+    // Backwards compatibility: rows written before stable keys used the bare window type, which
+    // could only ever address the first window of that type on the day.
+    if (planMeal.windowType === window.type && windowKey === `${window.type}#1`) return true
 
-    if (!String(planMeal.windowType || '').startsWith('DAILY_BASE:')) {
-      return false
-    }
+    if (window.type === 'DAILY_BASE' && planMeal.windowType === 'DAILY_BASE') return true
 
-    const slotName = (
-      window.slotName ||
-      window.label ||
-      this.getMealSlotName(new Date(window.startTime), timezone)
-    )
-      ?.toString()
-      ?.trim()
+    return false
+  },
 
-    const expectedKey = this.getDailyBaseWindowKey(slotName)
-    return planMeal.windowType === expectedKey
+  /**
+   * Human-facing window label, e.g. "Pre-Workout Breakfast" or "Intra-Workout Fueling".
+   */
+  buildWindowLabel(window: any, timezone: string): string {
+    const configuredSlotName =
+      typeof window?.slotName === 'string' && window.slotName.trim() ? window.slotName.trim() : null
+    const mealName =
+      configuredSlotName || this.getMealSlotName(new Date(window.startTime), timezone)
+
+    if (window?.type === 'PRE_WORKOUT') return `Pre-Workout ${mealName}`
+    if (window?.type === 'POST_WORKOUT') return `Post-Workout ${mealName}`
+    if (window?.type === 'INTRA_WORKOUT') return 'Intra-Workout Fueling'
+    if (window?.type === 'TRANSITION') return `${mealName} (Lead-up)`
+    return mealName
   },
 
   isActivePlanMeal(planMeal: any) {
@@ -445,6 +468,9 @@ export const metabolicService = {
 
       return {
         type: w.type,
+        windowKey: this.getWindowKey(w, timezone),
+        label: (w as any).label || this.buildWindowLabel(w, timezone),
+        slotName: (w as any).slotName,
         startTime: w.start.toISOString(),
         endTime: w.end.toISOString(),
         workoutTitle: w.workoutTitle,
@@ -986,14 +1012,16 @@ export const metabolicService = {
   /**
    * Computes a daily fueling plan synchronously.
    * Optional persistence keeps backward compatibility while enabling real-time on-demand generation.
+   *
+   * Windows are built for the day as a whole (see buildDayFuelingPlan), so overlapping sessions
+   * share a single pre/post window instead of each emitting their own.
    */
   async calculateFuelingPlanForDate(
     userId: string,
     date: Date,
-    options: { persist?: boolean; mergeWindows?: boolean } = {}
+    options: { persist?: boolean } = {}
   ) {
     const persist = options.persist ?? true
-    const mergeWindows = options.mergeWindows ?? false
     const targetDateStart = new Date(date)
     targetDateStart.setUTCHours(0, 0, 0, 0)
     const targetDateEnd = new Date(targetDateStart)
@@ -1093,18 +1121,7 @@ export const metabolicService = {
     // Check for symptom-based overrides
     const override = await remediationService.getActiveFuelingOverride(userId, date)
 
-    if (remainingPlanned.length === 0 && completedWorkouts.length === 0) {
-      contexts.push({
-        id: 'rest-virtual',
-        title: 'Rest Day',
-        durationSec: 0,
-        type: 'Rest',
-        date: targetDateStart,
-        durationHours: 0,
-        intensity: 0,
-        strategyOverride: 'STANDARD'
-      })
-    } else {
+    if (remainingPlanned.length > 0 || completedWorkouts.length > 0) {
       for (const completed of completedWorkouts) {
         contexts.push({
           id: completed.id,
@@ -1141,79 +1158,51 @@ export const metabolicService = {
       }
     }
 
-    const combinedWindows: any[] = []
-    const combinedNotes: string[] = []
-    let maxDailyCarbs = 0
-    let maxDailyProtein = 0
-    let maxDailyFat = 0
-    let totalFluid = 2000
-    let totalSodium = 1000
+    // Meal-pattern slots become the day's DAILY_BASE windows, so that baseline eating is planned
+    // on rest days too rather than leaving the day with no windows at all.
+    const mealPattern =
+      Array.isArray(settings.mealPattern) && settings.mealPattern.length > 0
+        ? (settings.mealPattern as any[])
+        : [
+            { name: 'Breakfast', time: '08:00' },
+            { name: 'Lunch', time: '13:00' },
+            { name: 'Dinner', time: '19:00' }
+          ]
 
-    for (const ctx of contexts) {
-      if (override?.strategy) {
-        ctx.strategyOverride = override.strategy
-      }
+    const mealSlots = mealPattern
+      .map((slot: any) => {
+        const name = typeof slot?.name === 'string' && slot.name.trim() ? slot.name.trim() : 'Meal'
+        const at = buildZonedDateTimeFromUtcDate(targetDateStart, slot?.time, timezone, 12, 0)
+        return at instanceof Date && !Number.isNaN(at.getTime()) ? { name, at } : null
+      })
+      .filter((slot): slot is { name: string; at: Date } => slot !== null)
 
-      const plan = calculateFuelingStrategy(profile, ctx)
+    const dayPlan = buildDayFuelingPlan(profile, contexts as any, {
+      date: targetDateStart,
+      mealSlots,
+      carbAdjustment: override?.carbAdjustment ?? 1,
+      strategyOverride: override?.strategy
+    })
 
-      // Apply carb adjustment if requested by remediation
-      if (override?.carbAdjustment) {
-        plan.dailyTotals.carbs *= override.carbAdjustment
-        plan.windows.forEach((w) => {
-          if (w.targetCarbs) w.targetCarbs *= override.carbAdjustment ?? 1
-        })
-      }
+    const labelledWindows = dayPlan.windows.map((w) => ({
+      ...w,
+      label: this.buildWindowLabel(w, timezone)
+    }))
 
-      combinedWindows.push(...plan.windows)
-      combinedNotes.push(...plan.notes)
-
-      if (plan.dailyTotals.carbs > maxDailyCarbs) {
-        maxDailyCarbs = plan.dailyTotals.carbs
-        maxDailyProtein = plan.dailyTotals.protein
-        maxDailyFat = plan.dailyTotals.fat
-      }
-
-      totalFluid += plan.dailyTotals.fluid - 2000
-      totalSodium += plan.dailyTotals.sodium - 1000
-    }
-
-    // Determine the dominant fuel state for the day
-    const dominantState = contexts.reduce((max, ctx) => {
-      const plan = calculateFuelingStrategy(profile, ctx)
-      return Math.max(max, plan.dailyTotals.fuelState)
-    }, 1)
-
-    const breakdown = calculateDailyCalorieBreakdown(profile, contexts)
-    const mergedWindows = mergeWindows ? mergeFuelingWindows(combinedWindows) : combinedWindows
-    const uniqueNotes = Array.from(new Set([...combinedNotes, ...(override?.notes || [])]))
-    const finalCarbs = Math.round(maxDailyCarbs)
-    const finalProtein = Math.round(maxDailyProtein)
-    const finalFat = Math.round(maxDailyFat)
-    const macroCalories = calculateMacroTargetCalories(finalCarbs, finalProtein, finalFat)
-    const energyTarget = breakdown.totalTarget
+    const uniqueNotes = Array.from(new Set([...dayPlan.notes, ...(override?.notes || [])]))
+    const macroCalories = dayPlan.dailyTotals.calories
+    const energyTarget = dayPlan.dailyTotals.baseCalories + dayPlan.dailyTotals.activityCalories
     const calories =
-      breakdown.activityCalories > 0 ? Math.max(energyTarget, macroCalories) : energyTarget
+      dayPlan.dailyTotals.activityCalories > 0
+        ? Math.max(energyTarget + dayPlan.dailyTotals.adjustmentCalories, macroCalories)
+        : energyTarget + dayPlan.dailyTotals.adjustmentCalories
 
     const finalPlan = {
-      windows: mergedWindows,
+      windows: labelledWindows,
       notes: uniqueNotes,
       dailyTotals: {
-        carbs: finalCarbs,
-        protein: finalProtein,
-        fat: finalFat,
+        ...dayPlan.dailyTotals,
         calories,
-        fluid: totalFluid,
-        sodium: totalSodium,
-        baseCalories: breakdown.baseCalories,
-        baseCaloriesMode: breakdown.baseCaloriesMode,
-        activityCalories: breakdown.activityCalories,
-        adjustmentCalories: breakdown.adjustmentCalories,
-        fuelState: dominantState,
-        workoutCalories: breakdown.workouts.map((w) => ({
-          title: w.title,
-          calories: w.calories,
-          sourceType: w.sourceType
-        })),
         isRescueProtocol: override?.isRescueProtocol || false
       }
     }
@@ -1252,13 +1241,14 @@ export const metabolicService = {
 
   /**
    * Fetches and synthesizes future fueling targets for the next few days.
-   * Includes both planned workout windows and daily baseline meals.
-   * Implements physiological caps and carb-loading distribution.
+   *
+   * Windows, baseline slots and per-sitting caps all come from the shared day builder; this method
+   * only adds what is genuinely multi-day: carb-loading debt that flows backwards into the days
+   * before a big session, and hydration debt carried in from yesterday.
    */
   async getUpcomingFuelingWindows(userId: string, daysAhead: number = 7) {
     const timezone = await getUserTimezone(userId)
     const today = getUserLocalDate(timezone)
-    const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { weight: true, weightSourceMode: true }
@@ -1279,7 +1269,7 @@ export const metabolicService = {
 
     const days: any[] = []
 
-    // Pass 1: Generate daily plans and baseline slots
+    // Pass 1: Generate daily plans
     for (let i = 0; i < daysAhead; i++) {
       const date = new Date(today)
       date.setUTCDate(today.getUTCDate() + i)
@@ -1299,36 +1289,6 @@ export const metabolicService = {
 
       const plan = dayPlan.plan as any
       const windows = [...(plan?.windows || [])]
-
-      // Add DAILY_BASE slots from pattern
-      const pattern =
-        settings.mealPattern &&
-        Array.isArray(settings.mealPattern) &&
-        settings.mealPattern.length > 0
-          ? (settings.mealPattern as any[])
-          : [
-              { name: 'Breakfast', time: '08:00' },
-              { name: 'Lunch', time: '13:00' },
-              { name: 'Dinner', time: '19:00' }
-            ]
-
-      pattern.forEach((p: any) => {
-        const startTime = buildZonedDateTimeFromUtcDate(date, p.time, timezone)
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
-        const slotName = typeof p.name === 'string' && p.name.trim() ? p.name.trim() : 'Meal'
-
-        windows.push({
-          type: 'DAILY_BASE',
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          targetCarbs: 0, // Distributed in Pass 2
-          targetProtein: Math.round((weight * 1.6) / pattern.length),
-          targetFat: Math.round((weight * 1.0) / pattern.length),
-          description: `Daily baseline ${slotName.toLowerCase()}.`,
-          status: 'PENDING',
-          slotName
-        })
-      })
 
       // Inject locked meals into windows
       const windowsWithLocks = windows.map((w: any) => {
@@ -1357,95 +1317,50 @@ export const metabolicService = {
       })
     }
 
-    // Pass 2: Distribute carbs with physiological caps, flowing debt BACKWARDS (Carb Loading)
+    // Pass 2: Carb loading. Each day's windows are already filled and capped by the day builder,
+    // so the only cross-day work left is moving carbohydrate that will not fit inside a big day
+    // into the days before it.
     let carryOverDebt = 0
     for (let i = days.length - 1; i >= 0; i--) {
       const day = days[i]
-      const totalToAllocate = day.carbsGoal + carryOverDebt
-
-      // 1. Fixed Windows (Intra-Workout is exempt from stationary cap but has its own 90g/hr cap)
-      const intraWindows = day.windows.filter((w: any) => w.type === 'INTRA_WORKOUT')
-      const stationaryWindows = day.windows.filter(
+      const eatingWindows = day.windows.filter(
         (w: any) => w.type !== 'INTRA_WORKOUT' && w.type !== 'WORKOUT_EVENT'
       )
 
-      let allocated = 0
-      intraWindows.forEach((w: any) => (allocated += Number(w.targetCarbs || 0)))
-
-      // Count existing stationary targets (e.g. PRE/POST windows) before distributing
-      // baseline carbs so the day's final sum does not overshoot the canonical target.
-      allocated += stationaryWindows.reduce(
+      const allocated = day.windows.reduce(
         (sum: number, w: any) => sum + Number(w.targetCarbs || 0),
         0
       )
+      const shortfall = Math.max(0, day.carbsGoal - allocated)
 
-      // 2. Stationary Windows (Capped at 2.0g/kg)
-      let remainingForStationary = totalToAllocate - allocated
-
-      // Sort stationary windows to prioritize those already containing PRE/POST info
-      const sortedStationary = [...stationaryWindows].sort((a: any, b: any) => {
-        const aPri = a.type.includes('WORKOUT') ? 0 : 1
-        const bPri = b.type.includes('WORKOUT') ? 0 : 1
-        return aPri - bPri
-      })
-
-      // Evenly distribute into stationary slots but clamp each to MEAL_CAP
-      const baseShare = Math.max(0, remainingForStationary) / (sortedStationary.length || 1)
-
-      sortedStationary.forEach((w: any) => {
-        // If it was already a PRE/POST, it might have an engine target.
-        // We add the baseline share to it, then cap the result.
-        const currentAmount = w.targetCarbs || 0
-        const newAmount = Math.min(MEAL_CAP, currentAmount + baseShare)
-        w.targetCarbs = Math.round(newAmount)
-        allocated += w.targetCarbs
-        remainingForStationary -= w.targetCarbs
-      })
-
-      // Flow any unallocated "Mega-Debt" to the day before
-      carryOverDebt = Math.max(0, totalToAllocate - allocated)
-
-      // Pass 2.1: Protein & Fat Distribution
-      // Ensure daily targets match the plan's daily totals
-      const dailyProteinTarget = day.proteinGoal
-      const dailyFatTarget = day.fatGoal
-
-      const workoutProteinSum = day.windows
-        .filter((w: any) => w.type === 'PRE_WORKOUT' || w.type === 'POST_WORKOUT')
-        .reduce((sum: number, w: any) => sum + (w.targetProtein || 0), 0)
-
-      const workoutFatSum = day.windows
-        .filter((w: any) => w.type === 'PRE_WORKOUT' || w.type === 'POST_WORKOUT')
-        .reduce((sum: number, w: any) => sum + (w.targetFat || 0), 0)
-
-      const baseWindows = day.windows.filter(
-        (w: any) => w.type === 'DAILY_BASE' || w.type === 'TRANSITION'
+      // Headroom left in this day's eating windows, which we use to absorb the next day's overflow.
+      let headroom = eatingWindows.reduce(
+        (sum: number, w: any) => sum + Math.max(0, MEAL_CAP - Number(w.targetCarbs || 0)),
+        0
       )
 
-      // Calculate remaining to be distributed across non-workout meals
-      const remainingProtein = Math.max(0, dailyProteinTarget - workoutProteinSum)
-      const baseProteinShare = baseWindows.length > 0 ? remainingProtein / baseWindows.length : 0
-
-      const remainingFat = Math.max(0, dailyFatTarget - workoutFatSum)
-      const baseFatShare = baseWindows.length > 0 ? remainingFat / baseWindows.length : 0
-
-      day.windows.forEach((w: any) => {
-        if (w.type === 'DAILY_BASE' || w.type === 'TRANSITION') {
-          // Cap protein per sitting at ~0.5g/kg to keep it realistic, but ensure we hit the goal
-          const perSittingMax = weight * 0.6
-          w.targetProtein = Math.round(Math.min(perSittingMax, baseProteinShare))
-          w.targetFat = Math.round(baseFatShare)
+      let toPlace = carryOverDebt
+      if (toPlace > 0 && headroom > 0 && eatingWindows.length > 0) {
+        for (const w of eatingWindows) {
+          if (toPlace <= 0) break
+          const capacity = Math.max(0, MEAL_CAP - Number(w.targetCarbs || 0))
+          const add = Math.min(capacity, toPlace)
+          if (add <= 0) continue
+          w.targetCarbs = Math.round(Number(w.targetCarbs || 0) + add)
+          w.advice = 'Carb loading: extra carbohydrate moved here for a big day ahead.'
+          toPlace -= add
+          headroom -= add
         }
-      })
+      }
+
+      // What this day could not hold flows further back.
+      carryOverDebt = toPlace + shortfall
     }
 
-    // Pass 3: Finalize Labels and Advice
+    // Pass 3: Flatten, then apply hydration debt
     const allWindowsSorted = days
       .flatMap((d) => d.windows.map((w: any) => ({ ...w, dateKey: d.dateKey })))
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-      .map((w) => ({
-        ...w
-      }))
 
     if (hydrationDebt > 0) {
       let remainingDebt = hydrationDebt
@@ -1467,19 +1382,11 @@ export const metabolicService = {
     }
 
     return allWindowsSorted.map((w) => {
-      const configuredSlotName =
-        w.type === 'DAILY_BASE' &&
-        typeof (w as any).slotName === 'string' &&
-        (w as any).slotName.trim()
-          ? (w as any).slotName.trim()
-          : null
-      const mealName = configuredSlotName || this.getMealSlotName(new Date(w.startTime), timezone)
-      let label = mealName
-
-      if (w.type === 'PRE_WORKOUT') label = `Pre-Workout ${mealName}`
-      else if (w.type === 'POST_WORKOUT') label = `Post-Workout ${mealName}`
-      else if (w.type === 'INTRA_WORKOUT') label = 'Intra-Workout Fueling'
-      else if (w.type === 'TRANSITION') label = `${mealName} (Lead-up)`
+      const label = w.label || this.buildWindowLabel(w, timezone)
+      const mealName =
+        typeof w.slotName === 'string' && w.slotName.trim()
+          ? w.slotName.trim()
+          : this.getMealSlotName(new Date(w.startTime), timezone)
 
       // Contextual Advice
       let advice = w.advice || w.description

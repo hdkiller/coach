@@ -584,6 +584,7 @@
           :target-protein="recommendationContext.targetProtein"
           :target-kcal="recommendationContext.targetKcal"
           :window-type="recommendationContext.windowType"
+          :window-key="recommendationContext.windowKey"
           :slot-name="recommendationContext.slotName"
           :window-assignments="recommendationContext.windowAssignments"
           :day-target-carbs="recommendationContext.dayTargetCarbs"
@@ -717,6 +718,7 @@
     targetProtein: 0,
     targetKcal: 0,
     windowType: '',
+    windowKey: '',
     slotName: '',
     windowAssignments: [] as any[],
     dayTargetCarbs: 0,
@@ -941,6 +943,7 @@
         targetProtein: context.protein || context.targetProtein || 0,
         targetKcal: context.kcal || context.targetKcal || 0,
         windowType: context.basedOnWindowType || context.type,
+        windowKey: context.windowKey || context.basedOnWindowType || context.type,
         slotName: context.slotName || context.label || '',
         windowAssignments: Array.isArray(context.windowAssignments)
           ? context.windowAssignments
@@ -977,6 +980,7 @@
       targetProtein: window.targetProtein || 0,
       targetKcal: window.targetKcal || 0,
       windowType: window.type,
+      windowKey: window.windowKey || window.type,
       slotName: window.slotName || window.label || '',
       windowAssignments: Array.isArray(window.windowAssignments) ? window.windowAssignments : [],
       dayTargetCarbs: window.dayTargetCarbs || 0,

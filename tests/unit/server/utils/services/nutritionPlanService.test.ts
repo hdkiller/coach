@@ -254,4 +254,105 @@ describe('nutritionPlanService', () => {
       })
     })
   })
+
+  describe('window keys', () => {
+    it('prefers an explicit window key over the bare type', () => {
+      expect(
+        nutritionPlanService.resolveWindowKey({ type: 'PRE_WORKOUT', windowKey: 'PRE_WORKOUT#2' })
+      ).toBe('PRE_WORKOUT#2')
+    })
+
+    it('falls back to a slot-specific key for baseline windows', () => {
+      expect(
+        nutritionPlanService.resolveWindowKey({ type: 'DAILY_BASE', slotName: 'Breakfast' })
+      ).toBe('DAILY_BASE:breakfast')
+    })
+
+    it('matches a meal to its own window and not to a sibling of the same type', () => {
+      const first = { type: 'PRE_WORKOUT', windowKey: 'PRE_WORKOUT#1' }
+      const second = { type: 'PRE_WORKOUT', windowKey: 'PRE_WORKOUT#2' }
+      const meal = { windowType: 'PRE_WORKOUT#2' }
+
+      expect(nutritionPlanService.matchPlanMealToWindow(meal, second)).toBe(true)
+      expect(nutritionPlanService.matchPlanMealToWindow(meal, first)).toBe(false)
+    })
+
+    it('binds a legacy bare-type meal to the first window of that type only', () => {
+      const legacyMeal = { windowType: 'PRE_WORKOUT' }
+
+      expect(
+        nutritionPlanService.matchPlanMealToWindow(legacyMeal, {
+          type: 'PRE_WORKOUT',
+          windowKey: 'PRE_WORKOUT#1'
+        })
+      ).toBe(true)
+      expect(
+        nutritionPlanService.matchPlanMealToWindow(legacyMeal, {
+          type: 'PRE_WORKOUT',
+          windowKey: 'PRE_WORKOUT#2'
+        })
+      ).toBe(false)
+    })
+
+    it('persists two same-type windows as two separate plan meals', async () => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({ id: 'plan-1' } as any)
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockImplementation((async (args: any) => ({
+        id: `meal-${args.where.planId_date_windowType.windowType}`,
+        planId: 'plan-1',
+        date: new Date('2026-02-15T00:00:00.000Z'),
+        windowType: args.where.planId_date_windowType.windowType,
+        scheduledAt: new Date('2026-02-15T00:00:00.000Z')
+      })) as any)
+
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Morning Oats', totals: { carbs: 60 } },
+        undefined,
+        { windowKey: 'PRE_WORKOUT#1' }
+      )
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Evening Rice Cakes', totals: { carbs: 45 } },
+        undefined,
+        { windowKey: 'PRE_WORKOUT#2' }
+      )
+
+      const persistedWindowTypes = vi
+        .mocked(prisma.nutritionPlanMeal.upsert)
+        .mock.calls.map((call: any) => call[0].where.planId_date_windowType.windowType)
+
+      // Before stable keys both locks collapsed onto a single PRE_WORKOUT row.
+      expect(persistedWindowTypes).toEqual(['PRE_WORKOUT#1', 'PRE_WORKOUT#2'])
+    })
+
+    it('still writes a bare type when no window key is supplied', async () => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({ id: 'plan-1' } as any)
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockResolvedValue({
+        id: 'plan-meal-1',
+        planId: 'plan-1',
+        date: new Date('2026-02-15T00:00:00.000Z'),
+        windowType: 'POST_WORKOUT',
+        scheduledAt: new Date('2026-02-15T00:00:00.000Z')
+      } as any)
+
+      await nutritionPlanService.lockMeal('user-1', '2026-02-15', 'POST_WORKOUT', {
+        title: 'Recovery Shake',
+        totals: { carbs: 50 }
+      })
+
+      expect(prisma.nutritionPlanMeal.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            planId_date_windowType: expect.objectContaining({ windowType: 'POST_WORKOUT' })
+          })
+        })
+      )
+    })
+  })
 })

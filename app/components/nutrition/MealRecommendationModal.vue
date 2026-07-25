@@ -211,6 +211,7 @@
     targetProtein?: number
     targetKcal?: number
     windowType?: string
+    windowKey?: string
     slotName?: string
     windowAssignments?: Array<{
       windowType: string
@@ -563,7 +564,9 @@
         method: 'POST',
         body: {
           date: props.date,
-          windowType: props.windowType,
+          // Send the specific window so its own unmet targets are used, not the first window
+          // that happens to share this type.
+          windowType: props.windowKey || props.windowType,
           forceLlm,
           targetCarbs: props.targetCarbs,
           targetProtein: props.targetProtein,
@@ -571,6 +574,27 @@
         }
       })
       console.log('[MealRecommendationModal] triggerRecommendations:response', res)
+
+      // A recent suggestion for the same window and targets is reused server-side, so read the
+      // stored result rather than replaying a trigger run that has already finished.
+      if (res.cached && res.recommendationId) {
+        const stored = await ($fetch as any)(
+          `/api/nutrition/recommendations/${res.recommendationId}`
+        )
+        const payload = extractRecommendationsPayload(stored?.recommendation?.resultJson)
+
+        if (payload?.recommendations?.length) {
+          recommendations.value = payload.recommendations
+          source.value = payload.source || 'catalog'
+          recommendationCache.set(cacheKey.value, {
+            recommendations: recommendations.value,
+            source: source.value
+          })
+          loading.value = false
+          loadingLlm.value = false
+          return
+        }
+      }
 
       if (res.runId) {
         currentRunId.value = res.runId
@@ -674,6 +698,7 @@
         body: {
           date: props.date,
           windowType: props.windowType,
+          windowKey: props.windowKey,
           slotName: props.slotName,
           windowAssignments: props.windowAssignments,
           meal: selectedOption.value

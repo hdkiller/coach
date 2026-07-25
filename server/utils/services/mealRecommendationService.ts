@@ -29,11 +29,22 @@ function joinOrNone(values: unknown): string {
   return normalized.length ? normalized.join(', ') : 'None'
 }
 
-function mapWindowTypeToCatalogType(windowType?: string): string | undefined {
+/**
+ * Reduces a window identity to the catalog's coarse bucket.
+ *
+ * Callers pass anything from a bare type (`PRE_WORKOUT`) to a stable window key
+ * (`PRE_WORKOUT#2`, `DAILY_BASE:breakfast`); all of them must resolve to the same bucket, or the
+ * catalog query silently matches nothing and every suggestion falls through to the LLM.
+ */
+export function mapWindowTypeToCatalogType(windowType?: string): string | undefined {
   if (!windowType) return undefined
-  if (windowType === 'DAILY_BASE') return 'BASE'
-  if (windowType.endsWith('_WORKOUT')) return windowType.split('_')[0]
-  return windowType
+
+  const base = String(windowType).split('#')[0]?.split(':')[0]?.trim().toUpperCase()
+  if (!base) return undefined
+
+  if (base === 'DAILY_BASE' || base === 'BASE') return 'BASE'
+  if (base.endsWith('_WORKOUT')) return base.split('_')[0]
+  return base
 }
 
 function normalizeTarget(value?: number): number | undefined {
@@ -43,10 +54,85 @@ function normalizeTarget(value?: number): number | undefined {
 }
 
 function getScoringWeights(windowType?: string) {
-  if (windowType === 'DAILY_BASE') {
+  if (mapWindowTypeToCatalogType(windowType) === 'BASE') {
     return { carbs: 0.55, protein: 0.35, kcal: 0.1 }
   }
   return { carbs: 0.75, protein: 0.2, kcal: 0.05 }
+}
+
+/**
+ * Finds the window a recommendation is for. Several windows of the same type can exist on one day,
+ * so an exact key match is tried before falling back to the type.
+ */
+function findWindow(targetContext: any, windowType?: string) {
+  if (!windowType) return targetContext?.nextFuelingWindow
+
+  const progress: any[] = Array.isArray(targetContext?.windowProgress)
+    ? targetContext.windowProgress
+    : []
+
+  return (
+    progress.find((entry) => entry?.windowKey === windowType) ||
+    progress.find((entry) => entry?.type === windowType) ||
+    targetContext?.nextFuelingWindow
+  )
+}
+
+/**
+ * Rounds a scaled ingredient quantity without losing small amounts. Rounding everything to whole
+ * units made the listed ingredients drift away from the stated macros - a 5g item scaled by 0.4
+ * became 2g, a 25% error the totals never reflected.
+ */
+function roundQuantity(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  if (value >= 10) return Math.round(value)
+  return Math.round(value * 10) / 10
+}
+
+/**
+ * How much carbohydrate the day still has room for, if the context knows.
+ */
+function getDayRemainingCarbs(targetContext: any): number | undefined {
+  const remaining = Number(targetContext?.dailyCarbStatus?.remaining)
+  return Number.isFinite(remaining) && remaining >= 0 ? Math.round(remaining) : undefined
+}
+
+/**
+ * Rejects an option whose ingredients name something the athlete cannot eat.
+ *
+ * The catalog path enforces constraints through tags, but the model only ever sees them as prose,
+ * so its output is checked here rather than trusted.
+ */
+function violatesConstraints(option: any, constraints: any): boolean {
+  const banned: string[] = [
+    ...toUpperStringArray(constraints?.foodAllergies),
+    ...toUpperStringArray(constraints?.foodIntolerances),
+    ...toUpperStringArray(constraints?.lifestyleExclusions)
+  ]
+    .map((entry) => entry.replace(/[_-]+/g, ' ').trim())
+    .filter((entry) => entry.length >= 3)
+
+  if (banned.length === 0) return false
+
+  const haystack = [
+    option?.title,
+    ...(Array.isArray(option?.ingredients) ? option.ingredients : []).map(
+      (i: any) => i?.item || i?.name
+    )
+  ]
+    .filter((entry) => typeof entry === 'string')
+    .join(' ')
+    .toUpperCase()
+
+  return banned.some((term) => haystack.includes(term))
+}
+
+/** Drops options whose carbohydrate lands nowhere near what was asked for. */
+function missesTarget(option: any, targetCarbs?: number): boolean {
+  if (!targetCarbs || targetCarbs <= 0) return false
+  const carbs = Number(option?.totals?.carbs || 0)
+  if (!Number.isFinite(carbs) || carbs <= 0) return true
+  return Math.abs(carbs - targetCarbs) / targetCarbs > 0.4
 }
 
 function sanitizeMealTitle(value: unknown): string {
@@ -221,7 +307,16 @@ export const mealRecommendationService = {
       await prisma.nutritionRecommendation.update({
         where: { id: recommendation.id },
         data: {
-          contextJson: context as any,
+          contextJson: {
+            ...context,
+            // Kept so a repeat request for the same window and targets can reuse this result
+            // instead of paying for another model run.
+            requestedTargets: {
+              carbs: Number(targetCarbs || 0),
+              protein: Number(targetProtein || 0),
+              kcal: Number(targetKcal || 0)
+            }
+          } as any,
           runId: runId || undefined
         }
       })
@@ -309,15 +404,22 @@ export const mealRecommendationService = {
   ) {
     const { targetContext, constraints, athlete } = context
 
-    const window = windowType
-      ? targetContext.windowProgress.find((entry: any) => entry.type === windowType)
-      : targetContext.nextFuelingWindow
+    const window = findWindow(targetContext, windowType)
 
-    const targetCarbs = Math.round(
+    const requestedCarbs = Math.round(
       normalizeTarget(targetOverrides?.carbs)
         ? normalizeTarget(targetOverrides?.carbs)!
         : window?.unmetCarbs || targetContext.suggestedIntakeNow?.carbs || 0
     )
+
+    // Never suggest more than the day still has room for. Without this, planning each window in
+    // isolation could add up to a day well past its own target.
+    const dayRemaining = getDayRemainingCarbs(targetContext)
+    const targetCarbs =
+      dayRemaining !== undefined && dayRemaining > 0
+        ? Math.min(requestedCarbs, dayRemaining)
+        : requestedCarbs
+
     const targetProtein = normalizeTarget(targetOverrides?.protein)
     const targetKcal = normalizeTarget(targetOverrides?.kcal)
     const resolvedWindowType = window?.type || windowType
@@ -371,7 +473,7 @@ export const mealRecommendationService = {
         const ingredients = (template.ingredients as any[]).map((ingredient) => ({
           ...ingredient,
           quantity: ingredient.isScalable
-            ? Math.round(Number(ingredient.quantity || 0) * finalScaleFactor)
+            ? roundQuantity(Number(ingredient.quantity || 0) * finalScaleFactor)
             : ingredient.quantity
         }))
 
@@ -427,31 +529,39 @@ export const mealRecommendationService = {
     context: any,
     scope: string,
     windowType?: string,
-    targetOverrides?: { carbs?: number; protein?: number; kcal?: number }
+    targetOverrides?: { carbs?: number; protein?: number; kcal?: number; fat?: number }
   ) {
     const { targetContext, constraints, athlete } = context
-    const window = windowType
-      ? targetContext.windowProgress.find((entry: any) => entry.type === windowType)
-      : targetContext.nextFuelingWindow
+    const window = findWindow(targetContext, windowType)
 
-    const targetCarbs = Math.round(
+    const requestedCarbs = Math.round(
       normalizeTarget(targetOverrides?.carbs)
         ? normalizeTarget(targetOverrides?.carbs)!
         : window?.unmetCarbs || targetContext.suggestedIntakeNow?.carbs || 0
     )
+
+    const dayRemaining = getDayRemainingCarbs(targetContext)
+    const targetCarbs =
+      dayRemaining !== undefined && dayRemaining > 0
+        ? Math.min(requestedCarbs, dayRemaining)
+        : requestedCarbs
+
     const targetProtein = normalizeTarget(targetOverrides?.protein)
     const targetKcal = normalizeTarget(targetOverrides?.kcal)
+    const targetFat = normalizeTarget(targetOverrides?.fat) ?? normalizeTarget(window?.targetFat)
     const resolvedWindowType = window?.type || windowType || 'General'
 
-    const prompt = `You are an elite sports performance nutritionist.
+    const buildPrompt = (repairNote?: string) => `You are an elite sports performance nutritionist.
 Generate 3 personalized meal options for an endurance athlete based on their current metabolic window.
 
 ATHLETE CONTEXT:
 - Weight: ${athlete.weightKg}kg
 - Target Carbs for this window: ${targetCarbs}g
 - Target Protein for this window: ${targetProtein ?? 'not specified'}g
+- Target Fat for this window: ${targetFat ?? 'not specified'}g
 - Target Calories for this window: ${targetKcal ?? 'not specified'} kcal
 - Window Type: ${resolvedWindowType}
+- Carbohydrate remaining in the athlete's day: ${dayRemaining ?? 'not specified'}g
 - Current Tank: ${targetContext?.currentTank?.percentage ?? 0}% (${targetContext?.currentTank?.advice || 'No advice available'})
 
 CONSTRAINTS (MUST FOLLOW):
@@ -465,23 +575,70 @@ GUIDELINES:
 2. Ensure totals match targets with priority order:
    - For DAILY_BASE: carbs + protein first, kcal second.
    - For PRE/INTRA/POST: carbs first, protein second, kcal third.
-3. Choose the appropriate absorption type (RAPID, FAST, BALANCED, DENSE, HYPER_LOAD) based on the window.
-4. If the target carbs exceed ${2.0 * athlete.weightKg}g, cap the meal at that limit and note it in the reasoning.
-5. Meal titles must be plain dish names only.
+3. Carbohydrate totals must be within 20% of the target. Do not exceed the day's remaining carbohydrate.
+4. Choose the appropriate absorption type (RAPID, FAST, BALANCED, DENSE, HYPER_LOAD) based on the window.
+5. If the target carbs exceed ${2.0 * athlete.weightKg}g, cap the meal at that limit and note it in the reasoning.
+6. Meal titles must be plain dish names only.
    - Do NOT include list labels or prefixes such as "Option 1:", "Option 2 -", "Daily Base:", "Meal 1:", or equivalents in any language.
-6. Use "items" for ingredient rows and keep them suitable for a future grocery list aggregation flow.
-
+7. Use "items" for ingredient rows and keep them suitable for a future grocery list aggregation flow.
+8. No ingredient may contain anything listed under Allergies, Intolerances or Exclusions.
+${repairNote ? `\nCORRECTION REQUIRED: ${repairNote}\n` : ''}
 Return the options in a structured JSON format.`
 
-    try {
-      const result = await generateStructuredAnalysis<any>(prompt, recommendationSchema, 'flash', {
-        userId,
-        operation: 'meal_recommendation',
-        entityType: 'Nutrition',
-        entityId: undefined
-      })
+    const requestOptions = async (repairNote?: string) => {
+      const result = await generateStructuredAnalysis<any>(
+        buildPrompt(repairNote),
+        recommendationSchema,
+        'flash',
+        {
+          userId,
+          operation: 'meal_recommendation',
+          entityType: 'Nutrition',
+          entityId: undefined
+        }
+      )
+      return Array.isArray(result?.options) ? result.options : []
+    }
 
-      return buildRecommendationResult('llm', result.options || [])
+    /**
+     * The model is told the constraints but nothing guarantees it honoured them, so anything that
+     * names an excluded food or lands far from the target is discarded rather than shown.
+     */
+    const screen = (options: any[]) =>
+      options
+        .map((option) => normalizeOptionShape(option))
+        .filter((option) => !violatesConstraints(option, constraints))
+        .filter((option) => !missesTarget(option, targetCarbs))
+
+    try {
+      let accepted = screen(await requestOptions())
+
+      if (accepted.length === 0) {
+        // One repair attempt, naming what went wrong, before giving up.
+        accepted = screen(
+          await requestOptions(
+            `The previous response was rejected. Every option must avoid ${joinOrNone([
+              ...toStringArray(constraints.foodAllergies),
+              ...toStringArray(constraints.foodIntolerances),
+              ...toStringArray(constraints.lifestyleExclusions)
+            ])} and land within 20% of ${targetCarbs}g carbohydrate.`
+          )
+        )
+      }
+
+      if (accepted.length === 0) {
+        logger.error('LLM meal recommendations failed validation', {
+          userId,
+          windowType: resolvedWindowType,
+          targetCarbs
+        })
+        return {
+          status: 'error',
+          message: 'Could not generate a meal that fits your targets and dietary constraints.'
+        }
+      }
+
+      return buildRecommendationResult('llm', accepted)
     } catch (error) {
       logger.error('Failed to generate LLM recommendation', { error })
       return {

@@ -66,7 +66,7 @@ vi.mock('../../../../../server/utils/nutrition-domain', () => ({
   calculateFuelingStrategy: vi.fn(),
   calculateDailyCalorieBreakdown: vi.fn(),
   calculateMacroTargetCalories: vi.fn(),
-  mergeFuelingWindows: vi.fn(),
+  buildDayFuelingPlan: vi.fn(),
   selectRelevantWorkouts: vi.fn(),
   synthesizeRefills: vi.fn(),
   ABSORPTION_PROFILES: {}
@@ -160,6 +160,60 @@ describe('metabolicService smoke coverage', () => {
     expect(result).toEqual({
       startingGlycogen: 50,
       startingFluid: 40
+    })
+  })
+
+  describe('window identity', () => {
+    it('uses the window key stamped by the day builder', () => {
+      expect(
+        metabolicService.getWindowKey(
+          { type: 'POST_WORKOUT', windowKey: 'POST_WORKOUT#2', startTime: '2026-02-13T18:00:00Z' },
+          'UTC'
+        )
+      ).toBe('POST_WORKOUT#2')
+    })
+
+    it('treats a key-less window as the first of its type', () => {
+      expect(
+        metabolicService.getWindowKey(
+          { type: 'PRE_WORKOUT', startTime: '2026-02-13T08:00:00Z' },
+          'UTC'
+        )
+      ).toBe('PRE_WORKOUT#1')
+    })
+
+    it('does not bind a legacy meal to every window sharing its type', () => {
+      const legacyMeal = { windowType: 'PRE_WORKOUT' }
+
+      expect(
+        metabolicService.matchPlanMealToWindow(
+          legacyMeal,
+          { type: 'PRE_WORKOUT', windowKey: 'PRE_WORKOUT#1', startTime: '2026-02-13T08:00:00Z' },
+          'UTC'
+        )
+      ).toBe(true)
+      expect(
+        metabolicService.matchPlanMealToWindow(
+          legacyMeal,
+          { type: 'PRE_WORKOUT', windowKey: 'PRE_WORKOUT#2', startTime: '2026-02-13T16:00:00Z' },
+          'UTC'
+        )
+      ).toBe(false)
+    })
+
+    it('labels workout windows with their meal slot', () => {
+      expect(
+        metabolicService.buildWindowLabel(
+          { type: 'PRE_WORKOUT', slotName: 'Breakfast', startTime: '2026-02-13T08:00:00Z' },
+          'UTC'
+        )
+      ).toBe('Pre-Workout Breakfast')
+      expect(
+        metabolicService.buildWindowLabel(
+          { type: 'INTRA_WORKOUT', startTime: '2026-02-13T10:00:00Z' },
+          'UTC'
+        )
+      ).toBe('Intra-Workout Fueling')
     })
   })
 })

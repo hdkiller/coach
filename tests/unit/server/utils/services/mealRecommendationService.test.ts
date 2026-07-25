@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mealRecommendationService } from '../../../../../server/utils/services/mealRecommendationService'
+import {
+  mapWindowTypeToCatalogType,
+  mealRecommendationService
+} from '../../../../../server/utils/services/mealRecommendationService'
+import { generateStructuredAnalysis } from '../../../../../server/utils/gemini'
 import { prisma } from '../../../../../server/utils/db'
 import { metabolicService } from '../../../../../server/utils/services/metabolicService'
 import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
@@ -169,5 +173,163 @@ describe('mealRecommendationService', () => {
     expect(result.status).toBe('ready')
     expect(result.source).toBe('catalog')
     expect((result as any).recommendations[0].totals.carbs).toBeGreaterThan(0)
+  })
+
+  describe('window bucket mapping', () => {
+    it('maps every window identity form onto the same catalog bucket', () => {
+      expect(mapWindowTypeToCatalogType('PRE_WORKOUT')).toBe('PRE')
+      expect(mapWindowTypeToCatalogType('PRE_WORKOUT#2')).toBe('PRE')
+      expect(mapWindowTypeToCatalogType('INTRA_WORKOUT#1.2')).toBe('INTRA')
+      expect(mapWindowTypeToCatalogType('DAILY_BASE')).toBe('BASE')
+      expect(mapWindowTypeToCatalogType('DAILY_BASE:breakfast')).toBe('BASE')
+      expect(mapWindowTypeToCatalogType(undefined)).toBeUndefined()
+    })
+  })
+
+  describe('selectFromCatalog', () => {
+    const template = {
+      id: 'tpl-1',
+      title: 'Oatmeal',
+      windowType: 'PRE',
+      absorptionType: 'BALANCED',
+      dietaryBuckets: [],
+      constraintTags: [],
+      baseMacros: { carbs: 60, protein: 8, fat: 5, kcal: 320 },
+      ingredients: [
+        { item: 'Oats', quantity: 60, unit: 'g', isScalable: true },
+        { item: 'Honey', quantity: 6, unit: 'ml', isScalable: true }
+      ],
+      prepMinutes: 5
+    }
+
+    it('never suggests more carbohydrate than the day has left', async () => {
+      vi.mocked(prisma.mealOptionCatalog.findMany).mockResolvedValue([template] as any)
+
+      const options = await mealRecommendationService.selectFromCatalog(
+        {
+          targetContext: {
+            windowProgress: [{ type: 'PRE_WORKOUT', unmetCarbs: 120 }],
+            dailyCarbStatus: { remaining: 50 }
+          },
+          constraints: {
+            dietaryProfile: [],
+            foodAllergies: [],
+            foodIntolerances: [],
+            lifestyleExclusions: []
+          },
+          athlete: { weightKg: 70 }
+        },
+        'MEAL',
+        'PRE_WORKOUT',
+        { carbs: 120 }
+      )
+
+      expect(options.length).toBeGreaterThan(0)
+      options.forEach((option: any) => {
+        expect(option.totals.carbs).toBeLessThanOrEqual(50)
+      })
+    })
+
+    it('keeps small ingredient quantities instead of rounding them away', async () => {
+      vi.mocked(prisma.mealOptionCatalog.findMany).mockResolvedValue([template] as any)
+
+      const options = await mealRecommendationService.selectFromCatalog(
+        {
+          targetContext: { windowProgress: [] },
+          constraints: {
+            dietaryProfile: [],
+            foodAllergies: [],
+            foodIntolerances: [],
+            lifestyleExclusions: []
+          },
+          athlete: { weightKg: 70 }
+        },
+        'MEAL',
+        'PRE_WORKOUT',
+        { carbs: 30 }
+      )
+
+      const honey = options[0]?.ingredients.find((i: any) => i.item === 'Honey')
+      // At a 0.5 scale factor this used to round to 3; the drift showed up as macros that did not
+      // match the listed ingredients.
+      expect(honey?.quantity).toBeCloseTo(3, 1)
+      expect(honey?.quantity).toBeGreaterThan(0)
+    })
+  })
+
+  describe('generateLlmRecommendation', () => {
+    const baseContext = {
+      targetContext: {
+        windowProgress: [{ type: 'PRE_WORKOUT', unmetCarbs: 60 }],
+        currentTank: { percentage: 70, advice: 'ok' },
+        dailyCarbStatus: { remaining: 200 }
+      },
+      constraints: {
+        dietaryProfile: [],
+        foodAllergies: ['PEANUT'],
+        foodIntolerances: [],
+        lifestyleExclusions: []
+      },
+      athlete: { weightKg: 70 }
+    }
+
+    it('rejects options containing an allergen and retries once', async () => {
+      vi.mocked(generateStructuredAnalysis)
+        .mockResolvedValueOnce({
+          options: [
+            {
+              title: 'Peanut Butter Toast',
+              items: [{ item: 'Peanut Butter', quantity: 30, unit: 'g', isScalable: true }],
+              totals: { carbs: 60, protein: 10, fat: 12, kcal: 400 }
+            }
+          ]
+        } as any)
+        .mockResolvedValueOnce({
+          options: [
+            {
+              title: 'Jam Toast',
+              items: [{ item: 'Strawberry Jam', quantity: 30, unit: 'g', isScalable: true }],
+              totals: { carbs: 60, protein: 6, fat: 2, kcal: 300 }
+            }
+          ]
+        } as any)
+
+      const result: any = await mealRecommendationService.generateLlmRecommendation(
+        userId,
+        date,
+        baseContext,
+        'MEAL',
+        'PRE_WORKOUT',
+        { carbs: 60 }
+      )
+
+      expect(generateStructuredAnalysis).toHaveBeenCalledTimes(2)
+      expect(result.status).toBe('ready')
+      expect(result.options).toHaveLength(1)
+      expect(result.options[0].title).toBe('Jam Toast')
+    })
+
+    it('rejects options whose carbohydrate misses the target badly', async () => {
+      vi.mocked(generateStructuredAnalysis).mockResolvedValue({
+        options: [
+          {
+            title: 'Tiny Snack',
+            items: [{ item: 'Cracker', quantity: 10, unit: 'g', isScalable: true }],
+            totals: { carbs: 8, protein: 1, fat: 1, kcal: 45 }
+          }
+        ]
+      } as any)
+
+      const result: any = await mealRecommendationService.generateLlmRecommendation(
+        userId,
+        date,
+        baseContext,
+        'MEAL',
+        'PRE_WORKOUT',
+        { carbs: 60 }
+      )
+
+      expect(result.status).toBe('error')
+    })
   })
 })
