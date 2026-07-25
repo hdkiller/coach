@@ -204,6 +204,11 @@ export default defineNuxtConfig({
       crawlLinks: false,
       routes: []
     },
+    hooks: {
+      'prerender:routes'(routes) {
+        routes.clear()
+      }
+    },
     experimental: {
       openAPI: process.env.SOURCEMAP !== 'false',
       websocket: true,
