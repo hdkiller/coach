@@ -108,28 +108,40 @@ export async function seedE2eMobileOAuthApp(prisma: PrismaClient, ownerId: strin
   })
 }
 
+const E2E_TODAY_RECOMMENDATION = {
+  recommendation: 'proceed',
+  confidence: 0.92,
+  reasoning: 'E2E fixture: readiness looks good for the planned session.',
+  status: 'COMPLETED',
+  analysisJson: {
+    source: 'e2e-seed',
+    summary: 'Deterministic today recommendation for companion/web E2E.'
+  }
+}
+
 export async function seedE2eTodayRecommendation(prisma: PrismaClient, userId: string) {
   const date = utcTodayDateOnly()
 
-  const existing = await prisma.activityRecommendation.findFirst({
-    where: { userId, date },
-    orderBy: { createdAt: 'desc' }
-  })
+  // Prefer today's row; otherwise roll the latest fixture row forward so a
+  // multi-day DB without full truncate still has a same-day recommendation.
+  const existing =
+    (await prisma.activityRecommendation.findFirst({
+      where: { userId, date },
+      orderBy: { createdAt: 'desc' }
+    })) ??
+    (await prisma.activityRecommendation.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    }))
 
   if (existing) {
     return prisma.activityRecommendation.update({
       where: { id: existing.id },
       data: {
-        recommendation: 'proceed',
-        confidence: 0.92,
-        reasoning: 'E2E fixture: readiness looks good for the planned session.',
-        status: 'COMPLETED',
+        date,
+        ...E2E_TODAY_RECOMMENDATION,
         userAccepted: null,
-        userModified: null,
-        analysisJson: {
-          source: 'e2e-seed',
-          summary: 'Deterministic today recommendation for companion/web E2E.'
-        }
+        userModified: null
       }
     })
   }
@@ -138,22 +150,19 @@ export async function seedE2eTodayRecommendation(prisma: PrismaClient, userId: s
     data: {
       userId,
       date,
-      recommendation: 'proceed',
-      confidence: 0.92,
-      reasoning: 'E2E fixture: readiness looks good for the planned session.',
-      status: 'COMPLETED',
-      analysisJson: {
-        source: 'e2e-seed',
-        summary: 'Deterministic today recommendation for companion/web E2E.'
-      }
+      ...E2E_TODAY_RECOMMENDATION
     }
   })
 }
 
 /**
  * Soft-activate the companion athlete: consent (users seed) + primary goal +
- * active plan + today recommendation (insight). Connect-last may stay pending
- * so mobile opens the Today shell (Finish-setup card) instead of the wizard.
+ * active plan + first-value viewed. Connect-last may stay pending so mobile
+ * opens the Today shell (Finish-setup card) instead of the wizard.
+ *
+ * FIRST_VALUE_VIEWED is required — a same-day ActivityRecommendation alone
+ * goes stale after midnight if the stack wasn't reset; the audit log keeps
+ * softActivated durable across calendar days.
  */
 export async function seedE2eSoftActivation(prisma: PrismaClient, userId: string) {
   const targetDate = new Date('2026-10-23T00:00:00.000Z')
@@ -225,19 +234,80 @@ export async function seedE2eSoftActivation(prisma: PrismaClient, userId: string
     })
   }
 
+  const firstValue = await prisma.auditLog.findFirst({
+    where: { userId, action: 'FIRST_VALUE_VIEWED' },
+    select: { id: true }
+  })
+  if (!firstValue) {
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'FIRST_VALUE_VIEWED',
+        metadata: { value_type: 'plan_week_reveal', source: 'e2e-seed' }
+      }
+    })
+  }
+
   return { goal, plan }
+}
+
+/**
+ * Minimal past workout so hasUsableData / fullyActivated is true.
+ * Without this, soft-activated athletes stay on Finish-setup and Today hides
+ * daily-loop CTAs (e.g. daily-checkin) that Maestro asserts.
+ */
+export async function seedE2eUsableData(prisma: PrismaClient, userId: string) {
+  const externalId = 'e2e-fixture-workout-1'
+  const date = new Date('2026-07-20T10:00:00.000Z')
+
+  const existing = await prisma.workout.findFirst({
+    where: { userId, externalId }
+  })
+
+  if (existing) {
+    return prisma.workout.update({
+      where: { id: existing.id },
+      data: {
+        date,
+        title: 'E2E Endurance Ride',
+        source: 'e2e',
+        type: 'Ride',
+        durationSec: 3600,
+        distanceMeters: 32000,
+        averageWatts: 180,
+        tss: 55
+      }
+    })
+  }
+
+  return prisma.workout.create({
+    data: {
+      userId,
+      externalId,
+      source: 'e2e',
+      date,
+      title: 'E2E Endurance Ride',
+      type: 'Ride',
+      durationSec: 3600,
+      distanceMeters: 32000,
+      averageWatts: 180,
+      tss: 55
+    }
+  })
 }
 
 export async function seedE2eData(prisma: PrismaClient) {
   const users = await seedE2eUsers(prisma)
   const mobileApp = await seedE2eMobileOAuthApp(prisma, users.admin.id)
   const softActivation = await seedE2eSoftActivation(prisma, users.athlete.id)
+  const usableData = await seedE2eUsableData(prisma, users.athlete.id)
   const todayRecommendation = await seedE2eTodayRecommendation(prisma, users.athlete.id)
 
   return {
     ...users,
     mobileApp,
     softActivation,
+    usableData,
     todayRecommendation
   }
 }
