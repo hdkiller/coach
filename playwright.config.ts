@@ -9,10 +9,11 @@ const baseURL = getE2eBaseUrl()
 
 export default defineConfig({
   testDir: './e2e/tests',
+  testMatch: '**/*.spec.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : undefined,
   timeout: 120_000,
   reporter: [['list'], ['html', { open: 'never' }]],
   globalSetup: fileURLToPath(new URL('./e2e/global-setup.ts', import.meta.url)),

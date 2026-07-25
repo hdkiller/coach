@@ -20,4 +20,12 @@ test.describe('public pages', () => {
     await expect(page).toHaveURL(/\/login/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Welcome/i)
   })
+
+  test('privacy and terms policy pages render', async ({ page }) => {
+    await page.goto('/privacy', { waitUntil: 'domcontentloaded' })
+    await expect(page).toHaveURL(/\/privacy/)
+
+    await page.goto('/terms', { waitUntil: 'domcontentloaded' })
+    await expect(page).toHaveURL(/\/terms/)
+  })
 })

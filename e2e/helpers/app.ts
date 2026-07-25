@@ -21,5 +21,5 @@ export async function waitForApp(baseUrl: string, attempts = 90) {
 
 export function getE2eBaseUrl() {
   const port = Number(process.env.E2E_PORT ?? 3199)
-  return process.env.E2E_BASE_URL ?? `http://localhost:${port}`
+  return process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`
 }

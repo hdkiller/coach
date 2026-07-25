@@ -252,9 +252,7 @@ export async function seedE2eSoftActivation(prisma: PrismaClient, userId: string
 }
 
 /**
- * Minimal past workout so hasUsableData / fullyActivated is true.
- * Without this, soft-activated athletes stay on Finish-setup and Today hides
- * daily-loop CTAs (e.g. daily-checkin) that Maestro asserts.
+ * Seed historical & planned workouts for calendar, activities, and dashboard test assertions.
  */
 export async function seedE2eUsableData(prisma: PrismaClient, userId: string) {
   const externalId = 'e2e-fixture-workout-1'
@@ -264,8 +262,9 @@ export async function seedE2eUsableData(prisma: PrismaClient, userId: string) {
     where: { userId, externalId }
   })
 
+  let primaryWorkout
   if (existing) {
-    return prisma.workout.update({
+    primaryWorkout = await prisma.workout.update({
       where: { id: existing.id },
       data: {
         date,
@@ -278,22 +277,204 @@ export async function seedE2eUsableData(prisma: PrismaClient, userId: string) {
         tss: 55
       }
     })
+  } else {
+    primaryWorkout = await prisma.workout.create({
+      data: {
+        userId,
+        externalId,
+        source: 'e2e',
+        date,
+        title: 'E2E Endurance Ride',
+        type: 'Ride',
+        durationSec: 3600,
+        distanceMeters: 32000,
+        averageWatts: 180,
+        tss: 55
+      }
+    })
   }
 
-  return prisma.workout.create({
-    data: {
+  // Seed secondary workout
+  const runExternalId = 'e2e-fixture-workout-2'
+  const runDate = new Date('2026-07-22T08:30:00.000Z')
+  const existingRun = await prisma.workout.findFirst({
+    where: { userId, externalId: runExternalId }
+  })
+  if (existingRun) {
+    await prisma.workout.update({
+      where: { id: existingRun.id },
+      data: {
+        date: runDate,
+        title: 'E2E Tempo Run',
+        type: 'Run',
+        durationSec: 2400,
+        distanceMeters: 8000,
+        tss: 42
+      }
+    })
+  } else {
+    await prisma.workout.create({
+      data: {
+        userId,
+        externalId: runExternalId,
+        source: 'e2e',
+        date: runDate,
+        title: 'E2E Tempo Run',
+        type: 'Run',
+        durationSec: 2400,
+        distanceMeters: 8000,
+        tss: 42
+      }
+    })
+  }
+
+  return primaryWorkout
+}
+
+export async function seedE2ePlannedWorkouts(prisma: PrismaClient, userId: string) {
+  const today = utcTodayDateOnly()
+  const tomorrow = new Date(today.getTime() + 86400000)
+
+  const todayPlannedId = 'e2e-planned-today'
+  await prisma.plannedWorkout.upsert({
+    where: { id: todayPlannedId },
+    update: {
       userId,
-      externalId,
-      source: 'e2e',
-      date,
-      title: 'E2E Endurance Ride',
+      externalId: todayPlannedId,
+      date: today,
+      title: 'E2E Sweet Spot Intervals',
       type: 'Ride',
+      category: 'Workouts',
       durationSec: 3600,
-      distanceMeters: 32000,
-      averageWatts: 180,
-      tss: 55
+      tss: 65,
+      completed: false
+    },
+    create: {
+      id: todayPlannedId,
+      userId,
+      externalId: todayPlannedId,
+      date: today,
+      title: 'E2E Sweet Spot Intervals',
+      type: 'Ride',
+      category: 'Workouts',
+      durationSec: 3600,
+      tss: 65,
+      completed: false
     }
   })
+
+  const tomorrowPlannedId = 'e2e-planned-tomorrow'
+  await prisma.plannedWorkout.upsert({
+    where: { id: tomorrowPlannedId },
+    update: {
+      userId,
+      externalId: tomorrowPlannedId,
+      date: tomorrow,
+      title: 'E2E Recovery Jog',
+      type: 'Run',
+      category: 'Workouts',
+      durationSec: 1800,
+      tss: 20,
+      completed: false
+    },
+    create: {
+      id: tomorrowPlannedId,
+      userId,
+      externalId: tomorrowPlannedId,
+      date: tomorrow,
+      title: 'E2E Recovery Jog',
+      type: 'Run',
+      category: 'Workouts',
+      durationSec: 1800,
+      tss: 20,
+      completed: false
+    }
+  })
+}
+
+export async function seedE2eWellness(prisma: PrismaClient, userId: string) {
+  const today = utcTodayDateOnly()
+
+  const existing = await prisma.wellness.findFirst({
+    where: { userId, date: today }
+  })
+
+  if (existing) {
+    return prisma.wellness.update({
+      where: { id: existing.id },
+      data: {
+        hrv: 68,
+        restingHr: 52,
+        sleepHours: 7.8,
+        sleepScore: 85,
+        readiness: 88,
+        weight: 71.5,
+        systolic: 118,
+        diastolic: 76
+      }
+    })
+  }
+
+  return prisma.wellness.create({
+    data: {
+      userId,
+      date: today,
+      hrv: 68,
+      restingHr: 52,
+      sleepHours: 7.8,
+      sleepScore: 85,
+      readiness: 88,
+      weight: 71.5,
+      systolic: 118,
+      diastolic: 76
+    }
+  })
+}
+
+export async function seedE2eChat(prisma: PrismaClient, userId: string) {
+  const existingRoom = await prisma.chatRoom.findFirst({
+    where: {
+      name: 'E2E Test Chat',
+      users: { some: { userId } }
+    }
+  })
+
+  let room = existingRoom
+  if (!room) {
+    room = await prisma.chatRoom.create({
+      data: {
+        name: 'E2E Test Chat',
+        users: {
+          create: { userId }
+        }
+      }
+    })
+  }
+
+  const existingMsg = await prisma.chatMessage.findFirst({
+    where: { roomId: room.id }
+  })
+
+  if (!existingMsg) {
+    await prisma.chatMessage.create({
+      data: {
+        roomId: room.id,
+        senderId: userId,
+        content: 'How should I pace my ride today?'
+      }
+    })
+
+    await prisma.chatMessage.create({
+      data: {
+        roomId: room.id,
+        senderId: 'assistant',
+        content:
+          'Based on your readiness score of 88 and sweet spot planned session, start warm-up in Zone 2.'
+      }
+    })
+  }
+
+  return room
 }
 
 export async function seedE2eData(prisma: PrismaClient) {
@@ -302,6 +483,9 @@ export async function seedE2eData(prisma: PrismaClient) {
   const softActivation = await seedE2eSoftActivation(prisma, users.athlete.id)
   const usableData = await seedE2eUsableData(prisma, users.athlete.id)
   const todayRecommendation = await seedE2eTodayRecommendation(prisma, users.athlete.id)
+  await seedE2ePlannedWorkouts(prisma, users.athlete.id)
+  await seedE2eWellness(prisma, users.athlete.id)
+  await seedE2eChat(prisma, users.athlete.id)
 
   return {
     ...users,

@@ -22,6 +22,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 - **Email System**: See `docs/02-features/email-communication.md`.
 - **Chat Development**: See `docs/04-guides/chat-development.md`.
 - **Timezone Handling**: See `docs/04-guides/timezone-handling.md`.
+- **E2E Testing**: See `docs/04-guides/e2e-testing.md`. Run targeted spec files during development (`pnpm exec playwright test <spec>`) and full suite (`pnpm test:e2e`) only when work is complete.
 
 ### Critical Prisma Workflow (DO NOT IGNORE)
 
