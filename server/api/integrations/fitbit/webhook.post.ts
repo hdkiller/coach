@@ -1,4 +1,3 @@
-import { requireAuth } from '../../../utils/auth-guard'
 import { logWebhookRequest } from '../../../utils/webhook-logger'
 import crypto from 'node:crypto'
 
@@ -34,7 +33,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const rawBody = await readRawBody(event)
   const headers = getRequestHeaders(event)
   const signature = headers['x-fitbit-signature']

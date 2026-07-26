@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { requireAuth } from '../../../utils/auth-guard'
 import { webhookQueue } from '../../../utils/queue'
 import { logWebhookRequest } from '../../../utils/webhook-logger'
 import { formatErrorMessage } from '../../../utils/log-format'
@@ -42,7 +41,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const body = await readBody(event)
   const headers = getRequestHeaders(event)
 

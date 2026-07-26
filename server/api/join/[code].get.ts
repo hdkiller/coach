@@ -1,4 +1,3 @@
-import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { coachingRepository } from '../../utils/repositories/coachingRepository'
 import { buildCoachJoinExperience } from '../../utils/public-join'
@@ -25,7 +24,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const code = getRouterParam(event, 'code')?.toUpperCase()
 
   if (!code) {

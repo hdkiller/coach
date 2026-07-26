@@ -1,9 +1,7 @@
 import { z } from 'zod'
-import { requireAuth } from '../../../utils/auth-guard'
 import { processWahooWebhookEvent } from '../../../utils/services/wahooService'
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const body = await readBody(event)
 
   if (!body) {

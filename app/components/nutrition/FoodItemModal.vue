@@ -322,6 +322,7 @@
             action: 'delete',
             mealType: state.value.mealType,
             itemId: currentItemId.value
+          }
         }
       )
       isOpen.value = false

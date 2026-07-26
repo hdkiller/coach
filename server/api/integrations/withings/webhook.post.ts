@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { requireAuth } from '../../../utils/auth-guard'
 import { dispatchTask } from '../../../utils/task-dispatcher'
 import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
 import { isWithingsWebhookVerification } from '../../../utils/withings-notifications'
@@ -44,7 +43,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   // Withings sends HEAD to verify the endpoint exists
   if (event.method === 'HEAD') {
     return 'OK'

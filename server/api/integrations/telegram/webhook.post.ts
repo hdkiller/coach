@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { requireAuth } from '../../../utils/auth-guard'
 import { prisma } from '../../../utils/db'
 import { chatService } from '../../../utils/services/chatService'
 import { sendTelegramMessage, sendTelegramAction } from '../../../utils/telegram'
@@ -9,7 +8,6 @@ import { transformHistoryToCoreMessages } from '../../../utils/ai-history'
 import { normalizeCoreMessagesForGemini } from '../../../utils/chat/core-message-normalizer'
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const secretToken = getHeader(event, 'x-telegram-bot-api-secret-token')
   if (secretToken !== process.env.TELEGRAM_WEBHOOK_SECRET) {
     throw createError({ statusCode: 403, message: 'Invalid secret token' })

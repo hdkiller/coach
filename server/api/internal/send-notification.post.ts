@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { requireAuth } from '../../utils/auth-guard'
 import { getInternalApiToken } from '../../utils/internal-api-token'
 import { sendToUserLocal } from '../../utils/ws-state'
 
@@ -9,7 +8,6 @@ import { sendToUserLocal } from '../../utils/ws-state'
  * process and the main Nuxt server which holds the active WebSocket connections.
  */
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const internalToken = getInternalApiToken()
   const incomingToken = getRequestHeader(event, 'x-internal-api-token')
 

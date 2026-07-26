@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { requireAuth } from '../../../utils/auth-guard'
 import { logWebhookRequest } from '../../../utils/webhook-logger'
 
 defineRouteMeta({
@@ -15,7 +14,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
   const method = getMethod(event)
 
   if (method === 'GET') {
