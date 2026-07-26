@@ -1,3 +1,4 @@
+import { startOfWeek } from 'date-fns'
 import { test, expect } from '../fixtures/test-fixtures.ts'
 import { E2E_ATHLETE_EMAIL } from '../seed.ts'
 import { createE2ePrisma } from '../helpers/db.ts'
@@ -24,12 +25,7 @@ test.describe('Nutrition fueling plan', () => {
 
   /** Monday of the current week, so the weekly-plan UI shows the days we seed. */
   function getWeekStart() {
-    const now = new Date()
-    const utcMidnight = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    )
-    const dayOfWeek = (utcMidnight.getUTCDay() + 6) % 7 // Monday = 0
-    return new Date(utcMidnight.getTime() - dayOfWeek * 86400000)
+    return startOfWeek(new Date(), { weekStartsOn: 1 })
   }
 
   const dayOffset = (offset: number) => new Date(getWeekStart().getTime() + offset * 86400000)
