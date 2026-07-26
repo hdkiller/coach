@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+  import { shallowRef } from 'vue'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
 
   const props = defineProps<{
@@ -98,7 +99,7 @@
   const theme = useTheme()
   const colorMode = useColorMode()
 
-  const mapObject = ref<any>(null)
+  const mapObject = shallowRef<any>(null)
   const zoom = ref(13)
   const center = ref<[number, number]>([0, 0])
   const scrubIndex = ref<number | null>(null)
