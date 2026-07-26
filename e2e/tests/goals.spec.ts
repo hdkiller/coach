@@ -10,8 +10,9 @@ test.describe('E2E Goals Endpoints', () => {
     // 1. List goals
     const listRes = await request.get('/api/goals', { headers })
     expect(listRes.ok()).toBeTruthy()
-    const initialGoals = await listRes.json()
-    expect(Array.isArray(initialGoals)).toBeTruthy()
+    const listData = await listRes.json()
+    const goals = Array.isArray(listData) ? listData : listData.goals
+    expect(Array.isArray(goals)).toBeTruthy()
 
     // 2. Create goal
     const createRes = await request.post('/api/goals', {

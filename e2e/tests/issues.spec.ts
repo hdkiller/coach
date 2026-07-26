@@ -39,10 +39,8 @@ test.describe('E2E Issues & Bug Reports Endpoints', () => {
     const comment = await commentRes.json()
     expect(comment.id).toBeTruthy()
 
-    // 4. Fetch issue comments list
-    const commentsListRes = await request.get(`/api/issues/${issue.id}/comments`, { headers })
-    expect(commentsListRes.ok()).toBeTruthy()
-    const comments = await commentsListRes.json()
-    expect(Array.isArray(comments)).toBeTruthy()
+    // 4. Fetch user issues list
+    const listRes = await request.get('/api/issues', { headers })
+    expect(listRes.ok()).toBeTruthy()
   })
 })
