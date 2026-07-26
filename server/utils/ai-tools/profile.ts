@@ -2,7 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod/v3'
 import { userRepository } from '../repositories/userRepository'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
-import { generateAthleteProfileTask } from '../../../trigger/generate-athlete-profile'
+import { dispatchTask } from '../task-dispatcher'
 import { prisma } from '../../utils/db'
 import { getStartOfDaysAgoUTC, getEndOfDayUTC } from '../../utils/date'
 import { LBS_TO_KG } from '../number'
@@ -59,7 +59,8 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
       })
 
       try {
-        await generateAthleteProfileTask.trigger(
+        await dispatchTask(
+          'generate-athlete-profile',
           {
             userId,
             reportId: report.id

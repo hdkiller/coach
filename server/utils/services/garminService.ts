@@ -1,5 +1,4 @@
 import { registerTaskHandler } from '../task-registry'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../db'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'

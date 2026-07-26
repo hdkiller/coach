@@ -9,52 +9,27 @@ import { WhoopService } from '../../server/utils/services/whoopService'
 import { OuraService } from '../../server/utils/services/ouraService'
 import { processStravaWebhookEvent } from '../../server/utils/services/stravaService'
 import { ResendService } from '../../server/utils/services/resendService'
-import '../../server/utils/services/workoutAnalysisService'
-import '../../server/utils/services/checkin-service'
-import '../../server/utils/services/emailDeliveryService'
-import '../../server/utils/services/accountDeletionService'
-import '../../trigger/hello-world'
-import '../../trigger/sentry-error-test'
-import '../../trigger/recommend-today-activity'
-import '../../trigger/generate-weekly-plan'
-import '../../trigger/autodetect-intervals-profile'
-import '../../trigger/analyze-wellness'
-import '../../trigger/ingest-strava-activity'
-import '../../trigger/ingest-strava-streams'
-import '../../trigger/ingest-intervals'
-import '../../trigger/ingest-oura'
-import '../../trigger/ingest-whoop'
-import '../../trigger/generate-training-block'
-import '../../trigger/generate-structured-workout'
-import '../../trigger/adjust-structured-workout'
-import '../../trigger/generate-report'
-import '../../trigger/generate-athlete-profile'
-import '../../trigger/generate-ad-hoc-workout'
-import '../../trigger/generate-recommendations'
-import '../../trigger/generate-score-explanations'
-import '../../trigger/analyze-nutrition'
-import '../../trigger/ingest-all'
-import '../../trigger/ingest-fit-file'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue, streamsQueue, mainTaskQueue } from '../../server/utils/queue'
 import { executeRegisteredTask, getRegisteredTaskIds } from '../../server/utils/task-registry'
-import { REDIS_TASK_IDS } from '../../server/utils/task-capabilities'
+import { ensureTaskHandlersRegistered, getLoadedTaskDefinitions } from './task-handler-loader'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
 import { formatErrorMessage } from '../../server/utils/log-format'
-import { formatTaskRunId } from '../../server/utils/task-dispatcher'
+import { dispatchTask, formatTaskRunId, getTaskDriver } from '../../server/utils/task-dispatcher'
 import { publishTaskRunUpdateEvent } from '../../server/utils/task-run-events'
 import { Command } from 'commander'
 import * as Sentry from '@sentry/node'
-import { tasks } from '@trigger.dev/sdk/v3'
 
 export const startCommand = new Command('start')
   .description('Start the webhook worker')
   .action(async () => {
+    await ensureTaskHandlersRegistered()
+    const taskDefinitions = getLoadedTaskDefinitions()
     const registeredTaskIds = new Set(getRegisteredTaskIds())
-    const missingTaskIds = Array.from(REDIS_TASK_IDS).filter(
-      (taskId) => !registeredTaskIds.has(taskId)
-    )
+    const missingTaskIds = taskDefinitions
+      .map((task) => task.id)
+      .filter((taskId) => !registeredTaskIds.has(taskId))
     if (missingTaskIds.length > 0) {
       throw new Error(`Redis task handlers missing at worker startup: ${missingTaskIds.join(', ')}`)
     }
@@ -79,18 +54,67 @@ export const startCommand = new Command('start')
       retryStrategy: (times) => getRedisRetryDelay(times)
     })
 
+    if (getTaskDriver() === 'redis') {
+      const scheduledTasks = taskDefinitions.filter((task) => task.schedule?.cron)
+      const desiredSchedulerIds = new Set(
+        scheduledTasks.map((definition) => `task-schedule:${definition.id}`)
+      )
+      const existingSchedulers = await mainTaskQueue.getJobSchedulers(0, -1, true)
+      await Promise.all(
+        existingSchedulers
+          .filter(
+            (scheduler) =>
+              scheduler.key.startsWith('task-schedule:') && !desiredSchedulerIds.has(scheduler.key)
+          )
+          .map((scheduler) => mainTaskQueue.removeJobScheduler(scheduler.key))
+      )
+      await Promise.all(
+        scheduledTasks.map((definition) =>
+          mainTaskQueue.upsertJobScheduler(
+            `task-schedule:${definition.id}`,
+            {
+              pattern: definition.schedule!.cron,
+              tz: definition.schedule?.timezone || 'UTC'
+            },
+            {
+              name: definition.id,
+              data: {
+                schedule: {
+                  scheduleId: `task-schedule:${definition.id}`,
+                  timezone: definition.schedule?.timezone || 'UTC'
+                },
+                options: {
+                  queueName: definition.queue?.name,
+                  concurrencyLimit: definition.queue?.concurrencyLimit,
+                  maxDuration: definition.maxDuration,
+                  tags: ['system:schedule']
+                }
+              },
+              opts: {
+                attempts: definition.retry?.maxAttempts || 3,
+                backoff: { type: 'exponential', delay: 1000 }
+              }
+            }
+          )
+        )
+      )
+      console.log(chalk.green(`✔ Registered ${scheduledTasks.length} Redis task schedules`))
+    }
+
     const concurrency = parseInt(process.env.CW_WORKER_QUEUE_WEBHOOK_CONCURRENCY || '5')
     const streamConcurrency = parseInt(process.env.CW_WORKER_QUEUE_STREAM_CONCURRENCY || '2')
     let restartRequested = false
     const taskConcurrencyByKey = new Map<string, { active: number; waiters: Array<() => void> }>()
-    const concurrencyPerTaskKey = 5
-
-    const runWithConcurrencyKey = async <T>(key: string | undefined, work: () => Promise<T>) => {
+    const runWithConcurrencyKey = async <T>(
+      key: string | undefined,
+      limit: number,
+      work: () => Promise<T>
+    ) => {
       if (!key) return work()
 
       const state = taskConcurrencyByKey.get(key) || { active: 0, waiters: [] }
       taskConcurrencyByKey.set(key, state)
-      if (state.active >= concurrencyPerTaskKey) {
+      if (state.active >= limit) {
         await new Promise<void>((resolve) => state.waiters.push(resolve))
       }
       state.active++
@@ -404,7 +428,7 @@ export const startCommand = new Command('start')
             }
 
             try {
-              await tasks.trigger(
+              await dispatchTask(
                 'ingest-fitbit',
                 {
                   userId: integration.userId,
@@ -505,7 +529,7 @@ export const startCommand = new Command('start')
             // For now, triggering full sync is fine.
 
             // Wait, we need to pass userId. It's in the job data.
-            await tasks.trigger(
+            await dispatchTask(
               'ingest-polar',
               {
                 userId
@@ -837,7 +861,16 @@ export const startCommand = new Command('start')
       'mainTaskQueue',
       async (job: Job) => {
         const taskId = job.name
-        const { payload } = job.data || {}
+        const scheduled = job.data?.schedule
+        const payload = scheduled
+          ? {
+              scheduleId: scheduled.scheduleId,
+              type: 'DECLARATIVE',
+              timestamp: new Date(job.timestamp),
+              timezone: scheduled.timezone || 'UTC',
+              upcoming: []
+            }
+          : job.data?.payload
         const options = job.data?.options || {}
         const tags = Array.isArray(options.tags) ? options.tags : []
         const userTag = tags.find(
@@ -857,9 +890,25 @@ export const startCommand = new Command('start')
         }
 
         try {
-          const result = await runWithConcurrencyKey(options.concurrencyKey, () =>
-            executeRegisteredTask(taskId, payload)
-          )
+          const queueScope = options.queueName
+            ? `${options.queueName}:${options.concurrencyKey || 'global'}`
+            : options.concurrencyKey
+          const concurrencyLimit = Math.max(1, Number(options.concurrencyLimit) || 5)
+          const abortController = new AbortController()
+          const maxDurationMs = Number(options.maxDuration) * 1000
+          const durationTimer = Number.isFinite(maxDurationMs)
+            ? setTimeout(() => abortController.abort(), maxDurationMs)
+            : undefined
+          const result = await runWithConcurrencyKey(queueScope, concurrencyLimit, () =>
+            executeRegisteredTask(taskId, payload, {
+              runId,
+              signal: abortController.signal,
+              attemptNumber: job.attemptsMade + 1,
+              maxAttempts: typeof job.opts.attempts === 'number' ? job.opts.attempts : 1
+            })
+          ).finally(() => {
+            if (durationTimer) clearTimeout(durationTimer)
+          })
           const finishedAt = new Date().toISOString()
           console.log(chalk.green(`[TaskJob ${job.id}] Completed task ${chalk.bold(taskId)}`))
           if (userId) {

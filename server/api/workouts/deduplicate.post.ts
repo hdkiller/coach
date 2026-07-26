@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       ? [...targetBestWorkoutIds].map(String).sort()
       : []
     const idempotencyKey = `deduplicate-workouts:manual:${userId}:${dryRun ? 'dry' : 'live'}:${targetIds.join(',') || 'all'}`
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'deduplicate-workouts',
       { userId, dryRun, targetBestWorkoutIds },
       {

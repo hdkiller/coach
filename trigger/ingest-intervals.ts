@@ -1,5 +1,5 @@
 import './init'
-import { heartbeats, logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'
@@ -8,6 +8,7 @@ import { getUserTimezone, getEndOfDayUTC, getUserLocalDate } from '../server/uti
 import { shouldIngestWellness } from '../server/utils/integration-settings'
 import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import type { IngestionResult } from './types'
+import { yieldTaskHeartbeat } from '../server/utils/task-runtime'
 import { registerTaskHandler } from '../server/utils/task-registry'
 
 type IngestIntervalsPayload = {
@@ -78,7 +79,7 @@ export async function runIngestIntervals(
       }
     }
 
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Fetch planned workouts (import all categories)
     logger.log('Syncing planned workouts...')
@@ -91,14 +92,14 @@ export async function runIngestIntervals(
       `Upserted ${plannedWorkoutsUpserted} planned workouts, ${eventsUpserted} racing events, and ${notesUpserted} calendar notes`
     )
 
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Fetch activities
     logger.log('Syncing activities...')
     const workoutsUpserted = await IntervalsService.syncActivities(userId, start, historicalEnd)
     logger.log(`Upserted ${workoutsUpserted} workouts`)
 
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     let wellnessUpserted = 0
     if (shouldIngestWellness(settings)) {

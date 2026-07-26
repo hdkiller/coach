@@ -4,15 +4,15 @@ Coach Watts has a large generated Nitro route map, so request typing can dominat
 
 ## Commands
 
-| Command | Use it for |
-| --- | --- |
-| `pnpm typecheck` | Canonical clean check. Regenerates Nuxt types first and checks every Nuxt project. Use before handing work off or opening a PR. |
-| `pnpm typecheck:prepare` | Refresh `.nuxt` types after changing routes, modules, or Nuxt configuration. |
-| `pnpm typecheck:fast` | Check all projects using the existing `.nuxt` tree. Use during normal editing after preparation. |
-| `pnpm typecheck:app` | Check only Vue and app code. |
-| `pnpm typecheck:server` | Check only server and shared server dependencies. |
-| `pnpm typecheck:watch` | Keep the prepared project graph open and report changes continuously. |
-| `pnpm typecheck:diagnostics` | Print TypeScript timing, memory, and instantiation counts when investigating a regression. |
+| Command                      | Use it for                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`             | Canonical clean check. Regenerates Nuxt types first and checks every Nuxt project. Use before handing work off or opening a PR. |
+| `pnpm typecheck:prepare`     | Refresh `.nuxt` types after changing routes, modules, or Nuxt configuration.                                                    |
+| `pnpm typecheck:fast`        | Check all projects using the existing `.nuxt` tree. Use during normal editing after preparation.                                |
+| `pnpm typecheck:app`         | Check only Vue and app code.                                                                                                    |
+| `pnpm typecheck:server`      | Check only server and shared server dependencies.                                                                               |
+| `pnpm typecheck:watch`       | Keep the prepared project graph open and report changes continuously.                                                           |
+| `pnpm typecheck:diagnostics` | Print TypeScript timing, memory, and instantiation counts when investigating a regression.                                      |
 
 The check commands set an 8 GB Node heap ceiling. This is a safety margin for the full Vue project, not a target: unusually high memory or tens of millions of type instantiations should still be investigated.
 
@@ -54,4 +54,4 @@ As a reference, changing the nutrition feeder's three external calls from global
 
 ## Alternative checker
 
-Nuxt 4.5 can invoke Golar with `nuxt typecheck --checker=golar`. Golar uses the TypeScript 7 codebase and remains an opt-in compatibility experiment; do not replace the canonical Vue TypeScript check until it reports the same project cleanly and its Nuxt/Vue coverage has been validated.
+Nuxt 4.5 can invoke Golar, but Golar 0.1.10 is not compatible with this project yet. A July 2026 evaluation completed in 55.6 seconds but reported roughly 1,090 incompatibility errors, including Nitro route-stack failures and OpenAPI schema differences, while peaking near 7.3 GB RSS. It is therefore not installed and must not replace the canonical Vue TypeScript checker without a fresh compatibility evaluation.

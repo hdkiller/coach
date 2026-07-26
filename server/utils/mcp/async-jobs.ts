@@ -1,5 +1,5 @@
 import { prisma } from '../db'
-import { isRunIdRunning } from '../trigger-check'
+import { getTaskRun } from '../task-dispatcher'
 
 export type AsyncJobType = 'structure_generation' | 'report' | 'trigger_run' | 'workout_analysis'
 
@@ -26,7 +26,7 @@ export async function getAsyncJobStatus(
     case 'report':
       return getReportStatus(userId, jobId)
     case 'trigger_run':
-      return getTriggerRunStatus(jobId)
+      return getTriggerRunStatus(userId, jobId)
     case 'workout_analysis':
       return getWorkoutAnalysisStatus(userId, jobId)
     default:
@@ -143,16 +143,33 @@ async function getWorkoutAnalysisStatus(
   }
 }
 
-async function getTriggerRunStatus(runId: string): Promise<AsyncJobStatus> {
+async function getTriggerRunStatus(userId: string, runId: string): Promise<AsyncJobStatus> {
   try {
-    const running = await isRunIdRunning(runId)
+    const run = await getTaskRun(runId)
+    if (!run || !run.tags.includes(`user:${userId}`)) {
+      return {
+        job_type: 'trigger_run',
+        job_id: runId,
+        status: 'NOT_FOUND',
+        completed: false,
+        failed: false
+      }
+    }
+    const completed = ['COMPLETED', 'FAILED', 'CANCELED', 'TIMED_OUT', 'CRASHED'].includes(
+      run.status
+    )
+    const failed = ['FAILED', 'TIMED_OUT', 'CRASHED'].includes(run.status)
     return {
       job_type: 'trigger_run',
       job_id: runId,
-      status: running ? 'RUNNING' : 'COMPLETED',
-      completed: !running,
-      failed: false,
-      result: { trigger_run_id: runId }
+      status: run.status,
+      completed,
+      failed,
+      error:
+        run.error && typeof run.error === 'object' && 'message' in run.error
+          ? String(run.error.message)
+          : null,
+      result: { trigger_run_id: runId, output: run.output }
     }
   } catch {
     return {

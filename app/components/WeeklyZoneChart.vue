@@ -60,6 +60,19 @@
 
   ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
+  interface WeeklyZonesResponse {
+    weeks: Array<{
+      weekStart: string
+      powerZones: number[]
+      hrZones: number[]
+      totalDuration: number
+    }>
+    zoneLabels: {
+      power: string[]
+      hr: string[]
+    }
+  }
+
   const props = defineProps<{
     weeks?: number | string
     sport?: string
@@ -76,13 +89,16 @@
 
   const selectedType = ref<'power' | 'hr'>('power')
 
-  const { data, pending, refresh } = await useFetch('/api/analytics/weekly-zones', {
-    query: computed(() => ({
-      weeks: props.weeks || 12,
-      sport: props.sport,
-      tags: props.tags?.join(',')
-    }))
-  })
+  const { data, pending, refresh } = await useFetch<WeeklyZonesResponse, Error, string & {}>(
+    '/api/analytics/weekly-zones',
+    {
+      query: computed(() => ({
+        weeks: props.weeks || 12,
+        sport: props.sport,
+        tags: props.tags?.join(',')
+      }))
+    }
+  )
 
   watch(
     () => [props.weeks, props.sport, props.tags?.join(',')],

@@ -111,6 +111,9 @@ importers:
       '@tolgee/web':
         specifier: ^7.1.1
         version: 7.1.1
+      '@trigger.dev/core':
+        specifier: 4.5.4
+        version: 4.5.4
       '@trigger.dev/sdk':
         specifier: 4.5.4
         version: 4.5.4(ai@7.0.18(zod@4.4.3))(react@18.3.1)(zod@4.4.3)
@@ -210,10 +213,10 @@ importers:
       nuxt-gtag:
         specifier: ^4.1.0
         version: 4.1.0(magicast@0.3.5)
-      pg:
       ofetch:
         specifier: ^1.5.1
         version: 1.5.1
+      pg:
         specifier: ^8.22.0
         version: 8.22.0
       pinia:

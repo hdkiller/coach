@@ -27,8 +27,7 @@ import { athleteMetricsService } from '../athleteMetricsService'
 import { normalizeTSS } from '../normalize-tss'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import { getUserTimezone, getEndOfDayUTC } from '../date'
-import { heartbeats, tasks } from '@trigger.dev/sdk/v3'
-import { userIngestionQueue } from '../../../trigger/queues'
+import { yieldTaskHeartbeat } from '../task-runtime'
 import {
   calculateLapSplits,
   calculatePaceVariability,
@@ -463,7 +462,7 @@ export const IntervalsService = {
 
     // Process in 14-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
-      await heartbeats.yield()
+      await yieldTaskHeartbeat()
       chunkIndex++
 
       const currentStart = new Date(currentEnd)
@@ -586,7 +585,7 @@ export const IntervalsService = {
     let activityIndex = 0
 
     for (const summaryActivity of pendingActivities) {
-      await heartbeats.yield()
+      await yieldTaskHeartbeat()
       activityIndex++
       console.log(
         `[Intervals Sync] Processing activity ${activityIndex}/${pendingActivities.length}: ${summaryActivity.id} | ${summaryActivity.name || 'Unnamed Activity'}`
@@ -675,7 +674,7 @@ export const IntervalsService = {
    * Sync activity stream data including pacing metrics.
    */
   async syncActivityStream(userId: string, workoutId: string, activityId: string) {
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Get Intervals integration
     const integration = await prisma.integration.findFirst({
@@ -691,7 +690,7 @@ export const IntervalsService = {
 
     // Fetch streams from Intervals.icu API
     const streams = await fetchIntervalsActivityStreams(integration, activityId)
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Check if we got any stream data
     if (
@@ -741,7 +740,7 @@ export const IntervalsService = {
       if (hrZones.length === 0) hrZones = (user?.hrZones as any[]) || DEFAULT_HR_ZONES
       if (powerZones.length === 0) powerZones = (user?.powerZones as any[]) || DEFAULT_POWER_ZONES
     }
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     const hrZoneTimes: number[] | null =
       heartrateData && hrZones.length > 0 ? new Array(hrZones.length).fill(0) : null
@@ -758,7 +757,7 @@ export const IntervalsService = {
         }
       }
     }
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     const powerZoneTimes: number[] | null =
       wattsData && powerZones.length > 0 ? new Array(powerZones.length).fill(0) : null
@@ -775,7 +774,7 @@ export const IntervalsService = {
         }
       }
     }
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Calculate pacing metrics
     let lapSplits = null
@@ -810,7 +809,7 @@ export const IntervalsService = {
         surges = detectSurges(velocityData, timeData)
       }
     }
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // Store in database
     await workoutStreamRepository.upsert(workoutId, {
@@ -841,13 +840,13 @@ export const IntervalsService = {
     if (!workoutStream) {
       throw new Error(`Failed to persist streams for workout ${workoutId}`)
     }
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     // If Intervals summary omitted power metrics (common on some running activities),
     // backfill from the stored watts stream so downstream AI/context has usable values.
     const streamPowerSummary = summarizePowerFromWatts(wattsData)
     const streamElevationGain = computeElevationGainFromAltitudeStream(altitudeData)
-    await heartbeats.yield()
+    await yieldTaskHeartbeat()
 
     if (streamPowerSummary || streamElevationGain !== null) {
       const workout = await prisma.workout.findUnique({
@@ -892,7 +891,7 @@ export const IntervalsService = {
             where: { id: workoutId },
             data: updateData
           })
-          await heartbeats.yield()
+          await yieldTaskHeartbeat()
         }
       }
     }
@@ -956,7 +955,7 @@ export const IntervalsService = {
 
     // Process in 365-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
-      await heartbeats.yield()
+      await yieldTaskHeartbeat()
       chunkIndex++
 
       const currentStart = new Date(currentEnd)
@@ -1001,7 +1000,7 @@ export const IntervalsService = {
       }
 
       for (const wellness of sortedWellness) {
-        await heartbeats.yield()
+        await yieldTaskHeartbeat()
 
         const isNew = await upsertIntervalsWellnessSnapshot(userId, wellness, {
           readinessScale,
@@ -1239,7 +1238,7 @@ export const IntervalsService = {
     let plannedIndex = 0
 
     for (const planned of plannedWorkouts) {
-      await heartbeats.yield()
+      await yieldTaskHeartbeat()
       plannedIndex++
       console.log(
         `[Intervals Sync] Processing planned item ${plannedIndex}/${plannedWorkouts.length}: ${planned.id} | ${planned.name || 'Unnamed Item'}`

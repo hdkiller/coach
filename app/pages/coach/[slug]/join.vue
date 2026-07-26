@@ -102,8 +102,8 @@
   } = await useAsyncData(
     () => `coach-join-${slug.value}`,
     async (): Promise<CoachJoinResponse> => {
-      // Cast breaks Nitro's deep $fetch route inference (TS2589).
-      return (await $fetch(`/api/public/coaches/${slug.value}/join`)) as CoachJoinResponse
+      // Widen the request generic so Nitro does not compare this dynamic URL to every route.
+      return $fetch<CoachJoinResponse, string & {}>(`/api/public/coaches/${slug.value}/join`)
     },
     { watch: [slug] }
   )
@@ -143,7 +143,7 @@
 
     joining.value = true
     try {
-      await $fetch(`/api/join/${inviteCode.value}`, { method: 'POST' })
+      await $fetch<unknown, string & {}>(`/api/join/${inviteCode.value}`, { method: 'POST' })
       toast.add({
         title: 'Successfully connected with coach!',
         color: 'success'

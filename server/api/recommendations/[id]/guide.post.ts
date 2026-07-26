@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 defineRouteMeta({
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   if (!user) throw createError({ statusCode: 404, message: 'User not found' })
 
   // Trigger the generation task
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-implementation-guide',
     {
       userId: user.id,

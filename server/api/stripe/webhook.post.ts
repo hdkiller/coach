@@ -3,7 +3,7 @@ import type { SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { auditLogRepository } from '../../utils/repositories/auditLogRepository'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { getPriceProductId, resolveSubscriptionTier } from '../../utils/subscription-tier'
 import { upsertProviderSubscription } from '../../utils/provider-subscriptions'
 import { trackStripeInRevenueCat } from '../../utils/revenuecat'
@@ -99,7 +99,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription, event
 
     if (shouldSetStartedAt) {
       try {
-        await tasks.trigger('send-email', {
+        await dispatchTask('send-email', {
           userId: user.id,
           templateKey: 'SubscriptionStarted',
           eventKey: `SUBSCRIPTION_STARTED_${tier}`,

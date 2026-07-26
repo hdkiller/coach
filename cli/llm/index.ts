@@ -131,6 +131,11 @@ llmCommand
   .action(async (roomId, options) => {
     const isProd = options.prod
     const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+    if (isProd) {
+      process.env.TRIGGER_SECRET_KEY =
+        process.env.TRIGGER_PROD_SECRET_KEY || process.env.TRIGGER_SECRET_KEY_PROD
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
+    }
 
     const pool = new pg.Pool({ connectionString })
     const adapter = new PrismaPg(pool)
@@ -151,8 +156,12 @@ llmCommand
       }
 
       // 2. Trigger the task
-      const { summarizeChatTask } = await import('../../trigger/summarize-chat')
-      const result = await summarizeChatTask.trigger({ roomId, userId: participant.userId })
+      const { dispatchTask } = await import('../../server/utils/task-dispatcher')
+      const result = await dispatchTask(
+        'summarize-chat',
+        { roomId, userId: participant.userId },
+        { tags: [`user:${participant.userId}`] }
+      )
 
       console.log(chalk.green(`✅ Summarization task triggered!`))
       console.log(chalk.gray(`Run ID: ${result.id}`))

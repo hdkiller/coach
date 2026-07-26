@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'analyze-plan-adherence',
       {
         workoutId: workout.id,

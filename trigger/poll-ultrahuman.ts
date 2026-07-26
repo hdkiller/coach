@@ -1,7 +1,8 @@
-import { schedules, tasks } from '@trigger.dev/sdk/v3'
+import { schedules } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import type { UltrahumanSettings } from '../server/utils/ultrahuman'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 export const pollUltrahumanTask = schedules.task({
   id: 'poll-ultrahuman',
@@ -65,7 +66,7 @@ export const pollUltrahumanTask = schedules.task({
             `[Ultrahuman Poller] Triggering ingestion for ${userId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`
           )
 
-          await tasks.trigger(
+          await dispatchTask(
             'ingest-ultrahuman',
             {
               userId,

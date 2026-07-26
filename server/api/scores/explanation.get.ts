@@ -1,6 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
 
 defineRouteMeta({
   openAPI: {

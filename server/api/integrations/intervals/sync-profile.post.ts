@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Trigger profile auto-detection with forceUpdate: true to ensure it runs
-    await tasks.trigger(
+    await dispatchTask(
       'autodetect-intervals-profile',
       {
         userId: user.id,

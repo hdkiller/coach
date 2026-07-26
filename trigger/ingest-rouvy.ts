@@ -1,11 +1,12 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { fetchRouvyActivities, normalizeRouvyActivity } from '../server/utils/rouvy'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import type { IngestionResult } from './types'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 export const ingestRouvyTask = task({
   id: 'ingest-rouvy',
@@ -99,7 +100,7 @@ export const ingestRouvyTask = task({
 
         // Trigger FIT file ingestion for ROUVY activities to get high-res data
         logger.log(`Triggering FIT file ingestion for ROUVY activity: ${activity.activityId}`)
-        await tasks.trigger(
+        await dispatchTask(
           'ingest-rouvy-fit',
           {
             userId,

@@ -1,8 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod/v3'
 import { workoutRepository } from '../repositories/workoutRepository'
-import { ingestAllTask } from '../../../trigger/ingest-all'
-import { generateReportTask } from '../../../trigger/generate-report'
+import { dispatchTask } from '../task-dispatcher'
 import { prisma } from '../../utils/db'
 import {
   getStartOfDaysAgoUTC,
@@ -331,7 +330,8 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       const endDate = formatUserDate(new Date(), timezone, 'yyyy-MM-dd')
 
       try {
-        const handle = await ingestAllTask.trigger(
+        const handle = await dispatchTask(
+          'ingest-all',
           { userId, startDate, endDate },
           {
             tags: [`user:${userId}`, 'manual-sync'],
@@ -394,7 +394,8 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       })
 
       try {
-        await generateReportTask.trigger(
+        await dispatchTask(
+          'generate-report',
           { userId, reportId: report.id, templateId },
           {
             tags: [`user:${userId}`, `report:${report.id}`],

@@ -1,6 +1,7 @@
-import { task, logger, wait } from '@trigger.dev/sdk/v3'
+import { task, logger } from '@trigger.dev/sdk/v3'
 import { GarminService } from '../server/utils/services/garminService'
 import { userIngestionQueue } from './queues'
+import { waitForTaskSeconds } from '../server/utils/task-runtime'
 
 export const garminBackfillTask = task({
   id: 'garmin-backfill',
@@ -11,7 +12,7 @@ export const garminBackfillTask = task({
 
     if (delaySeconds > 0) {
       logger.log(`Waiting ${delaySeconds}s before starting Garmin backfill for user ${userId}...`)
-      await wait.for({ seconds: delaySeconds })
+      await waitForTaskSeconds(delaySeconds)
     }
 
     logger.log(`Starting sequential Garmin backfill for user ${userId}`)

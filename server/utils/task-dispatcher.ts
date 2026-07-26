@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { runs } from '@trigger.dev/sdk/v3'
+import { runs, tasks } from '@trigger.dev/sdk/v3'
 import type { Job, JobsOptions } from 'bullmq'
 import { mainTaskQueue } from './queue'
-import { isRedisTaskSupported } from './task-capabilities'
-import { executeRegisteredTask } from './task-registry'
-import { ensureTaskHandlersRegistered } from './task-handler-loader'
-import { safeTriggerTask } from './trigger-check'
+import { executeRegisteredTask, getCurrentTaskExecution, hasTaskHandler } from './task-registry'
+import { isRunFresh, safeTriggerTask } from './trigger-check'
+import taskManifest from './task-manifest.json'
 
 export type TaskQueueDriver = 'trigger' | 'redis' | 'inline'
 
 export interface TaskDispatchOptions {
   id?: string
+  idempotencyKey?: string
+  idempotencyKeyTTL?: string
   delay?: number | string
   concurrencyKey?: string
   tags?: string[]
@@ -46,6 +47,26 @@ const DEFAULT_REDIS_ATTEMPTS = 3
 const DEFAULT_REDIS_BACKOFF_MS = 1000
 
 const inlineRuns = new Map<string, TaskRunRecord>()
+type TaskDefinition = {
+  id: string
+  maxDuration?: number
+  retry?: {
+    maxAttempts?: number
+    factor?: number
+    minTimeoutInMs?: number
+    maxTimeoutInMs?: number
+    randomize?: boolean
+  }
+  queue?: { name?: string; concurrencyLimit?: number }
+  schedule?: { cron: string; timezone?: string }
+}
+const taskDefinitionById = new Map(
+  (taskManifest as TaskDefinition[]).map((definition) => [definition.id, definition] as const)
+)
+
+function getTaskDefinition(taskIdentifier: string): TaskDefinition | undefined {
+  return taskDefinitionById.get(taskIdentifier)
+}
 
 /** Resolves the configured backend used for newly dispatched tasks. */
 export function getTaskDriver(): TaskQueueDriver {
@@ -110,6 +131,16 @@ function buildRedisJobId(taskIdentifier: string, requestedId?: string): string |
   return `${taskIdentifier.replace(/[^a-zA-Z0-9_-]/g, '-')}-${digest}`
 }
 
+function toTriggerOptions(options?: TaskDispatchOptions) {
+  if (!options) return undefined
+  const triggerOptions: Record<string, unknown> = {
+    ...options,
+    ...(options.id ? { idempotencyKey: options.id } : {})
+  }
+  delete triggerOptions.id
+  return triggerOptions
+}
+
 function normalizeRedisStatus(state: string): string {
   switch (state) {
     case 'active':
@@ -159,23 +190,28 @@ export async function dispatchTask(
   const driver = getTaskDriver()
 
   if (driver === 'trigger') {
-    const triggerOptions = options
-      ? {
-          ...options,
-          ...(options.id ? { idempotencyKey: options.id } : {})
-        }
-      : undefined
-    if (triggerOptions) delete (triggerOptions as Record<string, unknown>).id
+    const triggerOptions = toTriggerOptions(options)
     return await safeTriggerTask(taskIdentifier, payload, triggerOptions)
   }
 
   if (driver === 'redis') {
-    if (!isRedisTaskSupported(taskIdentifier)) {
+    const definition = getTaskDefinition(taskIdentifier)
+    if (!definition) {
       throw new Error(`Task is not available with the Redis driver: ${taskIdentifier}`)
     }
+    const requestedId = options?.id || options?.idempotencyKey
+    const redisId = buildRedisJobId(taskIdentifier, requestedId)
     const jobOptions: JobsOptions = {
-      jobId: buildRedisJobId(taskIdentifier, options?.id),
-      attempts: options?.retry?.maxAttempts || DEFAULT_REDIS_ATTEMPTS,
+      ...(options?.idempotencyKeyTTL && redisId
+        ? {
+            deduplication: {
+              id: redisId,
+              ttl: parseDelay(options.idempotencyKeyTTL)
+            }
+          }
+        : { jobId: redisId }),
+      attempts:
+        options?.retry?.maxAttempts || definition?.retry?.maxAttempts || DEFAULT_REDIS_ATTEMPTS,
       backoff: { type: 'exponential', delay: DEFAULT_REDIS_BACKOFF_MS }
     }
 
@@ -189,7 +225,10 @@ export async function dispatchTask(
         payload,
         options: {
           concurrencyKey: options?.concurrencyKey,
-          tags: options?.tags
+          tags: options?.tags,
+          queueName: definition?.queue?.name,
+          concurrencyLimit: definition?.queue?.concurrencyLimit,
+          maxDuration: definition?.maxDuration
         }
       },
       jobOptions
@@ -211,7 +250,6 @@ export async function dispatchTask(
   })
 
   try {
-    await ensureTaskHandlersRegistered()
     const output = await executeRegisteredTask(taskIdentifier, payload)
     inlineRuns.set(id, {
       id,
@@ -235,6 +273,77 @@ export async function dispatchTask(
     })
     throw error
   }
+}
+
+export async function dispatchTaskAndWait<T = unknown>(
+  taskIdentifier: string,
+  payload: any,
+  options?: TaskDispatchOptions
+): Promise<{ ok: true; output: T } | { ok: false; error: unknown }> {
+  const driver = getTaskDriver()
+
+  if (driver === 'trigger') {
+    const result = await tasks.triggerAndWait(
+      taskIdentifier,
+      payload,
+      toTriggerOptions(options) as any
+    )
+    return result.ok ? { ok: true, output: result.output as T } : { ok: false, error: result.error }
+  }
+
+  const definition = getTaskDefinition(taskIdentifier)
+  if (
+    !definition ||
+    ((driver === 'inline' || getCurrentTaskExecution()) && !hasTaskHandler(taskIdentifier))
+  ) {
+    return {
+      ok: false,
+      error: new Error(`Task is not available with the ${driver} driver: ${taskIdentifier}`)
+    }
+  }
+
+  // A Redis worker waiting on another job in the same queue can deadlock when
+  // all worker slots are occupied by parents. Execute awaited child tasks in
+  // the current worker context, while preserving the child's retry policy.
+  if (driver === 'inline' || getCurrentTaskExecution()) {
+    const maxAttempts = Math.max(
+      1,
+      options?.retry?.maxAttempts || definition?.retry?.maxAttempts || DEFAULT_REDIS_ATTEMPTS
+    )
+    const parentExecution = getCurrentTaskExecution()
+    for (let attemptNumber = 1; attemptNumber <= maxAttempts; attemptNumber++) {
+      try {
+        const output = await executeRegisteredTask(taskIdentifier, payload, {
+          runId: formatTaskRunId(driver, randomUUID()),
+          signal: parentExecution?.signal,
+          attemptNumber,
+          maxAttempts
+        })
+        return { ok: true, output: output as T }
+      } catch (error) {
+        if (attemptNumber === maxAttempts) return { ok: false, error }
+        const factor = definition?.retry?.factor || 2
+        const minimum = definition?.retry?.minTimeoutInMs || DEFAULT_REDIS_BACKOFF_MS
+        const maximum = definition?.retry?.maxTimeoutInMs || 60_000
+        let delay = Math.min(maximum, minimum * factor ** (attemptNumber - 1))
+        if (definition?.retry?.randomize) delay *= 0.5 + Math.random()
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  const handle = await dispatchTask(taskIdentifier, payload, options)
+  const timeoutAt = Date.now() + 60 * 60 * 1000
+  while (Date.now() < timeoutAt) {
+    const run = await getTaskRun(handle.id)
+    if (!run) return { ok: false, error: new Error(`Task run disappeared: ${handle.id}`) }
+    if (run.status === 'COMPLETED') return { ok: true, output: run.output as T }
+    if (['FAILED', 'CANCELED', 'TIMED_OUT', 'CRASHED'].includes(run.status)) {
+      return { ok: false, error: run.error || new Error(`Task ended with ${run.status}`) }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  return { ok: false, error: new Error(`Timed out waiting for task: ${taskIdentifier}`) }
 }
 
 export async function getTaskRun(runId: string): Promise<TaskRunRecord | null> {
@@ -344,6 +453,46 @@ async function listTriggerRunsForUser(userId: string, limit: number): Promise<Ta
   }))
 }
 
+async function listRecentTriggerRuns(limit: number): Promise<TaskRunRecord[]> {
+  const response = await runs.list({ limit })
+  return response.data.map((run) => ({
+    id: run.id,
+    taskIdentifier: run.taskIdentifier,
+    status: run.status,
+    startedAt: new Date(run.startedAt || run.createdAt).toISOString(),
+    ...(run.finishedAt ? { finishedAt: new Date(run.finishedAt).toISOString() } : {}),
+    isTest: run.isTest,
+    tags: Array.isArray(run.tags) ? run.tags : []
+  }))
+}
+
+/** Lists recent runs across the active driver and any configured legacy Trigger backend. */
+export async function listRecentTaskRuns(limit = 50): Promise<TaskRunRecord[]> {
+  const driver = getTaskDriver()
+  if (driver === 'trigger') return listRecentTriggerRuns(limit)
+
+  const localRuns =
+    driver === 'inline'
+      ? Array.from(inlineRuns.values())
+      : await Promise.all(
+          (
+            await mainTaskQueue.getJobs(
+              ['active', 'waiting', 'delayed', 'completed', 'failed'],
+              0,
+              Math.max(limit * 2, 100) - 1,
+              false
+            )
+          ).map(redisJobToRun)
+        )
+  const legacyRuns = process.env.TRIGGER_SECRET_KEY
+    ? await listRecentTriggerRuns(limit).catch(() => [])
+    : []
+
+  return [...localRuns, ...legacyRuns]
+    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+    .slice(0, limit)
+}
+
 export async function cancelTaskRun(
   runId: string
 ): Promise<{ canceled: boolean; reason?: string }> {
@@ -391,6 +540,9 @@ export async function isTaskRunningForUser(
 ): Promise<boolean> {
   const runsForUser = await listTaskRunsForUser(userId, 100)
   return runsForUser.some(
-    (run) => run.taskIdentifier === taskIdentifier && ACTIVE_RUN_STATUSES.has(run.status)
+    (run) =>
+      run.taskIdentifier === taskIdentifier &&
+      ACTIVE_RUN_STATUSES.has(run.status) &&
+      (!run.id.startsWith('run_') || isRunFresh(run))
   )
 }

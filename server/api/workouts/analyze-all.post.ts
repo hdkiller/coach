@@ -1,5 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { getQuotaStatus } from '../../utils/quotas/engine'
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
     // Trigger analysis jobs for each workout with per-user concurrency
     const triggerPromises = workoutsToAnalyze.map(async (workout) => {
       try {
-        const handle = await tasks.trigger(
+        const handle = await dispatchTask(
           'analyze-workout',
           {
             workoutId: workout.id

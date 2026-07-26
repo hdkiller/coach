@@ -1,5 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { buildUserRunTags } from '../../utils/trigger-run-tags'
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     // Trigger analysis jobs for each nutrition record with per-user concurrency
     const triggerPromises = nutritionToAnalyze.map(async (nutrition) => {
       try {
-        const handle = await tasks.trigger(
+        const handle = await dispatchTask(
           'analyze-nutrition',
           {
             nutritionId: nutrition.id

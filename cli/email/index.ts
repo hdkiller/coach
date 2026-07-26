@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import { sendEmail } from '../../server/utils/email'
 import chalk from 'chalk'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../server/utils/task-dispatcher'
 import { prisma } from '../../server/utils/db'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -12,6 +12,10 @@ import { EMAIL_TEMPLATE_REGISTRY } from '../../server/utils/email-template-regis
 import { buildInterestingCopy } from '../../server/utils/workout-insight-email'
 
 const emailCommand = new Command('email')
+
+function queueEmailTask(payload: Record<string, any> & { userId: string }) {
+  return dispatchTask('send-email', payload, { tags: [`user:${payload.userId}`] })
+}
 
 emailCommand.description('Email management tools')
 
@@ -549,7 +553,7 @@ emailCommand
 
     console.log(`Queueing Welcome email for ${user.email}...`)
 
-    await tasks.trigger('send-email', {
+    await queueEmailTask({
       userId: user.id,
       templateKey: 'Welcome',
       eventKey: 'CLI_TEST',
@@ -578,7 +582,7 @@ emailCommand
 
     console.log(`Queueing Workout Analysis email for ${user.email}...`)
 
-    await tasks.trigger('send-email', {
+    await queueEmailTask({
       userId: user.id,
       templateKey: 'WorkoutAnalysisReady',
       eventKey: 'CLI_TEST_ANALYSIS',
@@ -609,7 +613,7 @@ emailCommand
 
     console.log(`Queueing Subscription Started email for ${user.email}...`)
 
-    await tasks.trigger('send-email', {
+    await queueEmailTask({
       userId: user.id,
       templateKey: 'SubscriptionStarted',
       eventKey: 'CLI_TEST_SUBSCRIPTION',
@@ -639,7 +643,7 @@ emailCommand
 
     console.log(`Queueing Daily Recommendation email for ${user.email}...`)
 
-    await tasks.trigger('send-email', {
+    await queueEmailTask({
       userId: user.id,
       templateKey: 'DailyRecommendation',
       eventKey: 'CLI_TEST_DAILY_COACH',

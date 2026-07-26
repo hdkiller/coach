@@ -607,7 +607,7 @@
 
   async function fetchTaskMetadata() {
     try {
-      const response: any = await $fetch('/api/orchestrate/metadata')
+      const response = await $fetch<any, string & {}>('/api/orchestrate/metadata')
 
       // Convert date strings to Date objects
       const metadata = response.metadata || {}
@@ -725,18 +725,18 @@
         if (task.category === 'ingestion') {
           // Sync integration
           const provider = taskId.replace('ingest-', '')
-          result = await $fetch(task.endpoint, {
+          result = await $fetch<any, string & {}>(task.endpoint, {
             method: 'POST',
             body: { provider }
           })
         } else if (task.category === 'analysis') {
           // Analysis tasks
-          result = await $fetch(task.endpoint, {
+          result = await $fetch<any, string & {}>(task.endpoint, {
             method: 'POST'
           })
         } else {
           // Generation tasks (profile, reports, plans)
-          result = await $fetch(task.endpoint, {
+          result = await $fetch<any, string & {}>(task.endpoint, {
             method: 'POST'
           })
         }
@@ -816,7 +816,7 @@
       connectToProgressStream()
 
       // Trigger the orchestrated sync
-      const response: any = await $fetch('/api/orchestrate/full-sync', {
+      const response = await $fetch<any, string & {}>('/api/orchestrate/full-sync', {
         method: 'POST'
       })
 

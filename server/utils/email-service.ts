@@ -1,4 +1,4 @@
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from './task-dispatcher'
 import type { EmailAudience } from '@prisma/client'
 import { getEmailTemplateDefinition } from './email-template-registry'
 import { buildUserRunTags } from './trigger-run-tags'
@@ -33,7 +33,7 @@ export async function queueEmail(options: {
     throw new Error(`Unknown template '${templateKey}'. Provide explicit audience and subject.`)
   }
 
-  return await tasks.trigger(
+  return await dispatchTask(
     'send-email',
     {
       userId,

@@ -1,21 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { triggerWorkoutDeduplicationIfEnabled } from '../../../../server/utils/trigger-workout-deduplication'
-import { deduplicateWorkoutsTask } from '../../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../../../../server/utils/ingestion-settings'
-import { isTaskRunning } from '../../../../server/utils/trigger-check'
+import { dispatchTask, isTaskRunningForUser } from '../../../../server/utils/task-dispatcher'
 
-vi.mock('../../../../trigger/deduplicate-workouts', () => ({
-  deduplicateWorkoutsTask: {
-    trigger: vi.fn().mockResolvedValue(undefined)
-  }
+vi.mock('../../../../server/utils/task-dispatcher', () => ({
+  dispatchTask: vi.fn().mockResolvedValue({ id: 'redis:run-1' }),
+  isTaskRunningForUser: vi.fn().mockResolvedValue(false)
 }))
 
 vi.mock('../../../../server/utils/ingestion-settings', () => ({
   shouldAutoDeduplicateWorkoutsAfterIngestion: vi.fn().mockResolvedValue(true)
-}))
-
-vi.mock('../../../../server/utils/trigger-check', () => ({
-  isTaskRunning: vi.fn().mockResolvedValue(false)
 }))
 
 describe('triggerWorkoutDeduplicationIfEnabled', () => {
@@ -24,14 +18,15 @@ describe('triggerWorkoutDeduplicationIfEnabled', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(shouldAutoDeduplicateWorkoutsAfterIngestion).mockResolvedValue(true)
-    vi.mocked(isTaskRunning).mockResolvedValue(false)
+    vi.mocked(isTaskRunningForUser).mockResolvedValue(false)
   })
 
   it('triggers deduplicate-workouts when enabled and no run is active', async () => {
     const triggered = await triggerWorkoutDeduplicationIfEnabled(userId)
 
     expect(triggered).toBe(true)
-    expect(deduplicateWorkoutsTask.trigger).toHaveBeenCalledWith(
+    expect(dispatchTask).toHaveBeenCalledWith(
+      'deduplicate-workouts',
       { userId, dryRun: false },
       {
         concurrencyKey: userId,
@@ -46,15 +41,15 @@ describe('triggerWorkoutDeduplicationIfEnabled', () => {
     const triggered = await triggerWorkoutDeduplicationIfEnabled(userId)
 
     expect(triggered).toBe(false)
-    expect(deduplicateWorkoutsTask.trigger).not.toHaveBeenCalled()
+    expect(dispatchTask).not.toHaveBeenCalled()
   })
 
   it('returns false when a deduplication run is already active', async () => {
-    vi.mocked(isTaskRunning).mockResolvedValue(true)
+    vi.mocked(isTaskRunningForUser).mockResolvedValue(true)
 
     const triggered = await triggerWorkoutDeduplicationIfEnabled(userId)
 
     expect(triggered).toBe(false)
-    expect(deduplicateWorkoutsTask.trigger).not.toHaveBeenCalled()
+    expect(dispatchTask).not.toHaveBeenCalled()
   })
 })

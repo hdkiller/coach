@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { summarizeChatTaskTrigger } = vi.hoisted(() => ({
-  summarizeChatTaskTrigger: vi.fn()
+const { dispatchTaskMock } = vi.hoisted(() => ({
+  dispatchTaskMock: vi.fn()
 }))
 
-vi.mock('../../../trigger/summarize-chat', () => ({
-  summarizeChatTask: {
-    trigger: summarizeChatTaskTrigger
-  }
+vi.mock('../task-dispatcher', () => ({
+  dispatchTask: dispatchTaskMock
 }))
 
 const {
@@ -28,8 +26,8 @@ const {
 } = await import('./turn-executor')
 
 beforeEach(() => {
-  summarizeChatTaskTrigger.mockReset()
-  summarizeChatTaskTrigger.mockResolvedValue({ id: 'run_123' })
+  dispatchTaskMock.mockReset()
+  dispatchTaskMock.mockResolvedValue({ id: 'run_123' })
 })
 
 describe('normalizeMessagesForSdk', () => {
@@ -524,7 +522,7 @@ describe('chat room summary scheduling', () => {
       })
     ).resolves.toBe(true)
 
-    expect(summarizeChatTaskTrigger).toHaveBeenCalledWith({
+    expect(dispatchTaskMock).toHaveBeenCalledWith('summarize-chat', {
       roomId: 'room_1',
       userId: 'user_1'
     })
@@ -555,6 +553,6 @@ describe('chat room summary scheduling', () => {
       })
     ).resolves.toBe(false)
 
-    expect(summarizeChatTaskTrigger).not.toHaveBeenCalled()
+    expect(dispatchTaskMock).not.toHaveBeenCalled()
   })
 })

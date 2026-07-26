@@ -4,7 +4,18 @@
   const loading = ref(false)
   const deleting = ref<string | null>(null)
 
-  const { data: fields, refresh } = await useFetch('/api/analytics/fields/definitions')
+  interface CustomFieldDefinition {
+    id: string
+    entityType: 'WELLNESS' | 'WORKOUT'
+    fieldKey: string
+    label: string
+    dataType: 'NUMBER' | 'BOOLEAN' | 'STRING'
+    unit: string | null
+  }
+
+  const { data: fields, refresh } = await useFetch<CustomFieldDefinition[], Error, string & {}>(
+    '/api/analytics/fields/definitions'
+  )
 
   const newField = ref({
     entityType: 'WELLNESS' as any,
@@ -30,7 +41,7 @@
 
     loading.value = true
     try {
-      await $fetch('/api/analytics/fields/definitions', {
+      await $fetch<unknown, string & {}>('/api/analytics/fields/definitions', {
         method: 'POST',
         body: newField.value
       })
@@ -65,7 +76,9 @@
 
     deleting.value = id
     try {
-      await $fetch(`/api/analytics/fields/definitions/${id}`, { method: 'DELETE' })
+      await $fetch<unknown, string & {}>(`/api/analytics/fields/definitions/${id}`, {
+        method: 'DELETE'
+      })
       toast.add({ title: 'Metric definition removed', color: 'neutral' })
       await refresh()
     } catch (e) {

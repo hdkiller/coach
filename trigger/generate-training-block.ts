@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
