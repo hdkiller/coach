@@ -31,21 +31,17 @@ export async function resetDatabase(connectionString: string) {
   const pool = new pg.Pool({ connectionString })
 
   try {
-    await pool.query(`
-      DO $$
-      DECLARE
-        table_name text;
-      BEGIN
-        FOR table_name IN
-          SELECT tablename
-          FROM pg_tables
-          WHERE schemaname = 'public'
-            AND tablename <> '_prisma_migrations'
-        LOOP
-          EXECUTE format('TRUNCATE TABLE %I RESTART IDENTITY CASCADE', table_name);
-        END LOOP;
-      END $$;
+    const res = await pool.query(`
+      SELECT string_agg(quote_ident(tablename), ', ') as tables
+      FROM pg_tables
+      WHERE schemaname = 'public'
+        AND tablename <> '_prisma_migrations'
     `)
+
+    const tables = res.rows[0]?.tables
+    if (tables) {
+      await pool.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`)
+    }
   } finally {
     await pool.end()
   }
