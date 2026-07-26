@@ -29,7 +29,7 @@
               Manual Ingestion
             </h1>
             <p
-              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic"
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
             >
               Integrity Center • FIT File Upload
             </p>
