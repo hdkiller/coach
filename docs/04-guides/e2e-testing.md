@@ -200,6 +200,9 @@ pnpm e2e:remote:ui              # Interactive Playwright UI locally, stack on Mi
 
 Workflow: [`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml)
 
-- **Trigger**: `workflow_dispatch` (Actions → **E2E** → Run workflow)
+- **Triggers**:
+  - `workflow_dispatch` (Manual: Actions → **E2E** → Run workflow)
+  - `pull_request` targeting `master` branch
+  - `pull_request` labeled with `run-e2e`
 - **Runner**: Self-hosted runner `mac-mini-e2e` with label `e2e`.
 - **Artifacts**: HTML reports and trace logs are retained for 14 days on workflow completion.
