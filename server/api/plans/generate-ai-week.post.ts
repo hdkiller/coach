@@ -1,8 +1,8 @@
 import { prisma } from '../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { requireAuth } from '../../utils/auth-guard'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['plan:write'])
@@ -51,8 +51,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Week not found' })
   }
 
-  // Use a trigger.dev task to regenerate the week
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-weekly-plan',
     {
       userId,

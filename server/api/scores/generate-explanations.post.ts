@@ -1,6 +1,6 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Trigger the batch explanation generation job with per-user concurrency
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'generate-score-explanations',
       { userId: user.id, force: true },
       {

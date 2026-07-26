@@ -1,6 +1,6 @@
 import { requireAuth } from '../../../utils/auth-guard'
 import { prisma } from '../../../utils/db'
-import { safeTriggerTask } from '../../../utils/trigger-check'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Trigger the background task
-    const handle = await safeTriggerTask(
+    const handle = await dispatchTask(
       'analyze-wellness',
       {
         wellnessId,
@@ -66,8 +66,7 @@ export default defineEventHandler(async (event) => {
       {
         concurrencyKey: userId,
         tags: [`user:${userId}`],
-        idempotencyKey: wellnessId,
-        idempotencyKeyTTL: '5m'
+        id: wellnessId
       }
     )
 

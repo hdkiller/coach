@@ -51,31 +51,19 @@
       <div class="flex flex-wrap gap-4 justify-center text-xs text-gray-600 dark:text-gray-400">
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-rose-400" />
-          <span
-            >Awake ({{ formatDuration(durations.awake) }})</span
-          >
+          <span>Awake ({{ formatDuration(durations.awake) }})</span>
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-blue-300" />
-          <span
-            >Light ({{
-              formatDuration(durations.light)
-            }})</span
-          >
+          <span>Light ({{ formatDuration(durations.light) }})</span>
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-teal-400" />
-          <span
-            >REM ({{ formatDuration(durations.rem) }})</span
-          >
+          <span>REM ({{ formatDuration(durations.rem) }})</span>
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-indigo-500" />
-          <span
-            >Deep ({{
-              formatDuration(durations.sws)
-            }})</span
-          >
+          <span>Deep ({{ formatDuration(durations.sws) }})</span>
         </div>
       </div>
     </div>
@@ -134,10 +122,7 @@
       <div class="flex justify-between items-end mb-2">
         <span class="text-sm font-medium">Sleep Performance</span>
         <div class="text-right">
-          <span
-            class="text-lg font-bold"
-            :class="getScoreTextColor(performancePercentage || 0)"
-          >
+          <span class="text-lg font-bold" :class="getScoreTextColor(performancePercentage || 0)">
             {{ formatDuration(totalSleepTime) }}
           </span>
           <span class="text-sm text-gray-500">
@@ -149,7 +134,7 @@
       </div>
       <UProgress
         v-if="performancePercentage !== null"
-        :model-value="performancePercentage"
+        :model-value="Math.min(100, Math.max(0, performancePercentage))"
         :color="getScoreColor(performancePercentage) as any"
         size="lg"
       />
@@ -165,7 +150,7 @@
   // Unified durations normalized to milliseconds
   const durations = computed(() => {
     const s = props.sleep
-    
+
     // Whoop format check
     if (s?.score?.stage_summary) {
       const sum = s.score.stage_summary
@@ -221,14 +206,20 @@
     return 0
   })
 
-  const consistencyPercentage = computed(() => props.sleep?.score?.sleep_consistency_percentage || null)
+  const consistencyPercentage = computed(
+    () => props.sleep?.score?.sleep_consistency_percentage || null
+  )
   const respiratoryRate = computed(() => props.sleep?.score?.respiratory_rate || null)
   const disturbances = computed(() => props.sleep?.score?.stage_summary?.disturbance_count || null)
-  
+
   const sleepNeeded = computed(() => {
     const sn = props.sleep?.score?.sleep_needed
     if (!sn) return null
-    return (sn.baseline_milli || 0) + (sn.need_from_recent_strain_milli || 0) + (sn.need_from_sleep_debt_milli || 0)
+    return (
+      (sn.baseline_milli || 0) +
+      (sn.need_from_recent_strain_milli || 0) +
+      (sn.need_from_sleep_debt_milli || 0)
+    )
   })
 
   function formatDuration(ms: number) {
@@ -249,4 +240,3 @@
     return 'text-red-600 dark:text-red-400'
   }
 </script>
-

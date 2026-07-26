@@ -1,7 +1,7 @@
 import { z } from 'zod/v3'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import { assertQuotaAllowed } from '../../utils/quotas/http'
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'analyze-wellness',
       {
         wellnessId,
@@ -44,8 +44,7 @@ export default defineEventHandler(async (event) => {
       {
         concurrencyKey: userId,
         tags: [`user:${userId}`],
-        idempotencyKey: wellnessId,
-        idempotencyKeyTTL: '5m'
+        id: wellnessId
       }
     )
 

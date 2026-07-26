@@ -14,13 +14,36 @@ export async function publishTaskRunStartedEvent(
     status?: string
   } = {}
 ) {
+  return publishTaskRunUpdateEvent(userId, taskIdentifier, handle.id, {
+    status: options.status || 'QUEUED',
+    startedAt: options.startedAt,
+    tags: options.tags
+  })
+}
+
+export async function publishTaskRunUpdateEvent(
+  userId: string,
+  taskIdentifier: string,
+  runId: string,
+  options: {
+    status: string
+    startedAt?: string
+    finishedAt?: string
+    tags?: string[]
+    output?: unknown
+    error?: unknown
+  }
+) {
   await sendToUser(userId, {
     type: 'run_update',
     channel: 'task_run',
-    runId: handle.id,
+    runId,
     taskIdentifier,
-    status: options.status || 'QUEUED',
+    status: options.status,
     startedAt: options.startedAt || new Date().toISOString(),
+    ...(options.finishedAt ? { finishedAt: options.finishedAt } : {}),
+    ...(options.output !== undefined ? { output: options.output } : {}),
+    ...(options.error !== undefined ? { error: options.error } : {}),
     tags: options.tags || [`user:${userId}`]
   })
 }

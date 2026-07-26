@@ -7,6 +7,14 @@ import { workoutStreamRepository } from '../repositories/workoutStreamRepository
 import {
   fetchGarminActivityFile,
   fetchGarminActivityFileByCallbackUrl,
+  fetchGarminActivities,
+  fetchGarminBodyComps,
+  fetchGarminDailies,
+  fetchGarminHRV,
+  fetchGarminSleeps,
+  fetchGarminUserMetrics,
+  buildGarminTimeSlices,
+  refreshGarminIntegrationPermissions,
   requestGarminBackfill,
   type GarminBackfillType
 } from '../garmin'

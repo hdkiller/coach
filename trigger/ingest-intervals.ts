@@ -1,5 +1,5 @@
 import './init'
-import { heartbeats, logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { heartbeats, logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'
@@ -8,147 +8,156 @@ import { getUserTimezone, getEndOfDayUTC, getUserLocalDate } from '../server/uti
 import { shouldIngestWellness } from '../server/utils/integration-settings'
 import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import type { IngestionResult } from './types'
+import { registerTaskHandler } from '../server/utils/task-registry'
+
+type IngestIntervalsPayload = {
+  userId: string
+  startDate: string
+  endDate: string
+  manualSync?: boolean
+}
+
+export async function runIngestIntervals(
+  payload: IngestIntervalsPayload
+): Promise<IngestionResult> {
+  const { userId, startDate, endDate, manualSync = false } = payload
+
+  logger.log('Starting Intervals.icu ingestion', { userId, startDate, endDate })
+
+  // Fetch integration
+  const integration = await prisma.integration.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'intervals'
+      }
+    }
+  })
+
+  if (!integration) {
+    throw new Error('Intervals integration not found for user')
+  }
+
+  // Update sync status
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { syncStatus: 'SYNCING' }
+  })
+
+  let syncSucceeded = false
+  let syncErrorMessage: string | null = null
+
+  try {
+    const timezone = await getUserTimezone(userId)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    // Calculate 'now' to cap historical data fetching
+    const now = new Date()
+    // Cap at end of today in user's timezone to allow for timezone differences but prevent far future
+    const historicalEndLocal = getEndOfDayUTC(timezone, now)
+
+    const historicalEnd = end > historicalEndLocal ? historicalEndLocal : end
+
+    const settings = (integration.settings as Record<string, any> | null) || {}
+    const shouldAutoSyncSportSettings =
+      manualSync && settings.autoSyncSportSettingsOnManualSync === true
+
+    if (shouldAutoSyncSportSettings) {
+      logger.log('Auto-syncing Intervals sport settings during manual sync', { userId })
+      try {
+        await IntervalsService.syncProfile(userId)
+      } catch (error) {
+        logger.warn(
+          'Failed to auto-sync Intervals sport settings during manual sync; continuing ingestion',
+          {
+            userId,
+            error: error instanceof Error ? error.message : String(error)
+          }
+        )
+      }
+    }
+
+    await heartbeats.yield()
+
+    // Fetch planned workouts (import all categories)
+    logger.log('Syncing planned workouts...')
+    const {
+      plannedWorkouts: plannedWorkoutsUpserted,
+      events: eventsUpserted,
+      notes: notesUpserted
+    } = await IntervalsService.syncPlannedWorkouts(userId, start, end)
+    logger.log(
+      `Upserted ${plannedWorkoutsUpserted} planned workouts, ${eventsUpserted} racing events, and ${notesUpserted} calendar notes`
+    )
+
+    await heartbeats.yield()
+
+    // Fetch activities
+    logger.log('Syncing activities...')
+    const workoutsUpserted = await IntervalsService.syncActivities(userId, start, historicalEnd)
+    logger.log(`Upserted ${workoutsUpserted} workouts`)
+
+    await heartbeats.yield()
+
+    let wellnessUpserted = 0
+    if (shouldIngestWellness(settings)) {
+      logger.log('Syncing wellness data...')
+      wellnessUpserted = await IntervalsService.syncWellness(userId, start, historicalEnd)
+      logger.log(`Upserted ${wellnessUpserted} wellness entries`)
+    } else {
+      logger.log('Wellness ingestion disabled for Intervals.icu, skipping')
+    }
+
+    syncSucceeded = true
+
+    // REACTIVE: Trigger fueling plan update for today
+    // This ensures that newly synced workouts/events are immediately reflected.
+    try {
+      if (await isNutritionTrackingEnabled(userId)) {
+        const today = timezone ? getUserLocalDate(timezone) : new Date()
+        await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+      }
+    } catch (err) {
+      logger.error('Failed to trigger fueling plan update', { err })
+    }
+
+    return {
+      success: true,
+      counts: {
+        workouts: workoutsUpserted,
+        wellness: wellnessUpserted,
+        plannedWorkouts: plannedWorkoutsUpserted,
+        events: eventsUpserted
+      },
+      userId,
+      startDate,
+      endDate
+    }
+  } catch (error) {
+    logger.error('Error ingesting Intervals data', { error })
+
+    syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    throw error
+  } finally {
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
+        lastSyncAt: syncSucceeded ? new Date() : undefined,
+        errorMessage: syncSucceeded ? null : syncErrorMessage,
+        ...(syncSucceeded ? { initialSyncCompleted: true } : {})
+      }
+    })
+  }
+}
+
+registerTaskHandler('ingest-intervals', runIngestIntervals)
 
 export const ingestIntervalsTask = task({
   id: 'ingest-intervals',
   maxDuration: 14400, // 4 hours
   queue: userIngestionQueue,
-  run: async (payload: {
-    userId: string
-    startDate: string
-    endDate: string
-    manualSync?: boolean
-  }): Promise<IngestionResult> => {
-    const { userId, startDate, endDate, manualSync = false } = payload
-
-    logger.log('Starting Intervals.icu ingestion', { userId, startDate, endDate })
-
-    // Fetch integration
-    const integration = await prisma.integration.findUnique({
-      where: {
-        userId_provider: {
-          userId,
-          provider: 'intervals'
-        }
-      }
-    })
-
-    if (!integration) {
-      throw new Error('Intervals integration not found for user')
-    }
-
-    // Update sync status
-    await prisma.integration.update({
-      where: { id: integration.id },
-      data: { syncStatus: 'SYNCING' }
-    })
-
-    let syncSucceeded = false
-    let syncErrorMessage: string | null = null
-
-    try {
-      const timezone = await getUserTimezone(userId)
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-
-      // Calculate 'now' to cap historical data fetching
-      const now = new Date()
-      // Cap at end of today in user's timezone to allow for timezone differences but prevent far future
-      const historicalEndLocal = getEndOfDayUTC(timezone, now)
-
-      const historicalEnd = end > historicalEndLocal ? historicalEndLocal : end
-
-      const settings = (integration.settings as Record<string, any> | null) || {}
-      const shouldAutoSyncSportSettings =
-        manualSync && settings.autoSyncSportSettingsOnManualSync === true
-
-      if (shouldAutoSyncSportSettings) {
-        logger.log('Auto-syncing Intervals sport settings during manual sync', { userId })
-        try {
-          await IntervalsService.syncProfile(userId)
-        } catch (error) {
-          logger.warn(
-            'Failed to auto-sync Intervals sport settings during manual sync; continuing ingestion',
-            {
-              userId,
-              error: error instanceof Error ? error.message : String(error)
-            }
-          )
-        }
-      }
-
-      await heartbeats.yield()
-
-      // Fetch planned workouts (import all categories)
-      logger.log('Syncing planned workouts...')
-      const {
-        plannedWorkouts: plannedWorkoutsUpserted,
-        events: eventsUpserted,
-        notes: notesUpserted
-      } = await IntervalsService.syncPlannedWorkouts(userId, start, end)
-      logger.log(
-        `Upserted ${plannedWorkoutsUpserted} planned workouts, ${eventsUpserted} racing events, and ${notesUpserted} calendar notes`
-      )
-
-      await heartbeats.yield()
-
-      // Fetch activities
-      logger.log('Syncing activities...')
-      const workoutsUpserted = await IntervalsService.syncActivities(userId, start, historicalEnd)
-      logger.log(`Upserted ${workoutsUpserted} workouts`)
-
-      await heartbeats.yield()
-
-      let wellnessUpserted = 0
-      if (shouldIngestWellness(settings)) {
-        logger.log('Syncing wellness data...')
-        wellnessUpserted = await IntervalsService.syncWellness(userId, start, historicalEnd)
-        logger.log(`Upserted ${wellnessUpserted} wellness entries`)
-      } else {
-        logger.log('Wellness ingestion disabled for Intervals.icu, skipping')
-      }
-
-      syncSucceeded = true
-
-      // REACTIVE: Trigger fueling plan update for today
-      // This ensures that newly synced workouts/events are immediately reflected.
-      try {
-        if (await isNutritionTrackingEnabled(userId)) {
-          const today = timezone ? getUserLocalDate(timezone) : new Date()
-          await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
-        }
-      } catch (err) {
-        logger.error('Failed to trigger fueling plan update', { err })
-      }
-
-      return {
-        success: true,
-        counts: {
-          workouts: workoutsUpserted,
-          wellness: wellnessUpserted,
-          plannedWorkouts: plannedWorkoutsUpserted,
-          events: eventsUpserted
-        },
-        userId,
-        startDate,
-        endDate
-      }
-    } catch (error) {
-      logger.error('Error ingesting Intervals data', { error })
-
-      syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-      throw error
-    } finally {
-      await prisma.integration.update({
-        where: { id: integration.id },
-        data: {
-          syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
-          lastSyncAt: syncSucceeded ? new Date() : undefined,
-          errorMessage: syncSucceeded ? null : syncErrorMessage,
-          ...(syncSucceeded ? { initialSyncCompleted: true } : {})
-        }
-      })
-    }
-  }
+  run: runIngestIntervals
 })

@@ -1,8 +1,8 @@
-import { runs } from '@trigger.dev/sdk/v3'
 import { requireAuth } from '../../utils/auth-guard'
+import { getTaskRun } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event, ['plan:read'])
+  const user = await requireAuth(event, ['plan:read'])
 
   const { jobId } = getQuery(event)
 
@@ -11,7 +11,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const run = await runs.retrieve(jobId)
+    const run = await getTaskRun(jobId)
+    if (!run || !run.tags.includes(`user:${user.id}`)) {
+      throw createError({ statusCode: 404, message: 'Job not found' })
+    }
     return {
       status: run.status,
       completed: ['COMPLETED', 'SUCCESS', 'FAILURE', 'CANCELED', 'TIMED_OUT', 'ABORTED'].includes(
@@ -19,7 +22,8 @@ export default defineEventHandler(async (event) => {
       ),
       output: run.output
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) throw error
     throw createError({ statusCode: 500, message: 'Failed to fetch job status' })
   }
 })

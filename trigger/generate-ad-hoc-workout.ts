@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
 import {
   WORKOUT_STRUCTURE_AI_MAX_RETRIES,
@@ -13,6 +13,7 @@ import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { enqueuePlannedWorkoutStructureGeneration } from '../server/utils/planned-workout-structure-trigger'
 import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
+import { registerTaskHandler } from '../server/utils/task-registry'
 
 const adHocWorkoutSchema = {
   type: 'object',
@@ -40,125 +41,124 @@ const adHocWorkoutSchema = {
   required: ['title', 'type', 'durationMinutes', 'targetTss', 'intensity', 'objective', 'reasoning']
 }
 
-export const generateAdHocWorkoutTask = task({
-  id: 'generate-ad-hoc-workout',
-  maxDuration: 300,
-  run: async (payload: { userId: string; date: Date; preferences?: any }) => {
-    const { userId, date, preferences } = payload
+type GenerateAdHocWorkoutPayload = { userId: string; date: Date | string; preferences?: any }
 
-    const timezone = await getUserTimezone(userId)
-    // Calculate today based on user's timezone date string forced to UTC midnight
-    // This ensures it matches @db.Date columns (e.g. 2026-01-09T00:00:00Z) even if the real start of day is previous UTC day
-    const dateObj = new Date(date)
-    const dateStr = formatUserDate(dateObj, timezone, 'yyyy-MM-dd')
-    const localTime = formatUserDate(dateObj, timezone, 'HH:mm')
-    const today = new Date(`${dateStr}T00:00:00Z`)
+export async function runGenerateAdHocWorkout(payload: GenerateAdHocWorkoutPayload) {
+  const { userId, date, preferences } = payload
 
-    logger.log('Generating ad-hoc workout', {
-      userId,
-      date: today,
-      preferences,
-      timezone,
-      localTime
-    })
+  const timezone = await getUserTimezone(userId)
+  // Calculate today based on user's timezone date string forced to UTC midnight
+  // This ensures it matches @db.Date columns (e.g. 2026-01-09T00:00:00Z) even if the real start of day is previous UTC day
+  const dateObj = new Date(date)
+  const dateStr = formatUserDate(dateObj, timezone, 'yyyy-MM-dd')
+  const localTime = formatUserDate(dateObj, timezone, 'HH:mm')
+  const today = new Date(`${dateStr}T00:00:00Z`)
 
-    // Fetch Data
-    const [todayMetric, recentWorkouts, user, athleteProfile, rawActiveGoals, sportSettings] =
-      await Promise.all([
-        wellnessRepository.getByDate(userId, today),
-        workoutRepository.getForUser(userId, {
-          startDate: getStartOfDaysAgoUTC(timezone, 7),
-          limit: 10,
-          orderBy: { date: 'desc' },
-          includeDuplicates: false
-        }),
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: { ftp: true, weight: true, maxHr: true, aiPersona: true }
-        }),
-        prisma.report.findFirst({
-          where: { userId, type: 'ATHLETE_PROFILE', status: 'COMPLETED' },
-          orderBy: { createdAt: 'desc' },
-          select: { analysisJson: true }
-        }),
-        prisma.goal.findMany({
-          where: {
-            userId,
-            status: 'ACTIVE'
-          },
-          orderBy: { priority: 'desc' },
-          select: {
-            title: true,
-            type: true,
-            description: true,
-            targetDate: true,
-            eventDate: true,
-            priority: true
-          }
-        }),
-        // Fetch settings for requested type or default to Ride
-        sportSettingsRepository.getForActivityType(userId, preferences?.type || 'Ride')
-      ])
-    const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, today)
+  logger.log('Generating ad-hoc workout', {
+    userId,
+    date: today,
+    preferences,
+    timezone,
+    localTime
+  })
 
-    // Build Context
-    let context = `Athlete: FTP ${user?.ftp || 250}W. Persona: ${user?.aiPersona || 'Supportive'}.`
-    if (todayMetric) {
-      context += `\nRecovery: ${todayMetric.recoveryScore || 'Unknown'}%. Sleep: ${todayMetric.sleepHours || 0}h.`
+  // Fetch Data
+  const [todayMetric, recentWorkouts, user, athleteProfile, rawActiveGoals, sportSettings] =
+    await Promise.all([
+      wellnessRepository.getByDate(userId, today),
+      workoutRepository.getForUser(userId, {
+        startDate: getStartOfDaysAgoUTC(timezone, 7),
+        limit: 10,
+        orderBy: { date: 'desc' },
+        includeDuplicates: false
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { ftp: true, weight: true, maxHr: true, aiPersona: true }
+      }),
+      prisma.report.findFirst({
+        where: { userId, type: 'ATHLETE_PROFILE', status: 'COMPLETED' },
+        orderBy: { createdAt: 'desc' },
+        select: { analysisJson: true }
+      }),
+      prisma.goal.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE'
+        },
+        orderBy: { priority: 'desc' },
+        select: {
+          title: true,
+          type: true,
+          description: true,
+          targetDate: true,
+          eventDate: true,
+          priority: true
+        }
+      }),
+      // Fetch settings for requested type or default to Ride
+      sportSettingsRepository.getForActivityType(userId, preferences?.type || 'Ride')
+    ])
+  const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, today)
+
+  // Build Context
+  let context = `Athlete: FTP ${user?.ftp || 250}W. Persona: ${user?.aiPersona || 'Supportive'}.`
+  if (todayMetric) {
+    context += `\nRecovery: ${todayMetric.recoveryScore || 'Unknown'}%. Sleep: ${todayMetric.sleepHours || 0}h.`
+  }
+  context += `\nRecent Workouts: ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts) : 'None'}.`
+
+  if (sportSettings) {
+    context += `\n\nDEFINED ZONES (Use these for intensity):`
+    if (sportSettings.hrZones && Array.isArray(sportSettings.hrZones)) {
+      context += '\nHeart Rate:\n'
+      sportSettings.hrZones.forEach((z: any) => {
+        context += `- ${z.name}: ${z.min}-${z.max} bpm\n`
+      })
     }
-    context += `\nRecent Workouts: ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts) : 'None'}.`
-
-    if (sportSettings) {
-      context += `\n\nDEFINED ZONES (Use these for intensity):`
-      if (sportSettings.hrZones && Array.isArray(sportSettings.hrZones)) {
-        context += '\nHeart Rate:\n'
-        sportSettings.hrZones.forEach((z: any) => {
-          context += `- ${z.name}: ${z.min}-${z.max} bpm\n`
-        })
-      }
-      if (sportSettings.powerZones && Array.isArray(sportSettings.powerZones)) {
-        context += '\nPower:\n'
-        sportSettings.powerZones.forEach((z: any) => {
-          context += `- ${z.name}: ${z.min}-${z.max} W\n`
-        })
-      }
+    if (sportSettings.powerZones && Array.isArray(sportSettings.powerZones)) {
+      context += '\nPower:\n'
+      sportSettings.powerZones.forEach((z: any) => {
+        context += `- ${z.name}: ${z.min}-${z.max} W\n`
+      })
     }
+  }
 
-    if (athleteProfile?.analysisJson) {
-      const p = athleteProfile.analysisJson as any
-      context += `\nFocus: ${p.planning_context?.current_focus || 'General Fitness'}.`
-    }
+  if (athleteProfile?.analysisJson) {
+    const p = athleteProfile.analysisJson as any
+    context += `\nFocus: ${p.planning_context?.current_focus || 'General Fitness'}.`
+  }
 
-    if (activeGoals.length > 0) {
-      context += `\n\nCURRENT GOALS:\n${activeGoals
-        .map((g) => {
-          const daysToTarget = g.targetDate
-            ? Math.ceil((new Date(g.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-            : null
-          let goalLine = `- ${g.title}`
-          if (daysToTarget) goalLine += ` (${daysToTarget} days left)`
-          return goalLine
-        })
-        .join('\n')}`
-    }
+  if (activeGoals.length > 0) {
+    context += `\n\nCURRENT GOALS:\n${activeGoals
+      .map((g) => {
+        const daysToTarget = g.targetDate
+          ? Math.ceil((new Date(g.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : null
+        let goalLine = `- ${g.title}`
+        if (daysToTarget) goalLine += ` (${daysToTarget} days left)`
+        return goalLine
+      })
+      .join('\n')}`
+  }
 
-    // Incorporate User Preferences
-    let goalPrompt = 'Based on recovery and recent history, create the optimal workout.'
-    if (preferences) {
-      goalPrompt = `The user has requested a specific workout:
+  // Incorporate User Preferences
+  let goalPrompt = 'Based on recovery and recent history, create the optimal workout.'
+  if (preferences) {
+    goalPrompt = `The user has requested a specific workout:
       - Type: ${preferences.type || 'Any'}
       - Duration: ${preferences.durationMinutes || 'Auto'} minutes
       - Intensity: ${preferences.intensity || 'Auto'}
       - Instructions: "${preferences.notes || 'None'}"
       
       Create a workout matching these constraints while optimizing for the athlete's context.`
-    } else {
-      goalPrompt += `
+  } else {
+    goalPrompt += `
       - If recovery is low (<33%), prescribe Active Recovery or Rest (but since the user ASKED for a workout, give a very easy Recovery spin/jog).
       - If recovery is good, prescribe a workout that fits the current focus or maintains fitness.`
-    }
+  }
 
-    const prompt = `Design one high-quality workout prescription for this athlete for TODAY.
+  const prompt = `Design one high-quality workout prescription for this athlete for TODAY.
     
     LOCAL CONTEXT:
     - Date: ${dateStr}
@@ -183,72 +183,79 @@ export const generateAdHocWorkoutTask = task({
     OUTPUT:
     JSON with title, description, type (Ride/Run), durationMinutes, targetTss, intensity, objective, executionCues, and reasoning.`
 
-    const suggestion = await generateStructuredAnalysis(prompt, adHocWorkoutSchema, 'flash', {
+  const suggestion = await generateStructuredAnalysis(prompt, adHocWorkoutSchema, 'flash', {
+    userId,
+    operation: 'generate_ad_hoc_workout',
+    entityType: 'PlannedWorkout',
+    timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS,
+    maxRetries: WORKOUT_STRUCTURE_AI_MAX_RETRIES
+  })
+
+  // Create Planned Workout
+  const plannedWorkout = await prisma.plannedWorkout.create({
+    data: {
       userId,
-      operation: 'generate_ad_hoc_workout',
-      entityType: 'PlannedWorkout',
-      timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS,
-      maxRetries: WORKOUT_STRUCTURE_AI_MAX_RETRIES
-    })
-
-    // Create Planned Workout
-    const plannedWorkout = await prisma.plannedWorkout.create({
-      data: {
-        userId,
-        date: today, // Correctly aligned to user's local day start (UTC)
-        title: suggestion.title,
-        description: `${suggestion.description}\n\nObjective: ${suggestion.objective}\n${
-          Array.isArray(suggestion.executionCues) && suggestion.executionCues.length > 0
-            ? `Execution Cues: ${suggestion.executionCues.join(' | ')}\n`
-            : ''
-        }\nReasoning: ${suggestion.reasoningText}`,
-        type: suggestion.type,
-        durationSec: suggestion.durationMinutes * 60,
-        tss: suggestion.targetTss,
-        syncStatus: 'LOCAL_ONLY', // Mark as local initially
-        externalId: `adhoc-${userId}-${Date.now()}`, // Generate unique external ID
-        managedBy: 'COACH_WATTS'
-      }
-    })
-
-    logger.log('Created planned workout', { id: plannedWorkout.id })
-
-    await autoUploadPlannedWorkoutToIntervalsIfEnabled({
-      id: plannedWorkout.id,
-      userId,
-      externalId: plannedWorkout.externalId,
-      date: plannedWorkout.date,
-      startTime: plannedWorkout.startTime,
-      title: plannedWorkout.title,
-      description: plannedWorkout.description,
-      type: plannedWorkout.type,
-      durationSec: plannedWorkout.durationSec,
-      tss: plannedWorkout.tss,
-      managedBy: plannedWorkout.managedBy
-    })
-
-    // Trigger Structure Generation. The revision prevents any older job from
-    // replacing this newly requested structure.
-    const queued = await enqueuePlannedWorkoutStructureGeneration({
-      userId,
-      plannedWorkoutId: plannedWorkout.id,
-      source: 'ad-hoc'
-    })
-
-    if (queued.status === 'failed') {
-      return {
-        success: true,
-        plannedWorkoutId: plannedWorkout.id,
-        structure_generation: 'failed',
-        structure_error: queued.error
-      }
+      date: today, // Correctly aligned to user's local day start (UTC)
+      title: suggestion.title,
+      description: `${suggestion.description}\n\nObjective: ${suggestion.objective}\n${
+        Array.isArray(suggestion.executionCues) && suggestion.executionCues.length > 0
+          ? `Execution Cues: ${suggestion.executionCues.join(' | ')}\n`
+          : ''
+      }\nReasoning: ${suggestion.reasoningText}`,
+      type: suggestion.type,
+      durationSec: suggestion.durationMinutes * 60,
+      tss: suggestion.targetTss,
+      syncStatus: 'LOCAL_ONLY', // Mark as local initially
+      externalId: `adhoc-${userId}-${Date.now()}`, // Generate unique external ID
+      managedBy: 'COACH_WATTS'
     }
+  })
 
+  logger.log('Created planned workout', { id: plannedWorkout.id })
+
+  await autoUploadPlannedWorkoutToIntervalsIfEnabled({
+    id: plannedWorkout.id,
+    userId,
+    externalId: plannedWorkout.externalId,
+    date: plannedWorkout.date,
+    startTime: plannedWorkout.startTime,
+    title: plannedWorkout.title,
+    description: plannedWorkout.description,
+    type: plannedWorkout.type,
+    durationSec: plannedWorkout.durationSec,
+    tss: plannedWorkout.tss,
+    managedBy: plannedWorkout.managedBy
+  })
+
+  // Trigger Structure Generation. The revision prevents any older job from
+  // replacing this newly requested structure.
+  const queued = await enqueuePlannedWorkoutStructureGeneration({
+    userId,
+    plannedWorkoutId: plannedWorkout.id,
+    source: 'ad-hoc'
+  })
+
+  if (queued.status === 'failed') {
     return {
       success: true,
       plannedWorkoutId: plannedWorkout.id,
-      structure_generation: 'queued',
-      run_id: queued.runId
+      structure_generation: 'failed',
+      structure_error: queued.error
     }
   }
+
+  return {
+    success: true,
+    plannedWorkoutId: plannedWorkout.id,
+    structure_generation: 'queued',
+    run_id: queued.runId
+  }
+}
+
+registerTaskHandler('generate-ad-hoc-workout', runGenerateAdHocWorkout)
+
+export const generateAdHocWorkoutTask = task({
+  id: 'generate-ad-hoc-workout',
+  maxDuration: 300,
+  run: runGenerateAdHocWorkout
 })

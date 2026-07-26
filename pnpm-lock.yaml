@@ -283,6 +283,9 @@ importers:
       '@iconify-json/lucide':
         specifier: ^1.2.116
         version: 1.2.116
+      '@iconify-json/material-symbols':
+        specifier: ^1.2.87
+        version: 1.2.87
       '@iconify-json/simple-icons':
         specifier: ^1.2.89
         version: 1.2.89
@@ -2470,6 +2473,12 @@ packages:
     resolution:
       {
         integrity: sha512-mbwPmiUXaZyLMSeQOxiTqz2fmZikD9qiGnMBiev47UUNY9uGCEgMg9iUYwaJzCtJTDtAIyK4vokfIpqsVorgSw==
+      }
+
+  '@iconify-json/material-symbols@1.2.87':
+    resolution:
+      {
+        integrity: sha512-q7rEWgfn9w0wnN19YF/BibZPM4kcd/HjGYpg/TtZUYBs6JCVLSWhwcTBD8mOKtvy0AFEdusQemoploFonl6PdA==
       }
 
   '@iconify-json/ph@1.2.2':
@@ -16471,14 +16480,6 @@ packages:
       }
     engines: { node: '>= 0.6' }
 
-  srvx@0.11.21:
-    resolution:
-      {
-        integrity: sha512-GWTHjKMeekX8CwJf4VU9Oo6mJpSGaflGMddbCvR+Cmmh9sslRMiGbAoqqZacE0r1ncARh6buCEETr2W52F8b1w==
-      }
-    engines: { node: '>=20.16.0' }
-    hasBin: true
-
   srvx@0.11.22:
     resolution:
       {
@@ -19877,6 +19878,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/lucide@1.2.116':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/material-symbols@1.2.87':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -26421,14 +26426,14 @@ snapshots:
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.11.22)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.21
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.11.22)
 
   h3@2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.21
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.11.22)
 
@@ -27996,7 +28001,7 @@ snapshots:
       '@next/env': 14.2.35
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
-      caniuse-lite: 1.0.30001803
+      caniuse-lite: 1.0.30001806
       graceful-fs: 4.2.11
       postcss: 8.4.31
       react: 18.3.1
@@ -29153,7 +29158,7 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.15
+      nanoid: 3.3.16
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -30172,8 +30177,6 @@ snapshots:
   sprintf-js@1.1.2: {}
 
   sqlstring@2.3.3: {}
-
-  srvx@0.11.21: {}
 
   srvx@0.11.22: {}
 

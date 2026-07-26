@@ -40,6 +40,7 @@ services:
       - '6389:6379'
 
   app-e2e:
+    image: coach-e2e-app:local
     build:
       context: .
       dockerfile: Dockerfile.e2e
@@ -52,6 +53,8 @@ services:
       DATABASE_URL: 'postgresql://watts:password@postgres-e2e:5432/coach_e2e?connection_limit=5&pool_timeout=10&connect_timeout=10'
       REDIS_URL: 'redis://:dragonfly@redis-e2e:6379/0'
       E2E_MODE: 'true'
+      TASK_QUEUE_DRIVER: redis
+      MOCK_LLM_RESPONSES: 'true'
       NODE_ENV: production
       HOST: 0.0.0.0
       NITRO_HOST: 0.0.0.0
@@ -80,6 +83,8 @@ services:
         condition: service_healthy
       redis-e2e:
         condition: service_started
+      worker-e2e:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -92,6 +97,39 @@ services:
       timeout: 5s
       retries: 30
       start_period: 40s
+
+  worker-e2e:
+    image: coach-e2e-app:local
+    container_name: coach-worker-e2e
+    command: ['pnpm', 'cw:worker', 'start']
+    environment:
+      DATABASE_URL: 'postgresql://watts:password@postgres-e2e:5432/coach_e2e?connection_limit=5&pool_timeout=10&connect_timeout=10'
+      REDIS_URL: 'redis://:dragonfly@redis-e2e:6379/0'
+      E2E_MODE: 'true'
+      TASK_QUEUE_DRIVER: redis
+      MOCK_LLM_RESPONSES: 'true'
+      DISABLE_EMAILS: 'true'
+      NODE_ENV: production
+      CW_WORKER_HEALTH_PORT: '8081'
+      NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
+      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'false'
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8081/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
 volumes:
   postgres_e2e_data:

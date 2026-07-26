@@ -75,6 +75,7 @@ import {
   looksLikeIntervalWorkout
 } from './utils/structure-generation-prompt'
 import { strengthWorkoutStructureSchema } from './utils/structure-generation-schemas'
+import { registerTaskHandler } from '../server/utils/task-registry'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -768,289 +769,286 @@ function summarizeStructuredWorkoutForPrompt(structuredWorkout: any): string {
   return lines.join('\n') || 'None.'
 }
 
-export const generateStructuredWorkoutTask = task({
-  id: 'generate-structured-workout',
-  queue: userReportsQueue,
-  maxDuration: 180,
-  run: async (
-    payload: {
-      plannedWorkoutId?: string
-      workoutTemplateId?: string
-      generationRevision?: number
-      generationRunId?: string
-      targetingOverride?: WorkoutTargetingOverride | null
-      generatorOverride?: StructuredWorkoutGeneratorMode | null
-      quotaCheckedAtEnqueue?: boolean
-    },
-    { ctx }
-  ) => {
-    const { plannedWorkoutId, workoutTemplateId } = payload
-    const entityId = plannedWorkoutId || workoutTemplateId
-    const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
-    const startedAtMs = Date.now()
-    const MAX_DURATION_MS = 180_000
-    const STRUCTURED_WORKOUT_TIMEOUT_MS = 45_000
-    const logStage = (stage: string, meta: Record<string, any> = {}) => {
-      const elapsedMs = Date.now() - startedAtMs
-      logger.log(`[GenerateStructuredWorkout] ${stage}`, {
-        entityId,
-        entityType,
-        elapsedMs,
-        remainingMs: Math.max(0, MAX_DURATION_MS - elapsedMs),
-        ...meta
-      })
-    }
+type GenerateStructuredWorkoutPayload = {
+  plannedWorkoutId?: string
+  workoutTemplateId?: string
+  generationRevision?: number
+  generationRunId?: string
+  targetingOverride?: WorkoutTargetingOverride | null
+  generatorOverride?: StructuredWorkoutGeneratorMode | null
+  quotaCheckedAtEnqueue?: boolean
+}
 
-    logStage('start')
+export async function runGenerateStructuredWorkout(
+  payload: GenerateStructuredWorkoutPayload,
+  context?: { runId?: string }
+) {
+  const { plannedWorkoutId, workoutTemplateId } = payload
+  const entityId = plannedWorkoutId || workoutTemplateId
+  const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
+  const startedAtMs = Date.now()
+  const MAX_DURATION_MS = 180_000
+  const STRUCTURED_WORKOUT_TIMEOUT_MS = 45_000
+  const logStage = (stage: string, meta: Record<string, any> = {}) => {
+    const elapsedMs = Date.now() - startedAtMs
+    logger.log(`[GenerateStructuredWorkout] ${stage}`, {
+      entityId,
+      entityType,
+      elapsedMs,
+      remainingMs: Math.max(0, MAX_DURATION_MS - elapsedMs),
+      ...meta
+    })
+  }
 
-    const lifecycle = await startStructureGenerationTask(payload, ctx.run.id)
-    if (lifecycle.stale) {
-      return { success: false, stale: true, entityId, entityType }
-    }
+  logStage('start')
 
-    const finalizeAndReturn = async <T extends StructureGenerationTaskResult>(
-      result: T
-    ): Promise<T> => {
-      await finishStructureGenerationTask(payload, result)
-      return result
-    }
+  const lifecycle = await startStructureGenerationTask(payload, context?.runId)
+  if (lifecycle.stale) {
+    return { success: false, stale: true, entityId, entityType }
+  }
 
-    try {
-      let workout: any = null
-      if (plannedWorkoutId) {
-        workout = await (prisma as any).plannedWorkout.findUnique({
-          where: { id: plannedWorkoutId },
-          include: {
-            user: {
-              select: {
-                ftp: true,
-                lthr: true,
-                aiPersona: true,
-                name: true,
-                maxHr: true,
-                subscriptionTier: true,
-                isAdmin: true,
-                aiContext: true,
-                language: true,
-                featureFlags: true
-              }
-            },
-            trainingWeek: {
-              include: {
-                block: {
-                  include: {
-                    plan: {
-                      include: {
-                        goal: true
-                      }
+  const finalizeAndReturn = async <T extends StructureGenerationTaskResult>(
+    result: T
+  ): Promise<T> => {
+    await finishStructureGenerationTask(payload, result)
+    return result
+  }
+
+  try {
+    let workout: any = null
+    if (plannedWorkoutId) {
+      workout = await (prisma as any).plannedWorkout.findUnique({
+        where: { id: plannedWorkoutId },
+        include: {
+          user: {
+            select: {
+              ftp: true,
+              lthr: true,
+              aiPersona: true,
+              name: true,
+              maxHr: true,
+              subscriptionTier: true,
+              isAdmin: true,
+              aiContext: true,
+              language: true,
+              featureFlags: true
+            }
+          },
+          trainingWeek: {
+            include: {
+              block: {
+                include: {
+                  plan: {
+                    include: {
+                      goal: true
                     }
                   }
                 }
               }
             }
           }
-        })
-      } else if (workoutTemplateId) {
-        workout = await (prisma as any).workoutTemplate.findUnique({
-          where: { id: workoutTemplateId },
-          include: {
-            user: {
-              select: {
-                ftp: true,
-                lthr: true,
-                aiPersona: true,
-                name: true,
-                maxHr: true,
-                subscriptionTier: true,
-                isAdmin: true,
-                aiContext: true,
-                language: true,
-                featureFlags: true
-              }
+        }
+      })
+    } else if (workoutTemplateId) {
+      workout = await (prisma as any).workoutTemplate.findUnique({
+        where: { id: workoutTemplateId },
+        include: {
+          user: {
+            select: {
+              ftp: true,
+              lthr: true,
+              aiPersona: true,
+              name: true,
+              maxHr: true,
+              subscriptionTier: true,
+              isAdmin: true,
+              aiContext: true,
+              language: true,
+              featureFlags: true
             }
           }
-        })
-      }
-
-      if (!workout) {
-        logger.warn('Workout not found, skipping structured generation', { entityId, entityType })
-        return finalizeAndReturn({ success: false, error: 'Workout not found' })
-      }
-      logStage('loaded-workout', {
-        userId: workout.userId,
-        type: workout.type,
-        hasExistingStructure: Boolean(workout.structuredWorkout),
-        durationSec: workout.durationSec,
-        isTemplate: entityType === 'WorkoutTemplate'
+        }
       })
+    }
 
-      const requestedGeneratorMode = resolveStructureGeneratorModeForWorkout(workout.type || '')
-      const generatorMode = payload.generatorOverride ?? requestedGeneratorMode
-      console.log('[GenerateStructuredWorkout] Generator mode resolved', {
+    if (!workout) {
+      logger.warn('Workout not found, skipping structured generation', { entityId, entityType })
+      return finalizeAndReturn({ success: false, error: 'Workout not found' })
+    }
+    logStage('loaded-workout', {
+      userId: workout.userId,
+      type: workout.type,
+      hasExistingStructure: Boolean(workout.structuredWorkout),
+      durationSec: workout.durationSec,
+      isTemplate: entityType === 'WorkoutTemplate'
+    })
+
+    const requestedGeneratorMode = resolveStructureGeneratorModeForWorkout(workout.type || '')
+    const generatorMode = payload.generatorOverride ?? requestedGeneratorMode
+    console.log('[GenerateStructuredWorkout] Generator mode resolved', {
+      entityId,
+      entityType,
+      workoutType: workout.type,
+      generatorMode
+    })
+    logStage('resolved-generator-mode', {
+      generatorMode
+    })
+    if (generatorMode === 'draft_json_v1') {
+      console.log('[GenerateStructuredWorkout] Using compact draft generator', {
         entityId,
-        entityType,
-        workoutType: workout.type,
-        generatorMode
+        workoutType: workout.type
       })
-      logStage('resolved-generator-mode', {
-        generatorMode
+      logStage('generator-mode-branch', {
+        generatorMode,
+        implementation: 'compact_draft_v1'
       })
-      if (generatorMode === 'draft_json_v1') {
-        console.log('[GenerateStructuredWorkout] Using compact draft generator', {
-          entityId,
-          workoutType: workout.type
-        })
-        logStage('generator-mode-branch', {
-          generatorMode,
-          implementation: 'compact_draft_v1'
-        })
-      } else {
-        logStage('generator-mode-branch', {
-          generatorMode,
-          implementation: 'legacy_json'
-        })
-      }
-
-      // Check Quota (skip when already validated at enqueue time)
-      if (!payload.quotaCheckedAtEnqueue) {
-        try {
-          await checkQuota(workout.userId, 'generate_structured_workout')
-        } catch (quotaError: any) {
-          if (quotaError.statusCode === 429) {
-            logger.warn('Structured workout generation quota exceeded', {
-              userId: workout.userId,
-              entityId
-            })
-            return finalizeAndReturn({ success: false, reason: 'QUOTA_EXCEEDED' })
-          }
-          throw quotaError
-        }
-      }
-      logStage('quota-check-passed')
-
-      // Fetch Sport Specific Settings
-      const sportSettings = await sportSettingsRepository.getForActivityType(
-        workout.userId,
-        workout.type || ''
-      )
-      const { targetPolicy, targetFormatPolicy, loadPreference, priorityText } =
-        resolveWorkoutTargeting(sportSettings, payload?.targetingOverride || null)
-      logStage('loaded-sport-settings', {
-        hasSettings: Boolean(sportSettings),
-        hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),
-        hasPowerZones: Boolean((sportSettings?.powerZones as any)?.length),
-        hasPaceZones: Boolean((sportSettings?.paceZones as any)?.length),
-        loadPreference,
-        targetPolicyPrimary: targetPolicy.primaryMetric
+    } else {
+      logStage('generator-mode-branch', {
+        generatorMode,
+        implementation: 'legacy_json'
       })
+    }
 
-      // Build context
-      const persona = workout.user.aiPersona || 'Supportive'
-      const goal =
-        workout.trainingWeek?.block.plan.goal?.title ||
-        workout.trainingWeek?.block.plan.name ||
-        'General Fitness'
-      const phase = workout.trainingWeek?.block.type || 'General'
-      const focus = workout.trainingWeek?.block.primaryFocus || 'Fitness'
-
-      // Fetch user timezone
-      const timezone = await getUserTimezone(workout.userId)
-      logStage('resolved-timezone', { timezone })
-
-      const preserveExistingStructure = Boolean(workout.structuredWorkout)
-      const contextProfile = resolveStructureContextProfile({
-        workout,
-        preserveExistingStructure
-      })
-      logStage('resolved-context-profile', { contextProfile })
-
-      let recentWorkouts: any[] = []
-      if (contextProfile === 'rich') {
-        recentWorkouts = await workoutRepository.getForUser(workout.userId, {
-          limit: 4,
-          orderBy: { date: 'desc' }
-        })
-      }
-      logStage('loaded-recent-workouts', { count: recentWorkouts.length, contextProfile })
-
-      // Resolve Metrics
-      const ftp = sportSettings?.ftp || workout.user.ftp || 250
-      const lthr = sportSettings?.lthr || workout.user.lthr || 160
-      const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
-      const thresholdPace = sportSettings?.thresholdPace || 0
-      const aiContextBlock = formatAiContextForStructureGen({
-        aiContext: workout.user.aiContext,
-        workoutDescription: workout.description,
-        profile: contextProfile
-      })
-
-      // Subscription Limit Check
-      // Free users cannot generate structured workouts more than 4 weeks (28 days) in the future
-      if (entityType === 'PlannedWorkout' && workout.user.subscriptionTier === 'FREE') {
-        const today = getUserLocalDate(timezone)
-        const fourWeeksFromNow = new Date(today)
-        fourWeeksFromNow.setUTCDate(today.getUTCDate() + 28)
-
-        // Compare dates (both are UTC midnight aligned)
-        if (workout.date > fourWeeksFromNow) {
-          logger.log('Skipping structured workout generation: Free tier limit (4 weeks)', {
+    // Check Quota (skip when already validated at enqueue time)
+    if (!payload.quotaCheckedAtEnqueue) {
+      try {
+        await checkQuota(workout.userId, 'generate_structured_workout')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Structured workout generation quota exceeded', {
             userId: workout.userId,
-            workoutDate: workout.date,
-            limitDate: fourWeeksFromNow
+            entityId
           })
-          return finalizeAndReturn({
-            success: false,
-            skipped: true,
-            reason: 'FREE_TIER_LIMIT',
-            message:
-              'Structured workout generation is limited to 4 weeks in advance for free users.'
-          })
+          return finalizeAndReturn({ success: false, reason: 'QUOTA_EXCEEDED' })
         }
+        throw quotaError
       }
-      logStage('subscription-check-passed', { subscriptionTier: workout.user.subscriptionTier })
+    }
+    logStage('quota-check-passed')
 
-      const warmupTime = sportSettings?.warmupTime ?? 10
-      const cooldownTime = sportSettings?.cooldownTime ?? 10
-      const existingStructureSummary = preserveExistingStructure
-        ? summarizeStructuredWorkoutForPrompt(workout.structuredWorkout)
-        : ''
-      const zoneDefinitions = buildCompactZoneDefinitions({
-        workoutType: workout.type || '',
-        sportSettings,
-        primaryMetric: targetPolicy.primaryMetric,
-        loadPreference,
-        ftp,
-        lthr,
-        workout,
-        contextProfile
+    // Fetch Sport Specific Settings
+    const sportSettings = await sportSettingsRepository.getForActivityType(
+      workout.userId,
+      workout.type || ''
+    )
+    const { targetPolicy, targetFormatPolicy, loadPreference, priorityText } =
+      resolveWorkoutTargeting(sportSettings, payload?.targetingOverride || null)
+    logStage('loaded-sport-settings', {
+      hasSettings: Boolean(sportSettings),
+      hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),
+      hasPowerZones: Boolean((sportSettings?.powerZones as any)?.length),
+      hasPaceZones: Boolean((sportSettings?.paceZones as any)?.length),
+      loadPreference,
+      targetPolicyPrimary: targetPolicy.primaryMetric
+    })
+
+    // Build context
+    const persona = workout.user.aiPersona || 'Supportive'
+    const goal =
+      workout.trainingWeek?.block.plan.goal?.title ||
+      workout.trainingWeek?.block.plan.name ||
+      'General Fitness'
+    const phase = workout.trainingWeek?.block.type || 'General'
+    const focus = workout.trainingWeek?.block.primaryFocus || 'Fitness'
+
+    // Fetch user timezone
+    const timezone = await getUserTimezone(workout.userId)
+    logStage('resolved-timezone', { timezone })
+
+    const preserveExistingStructure = Boolean(workout.structuredWorkout)
+    const contextProfile = resolveStructureContextProfile({
+      workout,
+      preserveExistingStructure
+    })
+    logStage('resolved-context-profile', { contextProfile })
+
+    let recentWorkouts: any[] = []
+    if (contextProfile === 'rich') {
+      recentWorkouts = await workoutRepository.getForUser(workout.userId, {
+        limit: 4,
+        orderBy: { date: 'desc' }
       })
-      const targetingBlock = formatCompactTargetingBlock(
-        targetPolicy,
-        targetFormatPolicy,
-        priorityText
-      )
-      const steadyTargetStyleRule =
-        targetPolicy.defaultTargetStyle === 'value'
-          ? 'Prefer single-value targets for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp.'
-          : 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.'
-      const isStrength = isStrengthWorkoutType(workout.type)
-      const sportSpecificInstructions = buildSportSpecificInstructions({
-        workoutType: workout.type || '',
-        targetFormatPolicy,
-        steadyTargetStyleRule
-      })
-      const durationMinutes = Math.round((workout.durationSec || 3600) / 60)
-      const language = workout.user.language || 'English'
-      const recentWorkoutsSummary =
-        contextProfile === 'rich' ? buildConciseWorkoutSummary(recentWorkouts, timezone) : ''
-      const goalContextBlock = buildStructureGoalContextBlock({
-        profile: contextProfile,
-        goal,
-        phase,
-        focus,
-        persona
-      })
-      const sharedWorkoutHeader = `TITLE: ${workout.title}
+    }
+    logStage('loaded-recent-workouts', { count: recentWorkouts.length, contextProfile })
+
+    // Resolve Metrics
+    const ftp = sportSettings?.ftp || workout.user.ftp || 250
+    const lthr = sportSettings?.lthr || workout.user.lthr || 160
+    const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
+    const thresholdPace = sportSettings?.thresholdPace || 0
+    const aiContextBlock = formatAiContextForStructureGen({
+      aiContext: workout.user.aiContext,
+      workoutDescription: workout.description,
+      profile: contextProfile
+    })
+
+    // Subscription Limit Check
+    // Free users cannot generate structured workouts more than 4 weeks (28 days) in the future
+    if (entityType === 'PlannedWorkout' && workout.user.subscriptionTier === 'FREE') {
+      const today = getUserLocalDate(timezone)
+      const fourWeeksFromNow = new Date(today)
+      fourWeeksFromNow.setUTCDate(today.getUTCDate() + 28)
+
+      // Compare dates (both are UTC midnight aligned)
+      if (workout.date > fourWeeksFromNow) {
+        logger.log('Skipping structured workout generation: Free tier limit (4 weeks)', {
+          userId: workout.userId,
+          workoutDate: workout.date,
+          limitDate: fourWeeksFromNow
+        })
+        return finalizeAndReturn({
+          success: false,
+          skipped: true,
+          reason: 'FREE_TIER_LIMIT',
+          message: 'Structured workout generation is limited to 4 weeks in advance for free users.'
+        })
+      }
+    }
+    logStage('subscription-check-passed', { subscriptionTier: workout.user.subscriptionTier })
+
+    const warmupTime = sportSettings?.warmupTime ?? 10
+    const cooldownTime = sportSettings?.cooldownTime ?? 10
+    const existingStructureSummary = preserveExistingStructure
+      ? summarizeStructuredWorkoutForPrompt(workout.structuredWorkout)
+      : ''
+    const zoneDefinitions = buildCompactZoneDefinitions({
+      workoutType: workout.type || '',
+      sportSettings,
+      primaryMetric: targetPolicy.primaryMetric,
+      loadPreference,
+      ftp,
+      lthr,
+      workout,
+      contextProfile
+    })
+    const targetingBlock = formatCompactTargetingBlock(
+      targetPolicy,
+      targetFormatPolicy,
+      priorityText
+    )
+    const steadyTargetStyleRule =
+      targetPolicy.defaultTargetStyle === 'value'
+        ? 'Prefer single-value targets for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp.'
+        : 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.'
+    const isStrength = isStrengthWorkoutType(workout.type)
+    const sportSpecificInstructions = buildSportSpecificInstructions({
+      workoutType: workout.type || '',
+      targetFormatPolicy,
+      steadyTargetStyleRule
+    })
+    const durationMinutes = Math.round((workout.durationSec || 3600) / 60)
+    const language = workout.user.language || 'English'
+    const recentWorkoutsSummary =
+      contextProfile === 'rich' ? buildConciseWorkoutSummary(recentWorkouts, timezone) : ''
+    const goalContextBlock = buildStructureGoalContextBlock({
+      profile: contextProfile,
+      goal,
+      phase,
+      focus,
+      persona
+    })
+    const sharedWorkoutHeader = `TITLE: ${workout.title}
 DURATION: ${durationMinutes} minutes
 INTENSITY: ${workout.workIntensity || 'Moderate'}
 DESCRIPTION: ${workout.description || 'No specific description'}
@@ -1070,9 +1068,9 @@ ${targetingBlock}
 
 For Zone 2 workouts, target the user's defined Z2 range for this sport before generic percentages.`
 
-      const draftPrompt =
-        generatorMode === 'draft_json_v1'
-          ? `Design a structured ${workout.type} workout plan for ${workout.user.name || 'Athlete'} using a compact planning format.
+    const draftPrompt =
+      generatorMode === 'draft_json_v1'
+        ? `Design a structured ${workout.type} workout plan for ${workout.user.name || 'Athlete'} using a compact planning format.
 
 ${sharedWorkoutHeader}
 
@@ -1090,11 +1088,11 @@ SPORT RULES:
 ${sportSpecificInstructions}
 
 OUTPUT JSON matching the compact draft schema.`
-          : ''
+        : ''
 
-      const legacyPrompt =
-        generatorMode === 'legacy_json'
-          ? `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
+    const legacyPrompt =
+      generatorMode === 'legacy_json'
+        ? `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
 
 ${sharedWorkoutHeader}
 
@@ -1112,157 +1110,302 @@ SPORT RULES:
 ${sportSpecificInstructions}
 
 OUTPUT JSON matching the schema.`
-          : ''
+        : ''
 
-      let promptForAttempt = generatorMode === 'draft_json_v1' ? draftPrompt : legacyPrompt
-      logStage('prompt-built', {
-        promptChars: promptForAttempt.length,
-        generatorMode,
-        contextProfile,
-        targetDurationMinutes: durationMinutes
+    let promptForAttempt = generatorMode === 'draft_json_v1' ? draftPrompt : legacyPrompt
+    logStage('prompt-built', {
+      promptChars: promptForAttempt.length,
+      generatorMode,
+      contextProfile,
+      targetDurationMinutes: durationMinutes
+    })
+
+    let structure: any
+    let lastAiOutputForRetry: any = null
+    let totals: { distance: number; duration: number; tss: number } | null = null
+    const actualModelUsed = 'flash'
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const aiStartedAt = Date.now()
+        const isRetry = attempt > 1
+        const aiOptions = buildStructureAiCallOptions({
+          attempt,
+          userId: workout.userId,
+          operation: 'generate_structured_workout',
+          entityType,
+          entityId: entityId!,
+          timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS
+        })
+        if (generatorMode === 'draft_json_v1') {
+          const draft = await generateStructuredAnalysis(
+            promptForAttempt,
+            workoutPlanDraftSchema,
+            'flash',
+            aiOptions
+          )
+          lastAiOutputForRetry = draft
+          console.log('[GenerateStructuredWorkout] Compact draft generated', {
+            entityId,
+            attempt,
+            topLevelSteps: Array.isArray((draft as any)?.steps) ? (draft as any).steps.length : 0,
+            hasDescription: Boolean((draft as any)?.description),
+            hasCoachInstructions: Boolean((draft as any)?.coachInstructions)
+          })
+          structure = compileWorkoutPlanDraftToStructure(draft as any)
+          console.log('[GenerateStructuredWorkout] Compact draft compiled to structure', {
+            entityId,
+            attempt,
+            compiledSteps: Array.isArray(structure?.steps) ? structure.steps.length : 0
+          })
+        } else {
+          structure = await generateStructuredAnalysis(
+            promptForAttempt,
+            isStrength ? strengthWorkoutStructureSchema : workoutStructureSchema,
+            'flash',
+            aiOptions
+          )
+          lastAiOutputForRetry = structure
+        }
+        const aiDurationMs = Date.now() - aiStartedAt
+        logStage('ai-structure-generated', {
+          aiDurationMs,
+          attempt,
+          promptChars: promptForAttempt.length,
+          model: 'default',
+          hasSteps: Array.isArray(structure?.steps),
+          stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
+          exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+        })
+      } catch (aiError: any) {
+        logStage('ai-generation-failed', {
+          error: aiError.message,
+          attempt
+        })
+        if (attempt === 1) {
+          promptForAttempt = buildCorrectiveStructureRetryPrompt({
+            workout,
+            reason: aiError.message,
+            previousDraft: lastAiOutputForRetry,
+            generatorMode
+          })
+          continue
+        }
+        throw aiError
+      }
+
+      if (workout.type === 'Swim') {
+        normalizeSwimStructure(structure)
+      }
+
+      const rawStrengthStructure = isStrength ? JSON.parse(JSON.stringify(structure || {})) : null
+
+      if (isStrength) {
+        structure = normalizeStructuredStrengthWorkout(structure)
+        const applyStrengthLibraryDefaults =
+          (workout.user as any)?.featureFlags?.structuredWorkout?.strength?.applyLibraryDefaults !==
+          false
+
+        if (applyStrengthLibraryDefaults) {
+          const libraryExercises = await (prisma as any).strengthExerciseLibraryItem.findMany({
+            where: { userId: workout.userId },
+            orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }]
+          })
+          try {
+            const matchResult = await applyStrengthLibraryDefaultsToWorkout({
+              structuredWorkout: structure,
+              libraryExercises,
+              userId: workout.userId,
+              entityType,
+              entityId: entityId!,
+              operation: 'match_strength_exercise_defaults'
+            })
+            structure = normalizeStructuredStrengthWorkout(matchResult.structuredWorkout)
+            logStage('strength-library-defaults-applied', {
+              matchedCount: matchResult.matchedCount,
+              libraryCount: libraryExercises.length
+            })
+          } catch (matchError: any) {
+            logStage('strength-library-defaults-failed', {
+              error: matchError?.message || String(matchError),
+              libraryCount: libraryExercises.length
+            })
+          }
+        }
+
+        const strengthValidation = validateStrengthStructuredWorkout(
+          rawStrengthStructure,
+          structure
+        )
+        if (!strengthValidation.valid) {
+          if (attempt >= 2) {
+            throw new Error(
+              `Generated structured workout failed strength validation: ${strengthValidation.reason}`
+            )
+          }
+
+          promptForAttempt = buildCorrectiveStructureRetryPrompt({
+            workout,
+            reason: strengthValidation.reason ?? 'Strength validation failed',
+            previousDraft: lastAiOutputForRetry,
+            generatorMode,
+            extraInstructions:
+              "Return native strength 'blocks' with exercise 'steps' and per-set 'setRows'. Loaded lifts must use real sets/reps/load."
+          })
+          logStage('strength-validation-retry-requested', {
+            attempt,
+            reason: strengthValidation.reason
+          })
+          continue
+        }
+      }
+
+      structure = normalizeStructuredWorkoutForPersistence(structure, {
+        refs: {
+          ftp,
+          lthr,
+          maxHr,
+          thresholdPace,
+          hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+          powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+          paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+        },
+        targetPolicy,
+        targetFormatPolicy,
+        workoutType: workout.type || ''
       })
 
-      let structure: any
-      let lastAiOutputForRetry: any = null
-      let totals: { distance: number; duration: number; tss: number } | null = null
-      const actualModelUsed = 'flash'
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          const aiStartedAt = Date.now()
-          const isRetry = attempt > 1
-          const aiOptions = buildStructureAiCallOptions({
-            attempt,
-            userId: workout.userId,
-            operation: 'generate_structured_workout',
-            entityType,
-            entityId: entityId!,
-            timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS
+      totals = normalizeAndCalculate(structure.steps || [])
+      const strengthExercisesForMetrics = Array.isArray(structure?.blocks)
+        ? structure.blocks.flatMap((b: any) => (Array.isArray(b?.steps) ? b.steps : []))
+        : structure.exercises
+      const validationStrengthMetrics =
+        Array.isArray(strengthExercisesForMetrics) && strengthExercisesForMetrics.length > 0
+          ? computeStrengthExerciseMetrics(strengthExercisesForMetrics)
+          : { durationSec: 0, tss: 0, workIntensity: null }
+      const validationDurationSec = totals.duration + validationStrengthMetrics.durationSec
+      const coverageValidation = validateStructuredCoverage({
+        plannedDurationSec: Number(workout.durationSec || 0),
+        actualDurationSec: validationDurationSec,
+        steps: structure.steps || [],
+        workout,
+        preserveStructure: preserveExistingStructure
+      })
+      console.log('[GenerateStructuredWorkout] Coverage validation result', {
+        entityId,
+        attempt,
+        generatorMode,
+        plannedDurationSec: Number(workout.durationSec || 0),
+        actualDurationSec: validationDurationSec,
+        valid: coverageValidation.valid,
+        reason: coverageValidation.reason
+      })
+      if (coverageValidation.valid) break
+      if (attempt >= 2) {
+        throw new Error(
+          `Generated structured workout failed validation: ${coverageValidation.reason}`
+        )
+      }
+
+      const swimCoverageFeedback =
+        workout.type === 'Swim'
+          ? 'For swim workouts, account for sendoffSeconds/restSeconds and targetSplit so total pool time matches the planned duration.'
+          : undefined
+      promptForAttempt = buildCorrectiveStructureRetryPrompt({
+        workout,
+        reason: coverageValidation.reason ?? 'Coverage validation failed',
+        previousDraft: lastAiOutputForRetry,
+        generatorMode,
+        extraInstructions: swimCoverageFeedback
+      })
+      logStage('ai-structure-retry-requested', {
+        attempt,
+        reason: coverageValidation.reason
+      })
+    }
+
+    function normalizeAndCalculate(steps: any[], depth = 0, parentStep: any = null) {
+      let distance = 0
+      let duration = 0
+      let tss = 0
+
+      if (!Array.isArray(steps)) return { distance, duration, tss }
+
+      steps.forEach((step: any, stepIndex: number) => {
+        if (!step || typeof step !== 'object' || Array.isArray(step)) {
+          logger.warn('Skipping malformed structured workout step during generation', {
+            workoutType: workout.type,
+            depth,
+            stepIndex,
+            stepType: typeof step
           })
-          if (generatorMode === 'draft_json_v1') {
-            const draft = await generateStructuredAnalysis(
-              promptForAttempt,
-              workoutPlanDraftSchema,
-              'flash',
-              aiOptions
-            )
-            lastAiOutputForRetry = draft
-            console.log('[GenerateStructuredWorkout] Compact draft generated', {
-              entityId,
-              attempt,
-              topLevelSteps: Array.isArray((draft as any)?.steps) ? (draft as any).steps.length : 0,
-              hasDescription: Boolean((draft as any)?.description),
-              hasCoachInstructions: Boolean((draft as any)?.coachInstructions)
-            })
-            structure = compileWorkoutPlanDraftToStructure(draft as any)
-            console.log('[GenerateStructuredWorkout] Compact draft compiled to structure', {
-              entityId,
-              attempt,
-              compiledSteps: Array.isArray(structure?.steps) ? structure.steps.length : 0
-            })
-          } else {
-            structure = await generateStructuredAnalysis(
-              promptForAttempt,
-              isStrength ? strengthWorkoutStructureSchema : workoutStructureSchema,
-              'flash',
-              aiOptions
-            )
-            lastAiOutputForRetry = structure
-          }
-          const aiDurationMs = Date.now() - aiStartedAt
-          logStage('ai-structure-generated', {
-            aiDurationMs,
-            attempt,
-            promptChars: promptForAttempt.length,
-            model: 'default',
-            hasSteps: Array.isArray(structure?.steps),
-            stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
-            exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
-          })
-        } catch (aiError: any) {
-          logStage('ai-generation-failed', {
-            error: aiError.message,
-            attempt
-          })
-          if (attempt === 1) {
-            promptForAttempt = buildCorrectiveStructureRetryPrompt({
-              workout,
-              reason: aiError.message,
-              previousDraft: lastAiOutputForRetry,
-              generatorMode
-            })
-            continue
-          }
-          throw aiError
+          return
         }
 
-        if (workout.type === 'Swim') {
-          normalizeSwimStructure(structure)
-        }
+        // 1. Recover misplaced targets (AI sometimes puts 'value' or 'range' at top level)
+        const recoverTarget = (fieldName: string) => {
+          if (typeof step[fieldName] === 'string') {
+            step[fieldName] = undefined
+          }
 
-        const rawStrengthStructure = isStrength ? JSON.parse(JSON.stringify(structure || {})) : null
+          const hasOwnTarget = step.range !== undefined || step.value !== undefined
 
-        if (isStrength) {
-          structure = normalizeStructuredStrengthWorkout(structure)
-          const applyStrengthLibraryDefaults =
-            (workout.user as any)?.featureFlags?.structuredWorkout?.strength
-              ?.applyLibraryDefaults !== false
-
-          if (applyStrengthLibraryDefaults) {
-            const libraryExercises = await (prisma as any).strengthExerciseLibraryItem.findMany({
-              where: { userId: workout.userId },
-              orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }]
-            })
-            try {
-              const matchResult = await applyStrengthLibraryDefaultsToWorkout({
-                structuredWorkout: structure,
-                libraryExercises,
-                userId: workout.userId,
-                entityType,
-                entityId: entityId!,
-                operation: 'match_strength_exercise_defaults'
-              })
-              structure = normalizeStructuredStrengthWorkout(matchResult.structuredWorkout)
-              logStage('strength-library-defaults-applied', {
-                matchedCount: matchResult.matchedCount,
-                libraryCount: libraryExercises.length
-              })
-            } catch (matchError: any) {
-              logStage('strength-library-defaults-failed', {
-                error: matchError?.message || String(matchError),
-                libraryCount: libraryExercises.length
-              })
+          if (
+            !step[fieldName] ||
+            (typeof step[fieldName] === 'object' && Object.keys(step[fieldName]).length === 0)
+          ) {
+            if (step.range) {
+              step[fieldName] = { range: step.range }
+              delete step.range
+            } else if (step.value) {
+              step[fieldName] = { value: step.value }
+              delete step.value
+            } else if (!hasOwnTarget && parentStep?.[fieldName]) {
+              step[fieldName] = JSON.parse(JSON.stringify(parentStep[fieldName]))
             }
           }
+        }
 
-          const strengthValidation = validateStrengthStructuredWorkout(
-            rawStrengthStructure,
-            structure
-          )
-          if (!strengthValidation.valid) {
-            if (attempt >= 2) {
-              throw new Error(
-                `Generated structured workout failed strength validation: ${strengthValidation.reason}`
-              )
-            }
-
-            promptForAttempt = buildCorrectiveStructureRetryPrompt({
-              workout,
-              reason: strengthValidation.reason ?? 'Strength validation failed',
-              previousDraft: lastAiOutputForRetry,
-              generatorMode,
-              extraInstructions:
-                "Return native strength 'blocks' with exercise 'steps' and per-set 'setRows'. Loaded lifts must use real sets/reps/load."
-            })
-            logStage('strength-validation-retry-requested', {
-              attempt,
-              reason: strengthValidation.reason
-            })
-            continue
+        const ensureTargetObject = (fieldName: 'power' | 'heartRate' | 'pace') => {
+          if (typeof step[fieldName] === 'number' && Number.isFinite(step[fieldName])) {
+            step[fieldName] = { value: step[fieldName] }
           }
         }
 
-        structure = normalizeStructuredWorkoutForPersistence(structure, {
-          refs: {
+        // 2. Sport-Specific Normalization
+        if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
+          recoverTarget('power')
+          ensureTargetObject('power')
+          if (!step.power || (step.power.value === undefined && !step.power.range)) {
+            if (step.type === 'Warmup') step.power = { value: 0.5 }
+            else if (step.type === 'Rest') step.power = { value: 0.45 }
+            else if (step.type === 'Cooldown') step.power = { value: 0.4 }
+            else step.power = { value: 0.75 }
+          }
+          if (!step.power.units) {
+            step.power.units = inferPowerUnits(step.power)
+          }
+          applyZoneHintToCyclingPower(step, sportSettings, ftp)
+          if (!step.cadence) {
+            step.cadence = resolveCyclingCadence(step, parentStep, stepIndex)
+          }
+          step.stroke = undefined
+          step.equipment = undefined
+        } else if (
+          String(workout.type || '')
+            .toLowerCase()
+            .includes('run')
+        ) {
+          recoverTarget('heartRate')
+          recoverTarget('pace')
+          recoverTarget('power')
+          ensureTargetObject('heartRate')
+          ensureTargetObject('pace')
+          ensureTargetObject('power')
+          if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
+          if (step.pace && !step.pace.units) step.pace.units = 'Pace'
+          if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
+          applyTargetPolicyToStep(step, targetPolicy)
+          applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
             ftp,
             lthr,
             maxHr,
@@ -1270,133 +1413,15 @@ OUTPUT JSON matching the schema.`
             hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
             powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
             paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
-          },
-          targetPolicy,
-          targetFormatPolicy,
-          workoutType: workout.type || ''
-        })
-
-        totals = normalizeAndCalculate(structure.steps || [])
-        const strengthExercisesForMetrics = Array.isArray(structure?.blocks)
-          ? structure.blocks.flatMap((b: any) => (Array.isArray(b?.steps) ? b.steps : []))
-          : structure.exercises
-        const validationStrengthMetrics =
-          Array.isArray(strengthExercisesForMetrics) && strengthExercisesForMetrics.length > 0
-            ? computeStrengthExerciseMetrics(strengthExercisesForMetrics)
-            : { durationSec: 0, tss: 0, workIntensity: null }
-        const validationDurationSec = totals.duration + validationStrengthMetrics.durationSec
-        const coverageValidation = validateStructuredCoverage({
-          plannedDurationSec: Number(workout.durationSec || 0),
-          actualDurationSec: validationDurationSec,
-          steps: structure.steps || [],
-          workout,
-          preserveStructure: preserveExistingStructure
-        })
-        console.log('[GenerateStructuredWorkout] Coverage validation result', {
-          entityId,
-          attempt,
-          generatorMode,
-          plannedDurationSec: Number(workout.durationSec || 0),
-          actualDurationSec: validationDurationSec,
-          valid: coverageValidation.valid,
-          reason: coverageValidation.reason
-        })
-        if (coverageValidation.valid) break
-        if (attempt >= 2) {
-          throw new Error(
-            `Generated structured workout failed validation: ${coverageValidation.reason}`
-          )
-        }
-
-        const swimCoverageFeedback =
-          workout.type === 'Swim'
-            ? 'For swim workouts, account for sendoffSeconds/restSeconds and targetSplit so total pool time matches the planned duration.'
-            : undefined
-        promptForAttempt = buildCorrectiveStructureRetryPrompt({
-          workout,
-          reason: coverageValidation.reason ?? 'Coverage validation failed',
-          previousDraft: lastAiOutputForRetry,
-          generatorMode,
-          extraInstructions: swimCoverageFeedback
-        })
-        logStage('ai-structure-retry-requested', {
-          attempt,
-          reason: coverageValidation.reason
-        })
-      }
-
-      function normalizeAndCalculate(steps: any[], depth = 0, parentStep: any = null) {
-        let distance = 0
-        let duration = 0
-        let tss = 0
-
-        if (!Array.isArray(steps)) return { distance, duration, tss }
-
-        steps.forEach((step: any, stepIndex: number) => {
-          if (!step || typeof step !== 'object' || Array.isArray(step)) {
-            logger.warn('Skipping malformed structured workout step during generation', {
-              workoutType: workout.type,
-              depth,
-              stepIndex,
-              stepType: typeof step
-            })
-            return
-          }
-
-          // 1. Recover misplaced targets (AI sometimes puts 'value' or 'range' at top level)
-          const recoverTarget = (fieldName: string) => {
-            if (typeof step[fieldName] === 'string') {
-              step[fieldName] = undefined
-            }
-
-            const hasOwnTarget = step.range !== undefined || step.value !== undefined
-
-            if (
-              !step[fieldName] ||
-              (typeof step[fieldName] === 'object' && Object.keys(step[fieldName]).length === 0)
-            ) {
-              if (step.range) {
-                step[fieldName] = { range: step.range }
-                delete step.range
-              } else if (step.value) {
-                step[fieldName] = { value: step.value }
-                delete step.value
-              } else if (!hasOwnTarget && parentStep?.[fieldName]) {
-                step[fieldName] = JSON.parse(JSON.stringify(parentStep[fieldName]))
-              }
-            }
-          }
-
-          const ensureTargetObject = (fieldName: 'power' | 'heartRate' | 'pace') => {
-            if (typeof step[fieldName] === 'number' && Number.isFinite(step[fieldName])) {
-              step[fieldName] = { value: step[fieldName] }
-            }
-          }
-
-          // 2. Sport-Specific Normalization
-          if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
-            recoverTarget('power')
-            ensureTargetObject('power')
-            if (!step.power || (step.power.value === undefined && !step.power.range)) {
-              if (step.type === 'Warmup') step.power = { value: 0.5 }
-              else if (step.type === 'Rest') step.power = { value: 0.45 }
-              else if (step.type === 'Cooldown') step.power = { value: 0.4 }
-              else step.power = { value: 0.75 }
-            }
-            if (!step.power.units) {
-              step.power.units = inferPowerUnits(step.power)
-            }
-            applyZoneHintToCyclingPower(step, sportSettings, ftp)
-            if (!step.cadence) {
-              step.cadence = resolveCyclingCadence(step, parentStep, stepIndex)
-            }
-            step.stroke = undefined
-            step.equipment = undefined
-          } else if (
-            String(workout.type || '')
-              .toLowerCase()
-              .includes('run')
-          ) {
+          })
+          applyStepIntentGuard(step, {
+            ftp,
+            lthr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
+          if (step.distance) step.distance = Number(step.distance)
+        } else {
+          if (!isStrengthWorkoutType(workout.type)) {
             recoverTarget('heartRate')
             recoverTarget('pace')
             recoverTarget('power')
@@ -1407,70 +1432,60 @@ OUTPUT JSON matching the schema.`
             if (step.pace && !step.pace.units) step.pace.units = 'Pace'
             if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
             applyTargetPolicyToStep(step, targetPolicy)
-            applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
+          }
+          applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace,
+            hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+            powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+            paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+          })
+          applyStepIntentGuard(step, {
+            ftp,
+            lthr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
+        }
+
+        // 3. Structural Fixes
+        if (step.durationSeconds === undefined && step.duration !== undefined) {
+          step.durationSeconds = step.duration
+        }
+        normalizeWarmupRampDirection(step)
+        normalizeCooldownRampDirection(step)
+
+        // 4. Recurse and Calculate
+        let stepDistance: number
+        let stepDuration: number
+        let stepTSS = 0
+
+        if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
+          const nested = normalizeAndCalculate(step.steps, depth + 1, step)
+          stepDistance = nested.distance
+          stepDuration = nested.duration
+          stepTSS = nested.tss
+        } else {
+          stepDistance = step.distance || 0
+          stepDuration = estimateStepDurationSeconds(step, {
+            refs: {
               ftp,
               lthr,
               maxHr,
-              thresholdPace,
-              hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
-              powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
-              paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
-            })
-            applyStepIntentGuard(step, {
-              ftp,
-              lthr,
               thresholdPace: Number(sportSettings?.thresholdPace || 0)
-            })
-            if (step.distance) step.distance = Number(step.distance)
-          } else {
-            if (!isStrengthWorkoutType(workout.type)) {
-              recoverTarget('heartRate')
-              recoverTarget('pace')
-              recoverTarget('power')
-              ensureTargetObject('heartRate')
-              ensureTargetObject('pace')
-              ensureTargetObject('power')
-              if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
-              if (step.pace && !step.pace.units) step.pace.units = 'Pace'
-              if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
-              applyTargetPolicyToStep(step, targetPolicy)
-            }
-            applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
-              ftp,
-              lthr,
-              maxHr,
-              thresholdPace,
-              hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
-              powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
-              paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
-            })
-            applyStepIntentGuard(step, {
-              ftp,
-              lthr,
-              thresholdPace: Number(sportSettings?.thresholdPace || 0)
-            })
+            },
+            fallbackOrder: targetPolicy.fallbackOrder as Array<
+              'power' | 'heartRate' | 'pace' | 'rpe'
+            >,
+            workoutType: workout.type || ''
+          })
+          if (!step.durationSeconds && stepDuration > 0 && !structure.exercises) {
+            step.durationSeconds = stepDuration
           }
-
-          // 3. Structural Fixes
-          if (step.durationSeconds === undefined && step.duration !== undefined) {
-            step.durationSeconds = step.duration
-          }
-          normalizeWarmupRampDirection(step)
-          normalizeCooldownRampDirection(step)
-
-          // 4. Recurse and Calculate
-          let stepDistance: number
-          let stepDuration: number
-          let stepTSS = 0
-
-          if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
-            const nested = normalizeAndCalculate(step.steps, depth + 1, step)
-            stepDistance = nested.distance
-            stepDuration = nested.duration
-            stepTSS = nested.tss
-          } else {
-            stepDistance = step.distance || 0
-            stepDuration = estimateStepDurationSeconds(step, {
+          stepDistance =
+            stepDistance ||
+            estimateStepDistanceMeters(step, {
               refs: {
                 ftp,
                 lthr,
@@ -1482,317 +1497,207 @@ OUTPUT JSON matching the schema.`
               >,
               workoutType: workout.type || ''
             })
-            if (!step.durationSeconds && stepDuration > 0 && !structure.exercises) {
-              step.durationSeconds = stepDuration
-            }
-            stepDistance =
-              stepDistance ||
-              estimateStepDistanceMeters(step, {
-                refs: {
-                  ftp,
-                  lthr,
-                  maxHr,
-                  thresholdPace: Number(sportSettings?.thresholdPace || 0)
-                },
-                fallbackOrder: targetPolicy.fallbackOrder as Array<
-                  'power' | 'heartRate' | 'pace' | 'rpe'
-                >,
-                workoutType: workout.type || ''
-              })
 
-            const intensity = selectStepIntensity(
-              step,
-              {
-                ftp,
-                lthr,
-                maxHr,
-                thresholdPace,
-                hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
-                powerZones: Array.isArray(sportSettings?.powerZones)
-                  ? sportSettings.powerZones
-                  : [],
-                paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
-              },
-              targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>
-            )
-            if (stepDuration > 0) {
-              stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
-            }
-          }
-
-          if (stepDuration > 0 || stepDistance > 0 || (step.steps && step.steps.length > 0)) {
-            const reps = Number(step.reps) || 1
-            distance += stepDistance * reps
-            duration += stepDuration * reps
-            tss += stepTSS * reps
-          } else {
-            console.warn(
-              `[GenerateStructure] Skipping invalid step with no duration/distance: ${step.name}`,
-              step
-            )
-          }
-        })
-        return { distance, duration, tss }
-      }
-
-      const computedTotals = totals || normalizeAndCalculate(structure.steps || [])
-      if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
-        enforceCyclingCadenceVariation(structure)
-      }
-      const totalDistance = computedTotals.distance
-      let totalDuration = computedTotals.duration
-      let totalTSS = computedTotals.tss
-
-      if (structure.exercises && Array.isArray(structure.exercises)) {
-        let gymDuration = 0
-        structure.exercises.forEach((ex: any) => {
-          let exDuration: number
-          if (ex.duration) exDuration = ex.duration
-          else {
-            const sets = ex.sets || 1
-            let reps = 10
-            if (typeof ex.reps === 'number') reps = ex.reps
-            else if (typeof ex.reps === 'string') {
-              const match = ex.reps.match(/\d+/)
-              if (match) reps = parseInt(match[0], 10)
-            }
-            const repDuration = 5
-            const workTime = sets * reps * repDuration
-            let restTimePerSet = 90
-            if (ex.rest) {
-              const restStr = String(ex.rest).toLowerCase()
-              if (restStr.includes('m') && !restStr.includes('ms')) {
-                const mins = parseFloat(restStr) || 0
-                restTimePerSet = mins * 60
-              } else {
-                const secs = parseFloat(restStr) || 90
-                restTimePerSet = secs
-              }
-            }
-            exDuration = workTime + sets * restTimePerSet
-          }
-          gymDuration += exDuration
-        })
-        totalDuration += gymDuration
-        if (gymDuration > 0 && totalTSS === 0) {
-          totalTSS += (gymDuration / 3600) * 40
-        }
-      }
-
-      if (Array.isArray(structure.blocks) && structure.blocks.length > 0) {
-        let blockDuration = 0
-        for (const block of structure.blocks) {
-          const blockSteps = Array.isArray(block?.steps) ? block.steps : []
-          for (const step of blockSteps) {
-            blockDuration += Number(step?.durationSeconds || step?.duration || 0)
+          const intensity = selectStepIntensity(
+            step,
+            {
+              ftp,
+              lthr,
+              maxHr,
+              thresholdPace,
+              hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+              powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+              paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+            },
+            targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>
+          )
+          if (stepDuration > 0) {
+            stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
           }
         }
-        totalDuration += blockDuration
-        if (blockDuration > 0 && totalTSS === 0) {
-          totalTSS += (blockDuration / 3600) * 40
-        }
-      }
-      logStage('structure-normalized', {
-        totalDistance,
-        totalDuration,
-        totalTSS: Math.round(totalTSS * 100) / 100
-      })
 
-      const structureLimitIssues = validateStructuredWorkoutLimits(structure)
-      if (structureLimitIssues.length > 0) {
-        throw new Error(
-          `Generated structured workout violates limits: ${structureLimitIssues[0]!.message}`
-        )
-      }
-      const renderable = hasRenderableStructure(structure)
-      if (renderable && totalDuration <= 0) {
-        throw new Error('Generated structured workout has zero total duration')
-      }
-      if (renderable && totalTSS <= 0) {
-        throw new Error('Generated structured workout has zero total TSS')
-      }
-      if (!renderable) {
-        throw new Error(
-          'Generated structured workout has no renderable steps, exercises, or blocks'
-        )
-      }
-
-      const settingsSnapshot = buildPlannedWorkoutSettingsSnapshot(
-        sportSettings,
-        { ftp, lthr, maxHr },
-        targetPolicy,
-        targetFormatPolicy
-      )
-      const generationContext = buildPlannedWorkoutGenerationContext({
-        operation: 'generate',
-        generatorMode,
-        workout,
-        targetPolicy,
-        targetFormatPolicy,
-        loadPreference,
-        timezone,
-        model: actualModelUsed as any,
-        recentWorkoutsCount: recentWorkouts.length,
-        goal,
-        phase,
-        focus,
-        persona,
-        contextProfile
-      })
-
-      const canonicalStructure = adaptStructuredWorkout(structure, {
-        source: 'AI_GENERATION',
-        zoneProfileSnapshot: createZoneProfileSnapshot(sportSettings)
-      })
-      if (!canonicalStructure || canonicalStructure.diagnostics?.length) {
-        throw new Error('Generated workout contains unresolved target units')
-      }
-      if (entityType === 'PlannedWorkout') {
-        const write = await writeCanonicalPlannedWorkoutStructure({
-          plannedWorkoutId: plannedWorkoutId!,
-          source: 'AI_GENERATION',
-          structure: canonicalStructure,
-          zoneProfileSnapshot: canonicalStructure.zoneProfileSnapshot,
-          expectedGenerationRevision: payload.generationRevision,
-          syncStatus: workout.syncStatus,
-          refs: { ftp, lthr, maxHr, thresholdPace },
-          fallbackOrder: targetPolicy.fallbackOrder as Array<
-            'power' | 'heartRate' | 'pace' | 'rpe'
-          >,
-          preservePlannedDuration: workout.durationSec,
-          extra: {
-            lastGenerationSettingsSnapshot: settingsSnapshot,
-            lastGenerationContext: generationContext,
-            ...(!(workout as any).createdFromSettingsSnapshot
-              ? { createdFromSettingsSnapshot: settingsSnapshot }
-              : {})
-          }
-        })
-        if (write.stale) {
-          return finalizeAndReturn({ success: false, stale: true, entityId, entityType })
-        }
-        const updatedWorkout = await (prisma as any).plannedWorkout.findUnique({
-          where: { id: entityId }
-        })
-        await publishActivityEvent(updatedWorkout.userId, {
-          scope: 'calendar',
-          entityType: 'planned_workout',
-          entityId: updatedWorkout.id,
-          reason: 'updated'
-        })
-        logStage('workout-updated', {
-          updatedDurationSec: updatedWorkout.durationSec,
-          updatedTss: updatedWorkout.tss,
-          updatedIntensity: updatedWorkout.workIntensity
-        })
-
-        const isLocal =
-          updatedWorkout.syncStatus === 'LOCAL_ONLY' ||
-          updatedWorkout.externalId.startsWith('ai_gen_') ||
-          updatedWorkout.externalId.startsWith('ai-gen-') ||
-          updatedWorkout.externalId.startsWith('adhoc-')
-
-        if (isLocal) {
-          const intervalsIntegration = await prisma.integration.findFirst({
-            where: { userId: workout.userId, provider: 'intervals' },
-            select: { settings: true }
-          })
-          const intervalsSettings =
-            (intervalsIntegration?.settings as Record<string, any> | null) || {}
-          const shouldPublishToIntervals =
-            !!intervalsIntegration && intervalsSettings.importPlannedWorkouts !== false
-
-          if (shouldPublishToIntervals) {
-            logger.log('Publishing local structured workout to Intervals.icu', {
-              plannedWorkoutId: entityId
-            })
-            const workoutDoc = serializeCanonicalForIntervals({
-              title: updatedWorkout.title,
-              description: updatedWorkout.description || '',
-              type: updatedWorkout.type,
-              structure: canonicalStructure,
-              zoneProfileSnapshot: canonicalStructure.zoneProfileSnapshot,
-              workout: updatedWorkout,
-              liveUserFtp: workout.user.ftp
-            })
-            const syncResult = await syncPlannedWorkoutToIntervals(
-              'CREATE',
-              {
-                id: updatedWorkout.id,
-                externalId: updatedWorkout.externalId,
-                date: updatedWorkout.date,
-                startTime: updatedWorkout.startTime,
-                title: updatedWorkout.title,
-                description: updatedWorkout.description,
-                type: updatedWorkout.type,
-                durationSec: updatedWorkout.durationSec,
-                tss: updatedWorkout.tss,
-                workout_doc: workoutDoc,
-                managedBy: updatedWorkout.managedBy
-              },
-              workout.userId
-            )
-            logStage('intervals-create-finished', {
-              synced: syncResult.synced,
-              syncError: syncResult.error || null
-            })
-
-            if (syncResult.synced) {
-              const syncedWrite = await (prisma as any).plannedWorkout.updateMany({
-                where: { id: entityId, structureRevision: payload.generationRevision },
-                data: {
-                  ...(syncResult.result?.id && { externalId: String(syncResult.result.id) }),
-                  ...buildStructurePublishFields(canonicalStructure),
-                  syncStatus: 'SYNCED',
-                  lastSyncedAt: new Date(),
-                  syncError: null
-                }
-              })
-              if (syncedWrite.count === 0) {
-                logger.warn(
-                  'Skipped post-sync publish write; structure revision changed during Intervals round-trip',
-                  {
-                    plannedWorkoutId: entityId
-                  }
-                )
-              } else {
-                const syncedWorkout = await (prisma as any).plannedWorkout.findUnique({
-                  where: { id: entityId }
-                })
-                if (syncedWorkout) {
-                  await publishActivityEvent(syncedWorkout.userId, {
-                    scope: 'calendar',
-                    entityType: 'planned_workout',
-                    entityId: syncedWorkout.id,
-                    reason: 'updated'
-                  })
-                }
-              }
-            } else {
-              const failedWrite = await (prisma as any).plannedWorkout.updateMany({
-                where: { id: entityId, structureRevision: payload.generationRevision },
-                data: {
-                  syncStatus: 'PENDING',
-                  syncError: syncResult.error || 'Failed to publish structured workout'
-                }
-              })
-              if (failedWrite.count > 0) {
-                const failedWorkout = await (prisma as any).plannedWorkout.findUnique({
-                  where: { id: entityId }
-                })
-                if (failedWorkout) {
-                  await publishActivityEvent(failedWorkout.userId, {
-                    scope: 'calendar',
-                    entityType: 'planned_workout',
-                    entityId: failedWorkout.id,
-                    reason: 'updated'
-                  })
-                }
-              }
-            }
-          }
+        if (stepDuration > 0 || stepDistance > 0 || (step.steps && step.steps.length > 0)) {
+          const reps = Number(step.reps) || 1
+          distance += stepDistance * reps
+          duration += stepDuration * reps
+          tss += stepTSS * reps
         } else {
-          logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId: entityId })
+          console.warn(
+            `[GenerateStructure] Skipping invalid step with no duration/distance: ${step.name}`,
+            step
+          )
+        }
+      })
+      return { distance, duration, tss }
+    }
+
+    const computedTotals = totals || normalizeAndCalculate(structure.steps || [])
+    if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
+      enforceCyclingCadenceVariation(structure)
+    }
+    const totalDistance = computedTotals.distance
+    let totalDuration = computedTotals.duration
+    let totalTSS = computedTotals.tss
+
+    if (structure.exercises && Array.isArray(structure.exercises)) {
+      let gymDuration = 0
+      structure.exercises.forEach((ex: any) => {
+        let exDuration: number
+        if (ex.duration) exDuration = ex.duration
+        else {
+          const sets = ex.sets || 1
+          let reps = 10
+          if (typeof ex.reps === 'number') reps = ex.reps
+          else if (typeof ex.reps === 'string') {
+            const match = ex.reps.match(/\d+/)
+            if (match) reps = parseInt(match[0], 10)
+          }
+          const repDuration = 5
+          const workTime = sets * reps * repDuration
+          let restTimePerSet = 90
+          if (ex.rest) {
+            const restStr = String(ex.rest).toLowerCase()
+            if (restStr.includes('m') && !restStr.includes('ms')) {
+              const mins = parseFloat(restStr) || 0
+              restTimePerSet = mins * 60
+            } else {
+              const secs = parseFloat(restStr) || 90
+              restTimePerSet = secs
+            }
+          }
+          exDuration = workTime + sets * restTimePerSet
+        }
+        gymDuration += exDuration
+      })
+      totalDuration += gymDuration
+      if (gymDuration > 0 && totalTSS === 0) {
+        totalTSS += (gymDuration / 3600) * 40
+      }
+    }
+
+    if (Array.isArray(structure.blocks) && structure.blocks.length > 0) {
+      let blockDuration = 0
+      for (const block of structure.blocks) {
+        const blockSteps = Array.isArray(block?.steps) ? block.steps : []
+        for (const step of blockSteps) {
+          blockDuration += Number(step?.durationSeconds || step?.duration || 0)
+        }
+      }
+      totalDuration += blockDuration
+      if (blockDuration > 0 && totalTSS === 0) {
+        totalTSS += (blockDuration / 3600) * 40
+      }
+    }
+    logStage('structure-normalized', {
+      totalDistance,
+      totalDuration,
+      totalTSS: Math.round(totalTSS * 100) / 100
+    })
+
+    const structureLimitIssues = validateStructuredWorkoutLimits(structure)
+    if (structureLimitIssues.length > 0) {
+      throw new Error(
+        `Generated structured workout violates limits: ${structureLimitIssues[0]!.message}`
+      )
+    }
+    const renderable = hasRenderableStructure(structure)
+    if (renderable && totalDuration <= 0) {
+      throw new Error('Generated structured workout has zero total duration')
+    }
+    if (renderable && totalTSS <= 0) {
+      throw new Error('Generated structured workout has zero total TSS')
+    }
+    if (!renderable) {
+      throw new Error('Generated structured workout has no renderable steps, exercises, or blocks')
+    }
+
+    const settingsSnapshot = buildPlannedWorkoutSettingsSnapshot(
+      sportSettings,
+      { ftp, lthr, maxHr },
+      targetPolicy,
+      targetFormatPolicy
+    )
+    const generationContext = buildPlannedWorkoutGenerationContext({
+      operation: 'generate',
+      generatorMode,
+      workout,
+      targetPolicy,
+      targetFormatPolicy,
+      loadPreference,
+      timezone,
+      model: actualModelUsed as any,
+      recentWorkoutsCount: recentWorkouts.length,
+      goal,
+      phase,
+      focus,
+      persona,
+      contextProfile
+    })
+
+    const canonicalStructure = adaptStructuredWorkout(structure, {
+      source: 'AI_GENERATION',
+      zoneProfileSnapshot: createZoneProfileSnapshot(sportSettings)
+    })
+    if (!canonicalStructure || canonicalStructure.diagnostics?.length) {
+      throw new Error('Generated workout contains unresolved target units')
+    }
+    if (entityType === 'PlannedWorkout') {
+      const write = await writeCanonicalPlannedWorkoutStructure({
+        plannedWorkoutId: plannedWorkoutId!,
+        source: 'AI_GENERATION',
+        structure: canonicalStructure,
+        zoneProfileSnapshot: canonicalStructure.zoneProfileSnapshot,
+        expectedGenerationRevision: payload.generationRevision,
+        syncStatus: workout.syncStatus,
+        refs: { ftp, lthr, maxHr, thresholdPace },
+        fallbackOrder: targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>,
+        preservePlannedDuration: workout.durationSec,
+        extra: {
+          lastGenerationSettingsSnapshot: settingsSnapshot,
+          lastGenerationContext: generationContext,
+          ...(!(workout as any).createdFromSettingsSnapshot
+            ? { createdFromSettingsSnapshot: settingsSnapshot }
+            : {})
+        }
+      })
+      if (write.stale) {
+        return finalizeAndReturn({ success: false, stale: true, entityId, entityType })
+      }
+      const updatedWorkout = await (prisma as any).plannedWorkout.findUnique({
+        where: { id: entityId }
+      })
+      await publishActivityEvent(updatedWorkout.userId, {
+        scope: 'calendar',
+        entityType: 'planned_workout',
+        entityId: updatedWorkout.id,
+        reason: 'updated'
+      })
+      logStage('workout-updated', {
+        updatedDurationSec: updatedWorkout.durationSec,
+        updatedTss: updatedWorkout.tss,
+        updatedIntensity: updatedWorkout.workIntensity
+      })
+
+      const isLocal =
+        updatedWorkout.syncStatus === 'LOCAL_ONLY' ||
+        updatedWorkout.externalId.startsWith('ai_gen_') ||
+        updatedWorkout.externalId.startsWith('ai-gen-') ||
+        updatedWorkout.externalId.startsWith('adhoc-')
+
+      if (isLocal) {
+        const intervalsIntegration = await prisma.integration.findFirst({
+          where: { userId: workout.userId, provider: 'intervals' },
+          select: { settings: true }
+        })
+        const intervalsSettings =
+          (intervalsIntegration?.settings as Record<string, any> | null) || {}
+        const shouldPublishToIntervals =
+          !!intervalsIntegration && intervalsSettings.importPlannedWorkouts !== false
+
+        if (shouldPublishToIntervals) {
+          logger.log('Publishing local structured workout to Intervals.icu', {
+            plannedWorkoutId: entityId
+          })
           const workoutDoc = serializeCanonicalForIntervals({
             title: updatedWorkout.title,
             description: updatedWorkout.description || '',
@@ -1803,7 +1708,7 @@ OUTPUT JSON matching the schema.`
             liveUserFtp: workout.user.ftp
           })
           const syncResult = await syncPlannedWorkoutToIntervals(
-            'UPDATE',
+            'CREATE',
             {
               id: updatedWorkout.id,
               externalId: updatedWorkout.externalId,
@@ -1819,7 +1724,7 @@ OUTPUT JSON matching the schema.`
             },
             workout.userId
           )
-          logStage('intervals-sync-finished', {
+          logStage('intervals-create-finished', {
             synced: syncResult.synced,
             syncError: syncResult.error || null
           })
@@ -1828,13 +1733,21 @@ OUTPUT JSON matching the schema.`
             const syncedWrite = await (prisma as any).plannedWorkout.updateMany({
               where: { id: entityId, structureRevision: payload.generationRevision },
               data: {
+                ...(syncResult.result?.id && { externalId: String(syncResult.result.id) }),
                 ...buildStructurePublishFields(canonicalStructure),
                 syncStatus: 'SYNCED',
                 lastSyncedAt: new Date(),
                 syncError: null
               }
             })
-            if (syncedWrite.count > 0) {
+            if (syncedWrite.count === 0) {
+              logger.warn(
+                'Skipped post-sync publish write; structure revision changed during Intervals round-trip',
+                {
+                  plannedWorkoutId: entityId
+                }
+              )
+            } else {
               const syncedWorkout = await (prisma as any).plannedWorkout.findUnique({
                 where: { id: entityId }
               })
@@ -1850,7 +1763,10 @@ OUTPUT JSON matching the schema.`
           } else {
             const failedWrite = await (prisma as any).plannedWorkout.updateMany({
               where: { id: entityId, structureRevision: payload.generationRevision },
-              data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
+              data: {
+                syncStatus: 'PENDING',
+                syncError: syncResult.error || 'Failed to publish structured workout'
+              }
             })
             if (failedWrite.count > 0) {
               const failedWorkout = await (prisma as any).plannedWorkout.findUnique({
@@ -1868,33 +1784,120 @@ OUTPUT JSON matching the schema.`
           }
         }
       } else {
-        // WorkoutTemplate - Strictly filter fields
-        const templateData = {
-          structuredWorkout: canonicalStructure as any,
-          durationSec: totalDuration > 0 ? totalDuration : null,
-          tss: totalTSS > 0 ? Math.round(totalTSS) : null,
-          workIntensity:
-            totalTSS > 0 && totalDuration > 0
-              ? parseFloat(Math.sqrt((36 * totalTSS) / totalDuration).toFixed(2))
-              : null
-        }
+        logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId: entityId })
+        const workoutDoc = serializeCanonicalForIntervals({
+          title: updatedWorkout.title,
+          description: updatedWorkout.description || '',
+          type: updatedWorkout.type,
+          structure: canonicalStructure,
+          zoneProfileSnapshot: canonicalStructure.zoneProfileSnapshot,
+          workout: updatedWorkout,
+          liveUserFtp: workout.user.ftp
+        })
+        const syncResult = await syncPlannedWorkoutToIntervals(
+          'UPDATE',
+          {
+            id: updatedWorkout.id,
+            externalId: updatedWorkout.externalId,
+            date: updatedWorkout.date,
+            startTime: updatedWorkout.startTime,
+            title: updatedWorkout.title,
+            description: updatedWorkout.description,
+            type: updatedWorkout.type,
+            durationSec: updatedWorkout.durationSec,
+            tss: updatedWorkout.tss,
+            workout_doc: workoutDoc,
+            managedBy: updatedWorkout.managedBy
+          },
+          workout.userId
+        )
+        logStage('intervals-sync-finished', {
+          synced: syncResult.synced,
+          syncError: syncResult.error || null
+        })
 
-        const updatedTemplate = await (prisma as any).workoutTemplate.update({
-          where: { id: entityId },
-          data: templateData
-        })
-        logStage('template-updated', {
-          updatedDurationSec: updatedTemplate.durationSec,
-          updatedTss: updatedTemplate.tss,
-          updatedIntensity: updatedTemplate.workIntensity
-        })
+        if (syncResult.synced) {
+          const syncedWrite = await (prisma as any).plannedWorkout.updateMany({
+            where: { id: entityId, structureRevision: payload.generationRevision },
+            data: {
+              ...buildStructurePublishFields(canonicalStructure),
+              syncStatus: 'SYNCED',
+              lastSyncedAt: new Date(),
+              syncError: null
+            }
+          })
+          if (syncedWrite.count > 0) {
+            const syncedWorkout = await (prisma as any).plannedWorkout.findUnique({
+              where: { id: entityId }
+            })
+            if (syncedWorkout) {
+              await publishActivityEvent(syncedWorkout.userId, {
+                scope: 'calendar',
+                entityType: 'planned_workout',
+                entityId: syncedWorkout.id,
+                reason: 'updated'
+              })
+            }
+          }
+        } else {
+          const failedWrite = await (prisma as any).plannedWorkout.updateMany({
+            where: { id: entityId, structureRevision: payload.generationRevision },
+            data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
+          })
+          if (failedWrite.count > 0) {
+            const failedWorkout = await (prisma as any).plannedWorkout.findUnique({
+              where: { id: entityId }
+            })
+            if (failedWorkout) {
+              await publishActivityEvent(failedWorkout.userId, {
+                scope: 'calendar',
+                entityType: 'planned_workout',
+                entityId: failedWorkout.id,
+                reason: 'updated'
+              })
+            }
+          }
+        }
+      }
+    } else {
+      // WorkoutTemplate - Strictly filter fields
+      const templateData = {
+        structuredWorkout: canonicalStructure as any,
+        durationSec: totalDuration > 0 ? totalDuration : null,
+        tss: totalTSS > 0 ? Math.round(totalTSS) : null,
+        workIntensity:
+          totalTSS > 0 && totalDuration > 0
+            ? parseFloat(Math.sqrt((36 * totalTSS) / totalDuration).toFixed(2))
+            : null
       }
 
-      logStage('completed')
-      return finalizeAndReturn({ success: true, entityId, entityType })
-    } catch (error) {
-      await failStructureGenerationTaskFromPayload(payload, error)
-      throw error
+      const updatedTemplate = await (prisma as any).workoutTemplate.update({
+        where: { id: entityId },
+        data: templateData
+      })
+      logStage('template-updated', {
+        updatedDurationSec: updatedTemplate.durationSec,
+        updatedTss: updatedTemplate.tss,
+        updatedIntensity: updatedTemplate.workIntensity
+      })
     }
+
+    logStage('completed')
+    return finalizeAndReturn({ success: true, entityId, entityType })
+  } catch (error) {
+    await failStructureGenerationTaskFromPayload(payload, error)
+    throw error
   }
+}
+
+registerTaskHandler('generate-structured-workout', (payload) =>
+  runGenerateStructuredWorkout(payload)
+)
+
+export const generateStructuredWorkoutTask = task({
+  id: 'generate-structured-workout',
+  queue: userReportsQueue,
+  maxDuration: 180,
+  run: async (payload: GenerateStructuredWorkoutPayload, { ctx }) =>
+    runGenerateStructuredWorkout(payload, { runId: ctx.run.id })
 })

@@ -1,8 +1,8 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import { assertQuotaAllowed } from '../../utils/quotas/http'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Trigger the recommendation generation job
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'generate-recommendations',
       { userId: user.id },
       {

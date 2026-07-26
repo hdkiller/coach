@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -23,7 +23,6 @@ import { getCheckinHistoryContext } from '../server/utils/services/checkin-servi
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { checkQuota } from '../server/utils/quotas/engine'
-import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import {
@@ -58,6 +57,7 @@ import {
 } from '../server/utils/recommendation-guardrails'
 
 import { registerTaskHandler } from '../server/utils/task-registry'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 interface RecommendationAnalysis {
   recommendation: 'proceed' | 'modify' | 'reduce_intensity' | 'rest'
@@ -1137,21 +1137,30 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
           })
           if (fullUser) {
             const recommendationDateKey = today.toISOString().slice(0, 10)
-            await tasks.trigger('send-email', {
-              userId,
-              templateKey: 'DailyRecommendation',
-              eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
-              idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
-              audience: 'ENGAGEMENT',
-              subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
-              props: {
-                name: fullUser.name || 'Athlete',
-                date: formatUserDate(today, userTimezone, 'EEEE, MMM d'),
-                recommendation: analysis.recommendation.toUpperCase().replace('_', ' '),
-                reasoning: analysis.reasoning,
-                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+            await dispatchTask(
+              'send-email',
+              {
+                userId,
+                templateKey: 'DailyRecommendation',
+                eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
+                idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
+                audience: 'ENGAGEMENT',
+                subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
+                props: {
+                  name: fullUser.name || 'Athlete',
+                  date: formatUserDate(today, userTimezone, 'EEEE, MMM d'),
+                  recommendation: analysis.recommendation.toUpperCase().replace('_', ' '),
+                  reasoning: analysis.reasoning,
+                  unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+                }
+              },
+              {
+                id: `daily-recommendation:${userId}:${recommendationDateKey}`,
+                concurrencyKey: userId,
+                tags: [`user:${userId}`],
+                retry: { maxAttempts: 3 }
               }
-            })
+            )
           }
         } catch (emailError) {
           logger.warn('Failed to trigger daily recommendation email', {

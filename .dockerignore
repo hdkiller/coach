@@ -16,5 +16,9 @@ README.md
 GEMINI.md
 RULES.md
 docs
-tests
+tests/*
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/llm-mocks/
+!tests/fixtures/llm-mocks/**
 screenshots

@@ -1,6 +1,5 @@
-import { generateStructuredWorkoutTask } from '../../trigger/generate-structured-workout'
-import { adjustStructuredWorkoutTask } from '../../trigger/adjust-structured-workout'
 import { publishTaskRunStartedEvent } from './task-run-events'
+import { dispatchTask } from './task-dispatcher'
 import { structureGenerationRunTags, type StructureRunSource } from './trigger-run-tags'
 import type { WorkoutTargetingOverride } from '../../trigger/utils/workout-targeting'
 import type { StructuredWorkoutGeneratorMode } from './structured-workout-generator'
@@ -66,7 +65,8 @@ export async function enqueuePlannedWorkoutStructureGeneration(options: {
       plannedWorkoutId,
       source
     })
-    const handle = await generateStructuredWorkoutTask.trigger(
+    const handle = await dispatchTask(
+      'generate-structured-workout',
       {
         plannedWorkoutId,
         targetingOverride,
@@ -78,7 +78,7 @@ export async function enqueuePlannedWorkoutStructureGeneration(options: {
       {
         tags,
         concurrencyKey: userId,
-        idempotencyKey: generation.idempotencyKey
+        id: generation.idempotencyKey
       }
     )
     try {
@@ -142,7 +142,8 @@ export async function enqueuePlannedWorkoutStructureAdjustment(options: {
       plannedWorkoutId,
       source
     })
-    const handle = await adjustStructuredWorkoutTask.trigger(
+    const handle = await dispatchTask(
+      'adjust-structured-workout',
       {
         plannedWorkoutId,
         adjustments,
@@ -154,7 +155,7 @@ export async function enqueuePlannedWorkoutStructureAdjustment(options: {
       {
         tags,
         concurrencyKey: userId,
-        idempotencyKey: generation.idempotencyKey
+        id: generation.idempotencyKey
       }
     )
     try {

@@ -83,21 +83,40 @@ export const availabilityRepository = {
       .map((a) => {
         const dayName = dayNames[a.dayOfWeek]
         const slots = (a.slots as any[]) || []
+        const legacyWindows = [
+          a.morning ? 'Morning' : null,
+          a.afternoon ? 'Afternoon' : null,
+          a.evening ? 'Evening' : null
+        ].filter(Boolean) as string[]
 
-        if (slots.length === 0) {
+        if (slots.length === 0 && legacyWindows.length === 0) {
           return `${dayName}: Rest Day (no sessions planned)`
         }
 
-        const slotDetails = slots
-          .map((s) => {
-            const parts = [`${s.startTime} ${s.name} (${s.duration}m)`]
-            if (s.activityTypes?.length) parts.push(`Types: ${s.activityTypes.join('/')}`)
-            if (s.indoorOnly) parts.push('Indoor Only')
-            return parts.join(' | ')
-          })
-          .join('\n    ')
+        const slotDetails =
+          slots.length > 0
+            ? slots
+                .map((s) => {
+                  const parts = [`${s.startTime} ${s.name} (${s.duration}m)`]
+                  if (s.activityTypes?.length) parts.push(`Types: ${s.activityTypes.join('/')}`)
+                  if (s.indoorOnly) parts.push('Indoor Only')
+                  return parts.join(' | ')
+                })
+                .join('\n    ')
+            : legacyWindows.join(', ')
 
-        return `${dayName}:\n    ${slotDetails}${a.notes ? `\n    Notes: ${a.notes}` : ''}`
+        const access = [
+          a.bikeAccess ? 'Bike access' : null,
+          a.gymAccess ? 'Gym access' : null,
+          a.indoorOnly ? 'Indoor only' : null,
+          a.outdoorOnly ? 'Outdoor only' : null
+        ]
+          .filter(Boolean)
+          .join(', ')
+
+        return `${dayName}: ${slotDetails}${access ? ` (${access})` : ''}${
+          a.notes ? `\n    Notes: ${a.notes}` : ''
+        }`
       })
       .join('\n')
   }

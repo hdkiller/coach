@@ -1,4 +1,3 @@
-import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
 import {
   fetchOuraDailySleep,
@@ -206,13 +205,3 @@ export const OuraService = {
     return { handled: true, message: 'Synced last 3 days' }
   }
 }
-
-registerTaskHandler(
-  'ingest-oura',
-  (payload: { userId: string; startDate?: string; endDate?: string }) =>
-    OuraService.syncUser(
-      payload.userId,
-      payload.startDate ? new Date(payload.startDate) : undefined,
-      payload.endDate ? new Date(payload.endDate) : undefined
-    )
-)

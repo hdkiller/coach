@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { fetchStravaActivityDetails, normalizeStravaActivity } from '../server/utils/strava'
 import { prisma } from '../server/utils/db'
@@ -11,176 +11,183 @@ import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { ingestStravaStreamsForWorkout } from './utils/strava-stream-ingestion'
 import { linkWorkoutToMatchingPlannedWorkout } from '../server/utils/planned-workout-linking'
+import { dispatchTask } from '../server/utils/task-dispatcher'
+import { registerTaskHandler } from '../server/utils/task-registry'
+
+type IngestStravaActivityPayload = { userId: string; activityId: number; isUpdate?: boolean }
+
+export async function runIngestStravaActivity(payload: IngestStravaActivityPayload) {
+  const { userId, activityId, isUpdate = false } = payload
+
+  logger.log('Starting Strava activity ingestion', { userId, activityId, isUpdate })
+
+  // Block ingestion on hosted site until Strava app is approved
+  const stravaEnabled = process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false'
+  if (!stravaEnabled) {
+    logger.log('Strava ingestion is temporarily disabled via environment variable')
+    return {
+      success: false,
+      message: 'Strava integration is temporarily disabled'
+    }
+  }
+
+  const integration = await prisma.integration.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'strava'
+      }
+    }
+  })
+
+  if (!integration) {
+    throw new Error('Strava integration not found for user')
+  }
+
+  if (
+    !shouldIngestActivities(
+      'strava',
+      integration.ingestWorkouts,
+      (integration.settings as Record<string, any> | null) || {}
+    )
+  ) {
+    logger.log('Strava activity ingestion disabled - skipping single-activity import')
+    return {
+      success: true,
+      skipped: true,
+      reason: 'ingestion_disabled'
+    }
+  }
+
+  try {
+    logger.log(`Fetching details for Strava activity ${activityId}...`)
+    const detailedActivity = await fetchStravaActivityDetails(integration, activityId)
+
+    // Check if this activity already exists from Intervals.icu to avoid duplicates
+    // We check this even for updates to be safe
+    const activityDate = new Date(detailedActivity.start_date)
+    const fiveMinutesBefore = new Date(activityDate.getTime() - 5 * 60 * 1000)
+    const fiveMinutesAfter = new Date(activityDate.getTime() + 5 * 60 * 1000)
+
+    const existingFromIntervals = await prisma.workout.findFirst({
+      where: {
+        userId,
+        source: 'intervals',
+        date: {
+          gte: fiveMinutesBefore,
+          lte: fiveMinutesAfter
+        },
+        durationSec: {
+          gte: detailedActivity.moving_time - 30,
+          lte: detailedActivity.moving_time + 30
+        }
+      }
+    })
+
+    if (existingFromIntervals) {
+      logger.log(
+        `Skipping Strava activity ${activityId} - already exists from Intervals.icu (workout ${existingFromIntervals.id})`
+      )
+      return { success: true, skipped: true, reason: 'exists_in_intervals' }
+    }
+
+    const workout = normalizeStravaActivity(detailedActivity, userId)
+
+    const { isNew, record: upsertedWorkout } = await workoutRepository.upsert(
+      userId,
+      'strava',
+      workout.externalId,
+      workout as any,
+      workout as any
+    )
+
+    logger.log(`Successfully ${isNew ? 'created' : 'updated'} workout ${upsertedWorkout.id}`)
+
+    try {
+      const linkResult = await linkWorkoutToMatchingPlannedWorkout(upsertedWorkout)
+      if (linkResult.linked) {
+        logger.log('Linked Strava workout to matching planned workout', {
+          workoutId: upsertedWorkout.id,
+          plannedWorkoutId: linkResult.plannedWorkoutId
+        })
+      }
+    } catch (error) {
+      logger.error('Failed to link Strava workout to matching planned workout', {
+        workoutId: upsertedWorkout.id,
+        error
+      })
+    }
+
+    try {
+      const streamIntegration =
+        (await prisma.integration.findUnique({
+          where: { id: integration.id }
+        })) || integration
+
+      await ingestStravaStreamsForWorkout({
+        userId,
+        workoutId: upsertedWorkout.id,
+        activityId,
+        integration: streamIntegration
+      })
+    } catch (error) {
+      logger.error(`Failed to ingest streams for ${upsertedWorkout.id}`, { error })
+
+      try {
+        await calculateWorkoutStress(upsertedWorkout.id, userId)
+      } catch (stressError) {
+        logger.error(`Failed to calculate fallback stress for ${upsertedWorkout.id}`, {
+          error: stressError
+        })
+      }
+
+      await dispatchTask(
+        'ingest-strava-streams',
+        {
+          userId,
+          workoutId: upsertedWorkout.id,
+          activityId
+        },
+        {
+          concurrencyKey: userId,
+          tags: [`user:${userId}`],
+          id: `strava-streams:${userId}:${activityId}`
+        }
+      )
+    }
+
+    // REACTIVE: Trigger fueling plan update for the workout date
+    try {
+      if (await isNutritionTrackingEnabled(userId)) {
+        const timezone = await getUserTimezone(userId)
+        // Use the workout date in user's timezone
+        const workoutLocalDate = timezone
+          ? getUserLocalDate(timezone, upsertedWorkout.date)
+          : upsertedWorkout.date
+        await metabolicService.calculateFuelingPlanForDate(userId, workoutLocalDate, {
+          persist: true
+        })
+      }
+    } catch (err) {
+      logger.error('Failed to trigger fueling plan update', { err })
+    }
+
+    return {
+      success: true,
+      workoutId: upsertedWorkout.id,
+      isNew
+    }
+  } catch (error) {
+    logger.error('Error ingesting Strava activity', { error })
+    throw error
+  }
+}
+
+registerTaskHandler('ingest-strava-activity', runIngestStravaActivity)
 
 export const ingestStravaActivityTask = task({
   id: 'ingest-strava-activity',
   queue: userIngestionQueue,
   maxDuration: 300, // 5 minutes
-  run: async (payload: { userId: string; activityId: number; isUpdate?: boolean }) => {
-    const { userId, activityId, isUpdate = false } = payload
-
-    logger.log('Starting Strava activity ingestion', { userId, activityId, isUpdate })
-
-    // Block ingestion on hosted site until Strava app is approved
-    const stravaEnabled = process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false'
-    if (!stravaEnabled) {
-      logger.log('Strava ingestion is temporarily disabled via environment variable')
-      return {
-        success: false,
-        message: 'Strava integration is temporarily disabled'
-      }
-    }
-
-    const integration = await prisma.integration.findUnique({
-      where: {
-        userId_provider: {
-          userId,
-          provider: 'strava'
-        }
-      }
-    })
-
-    if (!integration) {
-      throw new Error('Strava integration not found for user')
-    }
-
-    if (
-      !shouldIngestActivities(
-        'strava',
-        integration.ingestWorkouts,
-        (integration.settings as Record<string, any> | null) || {}
-      )
-    ) {
-      logger.log('Strava activity ingestion disabled - skipping single-activity import')
-      return {
-        success: true,
-        skipped: true,
-        reason: 'ingestion_disabled'
-      }
-    }
-
-    try {
-      logger.log(`Fetching details for Strava activity ${activityId}...`)
-      const detailedActivity = await fetchStravaActivityDetails(integration, activityId)
-
-      // Check if this activity already exists from Intervals.icu to avoid duplicates
-      // We check this even for updates to be safe
-      const activityDate = new Date(detailedActivity.start_date)
-      const fiveMinutesBefore = new Date(activityDate.getTime() - 5 * 60 * 1000)
-      const fiveMinutesAfter = new Date(activityDate.getTime() + 5 * 60 * 1000)
-
-      const existingFromIntervals = await prisma.workout.findFirst({
-        where: {
-          userId,
-          source: 'intervals',
-          date: {
-            gte: fiveMinutesBefore,
-            lte: fiveMinutesAfter
-          },
-          durationSec: {
-            gte: detailedActivity.moving_time - 30,
-            lte: detailedActivity.moving_time + 30
-          }
-        }
-      })
-
-      if (existingFromIntervals) {
-        logger.log(
-          `Skipping Strava activity ${activityId} - already exists from Intervals.icu (workout ${existingFromIntervals.id})`
-        )
-        return { success: true, skipped: true, reason: 'exists_in_intervals' }
-      }
-
-      const workout = normalizeStravaActivity(detailedActivity, userId)
-
-      const { isNew, record: upsertedWorkout } = await workoutRepository.upsert(
-        userId,
-        'strava',
-        workout.externalId,
-        workout as any,
-        workout as any
-      )
-
-      logger.log(`Successfully ${isNew ? 'created' : 'updated'} workout ${upsertedWorkout.id}`)
-
-      try {
-        const linkResult = await linkWorkoutToMatchingPlannedWorkout(upsertedWorkout)
-        if (linkResult.linked) {
-          logger.log('Linked Strava workout to matching planned workout', {
-            workoutId: upsertedWorkout.id,
-            plannedWorkoutId: linkResult.plannedWorkoutId
-          })
-        }
-      } catch (error) {
-        logger.error('Failed to link Strava workout to matching planned workout', {
-          workoutId: upsertedWorkout.id,
-          error
-        })
-      }
-
-      try {
-        const streamIntegration =
-          (await prisma.integration.findUnique({
-            where: { id: integration.id }
-          })) || integration
-
-        await ingestStravaStreamsForWorkout({
-          userId,
-          workoutId: upsertedWorkout.id,
-          activityId,
-          integration: streamIntegration
-        })
-      } catch (error) {
-        logger.error(`Failed to ingest streams for ${upsertedWorkout.id}`, { error })
-
-        try {
-          await calculateWorkoutStress(upsertedWorkout.id, userId)
-        } catch (stressError) {
-          logger.error(`Failed to calculate fallback stress for ${upsertedWorkout.id}`, {
-            error: stressError
-          })
-        }
-
-        await tasks.trigger(
-          'ingest-strava-streams',
-          {
-            userId,
-            workoutId: upsertedWorkout.id,
-            activityId
-          },
-          {
-            concurrencyKey: userId,
-            tags: [`user:${userId}`],
-            idempotencyKey: `strava-streams:${userId}:${activityId}`,
-            idempotencyKeyTTL: '1h'
-          }
-        )
-      }
-
-      // REACTIVE: Trigger fueling plan update for the workout date
-      try {
-        if (await isNutritionTrackingEnabled(userId)) {
-          const timezone = await getUserTimezone(userId)
-          // Use the workout date in user's timezone
-          const workoutLocalDate = timezone
-            ? getUserLocalDate(timezone, upsertedWorkout.date)
-            : upsertedWorkout.date
-          await metabolicService.calculateFuelingPlanForDate(userId, workoutLocalDate, {
-            persist: true
-          })
-        }
-      } catch (err) {
-        logger.error('Failed to trigger fueling plan update', { err })
-      }
-
-      return {
-        success: true,
-        workoutId: upsertedWorkout.id,
-        isNew
-      }
-    } catch (error) {
-      logger.error('Error ingesting Strava activity', { error })
-      throw error
-    }
-  }
+  run: runIngestStravaActivity
 })

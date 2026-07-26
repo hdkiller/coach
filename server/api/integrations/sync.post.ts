@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { safeTriggerTask } from '../../utils/trigger-check'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import {
@@ -275,7 +275,7 @@ export default defineEventHandler(async (event) => {
                                 : 'ingest-hevy'
 
   try {
-    const handle = await safeTriggerTask(
+    const handle = await dispatchTask(
       taskId,
       {
         userId,
@@ -305,7 +305,7 @@ export default defineEventHandler(async (event) => {
     console.error(`[Sync] Failed to trigger task:`, error)
     throw createError({
       statusCode: 500,
-      message: `Failed to trigger sync: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure Trigger.dev dev server is running (pnpm dev:trigger)`
+      message: `Failed to trigger sync: ${error instanceof Error ? error.message : 'Unknown error'}`
     })
   }
 })

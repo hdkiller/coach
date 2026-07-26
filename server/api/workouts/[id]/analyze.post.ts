@@ -1,5 +1,5 @@
 import { requireAuth } from '../../../utils/auth-guard'
-import { safeTriggerTask } from '../../../utils/trigger-check'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
     await workoutRepository.updateStatus(id, 'PENDING')
 
     // Trigger background job with per-user concurrency
-    const handle = await safeTriggerTask(
+    const handle = await dispatchTask(
       'analyze-workout',
       {
         workoutId: id
@@ -88,8 +88,7 @@ export default defineEventHandler(async (event) => {
       {
         concurrencyKey: user.id,
         tags: [`user:${user.id}`],
-        idempotencyKey: id,
-        idempotencyKeyTTL: '5m'
+        id
       }
     )
 

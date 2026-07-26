@@ -29,28 +29,41 @@ async function main() {
   process.env.PORT = String(port)
   process.env.HOST = process.env.HOST ?? '0.0.0.0'
   process.env.NODE_OPTIONS = '--max-old-space-size=12288'
+  process.env.TASK_QUEUE_DRIVER = 'redis'
+  process.env.MOCK_LLM_RESPONSES = 'true'
   // Prevent root .env auth bypass from leaking into E2E (breaks login redirect tests).
   delete process.env.AUTH_BYPASS_USER
   delete process.env.AUTH_BYPASS_NAME
   process.env.AUTH_BYPASS_USER = ''
   process.env.AUTH_BYPASS_NAME = ''
 
-  console.log(`[e2e] Starting Nuxt dev on ${baseUrl} (E2E_MODE=true)`)
+  console.log(`[e2e] Starting Nuxt dev and Redis task worker on ${baseUrl} (E2E_MODE=true)`)
   console.log('[e2e] Mobile emulators: Android 10.0.2.2:3199 · iOS sim localhost:3199')
 
-  const child = spawn(
-    'pnpm',
-    ['exec', 'nuxt', 'dev', '--port', String(port), '--host', '0.0.0.0'],
-    {
-      cwd: getE2eRootDir(),
-      stdio: 'inherit',
-      env: process.env
-    }
-  )
-
-  child.on('exit', (code) => {
-    process.exit(code ?? 0)
+  const worker = spawn('pnpm', ['exec', 'tsx', 'cli/worker/index.ts', 'start'], {
+    cwd: getE2eRootDir(),
+    stdio: 'inherit',
+    env: process.env
   })
+
+  const app = spawn('pnpm', ['exec', 'nuxt', 'dev', '--port', String(port), '--host', '0.0.0.0'], {
+    cwd: getE2eRootDir(),
+    stdio: 'inherit',
+    env: process.env
+  })
+
+  let exiting = false
+  const stop = (code: number | null, source: 'app' | 'worker') => {
+    if (exiting) return
+    exiting = true
+
+    if (source !== 'app') app.kill('SIGTERM')
+    if (source !== 'worker') worker.kill('SIGTERM')
+    process.exit(code ?? 0)
+  }
+
+  app.on('exit', (code) => stop(code, 'app'))
+  worker.on('exit', (code) => stop(code, 'worker'))
 }
 
 main().catch((error) => {

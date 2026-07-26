@@ -29,7 +29,11 @@
                 {{ scoreLabel }}
               </p>
             </div>
-            <UProgress :model-value="score ? score * 10 : 0" size="lg" :color="progressColor" />
+            <UProgress
+              :model-value="score ? Math.min(100, Math.max(0, score * 10)) : 0"
+              size="lg"
+              :color="progressColor"
+            />
           </div>
         </div>
 
