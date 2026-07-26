@@ -4,26 +4,26 @@
 
 2026-07-19 deep pass over human coaching (athlete↔coach invites, My Coaches, team staff, public Start/Join). Prior batch **263–275** mostly **Fixed in code** (tracker updated); leftovers **272 Partial**, **275 Open**, **116 Open**.
 
-Index: [app-review-issues.md](./app-review-issues.md) § Issues 327–348.
+Index: [issues.md](./issues.md) § Issues 327–348.
 
 ## Critical (fix first)
 
-| ID  | File                                                         | Notes                                      |
-| --- | ------------------------------------------------------------ | ------------------------------------------ |
-| 327 | `327-connect-by-code-maxlength-six.md`                       | Connect modal `maxlength=6` vs 10-char codes |
-| 328 | `328-share-invite-link-points-to-start.md`                   | Share InviteLink → `/start` not `/join`    |
+| ID  | File                                       | Notes                                        |
+| --- | ------------------------------------------ | -------------------------------------------- |
+| 327 | `327-connect-by-code-maxlength-six.md`     | Connect modal `maxlength=6` vs 10-char codes |
+| 328 | `328-share-invite-link-points-to-start.md` | Share InviteLink → `/start` not `/join`      |
 
 ## High
 
-| ID  | File                                                    |
-| --- | ------------------------------------------------------- |
-| 329 | `329-act-as-ui-missing.md`                              |
-| 330 | `330-coach-cannot-remove-athlete.md`                    |
-| 331 | `331-coaching-team-page-ia-confusion.md`                |
-| 332 | `332-branded-coach-join-page-missing.md`                |
-| 333 | `333-team-invites-never-send-email.md`                  |
-| 334 | `334-team-member-remove-role-change-missing.md`         |
-| 335 | `335-group-details-email-leak.md`                       |
+| ID  | File                                            |
+| --- | ----------------------------------------------- |
+| 329 | `329-act-as-ui-missing.md`                      |
+| 330 | `330-coach-cannot-remove-athlete.md`            |
+| 331 | `331-coaching-team-page-ia-confusion.md`        |
+| 332 | `332-branded-coach-join-page-missing.md`        |
+| 333 | `333-team-invites-never-send-email.md`          |
+| 334 | `334-team-member-remove-role-change-missing.md` |
+| 335 | `335-group-details-email-leak.md`               |
 
 ## Medium / Low
 
@@ -44,7 +44,6 @@ Index: [app-review-issues.md](./app-review-issues.md) § Issues 327–348.
 - Documentation-only in the filing PR unless asked to implement.
 - Prefer Option B-safe defaults for authZ until product chooses Option A (347).
 - Dedup against 263–275 before reopening fixed items.
-
 
 ## Implementation status (2026-07-19)
 

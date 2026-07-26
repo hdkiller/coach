@@ -2,7 +2,7 @@
 
 ## Context
 
-A systematic review of `/coaching` pages, components, and API routes found 13 open issues documented in `docs/issues/263-*.md` through `275-*.md`. Index and fix order: `docs/issues/app-review-issues.md` (section "Issues 263–275").
+A systematic review of `/coaching` pages, components, and API routes found 13 open issues documented in `docs/issues/263-*.md` through `275-*.md`. Index and fix order: `docs/issues/issues.md` (section "Issues 263–275").
 
 **None of these are fixed yet.** Read each issue file before implementing.
 

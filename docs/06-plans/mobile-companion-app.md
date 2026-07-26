@@ -370,7 +370,7 @@ Idempotent upsert on `token`. Ownership moves to the current user if the token w
 **Living taxonomy (channels, prefs bridges, ship gates):**  
 `~/Develop/watts-marketing/knowledge/push/inventory.md`  
 Coordinate with email catalog: `~/Develop/watts-marketing/knowledge/email/inventory.md`.  
-Engineering backlog: `docs/issues/app-review-issues.md` § **364–368**.
+Engineering backlog: `docs/issues/issues.md` § **364–368**.
 
 Reuse the existing notification taxonomy where possible; extend rather than invent a parallel system. Do not enable a new Expo sender until the inventory row has channel mix, prefs, and a mobile-safe deep link.
 

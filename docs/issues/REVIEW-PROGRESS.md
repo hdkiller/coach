@@ -7,22 +7,21 @@
 
 ## Summary
 
-| Metric                                             | Value                                                                                                |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Structure-generation issues                        | 001–038 ([issues.md](./issues.md)) — **37 / 38 fixed** (only 012 open)                               |
-| App-review issues filed                            | 039–368                                                                                              |
-| **Postponed** (auth / third-party / OAuth / Yazio) | **21** — see [Postponed cluster](#postponed-auth--third-party-deferred)                              |
-| **Active (Open)**                                  | See [app-review-issues.md](./app-review-issues.md); **353–363** email + **366–368** push remain open |
-| **Total documented issues**                        | **368** (+ 323 Sentry noise)                                                                         |
-| Review phases complete                             | 5 / 5 (core) + coaching, chat, email, and push follow-ups                                            |
-| **Overall review progress**                        | **~96%** (push platform follow-up filed)                                                             |
+| Metric                         | Value                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| **Total documented issues**    | **377** (001–377) — master index [issues.md](./issues.md)                                          |
+| Fixed / Open / Postponed       | **250** / **106** / **21**                                                                         |
+| Structure-generation (001–038) | **37 / 38 fixed** (only [012](./012-ai-in-triggers-architecture-rethink.md) open)                  |
+| **Active (Open)**              | See [issues.md](./issues.md); **353–363** email + **366–368** push + **369–377** CI/CD remain open |
+| Review phases complete         | 5 / 5 (core) + coaching, chat, email, push, and CI/CD follow-ups                                   |
+| **Overall review progress**    | **~96%** (push + CI/CD follow-ups filed)                                                           |
 
 ## Methodology
 
 1. Area-by-area pass — pages, components, API routes, triggers, stores per domain
 2. Pattern scan — `onTaskFailed` gaps, silent catch, unscoped localStorage, missing auth, webhooks
 3. Verify in code — every issue cites real file paths and behavior
-4. Flat files — `docs/issues/NNN-slug.md` + index in [app-review-issues.md](./app-review-issues.md)
+4. Flat files — `docs/issues/NNN-slug.md` + index in [issues.md](./issues.md)
 5. Dedup against existing issue files before filing new issues
 
 ## Area checklist
@@ -70,7 +69,7 @@
 ### Phase 1 — Foundation ✅
 
 - [x] Read issue process, initial review 039–061
-- [x] Create `app-review-issues.md`, `REVIEW-PROGRESS.md`
+- [x] Create issue index + `REVIEW-PROGRESS.md` (index now consolidated in `issues.md`)
 
 ### Phase 2 — Core user flows ✅
 
@@ -172,7 +171,7 @@ Skipped for now — auth/integration hardening may break ingest or requires prov
 
 ## Related docs
 
-- [app-review-issues.md](./app-review-issues.md) — Master index (039–352)
-- [issues.md](./issues.md) — Structure generation (001–038)
+- [issues.md](./issues.md) — Master index (001–377)
+- [app-review-issues.md](./app-review-issues.md) — Redirect stub (consolidated into issues.md)
 - [issue-management.md](../04-guides/issue-management.md)
 - [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md)
