@@ -5,6 +5,7 @@ import { checkQuota } from '../utils/quotas/engine'
 import { peerContext } from '../utils/ws-state'
 import { chatService } from '../utils/services/chatService'
 import { chatTurnService } from '../utils/services/chatTurnService'
+import { formatErrorForLog } from '../utils/errorFormatter'
 
 export default defineWebSocketHandler({
   open(peer) {
@@ -165,7 +166,7 @@ async function handleChatMessage(
       })
     )
   } catch (error: any) {
-    console.error('[WS Chat] Error:', error)
+    console.error('[WS Chat] Error:', formatErrorForLog(error))
     peer.send(
       JSON.stringify({
         type: 'error',
