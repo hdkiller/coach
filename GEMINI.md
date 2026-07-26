@@ -4,7 +4,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 
 ### Active Status & Known Issues
 
-- **Typechecks**: `pnpm typecheck` (Nuxt + vue-tsc) should pass cleanly. Run it before large refactors.
+- **Typechecks**: `pnpm typecheck` is the canonical fresh check; use `pnpm typecheck:fast`, `:app`, `:server`, or `:watch` for shorter feedback loops. See `docs/04-guides/typechecking.md`.
 - **Pricing Transition**: Transitioning from 'Free for Early Adopters' to tiered structure: Free ($0), Supporter ($8.99/mo), and Pro ($14.99/mo). See `docs/06-plans/pricing-and-entitlements.md`.
 
 ### Recent Integrations & Changes

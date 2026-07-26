@@ -125,7 +125,7 @@
 
     loading.value = type
     try {
-      await $fetch('/api/llm/feedback', {
+      await $fetch<unknown, string & {}>('/api/llm/feedback', {
         method: 'POST',
         body: {
           llmUsageId: props.llmUsageId,

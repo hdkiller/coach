@@ -201,16 +201,16 @@
       if (!props.userZones) {
         // Fetch stream data and user profile in parallel if zones missing
         const results = await Promise.all([
-          $fetch(`/api/workouts/${props.workoutId}/streams`).catch(() => null),
-          $fetch('/api/profile').catch(() => null)
+          $fetch<any, string & {}>(`/api/workouts/${props.workoutId}/streams`).catch(() => null),
+          $fetch<any, string & {}>('/api/profile').catch(() => null)
         ])
         dataStream.value = results[0]
         profile = results[1]
       } else {
         // Just fetch streams
-        dataStream.value = await $fetch(`/api/workouts/${props.workoutId}/streams`).catch(
-          () => null
-        )
+        dataStream.value = await $fetch<any, string & {}>(
+          `/api/workouts/${props.workoutId}/streams`
+        ).catch(() => null)
       }
 
       const streams = dataStream.value

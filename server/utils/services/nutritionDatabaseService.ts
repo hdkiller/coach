@@ -1,3 +1,5 @@
+import { ofetch } from 'ofetch'
+
 export interface NutrientsPer100g {
   calories_kcal: number
   protein_g: number
@@ -140,11 +142,13 @@ export const nutritionDatabaseService = {
       const { baseUrl, headers } = getFeederConfig()
       const url = `${baseUrl}/api/v1/nutrition/search?q=${encodeURIComponent(query.trim())}&limit=${limit}`
 
-      const response = (await $fetch(url, {
+      const response = await ofetch<
+        FoodItem[] | { items?: FoodItem[]; results?: FoodItem[] } | null
+      >(url, {
         method: 'GET',
         headers,
         timeout: 10000
-      })) as FoodItem[] | { items?: FoodItem[]; results?: FoodItem[] } | null
+      })
 
       let rawItems: any[] = []
       if (Array.isArray(response)) {
@@ -174,7 +178,7 @@ export const nutritionDatabaseService = {
       const { baseUrl, headers } = getFeederConfig()
       const url = `${baseUrl}/api/v1/nutrition/barcode/${encodeURIComponent(barcode.trim())}`
 
-      const response = await $fetch<any>(url, {
+      const response = await ofetch<any>(url, {
         method: 'GET',
         headers,
         timeout: 10000
@@ -202,7 +206,7 @@ export const nutritionDatabaseService = {
       const cleanKey = key.replace(/^\/+/, '')
       const url = `${baseUrl}/api/v1/nutrition/item/${cleanKey}`
 
-      const response = await $fetch<any>(url, {
+      const response = await ofetch<any>(url, {
         method: 'GET',
         headers,
         timeout: 10000

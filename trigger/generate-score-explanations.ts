@@ -46,7 +46,7 @@ function getMetricDisplayName(type: string, metric: string): string {
     execution: 'Workout Execution'
   }
 
-  return type === 'nutrition' ? nutritionNames[metric] : workoutNames[metric]
+  return (type === 'nutrition' ? nutritionNames[metric] : workoutNames[metric]) ?? metric
 }
 
 async function generateUnifiedNutritionAnalysis(
@@ -407,7 +407,7 @@ export async function runGenerateScoreExplanations(payload: GenerateScoreExplana
       }
       logger.log(`  ✅ ${period}d Nutrition Batch Complete`)
     } catch (error) {
-      logger.error(`  ❌ ${period}d Nutrition Batch Failed:`, error)
+      logger.error(`  ❌ ${period}d Nutrition Batch Failed:`, { error })
       results.failed += NUTRITION_METRICS.length
     }
   }
@@ -480,7 +480,7 @@ export async function runGenerateScoreExplanations(payload: GenerateScoreExplana
       }
       logger.log(`  ✅ ${period}d Workout Batch Complete`)
     } catch (error) {
-      logger.error(`  ❌ ${period}d Workout Batch Failed:`, error)
+      logger.error(`  ❌ ${period}d Workout Batch Failed:`, { error })
       results.failed += WORKOUT_METRICS.length
     }
   }

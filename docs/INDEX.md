@@ -126,6 +126,7 @@ Instructional documents for developers.
 - [**CLI Reference**](./04-guides/cli-reference.md) - Guide to using and extending the project CLI (`cw:cli`).
 - [**TSS Calculation**](./04-guides/tss-calculation.md) - How TSS is calculated from stream data.
 - [**Score Explanations**](./04-guides/score-explanations.md) - Guide to implementing score explanation features.
+- [**Typechecking**](./04-guides/typechecking.md) - Fast, focused Nuxt typecheck commands and fetch-typing performance boundaries.
 
 ## 📦 05. Archive
 

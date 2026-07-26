@@ -182,6 +182,9 @@ export async function runGenerateWeeklyPlan(payload: {
   // Better approach: Use formatted string to get local day of week.
   const localDateStr = formatUserDate(weekStart, timezone, 'yyyy-MM-dd')
   const [y, m, d] = localDateStr.split('-').map(Number)
+  if (y === undefined || m === undefined || d === undefined) {
+    throw new Error(`Invalid local date: ${localDateStr}`)
+  }
   const localDateObj = new Date(Date.UTC(y, m - 1, d)) // UTC midnight for calculation
   const day = localDateObj.getUTCDay()
   const diff = localDateObj.getUTCDate() - day + (day === 0 ? -6 : 1)
@@ -457,7 +460,8 @@ CONTEXT FROM MASTER PLAN:
       // Extract phase preference from aiContext if available
       let preferredPhase = ''
       if (primaryGoal.aiContext?.includes('Phase Preference:')) {
-        preferredPhase = primaryGoal.aiContext.split('Phase Preference:')[1].split('.')[0].trim()
+        preferredPhase =
+          primaryGoal.aiContext.split('Phase Preference:')[1]?.split('.')[0]?.trim() ?? ''
       }
 
       if (preferredPhase) {
@@ -985,7 +989,7 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
         logger.log('Linking generated workouts to TrainingWeek', {
           trainingWeekId: targetTrainingWeekId
         })
-        workoutsToCreate.forEach((w) => {
+        workoutsToCreate.forEach((w: any) => {
           if (w) (w as any).trainingWeekId = targetTrainingWeekId
         })
 

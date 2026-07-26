@@ -41,6 +41,18 @@ const adHocWorkoutSchema = {
   required: ['title', 'type', 'durationMinutes', 'targetTss', 'intensity', 'objective', 'reasoning']
 }
 
+interface AdHocWorkoutSuggestion {
+  title: string
+  description: string
+  type: 'Ride' | 'Run'
+  durationMinutes: number
+  targetTss: number
+  intensity: 'Recovery' | 'Endurance' | 'Tempo' | 'Threshold' | 'VO2Max' | 'Anaerobic'
+  objective: string
+  executionCues: string[]
+  reasoningText: string
+}
+
 type GenerateAdHocWorkoutPayload = { userId: string; date: Date | string; preferences?: any }
 
 export async function runGenerateAdHocWorkout(payload: GenerateAdHocWorkoutPayload) {
@@ -183,13 +195,18 @@ export async function runGenerateAdHocWorkout(payload: GenerateAdHocWorkoutPaylo
     OUTPUT:
     JSON with title, description, type (Ride/Run), durationMinutes, targetTss, intensity, objective, executionCues, and reasoning.`
 
-  const suggestion = await generateStructuredAnalysis(prompt, adHocWorkoutSchema, 'flash', {
-    userId,
-    operation: 'generate_ad_hoc_workout',
-    entityType: 'PlannedWorkout',
-    timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS,
-    maxRetries: WORKOUT_STRUCTURE_AI_MAX_RETRIES
-  })
+  const suggestion = await generateStructuredAnalysis<AdHocWorkoutSuggestion>(
+    prompt,
+    adHocWorkoutSchema,
+    'flash',
+    {
+      userId,
+      operation: 'generate_ad_hoc_workout',
+      entityType: 'PlannedWorkout',
+      timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS,
+      maxRetries: WORKOUT_STRUCTURE_AI_MAX_RETRIES
+    }
+  )
 
   // Create Planned Workout
   const plannedWorkout = await prisma.plannedWorkout.create({

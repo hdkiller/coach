@@ -14,7 +14,7 @@
           color="neutral"
           variant="ghost"
           icon="i-heroicons-x-mark"
-          @click="isOpen = false"
+          @click="() => { isOpen = false }"
         />
       </div>
     </template>
@@ -28,7 +28,7 @@
             :variant="searchMode === 'keyword' ? 'solid' : 'ghost'"
             size="sm"
             icon="i-heroicons-magnifying-glass"
-            @click="searchMode = 'keyword'"
+            @click="() => { searchMode = 'keyword' }"
           >
             Keyword Search
           </UButton>
@@ -37,7 +37,7 @@
             :variant="searchMode === 'barcode' ? 'solid' : 'ghost'"
             size="sm"
             icon="i-heroicons-qr-code"
-            @click="searchMode = 'barcode'"
+            @click="() => { searchMode = 'barcode' }"
           >
             Barcode Lookup
           </UButton>
@@ -160,11 +160,16 @@
                 size="xs"
                 color="neutral"
                 variant="outline"
-                @click="portionGrams = selectedItem.serving_size_g"
+                @click="() => { portionGrams = selectedItem.serving_size_g }"
               >
                 1 Serving ({{ selectedItem.serving_size_g }}g)
               </UButton>
-              <UButton size="xs" color="neutral" variant="outline" @click="portionGrams = 100">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="outline"
+                @click="() => { portionGrams = 100 }"
+              >
                 100g
               </UButton>
             </div>
@@ -205,7 +210,9 @@
 
     <template #footer>
       <div class="flex justify-between w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false"> Cancel </UButton>
+        <UButton color="neutral" variant="ghost" @click="() => { isOpen = false }">
+          Cancel
+        </UButton>
         <UButton
           color="primary"
           icon="i-heroicons-plus"
@@ -268,7 +275,7 @@
     debounceTimer = setTimeout(async () => {
       loading.value = true
       try {
-        const res = await $fetch<any>('/api/nutrition/search', {
+        const res = await $fetch<any, string & {}>('/api/nutrition/search', {
           params: { q: newVal.trim(), limit: 10 }
         })
         items.value = res.items || []
@@ -295,7 +302,7 @@
     hasSearchedBarcode.value = true
 
     try {
-      const res = await $fetch<any>(
+      const res = await $fetch<any, string & {}>(
         `/api/nutrition/barcode/${encodeURIComponent(barcodeQuery.value.trim())}`
       )
       if (res && res.item) {

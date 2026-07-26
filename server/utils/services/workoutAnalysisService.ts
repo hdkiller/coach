@@ -501,7 +501,7 @@ function buildAnalysisGuardrailInstructions(
   const isSki =
     typeLower.includes('nordic') || typeLower.includes('ski') || typeLower.includes('xcski')
 
-  if (analysisFacts?.steadiness?.classification === 'stochastic' || isSki) {
+  if (analysisFacts?.guardrails.archetype.sessionSteadiness === 'stochastic' || isSki) {
     instructions.push(
       '- Session Steadiness: stochastic. Do not criticize the athlete for lacking a constant pace or uniform effort.'
     )
@@ -513,9 +513,9 @@ function buildAnalysisGuardrailInstructions(
     )
   }
 
-  if (analysisFacts?.decouplingGuardrail?.applicable === false) {
+  if (analysisFacts?.performanceSignals.applicability.pacingDrift.applicable === false) {
     instructions.push(
-      `- Decoupling Guardrail: ${analysisFacts.decouplingGuardrail.reason || 'Not applicable for this session type'}`
+      `- Decoupling Guardrail: ${analysisFacts.performanceSignals.applicability.pacingDrift.reason || 'Not applicable for this session type'}`
     )
   }
 
@@ -545,6 +545,7 @@ export function buildWorkoutAnalysisPrompt(
     heightUnits?: string | null
     language?: string | null
     temperatureUnits?: string | null
+    distanceUnits?: string | null
   },
   userContext?: string | null,
   plannedWorkout?: any,
@@ -568,12 +569,10 @@ export function buildWorkoutAnalysisPrompt(
     ? 'Strength & Resistance Training Specialist'
     : 'Endurance Performance Coach'
 
-  const metricPriorityContext = resolveMetricPriorityContext({
-    workoutType,
-    sportSettings,
-    workoutData,
-    facts: analysisFactsV2
-  })
+  const metricPriorityContext = resolveMetricPriorityContext(
+    sportSettings?.loadPreference,
+    workoutData
+  )
 
   let prompt = `You are Coach Watts, an expert AI endurance & strength coach.
 Provide a high-quality, structured analysis for this workout.

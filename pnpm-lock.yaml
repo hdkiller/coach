@@ -211,6 +211,9 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(magicast@0.3.5)
       pg:
+      ofetch:
+        specifier: ^1.5.1
+        version: 1.5.1
         specifier: ^8.22.0
         version: 8.22.0
       pinia:
@@ -20817,7 +20820,7 @@ snapshots:
       scule: 1.3.0
       semver: 7.8.5
       tinyglobby: 0.2.17
-      ufo: 1.6.1
+      ufo: 1.6.4
       unctx: 2.5.0
       untyped: 2.0.0
     transitivePeerDependencies:
@@ -20868,7 +20871,7 @@ snapshots:
       scule: 1.3.0
       semver: 7.7.3
       tinyglobby: 0.2.15
-      ufo: 1.6.1
+      ufo: 1.6.4
       unctx: 2.5.0
       untyped: 2.0.0
     transitivePeerDependencies:
@@ -22806,7 +22809,7 @@ snapshots:
       nitropack: 2.12.9(@electric-sql/pglite@0.4.1)(better-sqlite3@12.11.1)(mysql2@3.15.3)(rolldown@1.2.0)
       requrl: 3.0.2
       scule: 1.3.0
-      ufo: 1.6.1
+      ufo: 1.6.4
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -26420,7 +26423,7 @@ snapshots:
       iron-webcrypto: 1.2.1
       node-mock-http: 1.0.4
       radix3: 1.1.2
-      ufo: 1.6.1
+      ufo: 1.6.4
       uncrypto: 0.1.3
 
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.11.22)):
@@ -27270,7 +27273,7 @@ snapshots:
       node-forge: 1.3.3
       pathe: 1.1.2
       std-env: 3.10.0
-      ufo: 1.6.1
+      ufo: 1.6.4
       untun: 0.1.3
       uqr: 0.1.2
 
@@ -27866,7 +27869,7 @@ snapshots:
       acorn: 8.15.0
       pathe: 2.0.3
       pkg-types: 1.3.1
-      ufo: 1.6.1
+      ufo: 1.6.4
 
   mlly@1.8.2:
     dependencies:
@@ -28083,7 +28086,7 @@ snapshots:
       serve-static: 2.2.1
       source-map: 0.7.6
       std-env: 3.10.0
-      ufo: 1.6.1
+      ufo: 1.6.4
       ultrahtml: 1.6.0
       uncrypto: 0.1.3
       unctx: 2.5.0

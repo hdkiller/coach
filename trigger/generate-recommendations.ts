@@ -26,6 +26,7 @@ interface RecommendationsResponse {
     description: string
     priority: 'high' | 'medium' | 'low'
     sourceType: 'nutrition' | 'workout'
+    category: string
     metric: string
     period: number
   }>

@@ -83,13 +83,33 @@
 </template>
 
 <script setup lang="ts">
+  interface ActivityHighlightsResponse {
+    period: {
+      days: number
+      totalDuration: number
+      totalDistance: number
+      totalTSS: number
+      workoutCount: number
+      avgTSS: number
+    }
+    load: {
+      acuteLoad: number
+      chronicLoad: number
+      workloadRatio: number
+    }
+  }
+
   const props = defineProps<{
     period: number | string
     sport?: string
     tags?: string[]
   }>()
 
-  const { data, refresh } = await useFetch('/api/activity/highlights', {
+  const { data, refresh } = await useFetch<
+    ActivityHighlightsResponse,
+    Error,
+    string & {}
+  >('/api/activity/highlights', {
     query: computed(() => ({
       days: props.period,
       sport: props.sport,
