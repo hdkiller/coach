@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../utils/auth-guard'
 defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],

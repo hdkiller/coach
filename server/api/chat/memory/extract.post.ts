@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { getServerSession } from '../../../utils/session'
 import { extractMemoryCandidatesFromConversation } from '../../../utils/chat/memory-extraction'
 import { chatService } from '../../../utils/services/chatService'

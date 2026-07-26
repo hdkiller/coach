@@ -1,3 +1,4 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { assertMonitoringSecret } from '../../utils/monitoring-auth'
 import {
   collectWorkerMonitoringSnapshot,
@@ -19,6 +20,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   assertMonitoringSecret(event)
 
   try {

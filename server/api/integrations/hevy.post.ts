@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { fetchHevyWorkouts } from '../../utils/hevy'
 import { prisma } from '../../utils/db'

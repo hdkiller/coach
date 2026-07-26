@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../utils/auth-guard'
 defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],
@@ -12,6 +13,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const query = getQuery(event)
   const verifyCode = query.verify
   const expectedCode = process.env.FITBIT_SUBSCRIBER_VERIFICATION_CODE

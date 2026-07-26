@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
 import { coachingRepository } from '../../../utils/repositories/coachingRepository'
 import { enforceInviteRedemptionRateLimit } from '../../../utils/invite-redemption-rate-limit'

@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { trainingBlockRepository } from '../../utils/repositories/trainingBlockRepository'
 import { checkQuota } from '../../utils/quotas/engine'

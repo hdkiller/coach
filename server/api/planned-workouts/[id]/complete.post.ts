@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../../../utils/repositories/workoutRepository'

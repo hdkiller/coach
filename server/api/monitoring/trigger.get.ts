@@ -1,7 +1,9 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { assertMonitoringSecret } from '../../utils/monitoring-auth'
 import { listRecentTaskRuns } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   assertMonitoringSecret(event)
 
   try {

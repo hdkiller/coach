@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { profileUpdateSchema } from '../../utils/schemas/profile'

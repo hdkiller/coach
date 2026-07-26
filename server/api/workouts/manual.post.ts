@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { calculateWorkoutStress } from '../../utils/calculate-workout-stress'

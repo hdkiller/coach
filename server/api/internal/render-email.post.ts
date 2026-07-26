@@ -1,3 +1,5 @@
+import { z } from 'zod'
+import { requireAuth } from '../../utils/auth-guard'
 import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 import fs from 'fs'
@@ -7,6 +9,7 @@ import { getInternalApiToken } from '../../utils/internal-api-token'
  * Internal API to render Vue email templates to HTML/Text.
  */
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const internalToken = getInternalApiToken()
   const incomingToken = getRequestHeader(event, 'x-internal-api-token')
 

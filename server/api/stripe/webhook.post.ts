@@ -1,3 +1,4 @@
+import { requireAuth } from '../../utils/auth-guard'
 import type Stripe from 'stripe'
 import type { SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../../utils/db'
@@ -186,6 +187,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventAt
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const config = useRuntimeConfig()
   const webhookSecret = config.stripeWebhookSecret
 
