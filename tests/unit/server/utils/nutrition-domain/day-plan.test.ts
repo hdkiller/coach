@@ -335,6 +335,70 @@ describe('buildDayFuelingPlan', () => {
   })
 })
 
+describe('daily base window keys', () => {
+  // NutritionPlanMeal is unique on (planId, date, windowType), so a repeated key makes a lock on
+  // one slot silently overwrite the other. Two production users already have a duplicated 'Snack'.
+  it('gives duplicate slot names distinct window keys', () => {
+    const plan = buildDayFuelingPlan(profile, [], {
+      date: DAY,
+      mealSlots: [
+        { name: 'Lunch', at: new Date('2026-07-21T11:00:00.000Z') },
+        { name: 'Lunch', at: new Date('2026-07-21T15:00:00.000Z') },
+        { name: 'Dinner', at: new Date('2026-07-21T18:00:00.000Z') }
+      ]
+    })
+
+    const keys = plan.windows.map((w) => w.windowKey)
+    expect(keys).toEqual(['DAILY_BASE:lunch', 'DAILY_BASE:lunch#2', 'DAILY_BASE:dinner'])
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('treats names that differ only in punctuation as duplicates', () => {
+    const plan = buildDayFuelingPlan(profile, [], {
+      date: DAY,
+      mealSlots: [
+        { name: 'Post ride', at: new Date('2026-07-21T11:00:00.000Z') },
+        { name: 'post-ride!', at: new Date('2026-07-21T15:00:00.000Z') }
+      ]
+    })
+
+    expect(plan.windows.map((w) => w.windowKey)).toEqual([
+      'DAILY_BASE:post-ride',
+      'DAILY_BASE:post-ride#2'
+    ])
+  })
+
+  it('keeps a usable key for a name with no alphanumeric characters', () => {
+    const plan = buildDayFuelingPlan(profile, [], {
+      date: DAY,
+      mealSlots: [{ name: '☕️', at: new Date('2026-07-21T11:00:00.000Z') }]
+    })
+
+    // 'DAILY_BASE:' - the old result - is not a key anything can be matched against.
+    expect(plan.windows[0]?.windowKey).toBe('DAILY_BASE:slot')
+  })
+
+  it('keeps slot keys stable when a workout swallows an earlier slot', () => {
+    // A slot's identity has to come from the meal pattern alone. If keys were assigned after the
+    // overlap filter, a morning workout would silently promote the second 'Snack' to the first's
+    // key and re-point any meal locked against it.
+    const slots = [
+      { name: 'Snack', at: new Date('2026-07-21T08:15:00.000Z') },
+      { name: 'Snack', at: new Date('2026-07-21T15:00:00.000Z') }
+    ]
+
+    const restDay = buildDayFuelingPlan(profile, [], { date: DAY, mealSlots: slots })
+    const rideDay = buildDayFuelingPlan(profile, [workout()], { date: DAY, mealSlots: slots })
+
+    const afternoonKey = (plan: typeof restDay) =>
+      plan.windows.find((w) => w.startTime === '2026-07-21T15:00:00.000Z')?.windowKey
+
+    expect(rideDay.windows.filter((w) => w.type === 'DAILY_BASE')).toHaveLength(1)
+    expect(afternoonKey(rideDay)).toBe(afternoonKey(restDay))
+    expect(afternoonKey(rideDay)).toBe('DAILY_BASE:snack#2')
+  })
+})
+
 describe('estimateDailyCarbTargetGrams', () => {
   it('matches the target the full builder produces', () => {
     const workouts = [workout({ durationSec: 2 * 3600, workIntensity: 0.9 })]

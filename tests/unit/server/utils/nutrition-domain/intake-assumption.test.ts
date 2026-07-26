@@ -129,3 +129,26 @@ describe('summariseIntakeConfidence', () => {
     expect(confidence.ratio).toBe(0)
   })
 })
+
+describe('meal markers on the chart', () => {
+  it('marks an assumed meal so charts can draw it apart from a logged one', () => {
+    const mealPoint = run().find((p) => p.eventType === 'meal')
+    expect(mealPoint).toBeTruthy()
+    expect(mealPoint!.eventProvenance).toBe('assumed')
+  })
+
+  it('marks a logged meal as logged', () => {
+    const points = run({
+      breakfast: [{ name: 'Oats', carbs: 80, calories: 400, logged_at: `${DATE}T07:00:00Z` }]
+    })
+    const mealPoint = points.find((p) => p.eventType === 'meal')
+
+    expect(mealPoint).toBeTruthy()
+    expect(mealPoint!.eventProvenance).toBe('logged')
+  })
+
+  it('leaves points without a meal marker unlabelled', () => {
+    const quiet = run().find((p) => !p.eventType)
+    expect(quiet?.eventProvenance).toBeUndefined()
+  })
+})

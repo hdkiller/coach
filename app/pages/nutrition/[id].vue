@@ -434,6 +434,7 @@
               :windows="timeline"
               :is-locked="nutrition.isManualLock"
               :settings="chartSettings.timeline"
+              :dietary-constraints="nutritionSettings"
               @add="handleAddItem"
               @add-ai="handleAddItemAi"
               @edit="handleEditItem"

@@ -4,14 +4,31 @@ import { createGoogle } from '@ai-sdk/google'
 import { requireAuth } from '../../utils/auth-guard'
 
 import { resolveModelId } from '../../utils/ai-config'
+import { getUserNutritionSettings } from '../../utils/nutrition/settings'
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
 
 const google = createGoogle({
   apiKey: process.env.GEMINI_API_KEY
 })
 
+/**
+ * Roughly 8 MB of image once base64 is decoded. The payload is forwarded to a paid vision model, so
+ * an unbounded string was both a cost and a memory risk; phone camera JPEGs sit far below this.
+ */
+const MAX_IMAGE_BASE64_LENGTH = 11_000_000
+
+const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+
 const estimateRequestSchema = z.object({
-  imageBase64: z.string(),
-  mimeType: z.string().optional(),
+  imageBase64: z.string().min(1).max(MAX_IMAGE_BASE64_LENGTH),
+  mimeType: z.enum(ALLOWED_IMAGE_MIME_TYPES as [string, ...string[]]).optional(),
   context: z
     .object({
       selectedDate: z.string().optional(),
@@ -92,6 +109,20 @@ export default defineEventHandler(async (event) => {
       if (contextLines.length > 0) {
         promptText += `\n\nAthlete Daily Context:\n${contextLines.join('\n')}\nUse this context to tailor the coach insight (e.g. post-workout recovery quality, carb filling, or daily target fit).`
       }
+    }
+
+    // Read from settings rather than the request body: the constraints are the athlete's, and the
+    // coach insight can suggest what to add next time. Every other surface that names food filters
+    // on these.
+    const settings = await getUserNutritionSettings(user.id)
+    const constraints = [
+      ...toStringArray(settings.dietaryProfile),
+      ...toStringArray(settings.foodAllergies),
+      ...toStringArray(settings.foodIntolerances),
+      ...toStringArray(settings.lifestyleExclusions)
+    ]
+    if (constraints.length > 0) {
+      promptText += `\n\nDietary constraints (allergies, intolerances, dietary profile): ${constraints.join(', ')}. Never suggest a food that conflicts with these. Describing what is already in the photo is fine; recommending more of it is not.`
     }
 
     const modelId = resolveModelId('gemini-3.1-flash-lite')

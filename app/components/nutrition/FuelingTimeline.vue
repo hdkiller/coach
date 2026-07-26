@@ -53,6 +53,7 @@
           :is-locked="isLocked"
           :fuel-state="getWorkoutFuelState(window.workout)"
           :settings="chartSettings"
+          :dietary-constraints="dietaryConstraints ?? null"
           @add="$emit('add', $event)"
           @add-ai="$emit('addAi', $event)"
           @edit="$emit('edit', $event)"
@@ -68,7 +69,10 @@
   const props = defineProps<{
     windows: FuelingTimelineWindow[]
     isLocked?: boolean
+    /** Chart display options, not the athlete's nutrition settings. */
     settings?: any
+    /** Nutrition settings, for the dietary filter on suggested foods. Null when not loaded. */
+    dietaryConstraints?: any
   }>()
 
   defineEmits(['add', 'addAi', 'edit'])
@@ -86,7 +90,14 @@
   const filteredWindows = computed(() => {
     const windows = chartSettings.value.hideEmptyWindows
       ? props.windows.filter((w) => {
-          if (w.type === 'DAILY_BASE' && w.items.length === 0) return false
+          // "Empty" means nothing to show, not merely nothing logged yet. Baseline windows now
+          // carry the bulk of a day's carbohydrate target, and a window asking for 70g is the most
+          // actionable thing on the timeline even before anything is eaten against it.
+          const hasTarget =
+            Number(w.targetCarbs || 0) > 0 ||
+            Number(w.targetProtein || 0) > 0 ||
+            Number(w.targetFat || 0) > 0
+          if (w.type === 'DAILY_BASE' && w.items.length === 0 && !hasTarget) return false
           return true
         })
       : props.windows

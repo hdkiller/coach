@@ -4,6 +4,11 @@ import { nutritionSettingsRepository } from '../../utils/repositories/nutritionS
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import {
+  validateFuelStates,
+  validateMealPattern,
+  type SettingsIssue
+} from '../../utils/nutrition/settings-validation'
 import { prisma } from '../../utils/db'
 
 defineRouteMeta({
@@ -71,6 +76,19 @@ const updateSchema = z.object({
   lifestyleExclusions: z.array(z.string()).optional()
 })
 
+/**
+ * `message` is what the settings form shows the athlete - it reads `err.data.message` - so the
+ * first issue has to be readable prose, not just a machine-shaped path.
+ */
+function invalidInput(issues: Array<{ path: PropertyKey[]; message: string }>) {
+  return createError({
+    statusCode: 400,
+    statusMessage: 'Invalid input',
+    message: issues[0]?.message || 'Invalid input',
+    data: issues
+  })
+}
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['nutrition:write'])
   const userId = user.id
@@ -79,11 +97,7 @@ export default defineEventHandler(async (event) => {
   const result = updateSchema.safeParse(body)
 
   if (!result.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid input',
-      data: result.error.issues
-    })
+    throw invalidInput(result.error.issues)
   }
 
   if (
@@ -91,17 +105,35 @@ export default defineEventHandler(async (event) => {
     (result.data.nonExerciseBaseCalories === null ||
       result.data.nonExerciseBaseCalories === undefined)
   ) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid input',
-      data: [
-        {
-          path: ['nonExerciseBaseCalories'],
-          message:
-            'nonExerciseBaseCalories is required when baseCaloriesMode is MANUAL_NON_EXERCISE'
-        }
-      ]
+    throw invalidInput([
+      {
+        path: ['nonExerciseBaseCalories'],
+        message: 'nonExerciseBaseCalories is required when baseCaloriesMode is MANUAL_NON_EXERCISE'
+      }
+    ])
+  }
+
+  // Relational checks. These settings only make sense as a set - a fuel-state trigger is legal on
+  // its own and nonsensical against its neighbour - so they are validated after the shape check,
+  // and against the *effective* settings: this endpoint accepts partial updates, so a request can
+  // invert a pair by moving only one half of it. See docs/issues/379.
+  const stored = await nutritionSettingsRepository.getByUserId(userId)
+  const relationalIssues: SettingsIssue[] = [
+    ...(result.data.mealPattern ? validateMealPattern(result.data.mealPattern) : []),
+    ...validateFuelStates({
+      fuelState1Trigger: result.data.fuelState1Trigger ?? stored?.fuelState1Trigger,
+      fuelState2Trigger: result.data.fuelState2Trigger ?? stored?.fuelState2Trigger,
+      fuelState1Min: result.data.fuelState1Min ?? stored?.fuelState1Min,
+      fuelState1Max: result.data.fuelState1Max ?? stored?.fuelState1Max,
+      fuelState2Min: result.data.fuelState2Min ?? stored?.fuelState2Min,
+      fuelState2Max: result.data.fuelState2Max ?? stored?.fuelState2Max,
+      fuelState3Min: result.data.fuelState3Min ?? stored?.fuelState3Min,
+      fuelState3Max: result.data.fuelState3Max ?? stored?.fuelState3Max
     })
+  ]
+
+  if (relationalIssues.length > 0) {
+    throw invalidInput(relationalIssues)
   }
 
   const {

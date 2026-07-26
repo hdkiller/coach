@@ -444,6 +444,7 @@
                 :supplements="window.supplements"
                 :meals="window.meals"
                 :is-locked="false"
+                :dietary-constraints="settings ?? null"
                 class="!pb-6"
                 @add="handleAddItem"
                 @add-ai="handleAddItemAi"

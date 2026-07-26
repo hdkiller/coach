@@ -328,12 +328,41 @@ function extractSupplements(durationHours: number, intensity: number): string[] 
   return supplements
 }
 
-function slugifySlot(name: string) {
-  return name
+/** A name with no usable characters at all still needs a key it can be found by. */
+const FALLBACK_SLOT_SLUG = 'slot'
+
+/**
+ * The stable half of a DAILY_BASE window key.
+ *
+ * Exported because `nutritionPlanService` derives the same key for legacy windows that predate
+ * `windowKey`; two implementations of this drifted apart once already.
+ */
+export function slugifySlot(name: string) {
+  const slug = (name || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/^-+|-+$/g, '')
+  return slug || FALLBACK_SLOT_SLUG
+}
+
+/**
+ * Window keys for a day's meal slots, guaranteed unique.
+ *
+ * `NutritionPlanMeal` is unique on `(planId, date, windowType)`, so two slots that slugify to the
+ * same key make a locked meal on one silently overwrite the other. Settings validation rejects
+ * duplicate names going forward; this keeps existing bad data from collapsing. Repeats take an
+ * ordinal suffix in the same `#n` style the workout windows use, so the first occurrence keeps the
+ * bare key it has always had.
+ */
+export function assignSlotWindowKeys(names: string[]): string[] {
+  const seen = new Map<string, number>()
+  return names.map((name) => {
+    const slug = slugifySlot(name)
+    const count = (seen.get(slug) || 0) + 1
+    seen.set(slug, count)
+    return count === 1 ? `DAILY_BASE:${slug}` : `DAILY_BASE:${slug}#${count}`
+  })
 }
 
 function withKcal(window: SerializedFuelingWindow): SerializedFuelingWindow {
@@ -565,17 +594,23 @@ export function buildDayFuelingPlan(
     end: new Date(w.endTime).getTime()
   }))
 
-  const baseWindows: SerializedFuelingWindow[] = (options.mealSlots || [])
+  // Keys are assigned across every slot the day has, before the workout-overlap filter, so a slot's
+  // identity depends on the meal pattern alone and not on which sessions happen to be scheduled.
+  const orderedSlots = (options.mealSlots || [])
     .filter((slot) => slot?.at instanceof Date && !Number.isNaN(slot.at.getTime()))
     .sort((a, b) => a.at.getTime() - b.at.getTime())
-    .filter((slot) => {
+  const slotWindowKeys = assignSlotWindowKeys(orderedSlots.map((slot) => slot.name))
+
+  const baseWindows: SerializedFuelingWindow[] = orderedSlots
+    .map((slot, index) => ({ slot, windowKey: slotWindowKeys[index] as string }))
+    .filter(({ slot }) => {
       const at = slot.at.getTime()
       return !occupiedRanges.some((range) => at >= range.start && at < range.end)
     })
-    .map((slot) =>
+    .map(({ slot, windowKey }) =>
       withKcal({
         type: 'DAILY_BASE',
-        windowKey: `DAILY_BASE:${slugifySlot(slot.name)}`,
+        windowKey,
         slotName: slot.name,
         startTime: slot.at.toISOString(),
         endTime: new Date(slot.at.getTime() + 60 * 60 * 1000).toISOString(),

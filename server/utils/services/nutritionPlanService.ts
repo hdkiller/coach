@@ -2,6 +2,7 @@ import { addDays, eachDayOfInterval, endOfDay, format, startOfWeek } from 'date-
 import { prisma } from '../db'
 import { getUserTimezone, parseDateTimeInTimezone } from '../date'
 import { nutritionRepository } from '../repositories/nutritionRepository'
+import { slugifySlot } from '../nutrition-domain/day-plan'
 import { bodyMetricResolver } from './bodyMetricResolver'
 import { metabolicService } from './metabolicService'
 import { mealRecommendationService } from './mealRecommendationService'
@@ -62,11 +63,11 @@ function toUpperList(value: unknown) {
 
 export const nutritionPlanService = {
   toDailyBaseWindowKey(slotName?: string) {
-    const normalized = (slotName || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-    return normalized ? `DAILY_BASE:${normalized}` : 'DAILY_BASE'
+    // Legacy windows carry no windowKey, so their key is re-derived here. It has to be derived the
+    // same way the generator derives it - these two slugifiers disagreed on trailing punctuation
+    // ('Lunch!' -> 'lunch-' here, 'lunch' there), which silently unlinked the stored meal.
+    const raw = (slotName || '').trim()
+    return raw ? `DAILY_BASE:${slugifySlot(raw)}` : 'DAILY_BASE'
   },
 
   sanitizeMealTitle(value: unknown) {
@@ -914,7 +915,10 @@ export const nutritionPlanService = {
         if (!name) continue
 
         const key = `${name.toLowerCase()}|${unit.toLowerCase()}`
-        const quantity = Number(ingredient?.quantity || 0)
+        // Ingredients come from AI-generated mealJson, so a quantity of 'two' is possible.
+        // `Number(x || 0)` guards null but not that, and a single NaN propagates through every
+        // later `+=` for the ingredient - the whole aggregated row renders as NaN.
+        const quantity = toFiniteNumber(ingredient?.quantity)
         const existing = grouped.get(key)
 
         if (!existing) {

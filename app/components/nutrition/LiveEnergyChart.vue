@@ -92,11 +92,16 @@
         segment: {
           borderDash: (ctx: any) => {
             const point = props.points[ctx.p1DataIndex]
-            return chartSettings.value.showProjected && point?.isFuture ? [5, 5] : undefined
+            if (chartSettings.value.showProjected && point?.isFuture) return [5, 5]
+            // An inferred day is drawn apart from a logged one.
+            if (point?.intakeProvenance === 'assumed') return [2, 3]
+            return undefined
           },
           borderColor: (ctx: any) => {
             const point = props.points[ctx.p1DataIndex]
-            return point?.isFuture ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6'
+            if (point?.isFuture) return 'rgba(59, 130, 246, 0.5)'
+            if (point?.intakeProvenance === 'assumed') return 'rgba(59, 130, 246, 0.75)'
+            return '#3b82f6'
           }
         },
         backgroundColor: (context: any) => {
@@ -119,9 +124,10 @@
           const p = props.points[ctx.dataIndex]
           if (!p?.eventType || !chartSettings.value.showMarkers) return 'transparent'
           if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6' // Purple for mixed/multi
-          // Synthetic/Probable meals are purple/dashed
-          if (p.event && (p.event.includes('Synthetic') || p.event.includes('Probable')))
-            return '#a855f7'
+          // Meals the athlete did not log are shown apart from ones they did. Keyed off the
+          // point's provenance rather than its label: matching on wording broke the moment the
+          // labels were reworded.
+          if (p.eventProvenance && p.eventProvenance !== 'logged') return '#a855f7'
           return p.eventType === 'workout' ? '#ef4444' : '#10b981'
         },
         pointStyle: (ctx: any) => {
@@ -301,8 +307,10 @@
                 details += `\nImpact: ${[carbs, fluid].filter(Boolean).join(', ')}`
               }
 
-              if (p.event.includes('Synthetic') || p.event.includes('Probable')) {
-                details += '\n(Planned/Estimated)'
+              if (p.eventProvenance === 'assumed') {
+                details += '\n(Assumed from your plan — not logged)'
+              } else if (p.eventProvenance === 'projected') {
+                details += '\n(Planned)'
               }
 
               return details

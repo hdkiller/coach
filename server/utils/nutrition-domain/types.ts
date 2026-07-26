@@ -37,6 +37,12 @@ export interface EnergyPoint {
   eventCarbs?: number
   eventFluid?: number
   /**
+   * Provenance of the meal marker on this point, when there is one. Charts must key styling off
+   * this rather than off the event label - matching on display text broke silently the moment the
+   * labels were reworded.
+   */
+  eventProvenance?: 'logged' | 'assumed' | 'projected'
+  /**
    * Whether this point's intake is measured, assumed from the plan, or projected forward.
    *
    * Barely one production day in a hundred carries logged food, so most of the curve is inference.

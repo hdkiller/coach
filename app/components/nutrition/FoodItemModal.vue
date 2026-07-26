@@ -28,9 +28,24 @@
           <USelect v-model="state.mealType" :items="mealTypes" class="w-full" />
         </UFormField>
 
-        <UFormField label="Food Name" name="name">
-          <UInput v-model="state.name" placeholder="e.g. Oatmeal with blueberries" class="w-full" />
-        </UFormField>
+        <div class="flex items-end gap-2">
+          <UFormField label="Food Name" name="name" class="flex-1">
+            <UInput
+              v-model="state.name"
+              placeholder="e.g. Oatmeal with blueberries"
+              class="w-full"
+            />
+          </UFormField>
+          <UButton
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-magnifying-glass"
+            class="mb-[2px]"
+            @click="isSearchModalOpen = true"
+          >
+            Search DB
+          </UButton>
+        </div>
 
         <UFormField label="Absorption Type" name="absorptionType">
           <USelect
@@ -113,11 +128,17 @@
       </div>
     </template>
   </UModal>
+
+  <NutritionFoodSearchModal
+    v-model:open="isSearchModalOpen"
+    @select-food="handleSelectFoodFromSearch"
+  />
 </template>
 
 <script setup lang="ts">
   import { z } from 'zod'
   import { ABSORPTION_PROFILES } from '~/utils/nutrition-absorption'
+  import type { FoodItemPayload } from './FoodSearchModal.vue'
 
   const props = defineProps<{
     nutritionId?: string
@@ -129,7 +150,19 @@
   const emit = defineEmits(['updated'])
 
   const isOpen = defineModel<boolean>('open', { default: false })
+  const isSearchModalOpen = ref(false)
   const loading = ref(false)
+
+  function handleSelectFoodFromSearch(food: FoodItemPayload) {
+    state.value.name = food.name
+    state.value.amount = food.amount
+    state.value.unit = food.unit
+    state.value.calories = food.calories
+    state.value.carbs = food.carbs
+    state.value.protein = food.protein
+    state.value.fat = food.fat
+  }
+
   const isEditing = computed(() => props.mode === 'edit')
   const toast = useToast()
 

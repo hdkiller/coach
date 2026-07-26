@@ -708,7 +708,8 @@ export function calculateEnergyTimeline(
           type: 'meal',
           icon: 'i-tabler-tools-kitchen-2',
           carbs: m.totalCarbs,
-          fluid: m.totalFluid || 0
+          fluid: m.totalFluid || 0,
+          provenance: (m.provenance || (m.isSynthetic ? 'assumed' : 'logged')) as MealProvenance
         })
       }
     })
@@ -737,6 +738,9 @@ export function calculateEnergyTimeline(
       eventType: hasEvents ? primaryType : undefined,
       eventCarbs: hasEvents ? Math.round(totalEventCarbs) : undefined,
       eventFluid: hasEvents ? Math.round(totalEventFluid) : undefined,
+      eventProvenance: hasEvents
+        ? (intervalEvents.find((e) => e.type === 'meal')?.provenance ?? undefined)
+        : undefined,
       eventIcon: hasEvents
         ? intervalEvents.length > 1
           ? 'i-tabler-layers-intersect'

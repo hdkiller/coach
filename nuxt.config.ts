@@ -301,6 +301,10 @@ export default defineNuxtConfig({
     // Redis / DragonflyDB
     redisUrl: process.env.REDIS_URL || '',
 
+    // Nutrition Feeder Service
+    nutritionFeederUrl: process.env.NUTRITION_FEEDER_URL || 'https://feeds.coachwatts.com',
+    nutritionFeederApiKey: process.env.NUTRITION_FEEDER_API_KEY || '',
+
     // Resend
     resendApiKey: process.env.RESEND_API_KEY || '',
     resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET || '',

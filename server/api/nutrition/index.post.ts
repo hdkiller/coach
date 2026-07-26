@@ -6,6 +6,7 @@ import { nutritionPlanService } from '../../utils/services/nutritionPlanService'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../utils/date'
 import { recalculateNutritionTotals } from '../../utils/nutrition/totals'
+import { pickMealScheduledTime } from '../../utils/nutrition/meal-pattern'
 
 const foodItemSchema = z.object({
   name: z.string().optional(),
@@ -154,19 +155,17 @@ export default defineEventHandler(async (event) => {
     return (h || 0) * 60 + (m || 0)
   }
 
-  // Define bucket boundaries based on user pattern
-  const breakfastTime = timeToMinutes(
-    pattern.find((p) => p.name.toLowerCase() === 'breakfast')?.time || '07:00'
-  )
-  const lunchTime = timeToMinutes(
-    pattern.find((p) => p.name.toLowerCase() === 'lunch')?.time || '12:00'
-  )
-  const dinnerTime = timeToMinutes(
-    pattern.find((p) => p.name.toLowerCase() === 'dinner')?.time || '18:00'
-  )
-  const snackTime = timeToMinutes(
-    pattern.find((p) => p.name.toLowerCase().includes('snack'))?.time || '15:00'
-  )
+  // Define bucket boundaries based on user pattern.
+  //
+  // Resolved through pickMealScheduledTime rather than by matching the slot name literally: slot
+  // names are free text the athlete writes in their own language, so a literal 'breakfast' lookup
+  // fell back to a fixed 07:00 for anyone not using the English defaults, and their items were then
+  // bucketed against times they never set. The shared helper tries the name, then known aliases,
+  // then the slot's position in the pattern.
+  const breakfastTime = timeToMinutes(pickMealScheduledTime('breakfast', pattern))
+  const lunchTime = timeToMinutes(pickMealScheduledTime('lunch', pattern))
+  const dinnerTime = timeToMinutes(pickMealScheduledTime('dinner', pattern))
+  const snackTime = timeToMinutes(pickMealScheduledTime('snacks', pattern))
 
   // Source attribution
   const source = event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual'

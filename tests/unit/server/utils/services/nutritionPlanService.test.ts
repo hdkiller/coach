@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nutritionPlanService } from '../../../../../server/utils/services/nutritionPlanService'
 import { prisma } from '../../../../../server/utils/db'
 import { getUserTimezone } from '../../../../../server/utils/date'
+import { slugifySlot } from '../../../../../server/utils/nutrition-domain/day-plan'
 
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
@@ -102,6 +103,70 @@ describe('nutritionPlanService', () => {
       expect(result?.meals.find((m: any) => m.windowType === 'DAILY_BASE:lunch')?.id).toBe(
         'meal-lunch'
       )
+    })
+  })
+
+  describe('getGroceryList', () => {
+    // Distinct windowTypes: getPlanForRange keeps one meal per date+windowType.
+    const mealWith = (ingredients: any[], id = 'meal-1', windowType = 'DAILY_BASE:breakfast') => ({
+      id,
+      windowType,
+      date: new Date('2026-02-15T00:00:00.000Z'),
+      status: 'PLANNED',
+      mealJson: { title: 'Porridge', ingredients }
+    })
+
+    function mockPlan(meals: any[]) {
+      vi.mocked(prisma.nutritionPlan.findMany).mockResolvedValue([
+        { id: 'plan-1', updatedAt: new Date('2026-02-15T10:00:00.000Z'), meals }
+      ] as any)
+    }
+
+    it('sums quantities of the same ingredient and unit', async () => {
+      mockPlan([
+        mealWith([{ item: 'Oats', quantity: 80, unit: 'g' }], 'meal-1', 'DAILY_BASE:breakfast'),
+        mealWith([{ item: 'Oats', quantity: 40, unit: 'g' }], 'meal-2', 'DAILY_BASE:lunch')
+      ])
+
+      const result = await nutritionPlanService.getGroceryList(
+        'user-1',
+        new Date('2026-02-15T00:00:00.000Z'),
+        new Date('2026-02-15T23:59:59.999Z')
+      )
+
+      expect(result.items).toHaveLength(1)
+      expect(result.items[0]?.quantity).toBe(120)
+    })
+
+    it('does not let a non-numeric quantity poison the aggregated total', async () => {
+      // mealJson is AI-generated, so 'two' is a quantity that really arrives. Number('two') is NaN,
+      // and one NaN made every later += for that ingredient NaN too.
+      mockPlan([
+        mealWith([{ item: 'Oats', quantity: 80, unit: 'g' }], 'meal-1', 'DAILY_BASE:breakfast'),
+        mealWith([{ item: 'Oats', quantity: 'two', unit: 'g' }], 'meal-2', 'DAILY_BASE:lunch'),
+        mealWith([{ item: 'Oats', quantity: 40, unit: 'g' }], 'meal-3', 'DAILY_BASE:dinner')
+      ])
+
+      const result = await nutritionPlanService.getGroceryList(
+        'user-1',
+        new Date('2026-02-15T00:00:00.000Z'),
+        new Date('2026-02-15T23:59:59.999Z')
+      )
+
+      expect(result.items[0]?.quantity).toBe(120)
+      expect(Number.isNaN(result.items[0]?.quantity)).toBe(false)
+    })
+
+    it('treats a leading non-numeric quantity as zero rather than NaN', async () => {
+      mockPlan([mealWith([{ item: 'Salt', quantity: 'a pinch', unit: '' }])])
+
+      const result = await nutritionPlanService.getGroceryList(
+        'user-1',
+        new Date('2026-02-15T00:00:00.000Z'),
+        new Date('2026-02-15T23:59:59.999Z')
+      )
+
+      expect(result.items[0]?.quantity).toBe(0)
     })
   })
 
@@ -266,6 +331,20 @@ describe('nutritionPlanService', () => {
       expect(
         nutritionPlanService.resolveWindowKey({ type: 'DAILY_BASE', slotName: 'Breakfast' })
       ).toBe('DAILY_BASE:breakfast')
+    })
+
+    it('derives a legacy window key the same way the plan generator does', () => {
+      // This slugifier and the generator's disagreed on trailing punctuation, so a meal locked
+      // against a slot named 'Lunch!' stopped matching the window it belonged to.
+      expect(nutritionPlanService.toDailyBaseWindowKey('Lunch!')).toBe(
+        `DAILY_BASE:${slugifySlot('Lunch!')}`
+      )
+      expect(nutritionPlanService.toDailyBaseWindowKey('Post ride ')).toBe(
+        `DAILY_BASE:${slugifySlot('Post ride ')}`
+      )
+      expect(nutritionPlanService.toDailyBaseWindowKey('☕️')).toBe(
+        `DAILY_BASE:${slugifySlot('☕️')}`
+      )
     })
 
     it('matches a meal to its own window and not to a sibling of the same type', () => {

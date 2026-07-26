@@ -458,19 +458,14 @@
 
 <script setup lang="ts">
   import { computed, ref, useAttrs } from 'vue'
+  import { fuelingSuggestionText } from '~/utils/nutrition-suggestions'
+  import { groupWindowItemsByMeal } from '~/utils/nutrition-meal-groups'
 
   defineOptions({
     inheritAttrs: false
   })
 
   const attrs = useAttrs()
-
-  const MEAL_LABELS: Record<string, string> = {
-    breakfast: 'Breakfast',
-    lunch: 'Lunch',
-    dinner: 'Dinner',
-    snacks: 'Snacks'
-  }
 
   const props = defineProps<{
     type: string
@@ -488,6 +483,16 @@
     isLocked?: boolean
     fuelState?: number
     settings?: any
+    /**
+     * The athlete's dietary constraints, so the fallback suggestion cannot name a food they told
+     * us they cannot eat. Optional: when absent, the suggestion stays generic rather than guessing.
+     */
+    dietaryConstraints?: {
+      dietaryProfile?: string[]
+      foodAllergies?: string[]
+      foodIntolerances?: string[]
+      lifestyleExclusions?: string[]
+    } | null
   }>()
 
   const chartSettings = computed(() => ({
@@ -497,30 +502,9 @@
     ...props.settings
   }))
 
-  const mealGroupedItems = computed(() => {
-    const groups: Record<string, any[]> = {}
-    const items = props.items || []
-
-    items.forEach((item) => {
-      const meal = item.meal || 'snacks'
-      if (!groups[meal]) groups[meal] = []
-      groups[meal].push(item)
-    })
-
-    // Include scheduled meals from props.meals even if empty
-    const scheduledMeals = (props.meals || []).map((m) => m.toLowerCase())
-
-    // Order: breakfast, lunch, dinner, snacks
-    const order = ['breakfast', 'lunch', 'dinner', 'snacks']
-    return order
-      .filter((meal) => (groups[meal] && groups[meal].length > 0) || scheduledMeals.includes(meal))
-      .map((meal) => ({
-        meal,
-        label: MEAL_LABELS[meal] || 'Snacks',
-        items: groups[meal] || [],
-        isScheduled: scheduledMeals.includes(meal)
-      }))
-  })
+  const mealGroupedItems = computed(() =>
+    groupWindowItemsByMeal(props.items || [], props.meals || [])
+  )
 
   const canShowMealSubheadings = computed(() => {
     // Only show subheadings if the window covers multiple logical meal types
@@ -660,14 +644,12 @@
     return 'PENDING'
   })
 
-  const recommendationText = computed(() => {
-    if (props.targetCarbs > 80)
-      return `Focus on high-glycemic carbs. Recommendation: 1 large bagel with jam and a banana.`
-
-    if (props.targetCarbs > 40) return `Moderate fueling needed. Try 1 bowl of oatmeal with honey.`
-
-    return `Light fueling. A piece of fruit or 1 energy gel will suffice.`
-  })
+  // Named foods are only suggested when the athlete's constraints are known and none conflict -
+  // this is the one nutrition surface that names food without going through the recommendation
+  // service, which filters on allergies and dietary profile.
+  const recommendationText = computed(() =>
+    fuelingSuggestionText(props.targetCarbs, props.dietaryConstraints ?? null)
+  )
 
   function getGelCountLabel(carbs: number) {
     const count = Math.round(carbs / 30)

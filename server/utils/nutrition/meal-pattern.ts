@@ -5,6 +5,31 @@ export const DEFAULT_MEAL_TIMES: Record<'breakfast' | 'lunch' | 'dinner' | 'snac
   snacks: '15:00'
 }
 
+/**
+ * The time an athlete has scheduled for a slot they named themselves.
+ *
+ * The DB has four fixed meal buckets, so a custom slot like "Elevenses" or "Sport" is stored under
+ * `snacks`. That mapping must not also throw away *when* the slot happens - the meal pattern knows
+ * it exactly, and the timestamp drives both the timeline and the metabolic simulation.
+ *
+ * Returns null when the pattern has no slot by that name, so the caller can fall back to the
+ * bucket's own scheduled time.
+ */
+export function pickSlotScheduledTime(slotName: string, mealPattern: unknown): string | null {
+  if (!Array.isArray(mealPattern) || mealPattern.length === 0) return null
+
+  const normalized = String(slotName || '')
+    .toLowerCase()
+    .trim()
+  if (!normalized) return null
+
+  const pattern = mealPattern as Array<{ name?: string; time?: string }>
+  const hit = pattern.find(
+    (slot) => typeof slot?.name === 'string' && slot.name.toLowerCase().trim() === normalized
+  )
+  return hit?.time || null
+}
+
 export function pickMealScheduledTime(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks',
   mealPattern: unknown

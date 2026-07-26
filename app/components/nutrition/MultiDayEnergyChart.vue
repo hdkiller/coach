@@ -90,13 +90,17 @@
           segment: {
             borderDash: (ctx: any) => {
               const point = props.points[ctx.p1DataIndex]
-              return chartSettings.value.showProjected && point?.dataType === 'future'
-                ? [5, 5]
-                : undefined
+              if (chartSettings.value.showProjected && point?.dataType === 'future') return [5, 5]
+              // Barely one day in a hundred carries logged food, so most of the historical curve is
+              // inferred from the plan. Drawing it solid would present inference as measurement.
+              if (point?.intakeProvenance === 'assumed') return [2, 3]
+              return undefined
             },
             borderColor: (ctx: any) => {
               const point = props.points[ctx.p1DataIndex]
-              return point?.dataType === 'future' ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6'
+              if (point?.dataType === 'future') return 'rgba(59, 130, 246, 0.5)'
+              if (point?.intakeProvenance === 'assumed') return 'rgba(59, 130, 246, 0.75)'
+              return '#3b82f6'
             }
           },
           backgroundColor: (context: any) => {
@@ -119,8 +123,8 @@
             const p = props.points[ctx.dataIndex]
             if (!p?.eventType || !chartSettings.value.showMarkers) return 'transparent'
             if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6'
-            if (p.event && (p.event.includes('Synthetic') || p.event.includes('Probable')))
-              return '#a855f7'
+            // Keyed off provenance rather than the label's wording.
+            if (p.eventProvenance && p.eventProvenance !== 'logged') return '#a855f7'
             return p.eventType === 'workout' ? '#ef4444' : '#10b981'
           },
           pointStyle: (ctx: any) => {
@@ -321,10 +325,18 @@
               if (p.eventType === 'workout') {
                 lines.push(`Workout: ${p.event || 'Planned Activity'}`)
               } else if (p.eventType === 'meal') {
-                const mealLabel =
-                  p.event || (p.dataType === 'future' ? 'Planned Meal' : 'Food Logged')
-                lines.push(`Event: ${mealLabel}`)
+                const fallbackLabel =
+                  p.eventProvenance === 'logged'
+                    ? 'Food Logged'
+                    : p.eventProvenance === 'assumed'
+                      ? 'Assumed Meal'
+                      : 'Planned Meal'
+                lines.push(`Event: ${p.event || fallbackLabel}`)
                 if (p.eventCarbs) lines.push(`Carbs: ${p.eventCarbs}g`)
+                // Never let an inferred meal read as something the athlete recorded.
+                if (p.eventProvenance === 'assumed') {
+                  lines.push('Assumed from your plan — not logged')
+                }
               }
 
               if (p.eventFluid > 0) {

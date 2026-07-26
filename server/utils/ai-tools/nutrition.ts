@@ -24,7 +24,11 @@ import { mealRecommendationService } from '../services/mealRecommendationService
 import { nutritionPlanService } from '../services/nutritionPlanService'
 import type { AiSettings } from '../ai-user-settings'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../nutrition/totals'
-import { pickMealScheduledTime } from '../nutrition/meal-pattern'
+import { pickMealScheduledTime, pickSlotScheduledTime } from '../nutrition/meal-pattern'
+import {
+  nutritionDatabaseService,
+  calculatePortionNutrients
+} from '../services/nutritionDatabaseService'
 
 const parseToolDateInput = (field: string, value: string, input: Record<string, unknown>) => {
   const parsed = parseCalendarDate(value)
@@ -231,7 +235,12 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           if (isToday) {
             normalizedLoggedAt = formatUserTime(new Date(), timezone)
           } else {
-            normalizedLoggedAt = pickMealScheduledTime(targetMealType, settings.mealPattern)
+            // A custom slot is stored under 'snacks', but its own scheduled time is in the meal
+            // pattern - anchoring it to the snack slot instead put the item at the wrong time of
+            // day, which the timeline and the metabolic simulation both read.
+            normalizedLoggedAt =
+              pickSlotScheduledTime(meal_type, settings.mealPattern) ||
+              pickMealScheduledTime(targetMealType, settings.mealPattern)
           }
         }
 
@@ -1194,6 +1203,89 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         endParsed.date
       )
       return { success: true, grocery }
+    }
+  }),
+
+  search_food_database: tool({
+    description:
+      'Search the branded and generic food database by keyword for nutritional values (per 100g and for default/custom portion sizes). Use this when looking up specific foods, ingredients, or brand items.',
+    inputSchema: z.object({
+      query: z.string().describe('Search query keyword (e.g., "Oats", "Nutella", "Greek Yogurt")'),
+      limit: z
+        .number()
+        .optional()
+        .default(10)
+        .describe('Maximum number of items to return (default 10)'),
+      serving_g: z
+        .number()
+        .optional()
+        .describe('Optional portion size in grams to calculate exact macro totals')
+    }),
+    execute: async ({ query, limit, serving_g }) => {
+      const items = await nutritionDatabaseService.searchFoodDatabase(query, limit)
+
+      const processedItems = items.map((item) => {
+        const portionGram = serving_g || item.serving_size_g || 100
+        const calculated = calculatePortionNutrients(item, portionGram)
+
+        return {
+          name: item.name,
+          brand: item.brand,
+          barcode: item.barcode,
+          categories: item.categories,
+          serving_description: item.serving_description || `${portionGram}g`,
+          nutrients_per_100g: item.nutrients_per_100g,
+          calculated_portion: calculated,
+          external_key: item.external_key
+        }
+      })
+
+      return {
+        success: true,
+        query,
+        count: processedItems.length,
+        items: processedItems
+      }
+    }
+  }),
+
+  lookup_food_barcode: tool({
+    description:
+      'Look up a food product by UPC/EAN barcode to get exact nutritional content, serving sizes, and calculated portion values.',
+    inputSchema: z.object({
+      barcode: z.string().describe('UPC/EAN barcode digits'),
+      serving_g: z
+        .number()
+        .optional()
+        .describe('Optional portion size in grams to calculate exact macro totals')
+    }),
+    execute: async ({ barcode, serving_g }) => {
+      const item = await nutritionDatabaseService.lookupFoodBarcode(barcode)
+
+      if (!item) {
+        return {
+          success: false,
+          error: `No food item found for barcode "${barcode}"`
+        }
+      }
+
+      const portionGram = serving_g || item.serving_size_g || 100
+      const calculated = calculatePortionNutrients(item, portionGram)
+
+      return {
+        success: true,
+        item: {
+          name: item.name,
+          brand: item.brand,
+          barcode: item.barcode,
+          categories: item.categories,
+          serving_description: item.serving_description || `${portionGram}g`,
+          nutrients_per_100g: item.nutrients_per_100g,
+          calculated_portion: calculated,
+          ingredients_text: item.ingredients_text,
+          external_key: item.external_key
+        }
+      }
     }
   })
 })

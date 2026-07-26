@@ -114,6 +114,62 @@ describe('nutrition chat tools', () => {
     expect(result.current_meal_items).toEqual([createdItem])
   })
 
+  it('anchors a custom slot to its own scheduled time, not the snack slot', async () => {
+    // A custom slot is stored under 'snacks', but the meal pattern knows exactly when it happens.
+    // Resolving the time from the bucket instead put the item hours away, and the timestamp drives
+    // both the timeline and the metabolic simulation.
+    vi.mocked(getUserNutritionSettings).mockResolvedValue({
+      mealPattern: [
+        { name: 'Breakfast', time: '07:00' },
+        { name: 'Elevenses', time: '10:30' },
+        { name: 'Snack', time: '16:00' }
+      ]
+    } as any)
+
+    const tools = nutritionTools(userId, timezone, aiSettings)
+    vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null)
+    vi.mocked(nutritionRepository.create).mockResolvedValue({ id: 'n1', snacks: [] } as any)
+    vi.mocked(nutritionRepository.update).mockResolvedValue({ id: 'n1', snacks: [] } as any)
+
+    await (tools.log_nutrition_meal.execute as any)({
+      // A past date, so the time comes from the schedule rather than the clock.
+      date: '2026-03-10',
+      meal_type: 'Elevenses',
+      items: [{ name: 'Scone', calories: 200, protein: 3, carbs: 30, fat: 8 }]
+    })
+
+    const created = vi.mocked(nutritionRepository.create).mock.calls[0]?.[0] as any
+    const loggedAt = new Date(created.snacks[0].logged_at)
+
+    // 10:30 America/Chicago on 2026-03-10 (CDT, UTC-5) is 15:30Z. The snack slot would be 21:00Z.
+    expect(loggedAt.toISOString()).toBe('2026-03-10T15:30:00.000Z')
+  })
+
+  it('falls back to the bucket schedule when the slot is not in the pattern', async () => {
+    vi.mocked(getUserNutritionSettings).mockResolvedValue({
+      mealPattern: [
+        { name: 'Breakfast', time: '07:00' },
+        { name: 'Snack', time: '16:00' }
+      ]
+    } as any)
+
+    const tools = nutritionTools(userId, timezone, aiSettings)
+    vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null)
+    vi.mocked(nutritionRepository.create).mockResolvedValue({ id: 'n1', snacks: [] } as any)
+    vi.mocked(nutritionRepository.update).mockResolvedValue({ id: 'n1', snacks: [] } as any)
+
+    await (tools.log_nutrition_meal.execute as any)({
+      date: '2026-03-10',
+      meal_type: 'Sport',
+      items: [{ name: 'Gel', calories: 100, protein: 0, carbs: 25, fat: 0 }]
+    })
+
+    const created = vi.mocked(nutritionRepository.create).mock.calls[0]?.[0] as any
+
+    // 16:00 America/Chicago (CDT) is 21:00Z.
+    expect(new Date(created.snacks[0].logged_at).toISOString()).toBe('2026-03-10T21:00:00.000Z')
+  })
+
   it('rejects invalid dates for fueling recommendation and planning tools', async () => {
     const tools = nutritionTools(userId, timezone, aiSettings)
 
