@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   debug:
-    runs-on: self-hosted
+    runs-on: [self-hosted, shadow]
     timeout-minutes: 15
     environment: preview
     steps:
