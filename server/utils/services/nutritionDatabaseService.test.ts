@@ -13,7 +13,6 @@ const mockOfetch = vi.hoisted(() => vi.fn())
 vi.mock('ofetch', () => ({
   ofetch: mockOfetch
 }))
-}))
 
 describe('calculatePortionNutrients', () => {
   const sampleItem: FoodItem = {
