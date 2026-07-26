@@ -112,15 +112,15 @@
 
     return classes
   }
+
+  const activeCategories = computed(() => {
+    return categories.filter((c) => pbsByCategory.value[c.id])
+  })
 </script>
 
 <template>
   <div class="space-y-16">
-    <div
-      v-for="cat in categories.filter((c) => pbsByCategory[c.id])"
-      :key="cat.id"
-      class="space-y-8"
-    >
+    <div v-for="cat in activeCategories" :key="cat.id" class="space-y-8">
       <!-- Section Header -->
       <div class="flex items-center gap-4 px-4 sm:px-0">
         <div
