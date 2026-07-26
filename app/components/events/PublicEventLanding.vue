@@ -37,7 +37,7 @@
     pending: loading,
     error: fetchError,
     refresh: refreshEvent
-  } = await useFetch(() => `/api/public-events/${props.slug}`)
+  } = await useFetch<any>(() => `/api/public-events/${props.slug}`)
   const error = computed(() => (fetchError.value ? t.value('error_event_not_found') : null))
 
   const priorityItems = computed(() => [
