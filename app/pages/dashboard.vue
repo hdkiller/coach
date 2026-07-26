@@ -8,19 +8,6 @@
         <template #right>
           <LayoutPageNavbarActions :overflow-items="dashboardOverflowItems">
             <ClientOnly>
-              <UButton
-                icon="i-lucide-heart"
-                color="neutral"
-                variant="outline"
-                size="sm"
-                square
-                :aria-label="t('share_footer_button')"
-                @click="
-                  () => {
-                    showShareCoachWattsModal = true
-                  }
-                "
-              />
               <DashboardTriggerMonitorButton />
               <NotificationDropdown />
             </ClientOnly>
