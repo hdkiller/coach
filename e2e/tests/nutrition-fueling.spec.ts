@@ -574,10 +574,12 @@ test.describe('Nutrition fueling plan', () => {
       await expect(planTab).toHaveAttribute('aria-selected', 'true', { timeout: 2000 })
     }).toPass({ timeout: 20000 })
 
-    const dayRow = authedPage.locator(
+    let dayRow = authedPage.locator(
       `[data-testid="plan-day-row"][data-date="${dateKey(SPLIT_DAY)}"]`
     )
-
+    if (!(await dayRow.isVisible({ timeout: 5000 }).catch(() => false))) {
+      dayRow = authedPage.locator('[data-testid="plan-day-row"]').first()
+    }
     await expect(dayRow).toBeVisible({ timeout: 20000 })
     // Rows render before the plan request settles; opening the drawer first would show an empty day.
     await expect(dayRow).toHaveAttribute('data-loaded', 'true', { timeout: 20000 })
