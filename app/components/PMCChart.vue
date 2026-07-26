@@ -155,7 +155,7 @@
         class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-4 pt-4 border-t border-gray-50 dark:border-gray-800"
       >
         <div class="flex items-center gap-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+          <div class="w-1.5 h-1.5 rounded-full bg-primary-500" />
           <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Fitness</span>
         </div>
         <div class="flex items-center gap-2">

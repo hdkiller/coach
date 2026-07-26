@@ -141,7 +141,7 @@
               Response Body
             </div>
             <pre
-              class="p-4 bg-white dark:bg-gray-950 overflow-x-auto text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap max-h-[500px]"
+              class="p-4 bg-[oklch(10%_0.015_155)] border-t border-white/8 text-green-400 overflow-x-auto max-w-full break-all text-xs font-mono whitespace-pre-wrap max-h-[500px]"
               >{{ result.body || '(Empty body)' }}</pre
             >
           </div>

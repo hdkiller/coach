@@ -294,9 +294,9 @@
 
   const freshnessColor = computed(() => {
     const state = ftpData.value?.freshness?.state
-    if (state === 'fresh') return '#3b82f6'
-    if (state === 'aging') return '#f59e0b'
-    if (state === 'stale') return '#ef4444'
+    if (state === 'fresh') return theme.colors.value.get('blue', 500)
+    if (state === 'aging') return theme.colors.value.get('amber', 500)
+    if (state === 'stale') return theme.colors.value.get('red', 500)
     return theme.colors.value.get('blue', 500)
   })
 

@@ -39,7 +39,7 @@
             :lat-lng="scrubPoint"
             :radius="8"
             :color="'white'"
-            :fill-color="'#3b82f6'"
+            :fill-color="'#10b981'"
             :fill-opacity="1"
             :weight="3"
             class="z-[2000]"
@@ -175,7 +175,7 @@
   })
 
   const attribution = '&copy; OpenStreetMap contributors &copy; CARTO'
-  const primaryColor = '#3b82f6'
+  const primaryColor = '#10b981'
 
   const mapOptions = computed(() => ({
     scrollWheelZoom: false,
