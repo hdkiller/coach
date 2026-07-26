@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -21,6 +21,7 @@ import { filterGoalsForContext } from '../server/utils/goal-context'
 import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import { getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { evaluateFitbitRecoveryAlert } from '../server/utils/wellness'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 const suggestionSchema = {
   type: 'object',
@@ -358,7 +359,7 @@ CRITICAL INSTRUCTIONS:
           })
           if (fullUser) {
             const recommendationDateKey = todayDateOnly.toISOString().slice(0, 10)
-            await tasks.trigger('send-email', {
+            await dispatchTask('send-email', {
               userId,
               templateKey: 'DailyRecommendation',
               eventKey: `DAILY_SUGGESTION_${report.id}`,

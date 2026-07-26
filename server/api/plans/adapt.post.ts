@@ -1,4 +1,4 @@
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { requireAuth } from '../../utils/auth-guard'
 import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRepository'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Plan not found' })
   }
 
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'adapt-training-plan',
     {
       userId,

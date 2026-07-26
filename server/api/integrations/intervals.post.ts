@@ -1,6 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { fetchIntervalsAthlete } from '../../utils/intervals'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -132,7 +132,7 @@ export default defineEventHandler(async (event) => {
 
     // Trigger profile auto-detection
     // This will check if the profile is incomplete and update it from Intervals.icu
-    await tasks.trigger(
+    await dispatchTask(
       'autodetect-intervals-profile',
       { userId: user.id },
       {

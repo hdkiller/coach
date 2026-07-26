@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { isTaskRunning } from './trigger-check'
+import { isTaskRunningForUser } from './task-dispatcher'
 
 export const PROVIDER_INGEST_TASKS: Record<string, string> = {
   intervals: 'ingest-intervals',
@@ -52,8 +52,8 @@ export async function isProviderActivelySyncing(
   }
 
   const [providerRunning, batchRunning] = await Promise.all([
-    isTaskRunning(taskId, userId),
-    isTaskRunning('ingest-all', userId)
+    isTaskRunningForUser(taskId, userId),
+    isTaskRunningForUser('ingest-all', userId)
   ])
 
   return providerRunning || batchRunning
@@ -82,7 +82,7 @@ export async function resolveProviderSyncBlock(
 }
 
 export async function resolveSyncAllBlock(userId: string): Promise<SyncBlockResult> {
-  const batchRunning = await isTaskRunning('ingest-all', userId)
+  const batchRunning = await isTaskRunningForUser('ingest-all', userId)
   if (batchRunning) {
     const syncingIntegration = await prisma.integration.findFirst({
       where: { userId, syncStatus: 'SYNCING' },

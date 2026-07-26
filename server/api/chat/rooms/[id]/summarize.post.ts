@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
-import { summarizeChatTask } from '../../../../../trigger/summarize-chat'
+import { dispatchTask } from '../../../../utils/task-dispatcher'
 import { buildUserRunTags } from '../../../../utils/trigger-run-tags'
 
 export default defineEventHandler(async (event) => {
@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
   const forceRename = !!body?.forceRename
 
   // Trigger task
-  const result = await summarizeChatTask.trigger(
+  const result = await dispatchTask(
+    'summarize-chat',
     { roomId, userId, forceRename },
     {
       tags: buildUserRunTags(userId, [`chat-room:${roomId}`])

@@ -1,4 +1,4 @@
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { refreshGarminIntegrationPermissions } from '../../../utils/garmin'
@@ -124,7 +124,7 @@ export default defineEventHandler(async (event) => {
   // We use a delay to ensure Garmin's Push API registration is fully propagated
   // to avoid "User not registered with consumer" (403) errors.
   try {
-    await tasks.trigger(
+    await dispatchTask(
       'garmin-backfill',
       { userId: session.user.id, delaySeconds: 30 },
       {

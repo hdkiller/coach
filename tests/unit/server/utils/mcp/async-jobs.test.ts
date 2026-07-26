@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { getAsyncJobStatus } from '../../../../../server/utils/mcp/async-jobs'
 
-vi.mock('../../../../../server/utils/trigger-check', () => ({
-  isRunIdRunning: vi.fn(async () => false)
+vi.mock('../../../../../server/utils/task-dispatcher', () => ({
+  getTaskRun: vi.fn(async () => null)
 }))
 
 vi.mock('../../../../../server/utils/db', () => ({

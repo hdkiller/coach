@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../../utils/task-dispatcher'
 import { z } from 'zod/v3'
 import { getServerSession } from '../../../../utils/session'
 import { publishTaskRunStartedEvent } from '../../../../utils/task-run-events'
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     plannedWorkoutId: workout.id,
     source: 'api'
   })
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-workout-messages',
     {
       plannedWorkoutId: workout.id,

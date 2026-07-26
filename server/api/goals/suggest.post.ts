@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import { checkQuota } from '../../utils/quotas/engine'
 
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Trigger the goal suggestions background job with per-user concurrency
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'suggest-goals',
       {
         userId

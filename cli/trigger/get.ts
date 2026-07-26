@@ -15,6 +15,7 @@ getCommand
           process.exit(1)
         }
         process.env.TRIGGER_SECRET_KEY = process.env.TRIGGER_PROD_SECRET_KEY
+        process.env.TASK_QUEUE_DRIVER = 'trigger'
 
         if (process.env.TRIGGER_PROD_API_URL) {
           process.env.TRIGGER_API_URL = process.env.TRIGGER_PROD_API_URL
@@ -29,11 +30,11 @@ getCommand
         console.log(chalk.blue('Using DEVELOPMENT environment'))
       }
 
-      // Dynamic import
-      const { runs } = await import('@trigger.dev/sdk/v3')
+      const { getTaskRun } = await import('../../server/utils/task-dispatcher')
 
       console.log(`Fetching run ${runId}...`)
-      const run = await runs.retrieve(runId)
+      const run = await getTaskRun(runId)
+      if (!run) throw new Error(`Run not found: ${runId}`)
 
       console.log(chalk.bold('\nRun Details:'))
       console.log(chalk.gray('----------------------------------------'))
@@ -47,7 +48,7 @@ getCommand
         `${chalk.bold('Finished:')} ${run.finishedAt ? new Date(run.finishedAt).toLocaleString() : '-'}`
       )
       console.log(
-        `${chalk.bold('Duration:')} ${run.durationMs ? (run.durationMs / 1000).toFixed(2) + 's' : '-'}`
+        `${chalk.bold('Duration:')} ${run.finishedAt ? ((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000).toFixed(2) + 's' : '-'}`
       )
       console.log(`${chalk.bold('Is Test:')} ${run.isTest}`)
 
@@ -58,9 +59,6 @@ getCommand
       }
 
       console.log(chalk.gray('----------------------------------------'))
-      console.log(chalk.bold('Payload:'))
-      console.log(JSON.stringify(run.payload, null, 2))
-
       if (run.output) {
         console.log(chalk.gray('----------------------------------------'))
         console.log(chalk.bold('Output:'))

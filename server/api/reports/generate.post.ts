@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfDaysAgoUTC, getStartOfYearUTC } from '../../utils/date'
 import { assertQuotaAllowed } from '../../utils/quotas/http'
@@ -164,7 +164,7 @@ export default defineEventHandler(async (event) => {
 
     if (resolvedTemplateId) {
       // USE UNIFIED TRIGGER
-      handle = await tasks.trigger(
+      handle = await dispatchTask(
         'generate-report',
         {
           userId,
@@ -178,7 +178,7 @@ export default defineEventHandler(async (event) => {
       )
     } else if (reportType === 'CUSTOM') {
       // Legacy Custom flow (to be refactored later if needed)
-      handle = await tasks.trigger(
+      handle = await dispatchTask(
         'generate-custom-report',
         {
           userId,
@@ -191,7 +191,7 @@ export default defineEventHandler(async (event) => {
         }
       )
     } else if (reportType === 'LAST_3_NUTRITION') {
-      handle = await tasks.trigger(
+      handle = await dispatchTask(
         'analyze-last-3-nutrition',
         {
           userId,
@@ -203,7 +203,7 @@ export default defineEventHandler(async (event) => {
         }
       )
     } else if (reportType === 'LAST_7_NUTRITION') {
-      handle = await tasks.trigger(
+      handle = await dispatchTask(
         'analyze-last-7-nutrition',
         {
           userId,
@@ -216,7 +216,7 @@ export default defineEventHandler(async (event) => {
       )
     } else {
       // Fallback to weekly analysis
-      handle = await tasks.trigger(
+      handle = await dispatchTask(
         'generate-weekly-report',
         {
           userId,

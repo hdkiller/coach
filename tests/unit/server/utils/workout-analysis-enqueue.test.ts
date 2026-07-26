@@ -3,11 +3,11 @@ import {
   enqueueAutomaticWorkoutAnalysesForUser,
   enqueueWorkoutAnalysis
 } from '../../../../server/utils/workout-analysis-enqueue'
-import { analyzeWorkoutTask } from '../../../../trigger/analyze-workout'
 import { prisma } from '../../../../server/utils/db'
+import { dispatchTask } from '../../../../server/utils/task-dispatcher'
 
-vi.mock('../../../../trigger/analyze-workout', () => ({
-  analyzeWorkoutTask: { trigger: vi.fn() }
+vi.mock('../../../../server/utils/task-dispatcher', () => ({
+  dispatchTask: vi.fn()
 }))
 
 vi.mock('../../../../server/utils/db', () => ({
@@ -30,7 +30,7 @@ describe('workout analysis enqueue', () => {
 
   it('claims the workout before triggering analysis', async () => {
     vi.mocked(prisma.workout.updateMany).mockResolvedValue({ count: 1 } as any)
-    vi.mocked(analyzeWorkoutTask.trigger).mockResolvedValue({ id: 'run-1' } as any)
+    vi.mocked(dispatchTask).mockResolvedValue({ id: 'run-1' })
 
     const result = await enqueueWorkoutAnalysis({
       workoutId: 'workout-1',
@@ -47,7 +47,7 @@ describe('workout analysis enqueue', () => {
       },
       data: { aiAnalysisStatus: 'PENDING' }
     })
-    expect(analyzeWorkoutTask.trigger).toHaveBeenCalledOnce()
+    expect(dispatchTask).toHaveBeenCalledOnce()
     expect(result).toEqual({ queued: true, status: 'PENDING', runId: 'run-1' })
   })
 
@@ -62,7 +62,7 @@ describe('workout analysis enqueue', () => {
       source: 'MANUAL'
     })
 
-    expect(analyzeWorkoutTask.trigger).not.toHaveBeenCalled()
+    expect(dispatchTask).not.toHaveBeenCalled()
     expect(result).toEqual({ queued: false, status: 'PENDING' })
   })
 
@@ -70,7 +70,7 @@ describe('workout analysis enqueue', () => {
     vi.mocked(prisma.workout.updateMany)
       .mockResolvedValueOnce({ count: 1 } as any)
       .mockResolvedValueOnce({ count: 1 } as any)
-    vi.mocked(analyzeWorkoutTask.trigger).mockRejectedValue(new Error('Trigger unavailable'))
+    vi.mocked(dispatchTask).mockRejectedValue(new Error('Trigger unavailable'))
 
     await expect(
       enqueueWorkoutAnalysis({
@@ -103,7 +103,7 @@ describe('workout analysis enqueue', () => {
       }
     ] as any)
     vi.mocked(prisma.workout.updateMany).mockResolvedValue({ count: 1 } as any)
-    vi.mocked(analyzeWorkoutTask.trigger).mockResolvedValue({ id: 'run-1' } as any)
+    vi.mocked(dispatchTask).mockResolvedValue({ id: 'run-1' })
 
     await expect(enqueueAutomaticWorkoutAnalysesForUser('user-1')).resolves.toEqual({
       enabled: true,

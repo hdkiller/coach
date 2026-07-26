@@ -1,13 +1,4 @@
-import { runs, tasks } from '@trigger.dev/sdk/v3'
-import { getTaskDriver, listTaskRunsForUser } from './task-dispatcher'
-
-const RUNNING_STATUSES = new Set([
-  'EXECUTING',
-  'QUEUED',
-  'WAITING_FOR_DEPLOY',
-  'REATTEMPTING',
-  'FROZEN'
-])
+import { tasks } from '@trigger.dev/sdk/v3'
 
 /** Trigger runs older than this are treated as stale and ignored for sync guards. */
 export const STALE_TRIGGER_RUN_MS = 2 * 60 * 60 * 1000
@@ -27,64 +18,6 @@ export function isRunFresh(
   const timestamp = getRunTimestamp(run)
   if (!timestamp) return true
   return nowMs - new Date(timestamp).getTime() <= maxAgeMs
-}
-
-export async function isTaskRunning(taskIdentifier: string, userId: string): Promise<boolean> {
-  try {
-    const driver = getTaskDriver()
-    if (driver === 'redis' || driver === 'inline') {
-      const userRuns = await listTaskRunsForUser(userId, 50)
-      return userRuns.some(
-        (run) =>
-          run.taskIdentifier === taskIdentifier &&
-          RUNNING_STATUSES.has(run.status) &&
-          isRunFresh(run)
-      )
-    }
-
-    // @ts-expect-error - SDK v3 types mismatch for filter params
-    const activeRuns = await runs.list({
-      filter: {
-        taskIdentifier: [taskIdentifier],
-        tags: [`user:${userId}`],
-        status: ['EXECUTING', 'QUEUED', 'WAITING_FOR_DEPLOY', 'REATTEMPTING']
-      },
-      limit: 10
-    })
-
-    const nowMs = Date.now()
-
-    // Trigger API may ignore status filters; verify client-side and skip stale runs.
-    return activeRuns.data.some((run) => {
-      if (!RUNNING_STATUSES.has(run.status)) return false
-      if (!isRunFresh(run, nowMs)) {
-        console.warn(
-          `[Sync] Ignoring stale Trigger run ${run.id} for ${taskIdentifier} (status=${run.status})`
-        )
-        return false
-      }
-      return true
-    })
-  } catch (error) {
-    console.warn(`Failed to check running status for task ${taskIdentifier}:`, error)
-    return false // Fail open to allow retry if check fails
-  }
-}
-
-export async function isRunIdRunning(runId: string): Promise<boolean> {
-  try {
-    const run = await runs.retrieve(runId)
-    const runningStatuses = ['EXECUTING', 'QUEUED', 'WAITING_FOR_DEPLOY', 'REATTEMPTING', 'FROZEN']
-    if (!runningStatuses.includes(run.status)) return false
-    if (!isRunFresh(run)) {
-      console.warn(`[Sync] Ignoring stale Trigger run ${runId} (status=${run.status})`)
-      return false
-    }
-    return true
-  } catch (error) {
-    console.warn(`Failed to check running status for run ${runId}:`, error)
-    return false
-  }
 }
 
 export async function safeTriggerTask(

@@ -4,7 +4,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import StravaProvider from 'next-auth/providers/strava'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { getRequestIP, getRequestHeader } from 'h3'
 import { logAction } from '../../utils/audit'
 import { DEFAULT_TRIAL_DAYS } from '../../../shared/trial-config'
@@ -326,7 +326,7 @@ export default NuxtAuthHandler({
         await tryAttributeReferralDuringAuth(user.id)
 
         // Trigger Welcome Email
-        await tasks.trigger('send-email', {
+        await dispatchTask('send-email', {
           userId: user.id,
           templateKey: 'Welcome',
           eventKey: 'USER_SIGNED_UP_FOLLOWUP',

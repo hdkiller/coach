@@ -1,5 +1,5 @@
-import { runs } from '@trigger.dev/sdk/v3'
 import { assertMonitoringSecret } from '../../utils/monitoring-auth'
+import { listRecentTaskRuns } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   assertMonitoringSecret(event)
@@ -7,11 +7,7 @@ export default defineEventHandler(async (event) => {
   try {
     // Fetch last 50 runs
     const limit = 50
-    const response = await runs.list({
-      limit
-    })
-
-    const runList = response.data
+    const runList = await listRecentTaskRuns(limit)
     const total = runList.length
 
     const stats = {
@@ -73,7 +69,7 @@ export default defineEventHandler(async (event) => {
     console.error('Failed to fetch trigger runs:', error)
     throw createError({
       statusCode: 503,
-      statusMessage: 'Failed to fetch Trigger.dev stats',
+      statusMessage: 'Failed to fetch task stats',
       data: {
         message: error.message
       }

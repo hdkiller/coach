@@ -1,7 +1,6 @@
 import { defineEventHandler, createError, readBody } from 'h3'
 import { getServerSession } from '../../../utils/session'
-import { helloWorldTask } from '../../../../trigger/hello-world'
-import { sentryErrorTest } from '../../../../trigger/sentry-error-test'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -19,9 +18,9 @@ export default defineEventHandler(async (event) => {
   try {
     let runHandle
     if (taskName === 'hello-world') {
-      runHandle = await helloWorldTask.trigger({ message: 'Debug Test from Admin' })
+      runHandle = await dispatchTask('hello-world', { message: 'Debug Test from Admin' })
     } else if (taskName === 'sentry-error-test') {
-      runHandle = await sentryErrorTest.trigger()
+      runHandle = await dispatchTask('sentry-error-test', {})
     } else {
       throw createError({ statusCode: 400, statusMessage: 'Invalid task name' })
     }

@@ -1,4 +1,4 @@
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
 import { isWithingsWebhookVerification } from '../../../utils/withings-notifications'
 // prisma is auto-imported in server routes
@@ -114,7 +114,7 @@ export default defineEventHandler(async (event) => {
   const bufferEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000)
 
   try {
-    await tasks.trigger(
+    await dispatchTask(
       'ingest-withings',
       {
         userId: integration.userId,

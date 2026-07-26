@@ -9,8 +9,7 @@ import {
   parseTaskRunId
 } from '../../../../server/utils/task-dispatcher'
 import { mainTaskQueue } from '../../../../server/utils/queue'
-import { executeRegisteredTask } from '../../../../server/utils/task-registry'
-import { ensureTaskHandlersRegistered } from '../../../../server/utils/task-handler-loader'
+import { executeRegisteredTask, hasTaskHandler } from '../../../../server/utils/task-registry'
 import * as triggerCheck from '../../../../server/utils/trigger-check'
 
 vi.mock('@trigger.dev/sdk/v3', () => ({
@@ -18,7 +17,8 @@ vi.mock('@trigger.dev/sdk/v3', () => ({
     retrieve: vi.fn(),
     list: vi.fn(),
     cancel: vi.fn()
-  }
+  },
+  tasks: { triggerAndWait: vi.fn() }
 }))
 
 vi.mock('../../../../server/utils/queue', () => ({
@@ -29,12 +29,10 @@ vi.mock('../../../../server/utils/queue', () => ({
   }
 }))
 
-vi.mock('../../../../server/utils/task-handler-loader', () => ({
-  ensureTaskHandlersRegistered: vi.fn()
-}))
-
 vi.mock('../../../../server/utils/task-registry', () => ({
-  executeRegisteredTask: vi.fn()
+  executeRegisteredTask: vi.fn(),
+  getCurrentTaskExecution: vi.fn(),
+  hasTaskHandler: vi.fn()
 }))
 
 vi.mock('../../../../server/utils/trigger-check', () => ({
@@ -63,6 +61,7 @@ describe('Task Dispatcher Framework', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(hasTaskHandler).mockImplementation((taskId) => taskId !== 'trigger-only-task')
     process.env = { ...originalEnv }
   })
 
@@ -136,7 +135,10 @@ describe('Task Dispatcher Framework', () => {
           payload: { userId: 'u1' },
           options: {
             concurrencyKey: 'u1',
-            tags: undefined
+            tags: undefined,
+            queueName: 'user-ingestion',
+            concurrencyLimit: 5,
+            maxDuration: 1800
           }
         },
         {
@@ -164,7 +166,6 @@ describe('Task Dispatcher Framework', () => {
 
       const result = await dispatchTask('hello-world', {})
 
-      expect(ensureTaskHandlersRegistered).toHaveBeenCalledOnce()
       expect(executeRegisteredTask).toHaveBeenCalledWith('hello-world', {})
       expect(result.id).toMatch(/^inline:/)
       await expect(getTaskStatus('hello-world', result.id)).resolves.toEqual({

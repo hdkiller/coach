@@ -16,6 +16,7 @@ listCommand
           process.exit(1)
         }
         process.env.TRIGGER_SECRET_KEY = process.env.TRIGGER_PROD_SECRET_KEY
+        process.env.TASK_QUEUE_DRIVER = 'trigger'
 
         if (process.env.TRIGGER_PROD_API_URL) {
           process.env.TRIGGER_API_URL = process.env.TRIGGER_PROD_API_URL
@@ -30,29 +31,29 @@ listCommand
         console.log(chalk.blue('Using DEVELOPMENT environment'))
       }
 
-      // Dynamic import to ensure env vars are picked up
-      const { runs } = await import('@trigger.dev/sdk/v3')
+      const { listRecentTaskRuns } = await import('../../server/utils/task-dispatcher')
 
       const limit = parseInt(options.limit)
       console.log(`Fetching last ${limit} runs...`)
 
-      const response = await runs.list({
-        limit: limit,
-        filter: options.status ? { status: [options.status] } : undefined
-      })
+      const runs = (await listRecentTaskRuns(limit)).filter(
+        (run) => !options.status || run.status === options.status
+      )
 
-      if (response.data.length === 0) {
+      if (runs.length === 0) {
         console.log(chalk.gray('No runs found.'))
         return
       }
 
       console.table(
-        response.data.map((run) => ({
+        runs.map((run) => ({
           ID: run.id,
           Task: run.taskIdentifier,
           Status: run.status,
           'Started At': run.startedAt ? new Date(run.startedAt).toLocaleString() : '-',
-          Duration: run.durationMs ? `${(run.durationMs / 1000).toFixed(2)}s` : '-',
+          Duration: run.finishedAt
+            ? `${((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000).toFixed(2)}s`
+            : '-',
           IsTest: run.isTest
         }))
       )

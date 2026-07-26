@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { runs } from '@trigger.dev/sdk/v3'
+import { getTaskRun } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -59,7 +59,10 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Get the run status and output
-    const run = await runs.retrieve(jobId)
+    const run = await getTaskRun(jobId)
+    if (!run || !run.tags.includes(`user:${session.user.id}`)) {
+      throw createError({ statusCode: 404, message: 'Review job not found' })
+    }
 
     return {
       status: run.status,
@@ -67,7 +70,8 @@ export default defineEventHandler(async (event) => {
       isCompleted: run.status === 'COMPLETED',
       isFailed: run.status === 'FAILED'
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) throw error
     throw createError({
       statusCode: 500,
       message: `Failed to retrieve review: ${error instanceof Error ? error.message : 'Unknown error'}`

@@ -20,7 +20,7 @@ describe('Worker Task Execution Registry', () => {
 
     const result = await executeRegisteredTask('test-ingest-task', { userId: 'user_123' })
 
-    expect(mockHandler).toHaveBeenCalledWith({ userId: 'user_123' })
+    expect(mockHandler).toHaveBeenCalledWith({ userId: 'user_123' }, undefined)
     expect(result).toEqual({ status: 'PROCESSED', count: 5 })
   })
 

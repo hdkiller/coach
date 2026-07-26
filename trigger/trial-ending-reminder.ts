@@ -1,7 +1,8 @@
-import { schedules, tasks, logger } from '@trigger.dev/sdk/v3'
+import { schedules, logger } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { QUOTA_REGISTRY } from '../server/utils/quotas/registry'
 import { formatUserDate } from '../server/utils/date'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 function getTrialEndingWindow(now = new Date()) {
   const targetDay = new Date(now)
@@ -85,7 +86,7 @@ export const trialEndingReminderCron = schedules.task({
       const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
       const usageHighlights = await getWeeklyUsageSummary(user.id)
 
-      await tasks.trigger('send-email', {
+      await dispatchTask('send-email', {
         userId: user.id,
         templateKey: 'TrialEndingSoon',
         eventKey: `TRIAL_ENDING_${trialEndKey}`,

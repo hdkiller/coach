@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { Webhook } from 'svix'
 import { logWebhookRequest } from '../../utils/webhook-logger'
-import { processResendWebhookTask } from '../../../trigger/process-resend-webhook'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
 
   // Trigger background task for processing if log was successful
   if (webhookLog) {
-    await processResendWebhookTask.trigger({
+    await dispatchTask('process-resend-webhook', {
       webhookLogId: webhookLog.id,
       type: payload.type,
       data: payload.data,

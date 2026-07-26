@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { fetchWahooWorkouts, normalizeWahooWorkout } from '../server/utils/wahoo'
 import { prisma } from '../server/utils/db'
@@ -7,6 +7,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import type { IngestionResult } from './types'
 import crypto from 'crypto'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 export const ingestWahooTask = task({
   id: 'ingest-wahoo',
@@ -134,7 +135,7 @@ export const ingestWahooTask = task({
             logger.log(`Saved FIT file to database, triggering ingestion task...`)
 
             // Trigger ingest-fit-file which will handle detailed streams and stress calculation
-            await tasks.trigger(
+            await dispatchTask(
               'ingest-fit-file',
               {
                 userId,

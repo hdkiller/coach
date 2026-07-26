@@ -16,8 +16,8 @@ vi.mock('../../../../server/utils/db', () => ({
   prisma: prismaMock
 }))
 
-vi.mock('../../../../server/utils/trigger-check', () => ({
-  isTaskRunning: isTaskRunningMock
+vi.mock('../../../../server/utils/task-dispatcher', () => ({
+  isTaskRunningForUser: isTaskRunningMock
 }))
 
 describe('integration-sync-guard', () => {

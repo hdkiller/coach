@@ -1,32 +1,14 @@
 import './init'
-import { logger, task, batch } from '@trigger.dev/sdk/v3'
-import { registerTaskHandler } from '../server/utils/task-registry'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
-import { ingestStravaTask } from './ingest-strava'
-import { ingestWhoopTask } from './ingest-whoop'
-import { ingestOuraTask } from './ingest-oura'
-import { ingestWithingsTask } from './ingest-withings'
-import { ingestIntervalsTask } from './ingest-intervals'
-import { ingestYazioTask } from './ingest-yazio'
-import { ingestFitbitTask } from './ingest-fitbit'
-import { ingestHevyTask } from './ingest-hevy'
-import { ingestLiftosaurTask } from './ingest-liftosaur'
-import { ingestPolarTask } from './ingest-polar'
-import { ingestGarminTask } from './ingest-garmin'
-import { ingestRouvyTask } from './ingest-rouvy'
-import { ingestWahooTask } from './ingest-wahoo'
-import { ingestUltrahumanTask } from './ingest-ultrahuman'
-import { generateAthleteProfileTask } from './generate-athlete-profile'
-import { processSyncQueueTask } from './process-sync-queue'
 import { triggerWorkoutDeduplicationIfEnabled } from '../server/utils/trigger-workout-deduplication'
-import { recommendTodayActivityTask } from './recommend-today-activity'
-import { analyzeNutritionTask } from './analyze-nutrition'
 import { getUserTimezone } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import type { IngestionResult } from './types'
 import { enqueueAutomaticWorkoutAnalysesForUser } from '../server/utils/workout-analysis-enqueue'
+import { dispatchTask, dispatchTaskAndWait } from '../server/utils/task-dispatcher'
 
 export const ingestAllTask = task({
   id: 'ingest-all',
@@ -50,7 +32,7 @@ export const ingestAllTask = task({
     // We do this first so external systems are up-to-date before we fetch from them.
     try {
       logger.log('📤 Triggering Sync Queue Processing (Push)...')
-      const queueRun = await processSyncQueueTask.triggerAndWait({})
+      const queueRun = await dispatchTaskAndWait('process-sync-queue', {})
       if (!queueRun.ok) {
         throw new Error(`Sync queue processing failed: ${String(queueRun.error)}`)
       }
@@ -92,85 +74,85 @@ export const ingestAllTask = task({
       switch (integration.provider) {
         case 'strava':
           tasksTrigger.push({
-            task: ingestStravaTask,
+            taskId: 'ingest-strava',
             payload: taskPayload
           })
           break
         case 'whoop':
           tasksTrigger.push({
-            task: ingestWhoopTask,
+            taskId: 'ingest-whoop',
             payload: taskPayload
           })
           break
         case 'oura':
           tasksTrigger.push({
-            task: ingestOuraTask,
+            taskId: 'ingest-oura',
             payload: taskPayload
           })
           break
         case 'withings':
           tasksTrigger.push({
-            task: ingestWithingsTask,
+            taskId: 'ingest-withings',
             payload: taskPayload
           })
           break
         case 'intervals':
           tasksTrigger.push({
-            task: ingestIntervalsTask,
+            taskId: 'ingest-intervals',
             payload: { ...taskPayload, manualSync }
           })
           break
         case 'yazio':
           tasksTrigger.push({
-            task: ingestYazioTask,
+            taskId: 'ingest-yazio',
             payload: taskPayload
           })
           break
         case 'fitbit':
           tasksTrigger.push({
-            task: ingestFitbitTask,
+            taskId: 'ingest-fitbit',
             payload: taskPayload
           })
           break
         case 'hevy':
           tasksTrigger.push({
-            task: ingestHevyTask,
+            taskId: 'ingest-hevy',
             payload: { userId, startDate, endDate, fullSync: false }
           })
           break
         case 'liftosaur':
           tasksTrigger.push({
-            task: ingestLiftosaurTask,
+            taskId: 'ingest-liftosaur',
             payload: taskPayload
           })
           break
         case 'polar':
           tasksTrigger.push({
-            task: ingestPolarTask,
+            taskId: 'ingest-polar',
             payload: { userId, startDate, endDate }
           })
           break
         case 'garmin':
           tasksTrigger.push({
-            task: ingestGarminTask,
+            taskId: 'ingest-garmin',
             payload: { userId, startDate, endDate }
           })
           break
         case 'rouvy':
           tasksTrigger.push({
-            task: ingestRouvyTask,
+            taskId: 'ingest-rouvy',
             payload: { userId, startDate, endDate }
           })
           break
         case 'wahoo':
           tasksTrigger.push({
-            task: ingestWahooTask,
+            taskId: 'ingest-wahoo',
             payload: { userId, startDate, endDate }
           })
           break
         case 'ultrahuman':
           tasksTrigger.push({
-            task: ingestUltrahumanTask,
+            taskId: 'ingest-ultrahuman',
             payload: { userId, startDate, endDate }
           })
           break
@@ -200,33 +182,33 @@ export const ingestAllTask = task({
 
     for (const item of tasksTrigger) {
       const integration = integrations.find((i) => {
-        if (item.task.id === 'ingest-strava' && i.provider === 'strava') return true
-        if (item.task.id === 'ingest-whoop' && i.provider === 'whoop') return true
-        if (item.task.id === 'ingest-oura' && i.provider === 'oura') return true
-        if (item.task.id === 'ingest-withings' && i.provider === 'withings') return true
-        if (item.task.id === 'ingest-intervals' && i.provider === 'intervals') return true
-        if (item.task.id === 'ingest-yazio' && i.provider === 'yazio') return true
-        if (item.task.id === 'ingest-fitbit' && i.provider === 'fitbit') return true
-        if (item.task.id === ingestHevyTask.id && i.provider === 'hevy') return true
-        if (item.task.id === ingestLiftosaurTask.id && i.provider === 'liftosaur') return true
-        if (item.task.id === ingestPolarTask.id && i.provider === 'polar') return true
-        if (item.task.id === ingestGarminTask.id && i.provider === 'garmin') return true
-        if (item.task.id === ingestRouvyTask.id && i.provider === 'rouvy') return true
-        if (item.task.id === ingestWahooTask.id && i.provider === 'wahoo') return true
-        if (item.task.id === ingestUltrahumanTask.id && i.provider === 'ultrahuman') return true
+        if (item.taskId === 'ingest-strava' && i.provider === 'strava') return true
+        if (item.taskId === 'ingest-whoop' && i.provider === 'whoop') return true
+        if (item.taskId === 'ingest-oura' && i.provider === 'oura') return true
+        if (item.taskId === 'ingest-withings' && i.provider === 'withings') return true
+        if (item.taskId === 'ingest-intervals' && i.provider === 'intervals') return true
+        if (item.taskId === 'ingest-yazio' && i.provider === 'yazio') return true
+        if (item.taskId === 'ingest-fitbit' && i.provider === 'fitbit') return true
+        if (item.taskId === 'ingest-hevy' && i.provider === 'hevy') return true
+        if (item.taskId === 'ingest-liftosaur' && i.provider === 'liftosaur') return true
+        if (item.taskId === 'ingest-polar' && i.provider === 'polar') return true
+        if (item.taskId === 'ingest-garmin' && i.provider === 'garmin') return true
+        if (item.taskId === 'ingest-rouvy' && i.provider === 'rouvy') return true
+        if (item.taskId === 'ingest-wahoo' && i.provider === 'wahoo') return true
+        if (item.taskId === 'ingest-ultrahuman' && i.provider === 'ultrahuman') return true
         return false
       })
 
-      logger.log(`Starting ingestion for ${integration?.provider || item.task.id}...`)
+      logger.log(`Starting ingestion for ${integration?.provider || item.taskId}...`)
 
       try {
-        const run = await (item.task as any).triggerAndWait(item.payload as any, {
+        const run = await dispatchTaskAndWait(item.taskId, item.payload, {
           concurrencyKey: userId,
           tags: [`user:${userId}`]
         })
 
         if (run.ok) {
-          logger.log(`✅ ${integration?.provider || item.task.id}: SUCCESS`)
+          logger.log(`✅ ${integration?.provider || item.taskId}: SUCCESS`)
           // logger.log(`   ${JSON.stringify(run.output, null, 2)}`)
 
           const output = run.output as IngestionResult
@@ -256,7 +238,7 @@ export const ingestAllTask = task({
             anyWellnessUpdated = true
           }
 
-          if (item.task.id === 'ingest-yazio' && nutritionCount > 0) {
+          if (item.taskId === 'ingest-yazio' && nutritionCount > 0) {
             console.log(
               `[DEBUG] ${integration?.provider} added NEW nutrition data (${nutritionCount}). (Triggering nutrition analysis later)`
             )
@@ -275,31 +257,31 @@ export const ingestAllTask = task({
           }
 
           // Check specifically for Yazio updates for nutrition analysis
-          if (item.task.id === 'ingest-yazio' && nutritionCount > 0) {
+          if (item.taskId === 'ingest-yazio' && nutritionCount > 0) {
             yazioUpdated = true
           }
 
           results.push({
-            provider: integration?.provider || item.task.id,
+            provider: integration?.provider || item.taskId,
             status: 'success',
             data: run.output
           })
         } else {
-          logger.error(`❌ ${integration?.provider || item.task.id}: FAILED`)
+          logger.error(`❌ ${integration?.provider || item.taskId}: FAILED`)
           logger.error(`   Error: ${run.error}`)
 
           results.push({
-            provider: integration?.provider || item.task.id,
+            provider: integration?.provider || item.taskId,
             status: 'failed',
             error: run.error
           })
         }
       } catch (error) {
-        logger.error(`❌ ${integration?.provider || item.task.id}: CRITICAL ERROR`)
+        logger.error(`❌ ${integration?.provider || item.taskId}: CRITICAL ERROR`)
         logger.error(`   Error: ${error}`)
 
         results.push({
-          provider: integration?.provider || item.task.id,
+          provider: integration?.provider || item.taskId,
           status: 'failed',
           error
         })
@@ -383,7 +365,8 @@ export const ingestAllTask = task({
             }
           })
 
-          await generateAthleteProfileTask.trigger(
+          await dispatchTask(
+            'generate-athlete-profile',
             {
               userId,
               reportId: report.id
@@ -428,7 +411,8 @@ export const ingestAllTask = task({
               `🤖 [Auto-Analyze] Found ${unanalyzedNutrition.length} unanalyzed nutrition records. Triggering analysis...`
             )
             for (const record of unanalyzedNutrition) {
-              await analyzeNutritionTask.trigger(
+              await dispatchTask(
+                'analyze-nutrition',
                 { nutritionId: record.id },
                 { tags: [`user:${userId}`] }
               )
@@ -455,7 +439,8 @@ export const ingestAllTask = task({
         if (aiSettings.aiAutoAnalyzeReadiness) {
           logger.log('🤖 [Auto-Analyze] Wellness updated: Triggering daily recommendation...')
 
-          await recommendTodayActivityTask.trigger(
+          await dispatchTask(
+            'recommend-today-activity',
             {
               userId,
               date: new Date(),
@@ -492,5 +477,3 @@ export const ingestAllTask = task({
     }
   }
 })
-
-registerTaskHandler('ingest-all', (payload) => ingestAllTask.run(payload))

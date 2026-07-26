@@ -13,6 +13,7 @@ import {
   estimateTokenCount,
   expandStoredChatMessage
 } from './history'
+import { dispatchTask } from '../task-dispatcher'
 import {
   CHAT_TURN_EVENT_TYPE,
   CHAT_TURN_EXECUTION_TIMEOUT_MS,
@@ -26,7 +27,6 @@ import { chatTurnService } from '../services/chatTurnService'
 import { userMemoryService } from '../services/userMemoryService'
 import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
-import { summarizeChatTask } from '../../../trigger/summarize-chat'
 import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 import { extractMemoryCandidatesFromConversation } from './memory-extraction'
@@ -751,7 +751,7 @@ export async function scheduleChatRoomSummaryIfNeeded(input: {
     return false
   }
 
-  await summarizeChatTask.trigger({
+  await dispatchTask('summarize-chat', {
     roomId: input.roomId,
     userId: input.userId
   })

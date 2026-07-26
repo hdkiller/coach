@@ -4,7 +4,6 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { generateDailyCheckinTask } from '../../trigger/daily-checkin'
 
 export const triggerCheckinCommand = new Command('checkin')
   .description('Trigger daily check-in generation for a user')
@@ -17,6 +16,7 @@ export const triggerCheckinCommand = new Command('checkin')
 
     if (isProd) {
       process.env.TRIGGER_SECRET_KEY = process.env.TRIGGER_SECRET_KEY_PROD
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
       console.log(chalk.yellow('⚠️  Using PRODUCTION environment.'))
     }
 
@@ -44,11 +44,12 @@ export const triggerCheckinCommand = new Command('checkin')
 
       console.log(chalk.blue(`Triggering check-in for ${email} on ${dateStr}...`))
 
-      const run = await generateDailyCheckinTask.trigger({
-        userId: user.id,
-        date,
-        source: 'user'
-      })
+      const { dispatchTask } = await import('../../server/utils/task-dispatcher')
+      const run = await dispatchTask(
+        'daily-checkin',
+        { userId: user.id, date, source: 'user' },
+        { tags: [`user:${user.id}`] }
+      )
 
       console.log(chalk.green(`Successfully triggered run: ${run.id}`))
       console.log(

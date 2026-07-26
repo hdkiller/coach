@@ -17,6 +17,7 @@ triggerWorkoutCommand
         process.exit(1)
       }
       process.env.TRIGGER_SECRET_KEY = process.env.TRIGGER_PROD_SECRET_KEY
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
       if (process.env.TRIGGER_PROD_API_URL) {
         process.env.TRIGGER_API_URL = process.env.TRIGGER_PROD_API_URL
       }
@@ -27,9 +28,8 @@ triggerWorkoutCommand
     }
 
     try {
-      // Dynamic import after env switch so the SDK picks up the prod secret.
-      const { tasks } = await import('@trigger.dev/sdk/v3')
-      const handle = await tasks.trigger('analyze-workout', { workoutId })
+      const { dispatchTask } = await import('../../server/utils/task-dispatcher')
+      const handle = await dispatchTask('analyze-workout', { workoutId })
 
       console.log(chalk.green('Successfully triggered analysis!'))
       console.log(chalk.bold('Run ID:'), handle.id)

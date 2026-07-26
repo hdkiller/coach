@@ -1,7 +1,8 @@
-import { logger, schedules, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, schedules, task } from '@trigger.dev/sdk/v3'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { prisma } from '../server/utils/db'
+import { dispatchTask } from '../server/utils/task-dispatcher'
 
 export const finalizeDailyNutritionTask = task({
   id: 'finalize-daily-nutrition',
@@ -42,7 +43,7 @@ export const finalizeDailyNutritionCron = schedules.task({
       const batch = users.slice(i, i + batchSize)
       await Promise.all(
         batch.map((u) =>
-          tasks.trigger('finalize-daily-nutrition', {
+          dispatchTask('finalize-daily-nutrition', {
             userId: u.id
           })
         )

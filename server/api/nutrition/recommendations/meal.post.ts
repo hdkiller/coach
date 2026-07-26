@@ -1,5 +1,5 @@
 import { requireAuth } from '../../../utils/auth-guard'
-import { recommendNutritionMealTask } from '../../../../trigger/recommend-nutrition-meal'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { prisma } from '../../../utils/db'
 
 /** A completed suggestion for the same window and targets is reused for this long. */
@@ -73,7 +73,8 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const handle = await recommendNutritionMealTask.trigger(
+  const handle = await dispatchTask(
+    'recommend-nutrition-meal',
     {
       userId,
       date: body.date,

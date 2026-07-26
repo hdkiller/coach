@@ -1,6 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { dispatchTask } from '../../utils/task-dispatcher'
 import { activityRecommendationRepository } from '../../utils/repositories/activityRecommendationRepository'
 import { checkQuota } from '../../utils/quotas/engine'
