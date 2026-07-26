@@ -9,11 +9,17 @@ import type { H3Event } from 'h3'
  */
 export async function validateApiKey(event: H3Event) {
   let apiKey: string | undefined
-  try {
+
+  if (event && event.node && event.node.req) {
     apiKey = getHeader(event, 'X-API-Key') || getHeader(event, 'x-api-key')
-  } catch {
-    const headers = (event as any)?.headers || (event as any)?.node?.req?.headers
-    apiKey = headers?.['x-api-key'] || headers?.['X-API-Key']
+  }
+
+  if (!apiKey && event) {
+    const headers =
+      (event as any).headers || (event as any).node?.req?.headers || (event as any).req?.headers
+    if (headers) {
+      apiKey = headers['x-api-key'] || headers['X-API-Key'] || headers['x-api-key']
+    }
   }
 
   if (!apiKey) {
