@@ -22,7 +22,7 @@
         <div class="flex flex-col justify-between gap-4 px-4 md:flex-row md:items-center sm:px-0">
           <div>
             <h1 class="text-3xl font-black uppercase tracking-tight">Exercises</h1>
-            <p class="mt-1 text-xs font-bold uppercase italic tracking-[0.2em] text-muted">
+            <p class="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-muted">
               Your Reusable Strength Exercise Library
             </p>
           </div>
