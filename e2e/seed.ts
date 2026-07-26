@@ -297,14 +297,26 @@ export async function seedE2eUsableData(prisma: PrismaClient, userId: string) {
 }
 
 export async function seedE2eData(prisma: PrismaClient) {
-  const users = await seedE2eUsers(prisma)
-  const mobileApp = await seedE2eMobileOAuthApp(prisma, users.admin.id)
-  const softActivation = await seedE2eSoftActivation(prisma, users.athlete.id)
-  const usableData = await seedE2eUsableData(prisma, users.athlete.id)
-  const todayRecommendation = await seedE2eTodayRecommendation(prisma, users.athlete.id)
+  await seedE2eUsers(prisma)
+
+  // Re-read by email so FK-dependent rows never use a stale upsert payload.
+  const athlete = await prisma.user.findUniqueOrThrow({
+    where: { email: E2E_ATHLETE_EMAIL }
+  })
+  const admin = await prisma.user.findUniqueOrThrow({
+    where: { email: E2E_ADMIN_EMAIL }
+  })
+
+  // Soft-activate before bcrypt-bound OAuth app seeding so primary goal/plan
+  // rows are written while the athlete row is still unambiguously present.
+  const softActivation = await seedE2eSoftActivation(prisma, athlete.id)
+  const mobileApp = await seedE2eMobileOAuthApp(prisma, admin.id)
+  const usableData = await seedE2eUsableData(prisma, athlete.id)
+  const todayRecommendation = await seedE2eTodayRecommendation(prisma, athlete.id)
 
   return {
-    ...users,
+    athlete,
+    admin,
     mobileApp,
     softActivation,
     usableData,
