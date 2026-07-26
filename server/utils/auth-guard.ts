@@ -10,7 +10,15 @@ import { prisma } from './db'
  * @returns The user and token info if valid, null otherwise.
  */
 export async function validateOAuthToken(event: H3Event) {
-  const authHeader = getHeader(event, 'Authorization')
+  let authHeader: string | undefined
+  if (event && event.node && event.node.req) {
+    authHeader = getHeader(event, 'Authorization') || getHeader(event, 'authorization')
+  } else if (event) {
+    const headers =
+      (event as any).headers || (event as any).node?.req?.headers || (event as any).req?.headers
+    authHeader = headers?.['authorization'] || headers?.['Authorization']
+  }
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null
   }
