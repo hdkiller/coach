@@ -411,7 +411,7 @@
     loading.value = true
     error.value = null
     try {
-      workout.value = await $fetch<unknown, string & {}>(`/api/workouts/${workoutId.value}`)
+      workout.value = await $fetch<any, string & {}>(`/api/workouts/${workoutId.value}`)
       await generateShareLink({ expiresIn: null, forceNew: false })
     } catch (e: any) {
       error.value = e.data?.message || e.message || 'Failed to load workout share preview.'

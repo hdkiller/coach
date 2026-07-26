@@ -795,7 +795,7 @@
   async function openQuickAddModal() {
     isQuickAddModalOpen.value = true
     try {
-      const data = await $fetch<unknown, string & {}>('/api/coaching/athletes')
+      const data = await $fetch<any, string & {}>('/api/coaching/athletes')
       myCoachedAthletes.value = data as any[]
     } catch (e) {
       console.error(e)
@@ -807,7 +807,7 @@
     if (!selectedAthleteToQuickAdd.value) return
     quickAdding.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/members/add`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/members/add`, {
         method: 'POST',
         body: { athleteId: selectedAthleteToQuickAdd.value }
       })
@@ -826,7 +826,7 @@
     if (!athleteCodeToJoin.value) return
     quickAdding.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/join-by-code`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/join-by-code`, {
         method: 'POST',
         body: { code: athleteCodeToJoin.value.toUpperCase() }
       })
@@ -847,11 +847,11 @@
   async function refreshTeam() {
     const teamId = route.params.id as string
     try {
-      team.value = await $fetch<unknown, string & {}>(`/api/coaching/teams/${teamId}`)
+      team.value = await $fetch<any, string & {}>(`/api/coaching/teams/${teamId}`)
 
       const [rosterData, invitesData] = await Promise.all([
-        $fetch<unknown, string & {}>(`/api/coaching/teams/${teamId}/roster`).catch(() => []),
-        $fetch<unknown, string & {}>(`/api/coaching/teams/${teamId}/invites`).catch(() => [])
+        $fetch<any, string & {}>(`/api/coaching/teams/${teamId}/roster`).catch(() => []),
+        $fetch<any, string & {}>(`/api/coaching/teams/${teamId}/invites`).catch(() => [])
       ])
 
       roster.value = rosterData as any[]
@@ -871,7 +871,7 @@
         groupId: newInvite.value.groupId || undefined
       }
 
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
         method: 'POST',
         body: payload
       })
@@ -889,7 +889,7 @@
   async function createAthleteShareInvite() {
     creatingAthleteInvite.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
         method: 'POST',
         body: {
           role: 'ATHLETE',
@@ -910,7 +910,7 @@
 
   async function revokeInvite(inviteId: string) {
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/invites`, {
         method: 'DELETE',
         body: { inviteId }
       })
@@ -940,7 +940,7 @@
 
     removingMemberId.value = userId
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Member removed', color: 'success' })
@@ -965,7 +965,7 @@
 
     leavingTeam.value = true
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `/api/coaching/teams/${team.value.id}/members/${currentUserId.value}`,
         {
           method: 'DELETE'
@@ -987,7 +987,7 @@
     if (!team.value?.id || !userId || !role) return
     updatingRoleId.value = userId
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}/members/${userId}`, {
         method: 'PATCH',
         body: { role }
       })
@@ -1008,9 +1008,7 @@
       return
 
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/teams/${team.value.id}`, {
-        method: 'DELETE'
-      })
+      await $fetch<any, string & {}>(`/api/coaching/teams/${team.value.id}`, { method: 'DELETE' })
       toast.add({ title: 'Team deleted', color: 'success' })
       await router.push('/coaching/team')
     } catch (err: any) {

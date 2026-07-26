@@ -902,7 +902,7 @@
     analyzingNutrition.value = true
     trackNutritionAnalyze('single')
     try {
-      await $fetch<unknown, string & {}>(`/api/nutrition/${nutritionApiId.value}/analyze`, {
+      await $fetch<any, string & {}>(`/api/nutrition/${nutritionApiId.value}/analyze`, {
         method: 'POST'
       })
       toast.add({

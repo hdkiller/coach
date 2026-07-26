@@ -729,7 +729,7 @@
   async function executeClearSchedule() {
     clearingSchedule.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/plans/workouts/future', {
+      const result: any = await $fetch<any, string & {}>('/api/plans/workouts/future', {
         method: 'DELETE'
       })
 
@@ -754,7 +754,7 @@
   async function executeClearPastSchedule() {
     clearingPastSchedule.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/plans/workouts/past', {
+      const result: any = await $fetch<any, string & {}>('/api/plans/workouts/past', {
         method: 'DELETE'
       })
 
@@ -779,7 +779,7 @@
   async function executeClearOrphanedSchedule() {
     clearingOrphanedSchedule.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/plans/workouts/orphaned', {
+      const result: any = await $fetch<any, string & {}>('/api/plans/workouts/orphaned', {
         method: 'DELETE'
       })
 
@@ -804,7 +804,7 @@
   async function executeWipeAnalysis() {
     wipingAnalysis.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/profile/ai-analysis', {
+      const result: any = await $fetch<any, string & {}>('/api/profile/ai-analysis', {
         method: 'DELETE'
       })
 
@@ -829,7 +829,7 @@
   async function executeWipeProfiles() {
     wipingProfiles.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/profile/athlete-profiles', {
+      const result: any = await $fetch<any, string & {}>('/api/profile/athlete-profiles', {
         method: 'DELETE'
       })
 
@@ -854,7 +854,7 @@
   async function executeWipeSyncedActivities() {
     wipingSyncedActivities.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/profile/synced-activities', {
+      const result: any = await $fetch<any, string & {}>('/api/profile/synced-activities', {
         method: 'DELETE'
       })
 
@@ -879,7 +879,7 @@
   async function executeWipeWellness() {
     wipingWellness.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/profile/wellness', {
+      const result: any = await $fetch<any, string & {}>('/api/profile/wellness', {
         method: 'DELETE'
       })
 
@@ -904,7 +904,7 @@
   async function executeWipeNutrition() {
     wipingNutrition.value = true
     try {
-      const result: any = await $fetch<unknown, string & {}>('/api/profile/nutrition', {
+      const result: any = await $fetch<any, string & {}>('/api/profile/nutrition', {
         method: 'DELETE'
       })
 
@@ -939,7 +939,7 @@
 
     deletingAccount.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/profile', {
+      await $fetch<any, string & {}>('/api/profile', {
         method: 'DELETE'
       })
 

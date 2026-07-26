@@ -43,7 +43,7 @@
     loading.value = true
     try {
       if (isEditing.value) {
-        await $fetch<unknown, string & {}>(`${apiBase.value}/${props.issue.id}`, {
+        await $fetch<any, string & {}>(`${apiBase.value}/${props.issue.id}`, {
           method: updateMethod.value,
           body: event.data
         })
@@ -57,7 +57,7 @@
           url: window.location.href
         }
 
-        await $fetch<unknown, string & {}>('/api/issues', {
+        await $fetch<any, string & {}>('/api/issues', {
           method: 'POST',
           body: {
             ...event.data,

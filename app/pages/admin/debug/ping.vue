@@ -18,7 +18,7 @@
     result.value = null
 
     try {
-      const data = await $fetch<unknown, string & {}>('/api/admin/debug/ping', {
+      const data = await $fetch<any, string & {}>('/api/admin/debug/ping', {
         method: 'POST',
         body: { url: url.value, method: method.value }
       })

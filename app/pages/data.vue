@@ -1031,19 +1031,19 @@
   async function fetchDataSummary() {
     try {
       const [workouts, wellness, planned, nutrition] = await Promise.all([
-        $fetch<unknown, string & {}>('/api/workouts').catch((e: unknown) => {
+        $fetch<any, string & {}>('/api/workouts').catch((e: unknown) => {
           console.error('Workouts error:', e)
           return []
         }),
-        $fetch<unknown, string & {}>('/api/wellness').catch((e: unknown) => {
+        $fetch<any, string & {}>('/api/wellness').catch((e: unknown) => {
           console.error('Wellness error:', e)
           return []
         }),
-        $fetch<unknown, string & {}>('/api/planned-workouts').catch((e: unknown) => {
+        $fetch<any, string & {}>('/api/planned-workouts').catch((e: unknown) => {
           console.error('Planned workouts error:', e)
           return []
         }),
-        $fetch<unknown, string & {}>('/api/nutrition').catch((e: unknown) => {
+        $fetch<any, string & {}>('/api/nutrition').catch((e: unknown) => {
           console.error('Nutrition error:', e)
           return { count: 0, nutrition: [] }
         })
@@ -1063,12 +1063,12 @@
     loading.value = true
     try {
       // Fetch total count
-      const { count } = await $fetch<{ count: number }, string & {}>('/api/workouts/count')
+      const { count } = await $fetch<any, string & {}>('/api/workouts/count')
       workoutsTotalItems.value = count
 
       // Fetch current page
       const offset = (workoutsPage.value - 1) * workoutsItemsPerPage
-      const workouts = await $fetch<any[], string & {}>('/api/workouts', {
+      const workouts = await $fetch<any, string & {}>('/api/workouts', {
         query: {
           limit: workoutsItemsPerPage,
           offset
@@ -1085,7 +1085,7 @@
   // Fetch planned workouts
   async function fetchPlannedWorkouts() {
     try {
-      const planned = await $fetch<any[], string & {}>('/api/planned-workouts')
+      const planned = await $fetch<any, string & {}>('/api/planned-workouts')
       plannedWorkoutsTotalItems.value = planned.length
       const start = (plannedWorkoutsPage.value - 1) * plannedWorkoutsItemsPerPage
       const end = start + plannedWorkoutsItemsPerPage
@@ -1107,7 +1107,7 @@
   // Fetch fitness data
   async function fetchFitnessData() {
     try {
-      const wellness = await $fetch<any[], string & {}>('/api/wellness', {
+      const wellness = await $fetch<any, string & {}>('/api/wellness', {
         query: { limit: 90 }
       })
 
@@ -1138,7 +1138,7 @@
   // Fetch nutrition data
   async function fetchNutritionData() {
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/nutrition')
+      const response: any = await $fetch<any, string & {}>('/api/nutrition')
       const allNutrition = response.nutrition || []
       nutritionTotalItems.value = allNutrition.length
       const start = (nutritionPage.value - 1) * nutritionItemsPerPage
@@ -1253,7 +1253,7 @@
   async function analyzeAllWorkouts() {
     analyzingWorkouts.value = true
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/workouts/analyze-all', {
+      const response: any = await $fetch<any, string & {}>('/api/workouts/analyze-all', {
         method: 'POST'
       })
 
@@ -1284,7 +1284,7 @@
   async function analyzeAllNutrition() {
     analyzingNutrition.value = true
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/nutrition/analyze-all', {
+      const response: any = await $fetch<any, string & {}>('/api/nutrition/analyze-all', {
         method: 'POST'
       })
 

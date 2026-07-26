@@ -48,7 +48,7 @@
   async function stopImpersonation() {
     stopping.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/admin/stop-impersonation', { method: 'POST' })
+      await $fetch<any, string & {}>('/api/admin/stop-impersonation', { method: 'POST' })
       toast.add({
         title: t.value('impersonation_toast_stopped_title'),
         description: t.value('impersonation_toast_stopped_description'),

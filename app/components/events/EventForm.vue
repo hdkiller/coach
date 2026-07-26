@@ -339,12 +339,12 @@
       }
 
       if (isEditing.value && props.initialData?.id) {
-        await $fetch<unknown, string & {}>(`/api/events/${props.initialData.id}`, {
+        await $fetch<any, string & {}>(`/api/events/${props.initialData.id}`, {
           method: 'PUT',
           body: payload
         })
       } else {
-        await $fetch<unknown, string & {}>('/api/events', {
+        await $fetch<any, string & {}>('/api/events', {
           method: 'POST',
           body: payload
         })

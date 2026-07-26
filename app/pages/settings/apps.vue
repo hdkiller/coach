@@ -568,7 +568,7 @@
     savingIngestionSettings.value = true
 
     try {
-      await $fetch<unknown, string & {}>('/api/user/settings', {
+      await $fetch<any, string & {}>('/api/user/settings', {
         method: 'PATCH',
         body: {
           dashboardSettings: {
@@ -611,7 +611,7 @@
 
     revoking.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/oauth/consents/${selectedConsent.value.app.id}`, {
+      await $fetch<any, string & {}>(`/api/oauth/consents/${selectedConsent.value.app.id}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Success', description: 'Access revoked successfully', color: 'success' })
@@ -644,7 +644,7 @@
 
   const connectTelegram = async () => {
     try {
-      const res: any = await $fetch<unknown, string & {}>('/api/integrations/telegram/link', {
+      const res: any = await $fetch<any, string & {}>('/api/integrations/telegram/link', {
         method: 'POST'
       })
       if (res.url) {
@@ -663,7 +663,7 @@
     try {
       if (provider !== 'intervals') return
 
-      await $fetch<unknown, string & {}>('/api/integrations/intervals/sync-profile', {
+      await $fetch<any, string & {}>('/api/integrations/intervals/sync-profile', {
         method: 'POST'
       })
 
@@ -722,7 +722,7 @@
     syncingProviders.value.add(provider)
 
     try {
-      await $fetch<unknown, string & {}>('/api/integrations/sync', {
+      await $fetch<any, string & {}>('/api/integrations/sync', {
         method: 'POST',
         body: { provider, days }
       })
@@ -768,7 +768,7 @@
             ? '/api/integrations/withings/disconnect'
             : `/api/integrations/${provider}/disconnect`
 
-      await $fetch<unknown, string & {}>(endpoint, {
+      await $fetch<any, string & {}>(endpoint, {
         method: 'DELETE'
       })
 
@@ -804,7 +804,7 @@
         }
       }
 
-      await $fetch<unknown, string & {}>('/api/integrations/update', {
+      await $fetch<any, string & {}>('/api/integrations/update', {
         method: 'POST',
         body
       })

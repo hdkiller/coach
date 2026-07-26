@@ -419,7 +419,7 @@
     error.value = null
     try {
       const id = route.params.id
-      event.value = await $fetch<unknown, string & {}>(`/api/events/${id}`)
+      event.value = await $fetch<any, string & {}>(`/api/events/${id}`)
     } catch (e: any) {
       error.value = e.data?.message || e.message || 'Failed to load event'
       console.error('Error fetching event:', e)
@@ -451,7 +451,7 @@
 
     deleting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/events/${event.value.id}`, {
+      await $fetch<any, string & {}>(`/api/events/${event.value.id}`, {
         method: 'DELETE'
       })
 

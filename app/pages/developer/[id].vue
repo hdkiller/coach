@@ -727,7 +727,7 @@
         ...(isAdmin.value ? {} : { isPublic: undefined })
       }
 
-      await $fetch<unknown, string & {}>(`/api/developer/apps/${appId}`, {
+      await $fetch<any, string & {}>(`/api/developer/apps/${appId}`, {
         method: 'PATCH',
         body
       })
@@ -747,7 +747,7 @@
   async function onRegenerateSecret() {
     regenerating.value = true
     try {
-      const data: any = await $fetch<unknown, string & {}>(`/api/developer/apps/${appId}/secret`, {
+      const data: any = await $fetch<any, string & {}>(`/api/developer/apps/${appId}/secret`, {
         method: 'POST'
       })
       generatedSecret.value = data.clientSecret
@@ -767,7 +767,7 @@
   async function onRegenerateWebhookSecret() {
     regeneratingWebhook.value = true
     try {
-      const data: any = await $fetch<unknown, string & {}>(
+      const data: any = await $fetch<any, string & {}>(
         `/api/developer/apps/${appId}/webhook-secret`,
         {
           method: 'POST'
@@ -791,7 +791,7 @@
   async function onDeleteApp() {
     deleting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/developer/apps/${appId}`, {
+      await $fetch<any, string & {}>(`/api/developer/apps/${appId}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Success', description: 'Application deleted', color: 'success' })
@@ -824,7 +824,7 @@
         description: 'Please wait while we upload your logo.',
         color: 'neutral'
       })
-      await $fetch<unknown, string & {}>(`/api/developer/apps/${appId}/logo`, {
+      await $fetch<any, string & {}>(`/api/developer/apps/${appId}/logo`, {
         method: 'POST',
         body: formData
       })

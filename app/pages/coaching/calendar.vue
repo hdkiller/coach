@@ -1020,16 +1020,13 @@
     panelState[panel].error = null
     try {
       const range = getRangeForPanel(panel)
-      const data = await $fetch<unknown, string & {}>(
-        `/api/coaching/athletes/${athleteId}/calendar`,
-        {
-          query: {
-            startDate: range.start.toISOString(),
-            endDate: range.end.toISOString(),
-            viewMode: viewMode.value
-          }
+      const data = await $fetch<any, string & {}>(`/api/coaching/athletes/${athleteId}/calendar`, {
+        query: {
+          startDate: range.start.toISOString(),
+          endDate: range.end.toISOString(),
+          viewMode: viewMode.value
         }
-      )
+      })
       if (fetchToken !== panelFetchTokens[panel]) return
       panelState[panel].data = data
     } catch (error: any) {
@@ -1078,7 +1075,7 @@
     }
 
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
+      await $fetch<any, string & {}>(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
         method: 'POST',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd'),
@@ -1120,7 +1117,7 @@
     date: Date
   }) {
     try {
-      const sourceWorkout = await $fetch(
+      const sourceWorkout = await $fetch<any, string & {}>(
         `/api/coaching/athletes/${sourceAthleteId}/planned-workouts/${workoutId}`
       )
 
@@ -1128,23 +1125,20 @@
         throw new Error('Source workout not found')
       }
 
-      await $fetch<unknown, string & {}>(
-        `/api/coaching/athletes/${targetAthleteId}/planned-workouts`,
-        {
-          method: 'POST',
-          body: {
-            date: formatDateUTC(date, 'yyyy-MM-dd'),
-            title: sourceWorkout.title,
-            description: sourceWorkout.description || '',
-            type: sourceWorkout.type || sourceWorkout.category || 'Ride',
-            category: sourceWorkout.category || 'Workout',
-            durationSec: sourceWorkout.durationSec || 0,
-            tss: sourceWorkout.tss ?? null,
-            workIntensity: sourceWorkout.workIntensity ?? null,
-            structuredWorkout: sourceWorkout.structuredWorkout ?? undefined
-          }
+      await $fetch<any, string & {}>(`/api/coaching/athletes/${targetAthleteId}/planned-workouts`, {
+        method: 'POST',
+        body: {
+          date: formatDateUTC(date, 'yyyy-MM-dd'),
+          title: sourceWorkout.title,
+          description: sourceWorkout.description || '',
+          type: sourceWorkout.type || sourceWorkout.category || 'Ride',
+          category: sourceWorkout.category || 'Workout',
+          durationSec: sourceWorkout.durationSec || 0,
+          tss: sourceWorkout.tss ?? null,
+          workIntensity: sourceWorkout.workIntensity ?? null,
+          structuredWorkout: sourceWorkout.structuredWorkout ?? undefined
         }
-      )
+      })
 
       await refreshAffectedPanel(targetAthleteId)
       toast.add({
@@ -1171,7 +1165,7 @@
     date: Date
   }) {
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `/api/coaching/athletes/${athleteId}/planned-workouts/${workoutId}/move`,
         {
           method: 'POST',
@@ -1193,7 +1187,7 @@
     try {
       if (activity.source === 'planned') {
         selectedPlannedWorkoutAthleteId.value = athleteId
-        selectedPlannedWorkout.value = await $fetch(
+        selectedPlannedWorkout.value = await $fetch<any, string & {}>(
           `/api/coaching/athletes/${athleteId}/planned-workouts/${activity.id}`
         )
         showPlannedWorkoutModal.value = true
@@ -1201,7 +1195,7 @@
       }
 
       if (activity.source === 'completed') {
-        selectedWorkout.value = await $fetch(
+        selectedWorkout.value = await $fetch<any, string & {}>(
           `/api/coaching/athletes/${athleteId}/workouts/${activity.id}`
         )
         showWorkoutPreviewModal.value = true

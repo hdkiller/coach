@@ -416,7 +416,7 @@
   async function generateGuide() {
     generatingGuide.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/recommendations/${recId}/guide`, {
+      await $fetch<any, string & {}>(`/api/recommendations/${recId}/guide`, {
         method: 'POST'
       })
 
@@ -479,7 +479,7 @@
       // Optimistic update
       rec.value.isPinned = newState
 
-      await $fetch<unknown, string & {}>(`/api/recommendations/${recId}`, {
+      await $fetch<any, string & {}>(`/api/recommendations/${recId}`, {
         method: 'PATCH',
         body: { isPinned: newState }
       })
@@ -500,7 +500,7 @@
       // Optimistic update
       rec.value.status = status
 
-      await $fetch<unknown, string & {}>(`/api/recommendations/${recId}`, {
+      await $fetch<any, string & {}>(`/api/recommendations/${recId}`, {
         method: 'PATCH',
         body: { status }
       })

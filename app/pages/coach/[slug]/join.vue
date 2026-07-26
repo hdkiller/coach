@@ -143,7 +143,7 @@
 
     joining.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/join/${inviteCode.value}`, { method: 'POST' })
+      await $fetch<any, string & {}>(`/api/join/${inviteCode.value}`, { method: 'POST' })
       toast.add({
         title: 'Successfully connected with coach!',
         color: 'success'

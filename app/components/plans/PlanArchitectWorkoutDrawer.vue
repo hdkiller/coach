@@ -1102,7 +1102,7 @@
 
     creatingTemplate.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/library/workouts', {
+      await $fetch<any, string & {}>('/api/library/workouts', {
         method: 'POST',
         body: {
           title: draftTemplate.value.title.trim(),
@@ -1139,7 +1139,7 @@
     generatingId.value = id
     try {
       const template = normalizedTemplates.value.find((entry) => entry.id === id)
-      await $fetch<unknown, string & {}>(`/api/library/workouts/${id}/generate-structure`, {
+      await $fetch<any, string & {}>(`/api/library/workouts/${id}/generate-structure`, {
         method: 'POST',
         query: {
           scope: template?.ownerScope

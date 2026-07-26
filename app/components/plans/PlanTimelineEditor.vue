@@ -206,7 +206,7 @@
   async function saveChanges() {
     saving.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/plans/${props.planId}/replan-structure`, {
+      await $fetch<any, string & {}>(`/api/plans/${props.planId}/replan-structure`, {
         method: 'POST',
         body: {
           blocks: localBlocks.value.map((b: any, idx: number) => ({

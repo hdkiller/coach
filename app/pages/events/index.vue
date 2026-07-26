@@ -163,7 +163,7 @@
   async function fetchEvents() {
     loading.value = true
     try {
-      const data = await $fetch('/api/events')
+      const data = await $fetch<any, string & {}>('/api/events')
       events.value = data
     } catch (error) {
       console.error('Error fetching events:', error)
@@ -207,7 +207,7 @@
 
     deleting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/events/${eventToDelete.value.id}`, {
+      await $fetch<any, string & {}>(`/api/events/${eventToDelete.value.id}`, {
         method: 'DELETE'
       })
 

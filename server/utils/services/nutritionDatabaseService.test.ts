@@ -8,10 +8,12 @@ import {
 process.env.NUTRITION_FEEDER_URL = 'http://localhost:8844'
 process.env.NUTRITION_FEEDER_API_KEY = 'test-key'
 
-const mockOfetch = vi.hoisted(() => vi.fn())
+const { mockFetch } = vi.hoisted(() => ({
+  mockFetch: vi.fn()
+}))
 
 vi.mock('ofetch', () => ({
-  ofetch: mockOfetch
+  ofetch: mockFetch
 }))
 
 describe('calculatePortionNutrients', () => {
@@ -61,7 +63,7 @@ describe('nutritionDatabaseService', () => {
     it('returns empty array when query is empty', async () => {
       const res = await nutritionDatabaseService.searchFoodDatabase('')
       expect(res).toEqual([])
-      expect(mockOfetch).not.toHaveBeenCalled()
+      expect(mockFetch).not.toHaveBeenCalled()
     })
 
     it('handles direct array response from feeder', async () => {
@@ -71,12 +73,12 @@ describe('nutritionDatabaseService', () => {
           nutrients_per_100g: { calories_kcal: 389, protein_g: 16.9, carbs_g: 66.3, fat_g: 6.9 }
         }
       ]
-      mockOfetch.mockResolvedValueOnce(mockItems)
+      mockFetch.mockResolvedValueOnce(mockItems)
 
       const results = await nutritionDatabaseService.searchFoodDatabase('oats', 5)
       expect(results).toHaveLength(1)
       expect(results[0]?.name).toBe('Oats')
-      expect(mockOfetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8844/api/v1/nutrition/search?q=oats&limit=5',
         expect.objectContaining({
           headers: expect.objectContaining({ 'X-API-Key': 'test-key' })
@@ -85,7 +87,7 @@ describe('nutritionDatabaseService', () => {
     })
 
     it('handles object with items property', async () => {
-      mockOfetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         items: [
           {
             name: 'Protein Powder',
@@ -100,7 +102,7 @@ describe('nutritionDatabaseService', () => {
     })
 
     it('returns empty array gracefully on fetch error', async () => {
-      mockOfetch.mockRejectedValueOnce(new Error('Connection refused'))
+      mockFetch.mockRejectedValueOnce(new Error('Connection refused'))
       const results = await nutritionDatabaseService.searchFoodDatabase('banana')
       expect(results).toEqual([])
     })
@@ -113,14 +115,14 @@ describe('nutritionDatabaseService', () => {
         barcode: '3017620422003',
         nutrients_per_100g: { calories_kcal: 539, protein_g: 6.3, carbs_g: 57.5, fat_g: 30.9 }
       }
-      mockOfetch.mockResolvedValueOnce(item)
+      mockFetch.mockResolvedValueOnce(item)
 
       const result = await nutritionDatabaseService.lookupFoodBarcode('3017620422003')
       expect(result).toEqual(item)
     })
 
     it('returns null on 404', async () => {
-      mockOfetch.mockRejectedValueOnce({ statusCode: 404 })
+      mockFetch.mockRejectedValueOnce({ statusCode: 404 })
       const result = await nutritionDatabaseService.lookupFoodBarcode('0000000000000')
       expect(result).toBeNull()
     })
@@ -133,7 +135,7 @@ describe('nutritionDatabaseService', () => {
         name: 'Apple',
         nutrients_per_100g: { calories_kcal: 52, protein_g: 0.3, carbs_g: 13.8, fat_g: 0.2 }
       }
-      mockOfetch.mockResolvedValueOnce(item)
+      mockFetch.mockResolvedValueOnce(item)
 
       const result = await nutritionDatabaseService.getFoodItemByKey('usda:12345')
       expect(result).toEqual(item)

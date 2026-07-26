@@ -112,7 +112,7 @@
 
   async function saveLevel(level: any) {
     try {
-      await $fetch<unknown, string & {}>('/api/admin/llm/settings', {
+      await $fetch<any, string & {}>('/api/admin/llm/settings', {
         method: 'POST',
         body: {
           action: 'update_level',
@@ -189,7 +189,7 @@
       else if (overrideState.thinkingMode === 'custom')
         resolvedBudget = overrideState.thinkingBudget
 
-      await $fetch<unknown, string & {}>('/api/admin/llm/settings', {
+      await $fetch<any, string & {}>('/api/admin/llm/settings', {
         method: 'POST',
         body: {
           action: 'upsert_override',
@@ -218,7 +218,7 @@
   async function deleteOverride(id: string) {
     if (!confirm('Are you sure you want to remove this operation override?')) return
     try {
-      await $fetch<unknown, string & {}>('/api/admin/llm/settings', {
+      await $fetch<any, string & {}>('/api/admin/llm/settings', {
         method: 'POST',
         body: {
           action: 'delete_override',

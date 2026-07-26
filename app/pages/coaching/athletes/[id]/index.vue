@@ -929,9 +929,7 @@
 
     removingAthlete.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/${athleteId}`, {
-        method: 'DELETE'
-      })
+      await $fetch<any, string & {}>(`/api/coaching/athletes/${athleteId}`, { method: 'DELETE' })
       toast.add({ title: 'Athlete removed', color: 'success' })
       await router.push('/coaching/athletes')
     } catch (err: any) {
@@ -950,7 +948,7 @@
 
   async function openCompletedWorkout(workout: { id: string }) {
     try {
-      selectedWorkout.value = await $fetch(
+      selectedWorkout.value = await $fetch<any, string & {}>(
         `/api/coaching/athletes/${athleteId}/workouts/${workout.id}`
       )
       showWorkoutPreviewModal.value = true

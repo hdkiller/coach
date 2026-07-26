@@ -195,7 +195,7 @@
 
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/support/send', {
+      await $fetch<any, string & {}>('/api/support/send', {
         method: 'POST',
         body: form
       })

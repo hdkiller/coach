@@ -1370,7 +1370,7 @@
   async function fetchGoals() {
     loadingGoals.value = true
     try {
-      const data: any = await $fetch<unknown, string & {}>('/api/goals')
+      const data: any = await $fetch<any, string & {}>('/api/goals')
       goals.value = data.goals || []
     } catch (error) {
       console.error('Error fetching goals', error)
@@ -1517,7 +1517,7 @@
     else if (volumeHours.value >= 10) volumeBucket = 'HIGH'
 
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/plans/initialize', {
+      const response: any = await $fetch<any, string & {}>('/api/plans/initialize', {
         method: 'POST',
         body: {
           goalId: selectedGoal.value.id,
@@ -1563,7 +1563,7 @@
     activating.value = true
     try {
       // Activate the plan (archives others, triggers generation)
-      await $fetch<unknown, string & {}>(`/api/plans/${generatedPlan.value.id}/activate`, {
+      await $fetch<any, string & {}>(`/api/plans/${generatedPlan.value.id}/activate`, {
         method: 'POST',
         body: {
           startDate: generatedPlan.value.startDate,
@@ -1604,7 +1604,7 @@
   onBeforeUnmount(() => {
     if (!shouldAbandonDraftOnUnmount.value || !generatedPlan.value?.id) return
 
-    void $fetch<unknown, string & {}>(`/api/plans/${generatedPlan.value.id}/abandon`, {
+    void $fetch<any, string & {}>(`/api/plans/${generatedPlan.value.id}/abandon`, {
       method: 'POST'
     }).catch((error: unknown) => {
       console.error('[PlanWizard] Failed to abandon draft plan on close:', error)

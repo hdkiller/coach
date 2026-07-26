@@ -607,7 +607,7 @@
     loading.value = true
     try {
       // Fetch up to 180 days to support YTD and historical trends
-      const wellness = await $fetch('/api/wellness', { query: { limit: 180 } })
+      const wellness = await $fetch<any, string & {}>('/api/wellness', { query: { limit: 180 } })
 
       allWellness.value = wellness
     } catch (error) {

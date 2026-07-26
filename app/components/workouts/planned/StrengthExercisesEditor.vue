@@ -1494,7 +1494,7 @@
   async function createCustomExercise() {
     creatingCustomExercise.value = true
     try {
-      const saved: any = await $fetch<unknown, string & {}>('/api/library/strength-exercises', {
+      const saved: any = await $fetch<any, string & {}>('/api/library/strength-exercises', {
         method: 'POST',
         body: createCustomExercisePayload()
       })
@@ -1712,14 +1712,14 @@
     try {
       const isUpdate = Boolean(step.libraryExerciseId)
       const saved: any = step.libraryExerciseId
-        ? await $fetch<unknown, string & {}>(
+        ? await $fetch<any, string & {}>(
             `/api/library/strength-exercises/${step.libraryExerciseId}`,
             {
               method: 'PATCH',
               body: buildLibraryPayload(step)
             }
           )
-        : await $fetch<unknown, string & {}>('/api/library/strength-exercises', {
+        : await $fetch<any, string & {}>('/api/library/strength-exercises', {
             method: 'POST',
             body: buildLibraryPayload(step)
           })
@@ -1752,7 +1752,7 @@
     if (!window.confirm(`Delete "${item.title}" from the saved exercise library?`)) return
     deletingLibraryExerciseId.value = item.id
     try {
-      await $fetch<unknown, string & {}>(`/api/library/strength-exercises/${item.id}`, {
+      await $fetch<any, string & {}>(`/api/library/strength-exercises/${item.id}`, {
         method: 'DELETE'
       })
       libraryItems.value = libraryItems.value.filter((entry) => entry.id !== item.id)

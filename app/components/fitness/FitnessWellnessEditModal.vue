@@ -611,7 +611,7 @@
 
     saving.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/wellness/${props.wellness.id}`, {
+      await $fetch<any, string & {}>(`/api/wellness/${props.wellness.id}`, {
         method: 'PATCH',
         body: {
           date: state.date,

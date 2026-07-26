@@ -781,7 +781,7 @@
     try {
       // Fetch up to 1000 workouts for better history in charts
       // The payload is now optimized (COACH-WATTS-7) so this is safe
-      const workouts = await $fetch('/api/workouts', {
+      const workouts = await $fetch<any, string & {}>('/api/workouts', {
         query: {
           limit: 1000,
           tags: selectedWorkoutTags.value.join(',') || undefined
@@ -1075,7 +1075,7 @@
   async function analyzeAllWorkouts() {
     analyzingWorkouts.value = true
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/workouts/analyze-all', {
+      const response: any = await $fetch<any, string & {}>('/api/workouts/analyze-all', {
         method: 'POST'
       })
       refreshRuns()
@@ -1139,12 +1139,9 @@
   async function generateExplanations() {
     generatingExplanations.value = true
     try {
-      const response: any = await $fetch<unknown, string & {}>(
-        '/api/scores/generate-explanations',
-        {
-          method: 'POST'
-        }
-      )
+      const response: any = await $fetch<any, string & {}>('/api/scores/generate-explanations', {
+        method: 'POST'
+      })
       refreshRuns()
 
       toast.add({
@@ -1187,7 +1184,7 @@
     }
 
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
+      const response: any = await $fetch<any, string & {}>('/api/scores/explanation', {
         query: {
           type: 'workout',
           period: selectedPeriod.value.toString(),
@@ -1198,7 +1195,7 @@
       if (response.cached === false && response.generating) {
         // Wait 3 seconds and retry
         await new Promise((resolve) => setTimeout(resolve, 3000))
-        const retryResponse: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
+        const retryResponse: any = await $fetch<any, string & {}>('/api/scores/explanation', {
           query: {
             type: 'workout',
             period: selectedPeriod.value.toString(),

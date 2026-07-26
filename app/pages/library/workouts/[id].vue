@@ -318,14 +318,11 @@
     loading.value = true
     loadError.value = null
     try {
-      const data: any = await $fetch<unknown, string & {}>(
-        `/api/library/workouts/${route.params.id}`,
-        {
-          query: {
-            scope: route.query.scope
-          }
+      const data: any = await $fetch<any, string & {}>(`/api/library/workouts/${route.params.id}`, {
+        query: {
+          scope: route.query.scope
         }
-      )
+      })
       template.value = data.template
       userFtp.value = data.userFtp
       userLthr.value = data.userLthr
@@ -377,7 +374,7 @@
   async function generateStructure() {
     generating.value = true
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `/api/library/workouts/${route.params.id}/generate-structure`,
         {
           method: 'POST',
@@ -410,7 +407,7 @@
         : { steps: payload })
     }
     try {
-      await $fetch<unknown, string & {}>(`/api/library/workouts/${route.params.id}`, {
+      await $fetch<any, string & {}>(`/api/library/workouts/${route.params.id}`, {
         method: 'PATCH',
         query: {
           scope: template.value?.ownerScope || route.query.scope
@@ -461,7 +458,7 @@
   async function submitAdjustment() {
     adjusting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/library/workouts/${route.params.id}/adjust`, {
+      await $fetch<any, string & {}>(`/api/library/workouts/${route.params.id}/adjust`, {
         method: 'POST',
         query: {
           scope: template.value?.ownerScope || route.query.scope

@@ -157,16 +157,13 @@
     success.value = false
 
     try {
-      const response = await $fetch<{ success: boolean }, string & {}>(
-        '/api/integrations/yazio/connect',
-        {
-          method: 'POST',
-          body: {
-            username: username.value,
-            password: password.value
-          }
+      const response = await $fetch<any, string & {}>('/api/integrations/yazio/connect', {
+        method: 'POST',
+        body: {
+          username: username.value,
+          password: password.value
         }
-      )
+      })
 
       if (response.success) {
         success.value = true

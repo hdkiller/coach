@@ -1655,7 +1655,7 @@
     saving.value = true
     try {
       const body = buildPayload()
-      await $fetch(
+      await $fetch<any, string & {}>(
         editorMode.value === 'edit' && editingExerciseId.value
           ? `/api/library/strength-exercises/${editingExerciseId.value}`
           : '/api/library/strength-exercises',
@@ -1686,7 +1686,7 @@
     if (!window.confirm(`Delete "${exercise.title}" from the exercise library?`)) return
     deletingExerciseId.value = exercise.id
     try {
-      await $fetch<unknown, string & {}>(`/api/library/strength-exercises/${exercise.id}`, {
+      await $fetch<any, string & {}>(`/api/library/strength-exercises/${exercise.id}`, {
         method: 'DELETE'
       })
       if (previewItem.value?.id === exercise.id) {

@@ -863,12 +863,9 @@
 
     isImportingPlan.value = true
     try {
-      const imported: any = await $fetch<unknown, string & {}>(
-        `/api/library/plans/${planId}/import`,
-        {
-          method: 'POST'
-        }
-      )
+      const imported: any = await $fetch<any, string & {}>(`/api/library/plans/${planId}/import`, {
+        method: 'POST'
+      })
       toast.add({
         title: imported.imported ? 'Plan added to your library' : 'Plan opened from your library',
         color: 'success'
@@ -1137,7 +1134,7 @@
 
   async function copyWorkoutToLibrary(workout: any) {
     try {
-      await $fetch<unknown, string & {}>('/api/library/workouts', {
+      await $fetch<any, string & {}>('/api/library/workouts', {
         method: 'POST',
         body: {
           title: workout.title,
@@ -1160,7 +1157,7 @@
     if (!editingWorkout.value) return
 
     try {
-      await $fetch<unknown, string & {}>('/api/library/workouts', {
+      await $fetch<any, string & {}>('/api/library/workouts', {
         method: 'POST',
         body: {
           title: editingWorkout.value.title,

@@ -391,7 +391,7 @@
     selectedPlanDetail.value = null
 
     try {
-      const data = await $fetch<unknown, string & {}>(`/api/plans/${planId}`)
+      const data = await $fetch<any, string & {}>(`/api/plans/${planId}`)
       selectedPlanDetail.value = data
     } catch (error: any) {
       toast.add({
@@ -427,7 +427,7 @@
 
     deletingId.value = templateToDeleteId.value
     try {
-      await $fetch<unknown, string & {}>(`/api/plans/${templateToDeleteId.value}`, {
+      await $fetch<any, string & {}>(`/api/plans/${templateToDeleteId.value}`, {
         method: 'DELETE'
       })
 

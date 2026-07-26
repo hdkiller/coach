@@ -1763,7 +1763,7 @@
     previewLoading.value = true
     showPlanPreview.value = true
     try {
-      const response = await $fetch<unknown, string & {}>(`/api/public/plans/${plan.slug}`)
+      const response = await $fetch<any, string & {}>(`/api/public/plans/${plan.slug}`)
       previewPlan.value = (response as any).plan
     } finally {
       previewLoading.value = false

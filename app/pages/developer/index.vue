@@ -308,7 +308,7 @@
   async function onCreateSubmit() {
     creating.value = true
     try {
-      const data = await $fetch<unknown, string & {}>('/api/developer/apps', {
+      const data = await $fetch<any, string & {}>('/api/developer/apps', {
         method: 'POST',
         body: createForm
       })

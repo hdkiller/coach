@@ -296,7 +296,7 @@
     loading.value = true
     error.value = null
     try {
-      data.value = await $fetch<unknown, string & {}>(
+      data.value = await $fetch<any, string & {}>(
         `/api/workouts/${route.params.id}/intervals?debug=true`
       )
     } catch (e: any) {

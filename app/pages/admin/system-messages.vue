@@ -326,7 +326,7 @@
 
   async function deleteMessage(id: string) {
     if (!confirm('Are you sure?')) return
-    await $fetch<unknown, string & {}>(`/api/admin/system-messages/${id}`, { method: 'DELETE' })
+    await $fetch<any, string & {}>(`/api/admin/system-messages/${id}`, { method: 'DELETE' })
     refresh()
     toast.add({ title: 'Message deleted' })
   }
@@ -362,12 +362,12 @@
       }
 
       if (editingId.value) {
-        await $fetch<unknown, string & {}>(`/api/admin/system-messages/${editingId.value}`, {
+        await $fetch<any, string & {}>(`/api/admin/system-messages/${editingId.value}`, {
           method: 'PUT',
           body: payload
         })
       } else {
-        await $fetch<unknown, string & {}>('/api/admin/system-messages', {
+        await $fetch<any, string & {}>('/api/admin/system-messages', {
           method: 'POST',
           body: payload
         })

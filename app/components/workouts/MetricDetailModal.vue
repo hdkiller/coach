@@ -523,7 +523,7 @@
     if (!props.workoutId || !props.metricKey) return
 
     try {
-      const result = await $fetch<unknown, string & {}>(
+      const result = await $fetch<any, string & {}>(
         `/api/workouts/${props.workoutId}/metric-history`,
         {
           query: {

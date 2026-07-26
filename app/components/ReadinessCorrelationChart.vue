@@ -56,7 +56,7 @@
     loading.value = true
 
     try {
-      const data = await $fetch<unknown, string & {}>('/api/scores/readiness-correlation', {
+      const data = await $fetch<any, string & {}>('/api/scores/readiness-correlation', {
         query: { days: props.days || 30, tags: props.tags?.join(',') }
       })
       correlationData.value = data
