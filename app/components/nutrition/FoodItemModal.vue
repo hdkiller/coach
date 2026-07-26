@@ -311,7 +311,7 @@
     if (!confirm('Are you sure you want to delete this item?')) return
     loading.value = true
     try {
-      await $fetch(`/api/nutrition/${props.nutritionId || props.date}/items`, {
+      await (globalThis.$fetch as any)(`/api/nutrition/${props.nutritionId || props.date}/items`, {
         method: 'PATCH',
         body: {
           action: 'delete',
