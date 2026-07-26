@@ -750,11 +750,15 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
     modelVersion: aiSettings.aiModelPreference,
     planJson: plan as any,
     totalTSS: (plan as any).totalTSS,
-    totalDuration: (plan as any).days?.reduce(
-      (sum: number, d: any) => sum + (d.durationMinutes || 0) * 60,
-      0
-    ),
-    workoutCount: (plan as any).days?.filter((d: any) => d.workoutType !== 'Rest').length
+    totalDuration: Array.isArray((plan as any)?.days)
+      ? (plan as any).days.reduce(
+          (sum: number, d: any) => sum + (d.durationMinutes || 0) * 60,
+          0
+        )
+      : 0,
+    workoutCount: Array.isArray((plan as any)?.days)
+      ? (plan as any).days.filter((d: any) => d.workoutType !== 'Rest').length
+      : 0
   }
 
   // Check if the plan still exists if we intend to update it
@@ -823,7 +827,8 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
     })
 
     // Insert new workouts from the generated plan
-    const workoutsToCreate = (plan as any).days
+    const daysArray = Array.isArray((plan as any)?.days) ? (plan as any).days : []
+    const workoutsToCreate = daysArray
       // Filter out any days that match an anchored workout date to avoid duplicates if AI ignored instruction
       .filter((d: any) => {
         if (!anchorWorkoutIds?.length) return true

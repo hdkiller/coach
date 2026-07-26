@@ -16,6 +16,8 @@ export const REDIS_TASK_IDS = new Set([
   'generate-training-block',
   'generate-weekly-plan',
   'hello-world',
+  'ingest-all',
+  'ingest-fit-file',
   'ingest-garmin',
   'ingest-intervals',
   'ingest-oura',

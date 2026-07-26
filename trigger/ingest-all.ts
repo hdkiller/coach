@@ -1,5 +1,6 @@
 import './init'
 import { logger, task, batch } from '@trigger.dev/sdk/v3'
+import { registerTaskHandler } from '../server/utils/task-registry'
 import { prisma } from '../server/utils/db'
 import { ingestStravaTask } from './ingest-strava'
 import { ingestWhoopTask } from './ingest-whoop'
@@ -491,3 +492,5 @@ export const ingestAllTask = task({
     }
   }
 })
+
+registerTaskHandler('ingest-all', (payload) => ingestAllTask.run(payload))

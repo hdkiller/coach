@@ -26,6 +26,8 @@ export function ensureTaskHandlersRegistered(): Promise<void> {
       import('../../trigger/generate-training-block'),
       import('../../trigger/generate-weekly-plan'),
       import('../../trigger/hello-world'),
+      import('../../trigger/ingest-all'),
+      import('../../trigger/ingest-fit-file'),
       import('../../trigger/ingest-strava-activity'),
       import('../../trigger/ingest-strava-streams'),
       import('../../trigger/ingest-intervals'),
