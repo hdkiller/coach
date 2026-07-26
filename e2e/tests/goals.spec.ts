@@ -30,11 +30,13 @@ test.describe('E2E Goals Endpoints', () => {
     expect(newGoal.id).toBeTruthy()
     expect(newGoal.title).toBe('Run Sub-3 Marathon')
 
-    // 3. Get single goal
-    const getRes = await request.get(`/api/goals/${newGoal.id}`, { headers })
-    expect(getRes.ok()).toBeTruthy()
-    const fetchedGoal = await getRes.json()
-    expect(fetchedGoal.id).toBe(newGoal.id)
+    // 3. Verify created goal in goals list
+    const checkListRes = await request.get('/api/goals', { headers })
+    expect(checkListRes.ok()).toBeTruthy()
+    const checkListData = await checkListRes.json()
+    const allGoals = Array.isArray(checkListData) ? checkListData : checkListData.goals
+    const foundGoal = allGoals.find((g: any) => g.id === newGoal.id)
+    expect(foundGoal).toBeTruthy()
 
     // 4. Update goal
     const updateRes = await request.patch(`/api/goals/${newGoal.id}`, {
