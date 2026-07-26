@@ -8,7 +8,13 @@ import type { H3Event } from 'h3'
  * @returns The user associated with the key if valid, null otherwise.
  */
 export async function validateApiKey(event: H3Event) {
-  const apiKey = getHeader(event, 'X-API-Key')
+  let apiKey: string | undefined
+  try {
+    apiKey = getHeader(event, 'X-API-Key') || getHeader(event, 'x-api-key')
+  } catch {
+    const headers = (event as any)?.headers || (event as any)?.node?.req?.headers
+    apiKey = headers?.['x-api-key'] || headers?.['X-API-Key']
+  }
 
   if (!apiKey) {
     return null

@@ -10,6 +10,9 @@ process.env.NUTRITION_FEEDER_API_KEY = 'test-key'
 
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
+vi.mock('ofetch', () => ({
+  ofetch: (...args: any[]) => mockFetch(...args)
+}))
 
 describe('calculatePortionNutrients', () => {
   const sampleItem: FoodItem = {
