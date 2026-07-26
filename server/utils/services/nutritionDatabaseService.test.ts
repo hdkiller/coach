@@ -8,8 +8,13 @@ import {
 process.env.NUTRITION_FEEDER_URL = 'http://localhost:8844'
 process.env.NUTRITION_FEEDER_API_KEY = 'test-key'
 
-const mockFetch = vi.fn()
-vi.stubGlobal('$fetch', mockFetch)
+const { mockFetch } = vi.hoisted(() => ({
+  mockFetch: vi.fn()
+}))
+
+vi.mock('ofetch', () => ({
+  ofetch: mockFetch
+}))
 
 describe('calculatePortionNutrients', () => {
   const sampleItem: FoodItem = {
