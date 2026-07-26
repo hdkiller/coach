@@ -885,20 +885,16 @@ export async function runGenerateStructuredWorkout(
 
     const requestedGeneratorMode = resolveStructureGeneratorModeForWorkout(workout.type || '')
     const generatorMode = payload.generatorOverride ?? requestedGeneratorMode
-    console.log('[GenerateStructuredWorkout] Generator mode resolved', {
-      entityId,
-      entityType,
-      workoutType: workout.type,
-      generatorMode
-    })
+    console.log(
+      `[GenerateStructuredWorkout] Generator mode resolved: entityId=${entityId} entityType=${entityType} workoutType=${workout.type} mode=${generatorMode}`
+    )
     logStage('resolved-generator-mode', {
       generatorMode
     })
     if (generatorMode === 'draft_json_v1') {
-      console.log('[GenerateStructuredWorkout] Using compact draft generator', {
-        entityId,
-        workoutType: workout.type
-      })
+      console.log(
+        `[GenerateStructuredWorkout] Using compact draft generator: entityId=${entityId} workoutType=${workout.type}`
+      )
       logStage('generator-mode-branch', {
         generatorMode,
         implementation: 'compact_draft_v1'
@@ -1144,19 +1140,13 @@ OUTPUT JSON matching the schema.`
             aiOptions
           )
           lastAiOutputForRetry = draft
-          console.log('[GenerateStructuredWorkout] Compact draft generated', {
-            entityId,
-            attempt,
-            topLevelSteps: Array.isArray((draft as any)?.steps) ? (draft as any).steps.length : 0,
-            hasDescription: Boolean((draft as any)?.description),
-            hasCoachInstructions: Boolean((draft as any)?.coachInstructions)
-          })
+          console.log(
+            `[GenerateStructuredWorkout] Compact draft generated: entityId=${entityId} attempt=${attempt} steps=${Array.isArray((draft as any)?.steps) ? (draft as any).steps.length : 0}`
+          )
           structure = compileWorkoutPlanDraftToStructure(draft as any)
-          console.log('[GenerateStructuredWorkout] Compact draft compiled to structure', {
-            entityId,
-            attempt,
-            compiledSteps: Array.isArray(structure?.steps) ? structure.steps.length : 0
-          })
+          console.log(
+            `[GenerateStructuredWorkout] Compact draft compiled: entityId=${entityId} attempt=${attempt} compiledSteps=${Array.isArray(structure?.steps) ? structure.steps.length : 0}`
+          )
         } else {
           structure = await generateStructuredAnalysis(
             promptForAttempt,
@@ -1290,15 +1280,9 @@ OUTPUT JSON matching the schema.`
         workout,
         preserveStructure: preserveExistingStructure
       })
-      console.log('[GenerateStructuredWorkout] Coverage validation result', {
-        entityId,
-        attempt,
-        generatorMode,
-        plannedDurationSec: Number(workout.durationSec || 0),
-        actualDurationSec: validationDurationSec,
-        valid: coverageValidation.valid,
-        reason: coverageValidation.reason
-      })
+      console.log(
+        `[GenerateStructuredWorkout] Coverage validation: entityId=${entityId} attempt=${attempt} mode=${generatorMode} valid=${coverageValidation.valid} planned=${Number(workout.durationSec || 0)}s actual=${validationDurationSec}s reason="${coverageValidation.reason || 'ok'}"`
+      )
       if (coverageValidation.valid) break
       if (attempt >= 2) {
         throw new Error(
