@@ -21,6 +21,12 @@ export default defineEventHandler(async (event) => {
       runHandle = await dispatchTask('hello-world', { message: 'Debug Test from Admin' })
     } else if (taskName === 'sentry-error-test') {
       runHandle = await dispatchTask('sentry-error-test', {})
+    } else if (taskName === 'daily-coach') {
+      runHandle = await dispatchTask(
+        'daily-coach',
+        { userId: session.user.id, source: 'MANUAL' },
+        { tags: [`user:${session.user.id}`] }
+      )
     } else {
       throw createError({ statusCode: 400, statusMessage: 'Invalid task name' })
     }

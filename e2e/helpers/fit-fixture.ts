@@ -42,6 +42,19 @@ export function generateSampleFitBuffer(title: string = 'E2E Test Ride'): Buffer
     sub_sport: 'generic'
   })
 
+  // 3. Trackpoint Records
+  for (let i = 0; i < 10; i++) {
+    const recordTime = new Date(now.getTime() + i * 1000)
+    fitWriter.writeMessage('record', {
+      timestamp: toFitTimestamp(recordTime),
+      distance: i * 10,
+      speed: 6.94,
+      power: 215,
+      heart_rate: 145,
+      cadence: 88
+    })
+  }
+
   const fitArray = fitWriter.finish()
-  return Buffer.from(fitArray)
+  return Buffer.from(fitArray.buffer, fitArray.byteOffset, fitArray.byteLength)
 }

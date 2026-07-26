@@ -152,6 +152,12 @@ To prevent API costs, rate-limiting, external latency, and non-deterministic res
   - `workout_analysis.json` — Workout AI analysis scores, technical/effort explanations, and strengths/weaknesses.
   - `activity_recommendation.json` — Daily readiness scores, workout modifications, and fueling recommendations.
   - `daily_checkin.json` — Check-in summary and coach notes.
+  - `daily_coach_suggestion.json` — Daily coach guidance and action suggestions.
+  - `generate_ad_hoc_workout.json` — Ad-hoc workout title, duration, target TSS, and execution cues.
+  - `generate_structured_workout.json` — Structured workout plan draft step definitions and targets.
+  - `adjust_structured_workout.json` — Adjusted structured workout plan step definitions.
+  - `analyze_plan_adherence.json` — Workout adherence metrics, summary, deviations, and recommendations.
+  - `generate_training_block.json` — Multi-week training block goals, focus keys, and week structures.
   - `weekly_plan.json` — Multi-day periodized training plan workouts and TSS distribution.
   - `athlete_profile.json` — Fitness CTL/ATL/TSB, strengths, and recovery capacity.
   - `nutrition_analysis.json` — Macro compliance, data completeness, and quality scores.

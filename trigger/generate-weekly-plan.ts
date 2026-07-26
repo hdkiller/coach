@@ -12,6 +12,7 @@ import { userBackgroundQueue } from './queues'
 import { checkQuota } from '../server/utils/quotas/engine'
 import {
   getUserTimezone,
+  getUserLocalDate,
   getStartOfDaysAgoUTC,
   formatUserDate,
   getStartOfDayUTC,
@@ -107,18 +108,21 @@ const weeklyPlanSchema = {
 
 export async function runGenerateWeeklyPlan(payload: {
   userId: string
-  startDate: Date
-  daysToPlan: number
+  startDate?: Date | string
+  daysToPlan?: number
   userInstructions?: string
   trainingWeekId?: string
   anchorWorkoutIds?: string[]
 }) {
-  const { userId, startDate, daysToPlan, userInstructions, trainingWeekId, anchorWorkoutIds } =
-    payload
+  const { userId, userInstructions, trainingWeekId, anchorWorkoutIds } = payload
+  const daysToPlan =
+    typeof payload.daysToPlan === 'number' && Number.isFinite(payload.daysToPlan)
+      ? payload.daysToPlan
+      : 7
 
   logger.log('Starting weekly plan generation', {
     userId,
-    startDate,
+    startDate: payload.startDate,
     daysToPlan,
     userInstructions,
     trainingWeekId,
@@ -148,8 +152,12 @@ export async function runGenerateWeeklyPlan(payload: {
   // Assuming input is the start of the week user wants to plan for.
   // If startDate is 2026-01-08 (Thursday), we might want to align to Monday or start from there.
   // The original code adjusted to Monday. Let's keep that logic but using timezone helpers.
-
-  const inputDate = new Date(startDate)
+  // Redis/BullMQ JSON payloads revive Dates as ISO strings; missing values default to today.
+  const parsedStartDate = payload.startDate ? new Date(payload.startDate) : null
+  const inputDate =
+    parsedStartDate && !Number.isNaN(parsedStartDate.getTime())
+      ? parsedStartDate
+      : getUserLocalDate(timezone)
   // Find the start of that day in UTC for the user's timezone
   const startOfDayUTC = getStartOfDayUTC(timezone, inputDate)
 
@@ -751,10 +759,7 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
     planJson: plan as any,
     totalTSS: (plan as any).totalTSS,
     totalDuration: Array.isArray((plan as any)?.days)
-      ? (plan as any).days.reduce(
-          (sum: number, d: any) => sum + (d.durationMinutes || 0) * 60,
-          0
-        )
+      ? (plan as any).days.reduce((sum: number, d: any) => sum + (d.durationMinutes || 0) * 60, 0)
       : 0,
     workoutCount: Array.isArray((plan as any)?.days)
       ? (plan as any).days.filter((d: any) => d.workoutType !== 'Rest').length

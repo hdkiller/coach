@@ -132,34 +132,19 @@ function getMainTaskQueueInstance() {
   return mainTaskQueueInstance
 }
 
-export const webhookQueue = new Proxy({} as Queue, {
-  get(target, prop) {
-    const instance = getWebhookQueueInstance()
-    const value = Reflect.get(instance, prop, instance)
-    return typeof value === 'function' ? value.bind(instance) : value
-  }
-})
+function createQueueProxy(getInstance: () => Queue): Queue {
+  return new Proxy({} as Queue, {
+    get(_target, prop) {
+      const instance = getInstance()
+      const value = Reflect.get(instance, prop, instance)
+      // Bind methods so BullMQ keeps `this` (connection/opts) on the real Queue.
+      // Passing the Proxy as Reflect receiver breaks getters like `jobScheduler`.
+      return typeof value === 'function' ? value.bind(instance) : value
+    }
+  })
+}
 
-export const pingQueue = new Proxy({} as Queue, {
-  get(target, prop) {
-    const instance = getPingQueueInstance()
-    const value = Reflect.get(instance, prop, instance)
-    return typeof value === 'function' ? value.bind(instance) : value
-  }
-})
-
-export const streamsQueue = new Proxy({} as Queue, {
-  get(target, prop) {
-    const instance = getStreamsQueueInstance()
-    const value = Reflect.get(instance, prop, instance)
-    return typeof value === 'function' ? value.bind(instance) : value
-  }
-})
-
-export const mainTaskQueue = new Proxy({} as Queue, {
-  get(target, prop) {
-    const instance = getMainTaskQueueInstance()
-    const value = Reflect.get(instance, prop, instance)
-    return typeof value === 'function' ? value.bind(instance) : value
-  }
-})
+export const webhookQueue = createQueueProxy(getWebhookQueueInstance)
+export const pingQueue = createQueueProxy(getPingQueueInstance)
+export const streamsQueue = createQueueProxy(getStreamsQueueInstance)
+export const mainTaskQueue = createQueueProxy(getMainTaskQueueInstance)

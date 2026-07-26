@@ -38,7 +38,15 @@ const adHocWorkoutSchema = {
     },
     reasoningText: { type: 'string' }
   },
-  required: ['title', 'type', 'durationMinutes', 'targetTss', 'intensity', 'objective', 'reasoning']
+  required: [
+    'title',
+    'type',
+    'durationMinutes',
+    'targetTss',
+    'intensity',
+    'objective',
+    'reasoningText'
+  ]
 }
 
 interface AdHocWorkoutSuggestion {

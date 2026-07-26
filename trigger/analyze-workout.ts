@@ -503,6 +503,13 @@ export const analyzeWorkoutTask = task({
         scores: structuredAnalysis.scores
       })
 
+      // Clamp 1-10 (and normalize 0-100 style values) so DB check constraints hold.
+      const clampScore = (val?: number | null) => {
+        if (typeof val !== 'number' || Number.isNaN(val)) return null
+        const num = val > 10 ? val / 10 : val
+        return Math.min(10, Math.max(1, Math.round(num)))
+      }
+
       // Save both formats to the database, including scores and explanations
       await workoutRepository.update(workoutId, {
         aiAnalysis: markdownAnalysis,
@@ -510,11 +517,11 @@ export const analyzeWorkoutTask = task({
         aiAnalysisStatus: 'COMPLETED',
         aiAnalyzedAt: new Date(),
         // Store scores for easy querying and tracking
-        overallScore: structuredAnalysis.scores?.overall,
-        technicalScore: structuredAnalysis.scores?.technical,
-        effortScore: structuredAnalysis.scores?.effort,
-        pacingScore: structuredAnalysis.scores?.pacing,
-        executionScore: structuredAnalysis.scores?.execution,
+        overallScore: clampScore(structuredAnalysis.scores?.overall),
+        technicalScore: clampScore(structuredAnalysis.scores?.technical),
+        effortScore: clampScore(structuredAnalysis.scores?.effort),
+        pacingScore: clampScore(structuredAnalysis.scores?.pacing),
+        executionScore: clampScore(structuredAnalysis.scores?.execution),
         // Store explanations for user guidance
         overallQualityExplanation: structuredAnalysis.scores?.overall_explanation,
         technicalExecutionExplanation: structuredAnalysis.scores?.technical_explanation,
