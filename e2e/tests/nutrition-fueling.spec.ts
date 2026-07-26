@@ -23,21 +23,21 @@ test.describe('Nutrition fueling plan', () => {
   let athleteId: string
 
   /** Monday of the current week, so the weekly-plan UI shows the days we seed. */
-  const weekStart = (() => {
+  function getWeekStart() {
     const now = new Date()
     const utcMidnight = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
     )
     const dayOfWeek = (utcMidnight.getUTCDay() + 6) % 7 // Monday = 0
     return new Date(utcMidnight.getTime() - dayOfWeek * 86400000)
-  })()
+  }
 
-  const dayOffset = (offset: number) => new Date(weekStart.getTime() + offset * 86400000)
+  const dayOffset = (offset: number) => new Date(getWeekStart().getTime() + offset * 86400000)
   const dateKey = (date: Date) => date.toISOString().slice(0, 10)
 
-  const STACKED_DAY = dayOffset(1) // two sessions back to back
-  const SPLIT_DAY = dayOffset(2) // morning and evening sessions
-  const REST_DAY = dayOffset(3) // no training at all
+  const STACKED_DAY = () => dayOffset(1) // two sessions back to back
+  const SPLIT_DAY = () => dayOffset(2) // morning and evening sessions
+  const REST_DAY = () => dayOffset(3) // no training at all
 
   async function clearDay(date: Date) {
     const key = dateKey(date)
@@ -181,7 +181,7 @@ test.describe('Nutrition fueling plan', () => {
       }
     }
 
-    for (const date of [STACKED_DAY, SPLIT_DAY, REST_DAY]) {
+    for (const date of [STACKED_DAY(), SPLIT_DAY(), REST_DAY()]) {
       await clearDay(date)
     }
 
@@ -190,7 +190,7 @@ test.describe('Nutrition fueling plan', () => {
     })
     await prisma.nutritionPlan.deleteMany({ where: { userId: athleteId } })
 
-    await seedPlanned(STACKED_DAY, [
+    await seedPlanned(STACKED_DAY(), [
       {
         id: 'e2e-fuel-stacked-a',
         title: 'E2E Treadmill Warmup',
@@ -221,7 +221,7 @@ test.describe('Nutrition fueling plan', () => {
       }
     ])
 
-    await seedPlanned(SPLIT_DAY, [
+    await seedPlanned(SPLIT_DAY(), [
       {
         id: 'e2e-fuel-split-am',
         title: 'E2E Morning Endurance Ride',
@@ -249,7 +249,7 @@ test.describe('Nutrition fueling plan', () => {
   })
 
   test('back-to-back sessions share a single pre and post window', async ({ authedPage }) => {
-    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const plan = await buildPlan(authedPage, STACKED_DAY())
 
     expect(ofType(plan, 'PRE_WORKOUT')).toHaveLength(1)
     expect(ofType(plan, 'POST_WORKOUT')).toHaveLength(1)
@@ -261,7 +261,7 @@ test.describe('Nutrition fueling plan', () => {
   })
 
   test('separate sessions get their own windows with unique keys', async ({ authedPage }) => {
-    const plan = await buildPlan(authedPage, SPLIT_DAY)
+    const plan = await buildPlan(authedPage, SPLIT_DAY())
 
     expect(ofType(plan, 'PRE_WORKOUT')).toHaveLength(2)
     expect(ofType(plan, 'POST_WORKOUT')).toHaveLength(2)
@@ -275,7 +275,7 @@ test.describe('Nutrition fueling plan', () => {
   test('windows are chronological and every one carries a calorie target', async ({
     authedPage
   }) => {
-    const plan = await buildPlan(authedPage, SPLIT_DAY)
+    const plan = await buildPlan(authedPage, SPLIT_DAY())
     const windows = windowsOf(plan)
 
     expect(windows.length).toBeGreaterThan(0)
@@ -292,7 +292,7 @@ test.describe('Nutrition fueling plan', () => {
   })
 
   test('a rest day gets baseline windows instead of none at all', async ({ authedPage }) => {
-    const plan = await buildPlan(authedPage, REST_DAY)
+    const plan = await buildPlan(authedPage, REST_DAY())
     const windows = windowsOf(plan)
 
     expect(windows.length).toBeGreaterThan(0)
@@ -304,12 +304,12 @@ test.describe('Nutrition fueling plan', () => {
   test('one implausibly short session does not drive the day to state 3', async ({
     authedPage
   }) => {
-    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const plan = await buildPlan(authedPage, STACKED_DAY())
     expect(plan.fuelingPlan.dailyTotals.fuelState).toBeLessThan(3)
   })
 
   test('window macros reconcile against the daily targets', async ({ authedPage }) => {
-    const plan = await buildPlan(authedPage, SPLIT_DAY)
+    const plan = await buildPlan(authedPage, SPLIT_DAY())
     const windows = windowsOf(plan)
     const totals = plan.fuelingPlan.dailyTotals
 
@@ -328,8 +328,8 @@ test.describe('Nutrition fueling plan', () => {
   test('locking a meal binds to one window and leaves its sibling unplanned', async ({
     authedPage
   }) => {
-    await buildPlan(authedPage, SPLIT_DAY)
-    const key = dateKey(SPLIT_DAY)
+    await buildPlan(authedPage, SPLIT_DAY())
+    const key = dateKey(SPLIT_DAY())
 
     const locked = await authedPage.request.post('/api/nutrition/plan/meal', {
       data: {
@@ -360,8 +360,8 @@ test.describe('Nutrition fueling plan', () => {
   test('draft generation fills every window from the catalog, including intra', async ({
     authedPage
   }) => {
-    const start = dateKey(STACKED_DAY)
-    const end = dateKey(SPLIT_DAY)
+    const start = dateKey(STACKED_DAY())
+    const end = dateKey(SPLIT_DAY())
 
     const generated = await authedPage.request.post('/api/nutrition/plan/generate', {
       data: { startDate: start, endDate: end }
@@ -393,7 +393,7 @@ test.describe('Nutrition fueling plan', () => {
   }) => {
     // The stacked day is a run plus two gym blocks: none of them earns an intra-workout window,
     // so the Fluid Balance breakdown cannot recover training time by summing windows.
-    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const plan = await buildPlan(authedPage, STACKED_DAY())
     const totals = plan.fuelingPlan.dailyTotals
 
     expect(ofType(plan, 'INTRA_WORKOUT')).toHaveLength(0)
@@ -404,7 +404,7 @@ test.describe('Nutrition fueling plan', () => {
   })
 
   test('a shared pre window belongs to every session in its block', async ({ authedPage }) => {
-    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const plan = await buildPlan(authedPage, STACKED_DAY())
     const pre = ofType(plan, 'PRE_WORKOUT')[0]
     const post = ofType(plan, 'POST_WORKOUT')[0]
 
@@ -420,7 +420,7 @@ test.describe('Nutrition fueling plan', () => {
   test('a session inside a merged block shows both its pre and post windows', async ({
     authedPage
   }) => {
-    await buildPlan(authedPage, STACKED_DAY)
+    await buildPlan(authedPage, STACKED_DAY())
 
     // This asserts the rendered outcome, not the day-plan filter beneath it: the page prefers the
     // per-workout fueling endpoint and only falls back to filtering the day's windows by session
@@ -436,13 +436,13 @@ test.describe('Nutrition fueling plan', () => {
   test('calendar shows a fuel state for a day with no intra-workout window', async ({
     authedPage
   }) => {
-    const plan = await buildPlan(authedPage, STACKED_DAY)
+    const plan = await buildPlan(authedPage, STACKED_DAY())
     expect(ofType(plan, 'INTRA_WORKOUT')).toHaveLength(0)
 
     await authedPage.goto('/activities', { waitUntil: 'domcontentloaded' })
 
     const cell = authedPage.locator(
-      `[data-testid="calendar-day-cell"][data-date="${dateKey(STACKED_DAY)}"]`
+      `[data-testid="calendar-day-cell"][data-date="${dateKey(STACKED_DAY())}"]`
     )
     await expect(cell).toBeVisible({ timeout: 20000 })
 
@@ -556,11 +556,11 @@ test.describe('Nutrition fueling plan', () => {
   test('weekly plan renders windows in clock order with times and calories', async ({
     authedPage
   }) => {
-    await buildPlan(authedPage, SPLIT_DAY)
+    await buildPlan(authedPage, SPLIT_DAY())
 
     // The weekly tab renders the draft snapshot, so the day needs one before it shows anything.
     const draft = await authedPage.request.post('/api/nutrition/plan/generate', {
-      data: { startDate: dateKey(SPLIT_DAY), endDate: dateKey(SPLIT_DAY) }
+      data: { startDate: dateKey(SPLIT_DAY()), endDate: dateKey(SPLIT_DAY()) }
     })
     expect(draft.ok(), await draft.text()).toBeTruthy()
 
@@ -575,7 +575,7 @@ test.describe('Nutrition fueling plan', () => {
     }).toPass({ timeout: 20000 })
 
     const dayRow = authedPage.locator(
-      `[data-testid="plan-day-row"][data-date="${dateKey(SPLIT_DAY)}"]`
+      `[data-testid="plan-day-row"][data-date="${dateKey(SPLIT_DAY())}"]`
     )
     await expect(dayRow).toBeVisible({ timeout: 20000 })
     // Rows render before the plan request settles; opening the drawer first would show an empty day.
