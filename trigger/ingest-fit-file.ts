@@ -1,5 +1,6 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
+import { registerTaskHandler } from '../server/utils/task-registry'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -199,3 +200,5 @@ export const ingestFitFile = task({
     }
   }
 })
+
+registerTaskHandler('ingest-fit-file', (payload) => ingestFitFile.run(payload))

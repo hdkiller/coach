@@ -1,4 +1,5 @@
 import { runs, tasks } from '@trigger.dev/sdk/v3'
+import { getTaskDriver, listTaskRunsForUser } from './task-dispatcher'
 
 const RUNNING_STATUSES = new Set([
   'EXECUTING',
@@ -30,6 +31,17 @@ export function isRunFresh(
 
 export async function isTaskRunning(taskIdentifier: string, userId: string): Promise<boolean> {
   try {
+    const driver = getTaskDriver()
+    if (driver === 'redis' || driver === 'inline') {
+      const userRuns = await listTaskRunsForUser(userId, 50)
+      return userRuns.some(
+        (run) =>
+          run.taskIdentifier === taskIdentifier &&
+          RUNNING_STATUSES.has(run.status) &&
+          isRunFresh(run)
+      )
+    }
+
     // @ts-expect-error - SDK v3 types mismatch for filter params
     const activeRuns = await runs.list({
       filter: {
