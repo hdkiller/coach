@@ -46,7 +46,8 @@ test.describe('E2E Goals Endpoints', () => {
       }
     })
     expect(updateRes.ok()).toBeTruthy()
-    const updatedGoal = await updateRes.json()
+    const updateData = await updateRes.json()
+    const updatedGoal = updateData.goal || updateData
     expect(updatedGoal.title).toBe('Run Sub-2:55 Marathon')
 
     // 5. Delete goal
