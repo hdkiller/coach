@@ -217,7 +217,7 @@ export default defineNuxtConfig({
     },
     openAPI:
       process.env.SOURCEMAP === 'false'
-        ? false
+        ? (undefined as any)
         : {
             production: 'runtime',
             route: '/_openapi.json',

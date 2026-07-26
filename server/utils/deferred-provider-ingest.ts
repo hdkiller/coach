@@ -1,4 +1,4 @@
-import { tasks } from '@trigger.dev/sdk/v3'
+import { safeTriggerTask } from './trigger-check'
 import { prisma } from './db'
 
 const INITIAL_INGEST_WINDOWS: Record<string, number> = {
@@ -25,7 +25,7 @@ export async function triggerInitialProviderIngest(userId: string, provider: str
   const startDate = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString()
   const taskId = provider === 'intervals' ? 'ingest-intervals' : 'ingest-strava'
 
-  await tasks.trigger(
+  await safeTriggerTask(
     taskId,
     {
       userId,
@@ -39,7 +39,7 @@ export async function triggerInitialProviderIngest(userId: string, provider: str
   )
 
   if (provider === 'intervals') {
-    await tasks.trigger(
+    await safeTriggerTask(
       'autodetect-intervals-profile',
       { userId },
       { concurrencyKey: userId, tags: [`user:${userId}`] }

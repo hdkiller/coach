@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { safeTriggerTask } from '../../utils/trigger-check'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import {
@@ -275,7 +275,7 @@ export default defineEventHandler(async (event) => {
                                 : 'ingest-hevy'
 
   try {
-    const handle = await tasks.trigger(
+    const handle = await safeTriggerTask(
       taskId,
       {
         userId,

@@ -1,6 +1,6 @@
 import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { safeTriggerTask } from '../../../utils/trigger-check'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
@@ -119,7 +119,7 @@ export default defineEventHandler(async (event) => {
     await nutritionRepository.updateStatus(nutritionId, 'PENDING')
 
     // Trigger background job with per-user concurrency
-    const handle = await tasks.trigger(
+    const handle = await safeTriggerTask(
       'analyze-nutrition',
       {
         nutritionId

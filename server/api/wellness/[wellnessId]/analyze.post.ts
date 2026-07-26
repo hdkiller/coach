@@ -1,6 +1,6 @@
 import { requireAuth } from '../../../utils/auth-guard'
 import { prisma } from '../../../utils/db'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { safeTriggerTask } from '../../../utils/trigger-check'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 import { assertQuotaAllowed } from '../../../utils/quotas/http'
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Trigger the background task
-    const handle = await tasks.trigger(
+    const handle = await safeTriggerTask(
       'analyze-wellness',
       {
         wellnessId,

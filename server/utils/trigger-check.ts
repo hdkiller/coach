@@ -74,3 +74,29 @@ export async function isRunIdRunning(runId: string): Promise<boolean> {
     return false
   }
 }
+
+export async function safeTriggerTask(
+  taskIdentifier: string,
+  payload: any,
+  options?: any
+): Promise<{ id: string }> {
+  if (process.env.E2E_MODE === 'true' && !process.env.TRIGGER_SECRET_KEY) {
+    console.log(`[Trigger] Mocking task trigger in E2E_MODE for task: ${taskIdentifier}`)
+    return { id: `e2e-mock-run-${Date.now()}` }
+  }
+
+  try {
+    const { tasks } = await import('@trigger.dev/sdk/v3')
+    return await tasks.trigger(taskIdentifier, payload, options)
+  } catch (error) {
+    if (process.env.E2E_MODE === 'true' || !process.env.TRIGGER_SECRET_KEY) {
+      console.warn(
+        `[Trigger] Task trigger failed (E2E_MODE or missing TRIGGER_SECRET_KEY), returning fallback handle for ${taskIdentifier}:`,
+        error
+      )
+      return { id: `e2e-mock-run-${Date.now()}` }
+    }
+    throw error
+  }
+}
+
