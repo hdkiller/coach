@@ -580,8 +580,9 @@
     await handleIngestTaskComplete()
     await performanceScoresCard.value?.refresh()
 
+    // Require an explicit success flag — missing output must not look like a full sync.
     const failedCount = Number(run.output?.failedCount || 0)
-    const fullySuccessful = run.output?.success !== false && failedCount === 0
+    const fullySuccessful = run.output?.success === true && failedCount === 0
 
     showDashboardProgressToast(
       toast,
@@ -589,7 +590,9 @@
         title: fullySuccessful ? t.value('sync_toast_title') : t.value('sync_toast_partial_title'),
         description: fullySuccessful
           ? t.value('sync_toast_description')
-          : t.value('sync_toast_partial_description', { count: failedCount }),
+          : t.value('sync_toast_partial_description', {
+              count: failedCount > 0 ? failedCount : 1
+            }),
         color: fullySuccessful ? 'success' : 'warning',
         icon: fullySuccessful ? 'i-heroicons-check-circle' : 'i-heroicons-exclamation-triangle',
         duration: 2500

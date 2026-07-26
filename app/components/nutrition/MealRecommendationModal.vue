@@ -341,7 +341,8 @@
   })
   const cacheKey = computed(
     () =>
-      `${props.date}|${props.windowType || 'GENERAL'}|${props.slotName || ''}|${props.targetCarbs}|${props.targetProtein || 0}|${props.targetKcal || 0}`
+      // Prefer windowKey so two PRE_WORKOUT slots with the same targets don't share suggestions.
+      `${props.date}|${props.windowKey || props.windowType || 'GENERAL'}|${props.slotName || ''}|${props.targetCarbs}|${props.targetProtein || 0}|${props.targetKcal || 0}`
   )
 
   const { onTaskCompleted, onTaskFailed } = useUserRunsState()
@@ -594,6 +595,21 @@
           loadingLlm.value = false
           return
         }
+
+        // Empty/unusable cached payload — do not attach to its already-finished runId (spinner hang).
+        // Bypass reuse once so the athlete still gets a fresh generation.
+        if (!forceLlm) {
+          console.warn(
+            '[MealRecommendationModal] triggerRecommendations:emptyCachedResult, regenerating'
+          )
+          await triggerRecommendations(true)
+          return
+        }
+
+        loading.value = false
+        loadingLlm.value = false
+        recommendations.value = []
+        return
       }
 
       if (res.runId) {

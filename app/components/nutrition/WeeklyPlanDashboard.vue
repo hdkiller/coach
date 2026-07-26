@@ -1000,7 +1000,8 @@
   /** Warns when the snapshot is old enough that the training behind it has probably moved on. */
   const planSyncStale = computed(() => {
     const generatedAt = plan.value?.summaryJson?.generatedAt
-    if (!generatedAt) return Boolean(plan.value)
+    // Legacy plans predate generatedAt — don't force a stale warning for those.
+    if (!generatedAt) return false
 
     const generated = new Date(generatedAt)
     if (Number.isNaN(generated.getTime())) return false
