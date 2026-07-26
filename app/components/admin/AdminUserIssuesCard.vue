@@ -4,11 +4,20 @@
     currentIssueId?: string
   }>()
 
-  const { data: tickets, pending } = await useFetch(`/api/admin/users/${props.userId}/tickets`)
+  interface AdminTicket {
+    id: string
+    title: string
+    createdAt: string | Date
+    status: string
+  }
+
+  const { data: tickets, pending } = await useFetch<AdminTicket[], Error, string & {}>(
+    `/api/admin/users/${props.userId}/tickets`
+  )
 
   const otherIssues = computed(() => {
     if (!tickets.value) return []
-    return tickets.value.filter((t: any) => t.id !== props.currentIssueId)
+    return tickets.value.filter((ticket) => ticket.id !== props.currentIssueId)
   })
 
   function getStatusColor(status: string) {

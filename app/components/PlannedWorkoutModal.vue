@@ -953,10 +953,13 @@
 
       updatingStrategy.value = true
       try {
-        await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
-          method: 'PATCH',
-          body: { fuelingStrategy: val }
-        })
+        await $fetch<unknown, string & {}>(
+          `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
+          {
+            method: 'PATCH',
+            body: { fuelingStrategy: val }
+          }
+        )
 
         toast.add({
           title: 'Strategy Updated',
@@ -1033,12 +1036,17 @@
 
     generating.value = true
     try {
-      await $fetch(`/api/workouts/planned/${props.plannedWorkout.id}/generate-structure`, {
-        method: 'POST' as any
-      })
+      await $fetch<unknown, string & {}>(
+        `/api/workouts/planned/${props.plannedWorkout.id}/generate-structure`,
+        {
+          method: 'POST'
+        }
+      )
 
       // Refresh planned workout data
-      const updated = await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`)
+      const updated = await $fetch<unknown, string & {}>(
+        `/api/planned-workouts/${props.plannedWorkout.id}`
+      )
       if (updated) {
         // We can't directly mutate props, so we might need a local copy or emit an event
         // For now, let's just refresh the parent
@@ -1118,8 +1126,8 @@
     loadingWorkouts.value = true
     try {
       const date = new Date(props.plannedWorkout.date).toISOString().split('T')[0]
-      const response = await $fetch(`/api/workouts/by-date?date=${date}`)
-      availableWorkouts.value = response as any[]
+      const response = await $fetch<any[], string & {}>(`/api/workouts/by-date?date=${date}`)
+      availableWorkouts.value = response
     } catch (error) {
       console.error('Error fetching workouts:', error)
     } finally {
@@ -1136,12 +1144,15 @@
 
     loading.value = true
     try {
-      await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}/complete`, {
-        method: 'POST',
-        body: {
-          workoutId: selectedWorkoutId.value
+      await $fetch<unknown, string & {}>(
+        `/api/planned-workouts/${props.plannedWorkout.id}/complete`,
+        {
+          method: 'POST',
+          body: {
+            workoutId: selectedWorkoutId.value
+          }
         }
-      })
+      )
 
       emit('completed')
       closeModal()
@@ -1167,10 +1178,13 @@
 
     loading.value = true
     try {
-      await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}/complete`, {
-        method: 'POST',
-        body: {} // No workoutId
-      })
+      await $fetch<unknown, string & {}>(
+        `/api/planned-workouts/${props.plannedWorkout.id}/complete`,
+        {
+          method: 'POST',
+          body: {} // No workoutId
+        }
+      )
 
       emit('completed')
       closeModal()
@@ -1197,7 +1211,7 @@
         ? parseFloat(manualWorkout.value.distanceKm) * 1000
         : null
 
-      await $fetch('/api/workouts/manual', {
+      await $fetch<unknown, string & {}>('/api/workouts/manual', {
         method: 'POST',
         body: {
           title: manualWorkout.value.title,
@@ -1236,9 +1250,12 @@
 
     loading.value = true
     try {
-      await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
-        method: 'DELETE'
-      })
+      await $fetch<unknown, string & {}>(
+        `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
+        {
+          method: 'DELETE'
+        }
+      )
 
       emit('deleted')
       closeModal()
@@ -1271,10 +1288,13 @@
     if (!props.plannedWorkout?.id) return
     updatingTime.value = true
     try {
-      await $fetch(`${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`, {
-        method: 'PATCH',
-        body: { date: timeForm.date, startTime: timeForm.startTime }
-      })
+      await $fetch<unknown, string & {}>(
+        `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
+        {
+          method: 'PATCH',
+          body: { date: timeForm.date, startTime: timeForm.startTime }
+        }
+      )
 
       // Update local state (since plannedWorkout is a prop, we need to notify parent or have a local copy)
       // The parent activities.vue refreshes on 'completed' emit, but that's a bit heavy.

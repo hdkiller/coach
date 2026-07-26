@@ -264,7 +264,7 @@
         ? `/api/share/workouts/${props.publicToken}/streams`
         : `/api/workouts/${props.workoutId}/streams`
 
-      const data = await $fetch(endpoint)
+      const data = await $fetch<any, string & {}>(endpoint)
       streamData.value = data
 
       // Auto-select appropriate metrics:

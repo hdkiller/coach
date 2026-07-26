@@ -324,7 +324,7 @@
         ? `/api/share/workouts/${props.publicToken}/intervals`
         : `/api/workouts/${props.workoutId}/intervals`
 
-      data.value = await $fetch(endpoint)
+      data.value = await $fetch<any, string & {}>(endpoint)
     } catch (e: any) {
       console.error('Error fetching intervals:', e)
       error.value = e.data?.message || 'Failed to load interval analysis'

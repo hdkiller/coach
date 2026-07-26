@@ -955,7 +955,7 @@
       const dateStr = formatDateUTC(date, 'yyyy-MM-dd')
 
       // Fetch wellness data for the specific date
-      const response = await $fetch(`/api/wellness/${dateStr}`)
+      const response = await $fetch<any, string & {}>(`/api/wellness/${dateStr}`)
       wellnessData.value = response
 
       // Initialize local state
@@ -983,10 +983,8 @@
       }))
 
       // Fetch Custom Field Definitions
-      const fieldsData = await $fetch('/api/analytics/fields/definitions')
-      customFieldDefinitions.value = (fieldsData as any[]).filter(
-        (f) => f.entityType === 'WELLNESS'
-      )
+      const fieldsData = await $fetch<any[], string & {}>('/api/analytics/fields/definitions')
+      customFieldDefinitions.value = fieldsData.filter((f) => f.entityType === 'WELLNESS')
     } catch (error: any) {
       console.error('Error fetching wellness data:', error)
       fetchError.value =
@@ -1002,7 +1000,7 @@
     if (!wellnessData.value?.id) return
     savingWellness.value = true
     try {
-      const response = await $fetch(`/api/wellness/${wellnessData.value.id}`, {
+      const response = await $fetch<any, string & {}>(`/api/wellness/${wellnessData.value.id}`, {
         method: 'PATCH',
         body: localWellness.value
       })
@@ -1021,12 +1019,12 @@
 
     analyzingWellness.value = true
     try {
-      const result = (await $fetch('/api/wellness/analyze', {
+      const result = await $fetch<any, string & {}>('/api/wellness/analyze', {
         method: 'POST',
         body: {
           wellnessId: wellnessData.value.id
         }
-      })) as any
+      })
 
       // If already completed, update immediately
       if (result.status === 'COMPLETED' && result.analysis) {

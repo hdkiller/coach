@@ -347,12 +347,12 @@
         content = turndownService.turndown(html)
       }
 
-      const response = (await $fetch(props.apiEndpoint, {
+      const response = await $fetch<any, string & {}>(props.apiEndpoint, {
         method: 'PATCH',
         body: {
           notes: content
         }
-      })) as any
+      })
 
       if (response?.success) {
         emit('update:modelValue', content)

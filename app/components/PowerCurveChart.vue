@@ -168,7 +168,7 @@
         }
       }
 
-      const data = await $fetch(endpoint, { query })
+      const data = await $fetch<any, string & {}>(endpoint, { query })
       if (!isChartActive.value) return
       powerData.value = data
     } catch (e: any) {

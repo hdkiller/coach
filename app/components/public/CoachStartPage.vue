@@ -261,7 +261,7 @@
         return
       }
 
-      const response = await $fetch(privateEndpoint)
+      const response = await $fetch<any, string & {}>(privateEndpoint)
       editableStartPage.value = structuredClone((response as any).startPage)
     },
     { immediate: true }
@@ -340,7 +340,7 @@
     }
     saving.value = true
     try {
-      await $fetch(privateEndpoint, {
+      await $fetch<unknown, string & {}>(privateEndpoint, {
         method: 'PATCH',
         body: editableStartPage.value
       })

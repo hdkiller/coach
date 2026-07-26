@@ -173,7 +173,7 @@
       }
 
       if (viewer.value?.isOwner) {
-        const response = await $fetch(privateEndpoint.value)
+        const response = await $fetch<any, string & {}>(privateEndpoint.value)
         editableProfile.value = structuredClone((response as any).profile)
         if (props.role === 'coach' && (response as any).availablePlans && data.value) {
           ;(data.value as any).plans = (response as any).availablePlans
@@ -1209,7 +1209,7 @@
 
     saving.value = true
     try {
-      const response = await $fetch(privateEndpoint.value, {
+      const response = await $fetch<any, string & {}>(privateEndpoint.value, {
         method: 'PATCH',
         body: editableProfile.value
       })
