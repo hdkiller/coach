@@ -416,6 +416,7 @@
   const primaryMetricUnit = computed(() => (isRideWorkout.value ? speedUnit.value : undefined))
   const splitMetricLabel = computed(() => (isRideWorkout.value ? 'Speed' : 'Pace'))
   const differenceLabel = computed(() => (isRideWorkout.value ? 'Speed Delta' : 'Pace Delta'))
+  const variabilityUnit = computed(() => (isRideWorkout.value ? speedUnit.value : 'm/s'))
   const validSurges = computed(() => {
     return (streams.value?.surges || []).filter((s) => s && s.time !== undefined)
   })

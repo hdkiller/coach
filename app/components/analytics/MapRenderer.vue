@@ -157,11 +157,11 @@
       const hue = (1 - normalized) * 120
       const color = `hsl(${hue}, 80%, 50%)`
 
+      const pt1: [number, number] = [p1.lat, p1.lng]
+      const pt2: [number, number] = [p2.lat, p2.lng]
+
       segments.push({
-        points: [
-          [p1.lat, p1.lng],
-          [p2.lat, p2.lng]
-        ],
+        points: [pt1, pt2],
         color
       })
     }

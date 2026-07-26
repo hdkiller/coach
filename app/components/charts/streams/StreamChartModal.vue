@@ -244,7 +244,7 @@
       // OR just use the /api/workouts/:id response if we assume client has it.
       // BUT the 'streamKey' passed here (e.g. 'torque') matches the DB column name.
 
-      const response = (await $fetch(`/api/workouts/${props.workoutId}`)) as any
+      const response: any = await ($fetch as any)(`/api/workouts/${props.workoutId}`)
 
       if (response && response.streams) {
         workoutStreams.value = response.streams

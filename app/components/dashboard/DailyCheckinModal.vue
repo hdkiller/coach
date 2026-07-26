@@ -536,7 +536,7 @@
     try {
       if (!silent) loading.value = true
       error.value = null
-      const data = (await $fetch('/api/checkin/today')) as any
+      const data = (await ($fetch as any)('/api/checkin/today')) as any
       if (data) {
         checkin.value = data
 
@@ -580,7 +580,7 @@
     try {
       loading.value = true
       error.value = null
-      const data = (await $fetch('/api/checkin/generate', {
+      const data = (await ($fetch as any)('/api/checkin/generate', {
         method: 'POST',
         body: { force }
       })) as any
@@ -633,7 +633,7 @@
         }
       })
 
-      await $fetch('/api/checkin/answer', {
+      await ($fetch as any)('/api/checkin/answer', {
         method: 'POST',
         body: {
           checkinId: checkin.value.id,
@@ -692,7 +692,7 @@
 
     deleting.value = true
     try {
-      await $fetch(`/api/checkin/${checkin.value.id}`, {
+      await ($fetch as any)(`/api/checkin/${checkin.value.id}`, {
         method: 'DELETE'
       })
       checkin.value = null
