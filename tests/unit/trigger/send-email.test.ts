@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { sendEmailTask } from '../../../trigger/send-email'
 import { prisma } from '../../../server/utils/db'
+import { EmailDeliveryService } from '../../../server/utils/services/emailDeliveryService'
 
 // Mock prisma
 vi.mock('../../../server/utils/db', () => ({
@@ -18,13 +19,6 @@ vi.mock('../../../server/utils/db', () => ({
   }
 }))
 
-// Mock EmailDeliveryService
-vi.mock('../../../server/utils/services/emailDeliveryService', () => ({
-  EmailDeliveryService: {
-    dispatch: vi.fn()
-  }
-}))
-
 // Mock logger
 vi.mock('@trigger.dev/sdk/v3', async () => {
   const actual = await vi.importActual('@trigger.dev/sdk/v3')
@@ -32,15 +26,9 @@ vi.mock('@trigger.dev/sdk/v3', async () => {
     ...actual,
     logger: {
       log: vi.fn(),
-      error: vi.fn()
-    },
-    // Mock task to just return the run function if called
-    task: vi.fn().mockImplementation((config) => {
-      return {
-        run: config.run,
-        id: config.id
-      }
-    })
+      error: vi.fn(),
+      warn: vi.fn()
+    }
   }
 })
 
@@ -80,7 +68,7 @@ describe('sendEmailTask', () => {
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue({ id: 'sup-1' } as any)
 
-    const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
+    const result = await EmailDeliveryService.runSendEmail(mockPayload)
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
@@ -91,14 +79,12 @@ describe('sendEmailTask', () => {
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailDelivery.create).mockResolvedValue({ id: 'delivery-1' } as any)
-    const { EmailDeliveryService } =
-      await import('../../../server/utils/services/emailDeliveryService')
-    vi.mocked(EmailDeliveryService.dispatch).mockResolvedValue({
+    vi.spyOn(EmailDeliveryService, 'dispatch').mockResolvedValue({
       id: 'delivery-1',
       status: 'SENT'
     } as any)
 
-    const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
+    const result = await EmailDeliveryService.runSendEmail(mockPayload)
 
     expect(result.success).toBe(true)
     expect(result.deliveryId).toBe('delivery-1')
@@ -133,7 +119,7 @@ describe('sendEmailTask', () => {
 
     vi.mocked(prisma.emailDelivery.create).mockRejectedValue(dbError)
 
-    const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
+    const result = await EmailDeliveryService.runSendEmail(mockPayload)
 
     expect(result.skipped).toBe(true)
     expect(result.reason).toBe('Duplicate')
@@ -146,10 +132,10 @@ describe('sendEmailTask', () => {
       createdAt: new Date()
     } as any)
 
-    const result = await sendEmailTask.run(
-      { ...mockPayload, templateKey: 'WorkoutAnalysisReady' },
-      { ctx: {} } as any
-    )
+    const result = await EmailDeliveryService.runSendEmail({
+      ...mockPayload,
+      templateKey: 'WorkoutAnalysisReady'
+    })
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
@@ -163,7 +149,7 @@ describe('sendEmailTask', () => {
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
 
-    const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
+    const result = await EmailDeliveryService.runSendEmail(mockPayload)
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()

@@ -12,6 +12,7 @@ let connection: IORedis | null = null
 let webhookQueueInstance: Queue | null = null
 let pingQueueInstance: Queue | null = null
 let streamsQueueInstance: Queue | null = null
+let mainTaskQueueInstance: Queue | null = null
 
 // Keep Redis lean: webhook jobs fan out heavily (bulk -> per-event) and otherwise accumulate forever.
 export const WEBHOOK_JOB_OPTIONS = {
@@ -29,10 +30,16 @@ export const STREAM_JOB_OPTIONS = {
   removeOnFail: { age: 86_400, count: 2000 }
 } as const
 
+export const MAIN_TASK_JOB_OPTIONS = {
+  removeOnComplete: { age: 86_400, count: 2000 },
+  removeOnFail: { age: 604_800, count: 5000 }
+} as const
+
 function resetQueueInstances() {
   webhookQueueInstance = null
   pingQueueInstance = null
   streamsQueueInstance = null
+  mainTaskQueueInstance = null
 }
 
 function createConnection() {
@@ -111,6 +118,17 @@ function getStreamsQueueInstance() {
   return streamsQueueInstance
 }
 
+function getMainTaskQueueInstance() {
+  const activeConnection = getConnection()
+  if (!mainTaskQueueInstance) {
+    mainTaskQueueInstance = new Queue('mainTaskQueue', {
+      connection: activeConnection as any,
+      defaultJobOptions: MAIN_TASK_JOB_OPTIONS
+    })
+  }
+  return mainTaskQueueInstance
+}
+
 export const webhookQueue = new Proxy({} as Queue, {
   get(target, prop, receiver) {
     return Reflect.get(getWebhookQueueInstance(), prop, receiver)
@@ -126,5 +144,11 @@ export const pingQueue = new Proxy({} as Queue, {
 export const streamsQueue = new Proxy({} as Queue, {
   get(target, prop, receiver) {
     return Reflect.get(getStreamsQueueInstance(), prop, receiver)
+  }
+})
+
+export const mainTaskQueue = new Proxy({} as Queue, {
+  get(target, prop, receiver) {
+    return Reflect.get(getMainTaskQueueInstance(), prop, receiver)
   }
 })

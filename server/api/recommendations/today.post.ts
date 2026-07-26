@@ -1,6 +1,7 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { activityRecommendationRepository } from '../../utils/repositories/activityRecommendationRepository'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
@@ -64,7 +65,7 @@ export default defineEventHandler(async (event) => {
     )
 
     // Trigger background job with the recommendation ID
-    const handle = await tasks.trigger(
+    const handle = await dispatchTask(
       'recommend-today-activity',
       {
         userId,

@@ -1,8 +1,7 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { dailyCheckinRepository } from '../../utils/repositories/dailyCheckinRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
-import { tasks } from '@trigger.dev/sdk/v3'
-import type { generateDailyCheckinTask } from '../../../trigger/daily-checkin'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { assertQuotaAllowed } from '../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
@@ -38,7 +37,7 @@ export default defineEventHandler(async (event) => {
       ? `${userId}-${today.getTime()}-${Date.now()}`
       : `${userId}-${today.getTime()}`
 
-  const handle = await tasks.trigger<typeof generateDailyCheckinTask>(
+  const handle = await dispatchTask(
     'generate-daily-checkin',
     {
       userId,
@@ -48,9 +47,7 @@ export default defineEventHandler(async (event) => {
     },
     {
       concurrencyKey: userId,
-      tags: [`user:${userId}`],
-      idempotencyKey,
-      idempotencyKeyTTL: '1m'
+      tags: [`user:${userId}`]
     }
   )
 

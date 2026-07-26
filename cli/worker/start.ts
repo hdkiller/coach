@@ -9,17 +9,39 @@ import { WhoopService } from '../../server/utils/services/whoopService'
 import { OuraService } from '../../server/utils/services/ouraService'
 import { processStravaWebhookEvent } from '../../server/utils/services/stravaService'
 import { ResendService } from '../../server/utils/services/resendService'
+import '../../server/utils/services/workoutAnalysisService'
+import '../../server/utils/services/checkin-service'
+import '../../server/utils/services/emailDeliveryService'
+import '../../server/utils/services/accountDeletionService'
+import '../../trigger/hello-world'
+import '../../trigger/sentry-error-test'
+import '../../trigger/recommend-today-activity'
+import '../../trigger/generate-weekly-plan'
+import '../../trigger/generate-report'
+import '../../trigger/generate-athlete-profile'
+import '../../trigger/analyze-nutrition'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
-import { webhookQueue, pingQueue, streamsQueue } from '../../server/utils/queue'
+import { webhookQueue, pingQueue, streamsQueue, mainTaskQueue } from '../../server/utils/queue'
+import { executeRegisteredTask } from '../../server/utils/task-registry'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
 import { formatErrorMessage } from '../../server/utils/log-format'
 import { Command } from 'commander'
+import * as Sentry from '@sentry/node'
 import { tasks } from '@trigger.dev/sdk/v3'
 
 export const startCommand = new Command('start')
   .description('Start the webhook worker')
   .action(async () => {
+    if (process.env.SENTRY_DSN) {
+      Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'development',
+        tracesSampleRate: 0.2
+      })
+      console.log(chalk.green('✔ Sentry error tracking initialized for worker'))
+    }
+
     const connectionString = process.env.REDIS_URL || 'redis://localhost:6379'
     const healthPort = parseInt(process.env.CW_WORKER_HEALTH_PORT || '8081')
     const verboseWorkerLogs = process.env.CW_VERBOSE_WORKER_LOGS === '1'
@@ -753,6 +775,46 @@ export const startCommand = new Command('start')
       console.error(chalk.red.bold('Streams Worker error:'), err)
       if (isRedisConnectionError(err)) {
         requestRestart('streams worker lost redis connectivity', err)
+      }
+    })
+
+    const taskConcurrency = parseInt(process.env.CW_WORKER_QUEUE_TASK_CONCURRENCY || '3')
+    const mainTaskWorker = new Worker(
+      'mainTaskQueue',
+      async (job: Job) => {
+        const taskId = job.name
+        const { payload } = job.data || {}
+        console.log(
+          chalk.cyan(`[TaskJob ${job.id}]`) + ` Processing background task ${chalk.bold(taskId)}`
+        )
+        const result = await executeRegisteredTask(taskId, payload)
+        console.log(chalk.green(`[TaskJob ${job.id}] Completed task ${chalk.bold(taskId)}`))
+        return result
+      },
+      { connection, concurrency: taskConcurrency }
+    )
+
+    mainTaskWorker.on('ready', () => {
+      console.log(chalk.green.bold('🚀 Main Task Worker listening on "mainTaskQueue"'))
+      console.log(chalk.white(`   Concurrency: ${chalk.yellow(taskConcurrency)}`))
+    })
+
+    mainTaskWorker.on('failed', (job, err) => {
+      const message = err?.message || 'Unknown error'
+      if (message === 'job stalled more than allowable limit') return
+      console.log(chalk.red(`[TaskJob ${job?.id}] has failed with: ${message}`))
+      if (err && process.env.SENTRY_DSN) {
+        Sentry.captureException(err, {
+          tags: { worker: 'mainTaskWorker', taskId: job?.name },
+          extra: { jobId: job?.id, payload: job?.data }
+        })
+      }
+    })
+
+    mainTaskWorker.on('error', (err) => {
+      console.error(chalk.red.bold('Main Task Worker error:'), err)
+      if (isRedisConnectionError(err)) {
+        requestRestart('main task worker lost redis connectivity', err)
       }
     })
 

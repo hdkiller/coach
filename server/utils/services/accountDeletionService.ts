@@ -1,8 +1,11 @@
-import { tasks } from '@trigger.dev/sdk/v3'
-import { createError } from 'h3'
 import { prisma } from '../db'
 import { logAction } from '../audit'
-import type { H3Event } from 'h3'
+import { dispatchTask } from '../task-dispatcher'
+import { registerTaskHandler } from '../task-registry'
+import { deRegisterGarminUser } from '../garmin'
+import { getEmailTemplateDefinition } from '../email-template-registry'
+import { getInternalApiToken } from '../internal-api-token'
+import { EmailDeliveryService } from './emailDeliveryService'
 
 type DeletionActorType = 'self' | 'admin'
 
@@ -13,7 +16,7 @@ interface ScheduleAccountDeletionOptions {
     id: string
     email?: string | null
   }
-  event?: H3Event
+  event?: any
 }
 
 export async function scheduleAccountDeletion(options: ScheduleAccountDeletionOptions) {
@@ -29,13 +32,10 @@ export async function scheduleAccountDeletion(options: ScheduleAccountDeletionOp
   })
 
   if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found'
-    })
+    throw new Error('User not found')
   }
 
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'delete-user-account',
     {
       userId,
@@ -82,3 +82,120 @@ export async function scheduleAccountDeletion(options: ScheduleAccountDeletionOp
     message: 'Account scheduled for deletion'
   }
 }
+
+export async function runDeleteUserAccount(payload: {
+  userId: string
+  notificationEmail?: {
+    requestedAt: string
+    initiatedBy: 'self' | 'admin'
+    actorEmail?: string | null
+  }
+}) {
+  const { userId, notificationEmail } = payload
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true
+      }
+    })
+
+    if (!user) {
+      throw new Error(`User ${userId} not found`)
+    }
+
+    const garminIntegration = await prisma.integration.findFirst({
+      where: { userId, provider: 'garmin' }
+    })
+    if (garminIntegration) {
+      try {
+        await deRegisterGarminUser(garminIntegration)
+      } catch (error) {
+        console.warn('Garmin deregistration failed during account deletion; continuing', {
+          userId,
+          error
+        })
+      }
+    }
+
+    if (notificationEmail) {
+      const template = getEmailTemplateDefinition('AccountDeletionScheduled')
+
+      if (template) {
+        try {
+          const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
+          const internalApiToken = getInternalApiToken()
+
+          if (!internalApiToken) {
+            throw new Error('INTERNAL_API_TOKEN is not configured')
+          }
+
+          const renderResponse = await fetch(`${baseUrl}/api/internal/render-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-api-token': internalApiToken
+            },
+            body: JSON.stringify({
+              templateKey: 'AccountDeletionScheduled',
+              props: {
+                name: user.name || 'Athlete',
+                requestedAt: notificationEmail.requestedAt,
+                initiatedBy: notificationEmail.initiatedBy,
+                actorEmail: notificationEmail.actorEmail || null
+              }
+            })
+          })
+
+          if (!renderResponse.ok) {
+            throw new Error(`Render API failed (${renderResponse.status})`)
+          }
+
+          const rendered = (await renderResponse.json()) as { html: string; text: string }
+          const delivery = await prisma.emailDelivery.create({
+            data: {
+              userId: user.id,
+              toEmail: user.email,
+              templateKey: template.templateKey,
+              eventKey: 'ACCOUNT_DELETION_SCHEDULED',
+              audience: template.audience,
+              subject: template.defaultSubject,
+              htmlBody: rendered.html,
+              textBody: rendered.text,
+              status: 'QUEUED',
+              idempotencyKey: `account-deletion-scheduled:${user.id}:${notificationEmail.requestedAt}`,
+              metadata: {
+                requestedAt: notificationEmail.requestedAt,
+                initiatedBy: notificationEmail.initiatedBy,
+                actorEmail: notificationEmail.actorEmail || null
+              } as any
+            }
+          })
+
+          if (process.env.DISABLE_EMAILS !== 'true') {
+            await EmailDeliveryService.dispatch(delivery.id)
+          }
+        } catch (error) {
+          console.error('Failed to send account deletion email', { userId, error })
+        }
+      }
+    }
+
+    const deletedUser = await prisma.user.delete({
+      where: { id: userId }
+    })
+
+    return {
+      success: true,
+      userId
+    }
+  } catch (error) {
+    console.error('Failed to delete user', { userId, error })
+    throw error
+  }
+}
+
+registerTaskHandler('delete-user-account', runDeleteUserAccount)

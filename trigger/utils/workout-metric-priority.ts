@@ -24,7 +24,13 @@ export interface MetricPriorityContext {
 }
 
 export function parseLoadPreference(loadPreference?: string | null): MetricKey[] {
-  const parsed = (loadPreference || '')
+  const strVal =
+    typeof loadPreference === 'string'
+      ? loadPreference
+      : loadPreference
+        ? String(loadPreference)
+        : ''
+  const parsed = strVal
     .toUpperCase()
     .split('_')
     .map((m) => m.trim())

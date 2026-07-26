@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const startDate = body.startDate ? new Date(body.startDate) : new Date()
 
   // Trigger the plan generation job with per-user concurrency
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-weekly-plan',
     {
       userId,

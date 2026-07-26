@@ -32,6 +32,8 @@ import {
 } from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
+import { registerTaskHandler } from '../server/utils/task-registry'
+
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
   type: 'object',
@@ -368,373 +370,365 @@ const athleteProfileSchema = {
   ]
 }
 
-export const generateAthleteProfileTask = task({
-  id: 'generate-athlete-profile',
-  maxDuration: 600, // 10 minutes for AI processing
-  queue: userReportsQueue,
-  run: async (payload: { userId: string; reportId: string }) => {
-    const { userId, reportId } = payload
+export async function runGenerateAthleteProfile(payload: { userId: string; reportId: string }) {
+  const { userId, reportId } = payload
 
-    logger.log('Starting athlete profile generation', { userId, reportId })
+  logger.log('Starting athlete profile generation', { userId, reportId })
 
-    // Check Quota
-    try {
-      await checkQuota(userId, 'athlete_profile_generation')
-    } catch (quotaError: any) {
-      if (quotaError.statusCode === 429) {
-        logger.warn('Athlete profile generation quota exceeded', { userId, reportId })
-        await prisma.report.update({
-          where: { id: reportId },
-          data: { status: 'FAILED' } // We could add a statusReason field later
-        })
-        return { success: false, reason: 'QUOTA_EXCEEDED' }
-      }
-      throw quotaError
+  // Check Quota
+  try {
+    await checkQuota(userId, 'athlete_profile_generation')
+  } catch (quotaError: any) {
+    if (quotaError.statusCode === 429) {
+      logger.warn('Athlete profile generation quota exceeded', { userId, reportId })
+      await prisma.report.update({
+        where: { id: reportId },
+        data: { status: 'FAILED' } // We could add a statusReason field later
+      })
+      return { success: false, reason: 'QUOTA_EXCEEDED' }
     }
+    throw quotaError
+  }
 
-    // Update report status
-    await prisma.report.update({
-      where: { id: reportId },
-      data: { status: 'PROCESSING' }
+  // Update report status
+  await prisma.report.update({
+    where: { id: reportId },
+    data: { status: 'PROCESSING' }
+  })
+
+  try {
+    const aiSettings = await getUserAiSettings(userId)
+    const timezone = await getUserTimezone(userId)
+    const now = new Date() // Current system time for "now" queries if needed, but better to use range end
+    const todayEnd = getEndOfDayUTC(timezone, now)
+    const thirtyDaysAgo = getStartOfDaysAgoUTC(timezone, 30)
+    const sevenDaysAgo = getStartOfDaysAgoUTC(timezone, 7)
+
+    logger.log('Fetching comprehensive athlete data', { timezone, thirtyDaysAgo, todayEnd })
+
+    // Fetch all relevant data
+    const [
+      user,
+      recentWorkouts,
+      recentWellness,
+      recentNutrition,
+      recentReports,
+      recentRecommendations,
+      rawActiveGoals,
+      currentPlan,
+      sportSettings
+    ] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          weightSourceMode: true,
+          height: true,
+          heightUnits: true,
+          maxHr: true,
+          dob: true,
+          lthr: true,
+          sex: true,
+          language: true
+        }
+      }),
+      workoutRepository.getForUser(userId, {
+        startDate: thirtyDaysAgo,
+        endDate: todayEnd,
+        limit: 20,
+        orderBy: { date: 'desc' },
+        includeDuplicates: false,
+        select: {
+          id: true,
+          date: true,
+          title: true,
+          type: true,
+          durationSec: true,
+          tss: true,
+          averageWatts: true,
+          aiAnalysisJson: true,
+          streams: {
+            select: {
+              hrZoneTimes: true,
+              powerZoneTimes: true
+            }
+          }
+        }
+      }),
+      wellnessRepository.getForUser(userId, {
+        startDate: thirtyDaysAgo,
+        endDate: todayEnd,
+        limit: 30,
+        orderBy: { date: 'desc' }
+      }),
+      nutritionRepository.getForUser(userId, {
+        startDate: sevenDaysAgo,
+        endDate: todayEnd,
+        limit: 14,
+        orderBy: { date: 'desc' },
+        select: {
+          id: true,
+          date: true,
+          calories: true,
+          protein: true,
+          carbs: true,
+          fat: true,
+          fiber: true,
+          caloriesGoal: true,
+          proteinGoal: true,
+          carbsGoal: true,
+          fatGoal: true
+        }
+      }),
+      prisma.report.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          createdAt: { gte: thirtyDaysAgo }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          type: true,
+          createdAt: true,
+          analysisJson: true,
+          suggestions: true
+        }
+      }),
+      prisma.activityRecommendation.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          date: { gte: sevenDaysAgo }
+        },
+        orderBy: { date: 'desc' },
+        take: 7,
+        select: {
+          date: true,
+          recommendation: true,
+          reasoning: true,
+          analysisJson: true
+        }
+      }),
+      // Fetch active goals
+      prisma.goal.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE'
+        }
+      }),
+      // Fetch current active plan
+      prisma.weeklyTrainingPlan.findFirst({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          weekStartDate: {
+            lte: todayEnd
+          },
+          weekEndDate: {
+            gte: thirtyDaysAgo // Ensure overlap
+          }
+        },
+        orderBy: { weekStartDate: 'desc' },
+        select: {
+          totalTSS: true,
+          planJson: true
+        }
+      }),
+      // Fetch Sport Settings
+      sportSettingsRepository.getByUserId(userId)
+    ])
+    const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayEnd)
+
+    const userAge = calculateAge(user?.dob)
+
+    logger.log('Data fetched', {
+      workoutsWithAI: recentWorkouts.length,
+      wellnessRecords: recentWellness.length,
+      reportsCount: recentReports.length,
+      recommendationsCount: recentRecommendations.length,
+      activeGoals: activeGoals.length,
+      sportProfiles: sportSettings.length
     })
 
-    try {
-      const aiSettings = await getUserAiSettings(userId)
-      const timezone = await getUserTimezone(userId)
-      const now = new Date() // Current system time for "now" queries if needed, but better to use range end
-      const todayEnd = getEndOfDayUTC(timezone, now)
-      const thirtyDaysAgo = getStartOfDaysAgoUTC(timezone, 30)
-      const sevenDaysAgo = getStartOfDaysAgoUTC(timezone, 7)
-
-      logger.log('Fetching comprehensive athlete data', { timezone, thirtyDaysAgo, todayEnd })
-
-      // Fetch all relevant data
-      const [
-        user,
-        recentWorkouts,
-        recentWellness,
-        recentNutrition,
-        recentReports,
-        recentRecommendations,
-        rawActiveGoals,
-        currentPlan,
-        sportSettings
-      ] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            ftp: true,
-            weight: true,
-            weightUnits: true,
-            weightSourceMode: true,
-            height: true,
-            heightUnits: true,
-            maxHr: true,
-            dob: true,
-            lthr: true,
-            sex: true,
-            language: true
-          }
-        }),
-        workoutRepository.getForUser(userId, {
-          startDate: thirtyDaysAgo,
-          endDate: todayEnd,
-          limit: 20,
-          orderBy: { date: 'desc' },
-          includeDuplicates: false,
-          select: {
-            id: true,
-            date: true,
-            title: true,
-            type: true,
-            durationSec: true,
-            tss: true,
-            averageWatts: true,
-            aiAnalysisJson: true,
-            streams: {
-              select: {
-                hrZoneTimes: true,
-                powerZoneTimes: true
-              }
-            }
-          }
-        }),
-        wellnessRepository.getForUser(userId, {
-          startDate: thirtyDaysAgo,
-          endDate: todayEnd,
-          limit: 30,
-          orderBy: { date: 'desc' }
-        }),
-        nutritionRepository.getForUser(userId, {
-          startDate: sevenDaysAgo,
-          endDate: todayEnd,
-          limit: 14,
-          orderBy: { date: 'desc' },
-          select: {
-            id: true,
-            date: true,
-            calories: true,
-            protein: true,
-            carbs: true,
-            fat: true,
-            fiber: true,
-            caloriesGoal: true,
-            proteinGoal: true,
-            carbsGoal: true,
-            fatGoal: true
-          }
-        }),
-        prisma.report.findMany({
-          where: {
-            userId,
-            status: 'COMPLETED',
-            createdAt: { gte: thirtyDaysAgo }
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          select: {
-            id: true,
-            type: true,
-            createdAt: true,
-            analysisJson: true,
-            suggestions: true
-          }
-        }),
-        prisma.activityRecommendation.findMany({
-          where: {
-            userId,
-            status: 'COMPLETED',
-            date: { gte: sevenDaysAgo }
-          },
-          orderBy: { date: 'desc' },
-          take: 7,
-          select: {
-            date: true,
-            recommendation: true,
-            reasoning: true,
-            analysisJson: true
-          }
-        }),
-        // Fetch active goals
-        prisma.goal.findMany({
-          where: {
-            userId,
-            status: 'ACTIVE'
-          }
-        }),
-        // Fetch current active plan
-        prisma.weeklyTrainingPlan.findFirst({
-          where: {
-            userId,
-            status: 'ACTIVE',
-            weekStartDate: {
-              lte: todayEnd
-            },
-            weekEndDate: {
-              gte: thirtyDaysAgo // Ensure overlap
-            }
-          },
-          orderBy: { weekStartDate: 'desc' },
-          select: {
-            totalTSS: true,
-            planJson: true
-          }
-        }),
-        // Fetch Sport Settings
-        sportSettingsRepository.getByUserId(userId)
-      ])
-      const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayEnd)
-
-      const userAge = calculateAge(user?.dob)
-
-      logger.log('Data fetched', {
-        workoutsWithAI: recentWorkouts.length,
-        wellnessRecords: recentWellness.length,
-        reportsCount: recentReports.length,
-        recommendationsCount: recentRecommendations.length,
-        activeGoals: activeGoals.length,
-        sportProfiles: sportSettings.length
-      })
-
-      // Build Multi-Sport Zone Definitions
-      let sportSettingsContext = '\nSPORT SPECIFIC SETTINGS & ZONES:\n'
-      for (const s of sportSettings) {
-        const typeLabel = s.isDefault ? 'Fallback/Generic' : s.types.join(', ')
-        sportSettingsContext += `### Profile: ${s.name || (s.isDefault ? 'Default' : 'Sport')} (${typeLabel})\n`
-        sportSettingsContext += `- FTP: ${s.ftp || 'N/A'}W, LTHR: ${s.lthr || 'N/A'}bpm, MaxHR: ${s.maxHr || 'N/A'}bpm\n`
-        if (s.loadPreference) {
-          sportSettingsContext += `- Preferred Metric: ${s.loadPreference}\n`
-        }
-
-        if (s.hrZones && Array.isArray(s.hrZones)) {
-          sportSettingsContext += `  - Heart Rate Zones: ${s.hrZones.map((z: any) => `${z.name}(${z.min}-${z.max})`).join(', ')}\n`
-        }
-        if (s.powerZones && Array.isArray(s.powerZones)) {
-          sportSettingsContext += `  - Power Zones: ${s.powerZones.map((z: any) => `${z.name}(${z.min}-${z.max})`).join(', ')}\n`
-        }
-        sportSettingsContext += '\n'
+    // Build Multi-Sport Zone Definitions
+    let sportSettingsContext = '\nSPORT SPECIFIC SETTINGS & ZONES:\n'
+    for (const s of sportSettings) {
+      const typeLabel = s.isDefault ? 'Fallback/Generic' : s.types.join(', ')
+      sportSettingsContext += `### Profile: ${s.name || (s.isDefault ? 'Default' : 'Sport')} (${typeLabel})\n`
+      sportSettingsContext += `- FTP: ${s.ftp || 'N/A'}W, LTHR: ${s.lthr || 'N/A'}bpm, MaxHR: ${s.maxHr || 'N/A'}bpm\n`
+      if (s.loadPreference) {
+        sportSettingsContext += `- Preferred Metric: ${s.loadPreference}\n`
       }
 
-      // Build workout insights from AI analysis
-      const workoutInsights = recentWorkouts
-        .filter((w) => w.aiAnalysisJson)
-        .map((w) => {
-          const analysis = w.aiAnalysisJson as any
-          return `${formatUserDate(w.date, timezone)}: ${w.title} - ${analysis.quick_take || analysis.executive_summary || 'Analysis available'}`
-        })
-        .slice(0, 10)
-        .join('\n')
+      if (s.hrZones && Array.isArray(s.hrZones)) {
+        sportSettingsContext += `  - Heart Rate Zones: ${s.hrZones.map((z: any) => `${z.name}(${z.min}-${z.max})`).join(', ')}\n`
+      }
+      if (s.powerZones && Array.isArray(s.powerZones)) {
+        sportSettingsContext += `  - Power Zones: ${s.powerZones.map((z: any) => `${z.name}(${z.min}-${z.max})`).join(', ')}\n`
+      }
+      sportSettingsContext += '\n'
+    }
 
-      // Build wellness summary
-      const avgRecovery =
-        recentWellness.length > 0
-          ? recentWellness.reduce((sum, w) => sum + (w.recoveryScore || 50), 0) /
-            recentWellness.length
-          : null
-      const avgHRV =
-        recentWellness.length > 0
-          ? recentWellness.filter((w) => w.hrv).reduce((sum, w) => sum + (w.hrv || 0), 0) /
-            recentWellness.filter((w) => w.hrv).length
-          : null
-      const avgHRVSdnn =
-        recentWellness.length > 0
-          ? recentWellness.filter((w) => w.hrvSdnn).reduce((sum, w) => sum + (w.hrvSdnn || 0), 0) /
-            recentWellness.filter((w) => w.hrvSdnn).length
-          : null
+    // Build workout insights from AI analysis
+    const workoutInsights = recentWorkouts
+      .filter((w) => w.aiAnalysisJson)
+      .map((w) => {
+        const analysis = w.aiAnalysisJson as any
+        return `${formatUserDate(w.date, timezone)}: ${w.title} - ${analysis.quick_take || analysis.executive_summary || 'Analysis available'}`
+      })
+      .slice(0, 10)
+      .join('\n')
 
-      const wellnessSummary = `Average Recovery: ${avgRecovery ? avgRecovery.toFixed(0) + '%' : 'N/A'}
+    // Build wellness summary
+    const avgRecovery =
+      recentWellness.length > 0
+        ? recentWellness.reduce((sum, w) => sum + (w.recoveryScore || 50), 0) /
+          recentWellness.length
+        : null
+    const avgHRV =
+      recentWellness.length > 0
+        ? recentWellness.filter((w) => w.hrv).reduce((sum, w) => sum + (w.hrv || 0), 0) /
+          recentWellness.filter((w) => w.hrv).length
+        : null
+    const avgHRVSdnn =
+      recentWellness.length > 0
+        ? recentWellness.filter((w) => w.hrvSdnn).reduce((sum, w) => sum + (w.hrvSdnn || 0), 0) /
+          recentWellness.filter((w) => w.hrvSdnn).length
+        : null
+
+    const wellnessSummary = `Average Recovery: ${avgRecovery ? avgRecovery.toFixed(0) + '%' : 'N/A'}
 Average HRV (rMSSD): ${avgHRV ? avgHRV.toFixed(0) + ' ms' : 'N/A'}
 Average HRV (SDNN): ${avgHRVSdnn ? avgHRVSdnn.toFixed(0) + ' ms' : 'N/A'}
 Recent sleep: ${recentWellness
-        .slice(0, 7)
-        .map((w) => `${w.sleepHours?.toFixed(1) || 'N/A'}h`)
-        .join(', ')}`
+      .slice(0, 7)
+      .map((w) => `${w.sleepHours?.toFixed(1) || 'N/A'}h`)
+      .join(', ')}`
 
-      // Build Wellness Analysis History
-      const wellnessAnalyses = recentWellness
-        .filter((w) => w.aiAnalysisJson)
-        .map((w) => {
-          const analysis = w.aiAnalysisJson as any
-          const status = analysis.status ? `[${analysis.status.toUpperCase()}]` : ''
-          const summary = analysis.executive_summary || 'Analysis available'
-          return `${formatUserDate(w.date, timezone)}: ${status} ${summary}`
-        })
-        .slice(0, 10) // Limit to 10 most recent
-        .join('\n')
+    // Build Wellness Analysis History
+    const wellnessAnalyses = recentWellness
+      .filter((w) => w.aiAnalysisJson)
+      .map((w) => {
+        const analysis = w.aiAnalysisJson as any
+        const status = analysis.status ? `[${analysis.status.toUpperCase()}]` : ''
+        const summary = analysis.executive_summary || 'Analysis available'
+        return `${formatUserDate(w.date, timezone)}: ${status} ${summary}`
+      })
+      .slice(0, 10) // Limit to 10 most recent
+      .join('\n')
 
-      const wellnessAnalysisSummary =
-        wellnessAnalyses.length > 0
-          ? `\n\nWELLNESS ANALYSIS HISTORY (Recent insights):\n${wellnessAnalyses}`
-          : ''
+    const wellnessAnalysisSummary =
+      wellnessAnalyses.length > 0
+        ? `\n\nWELLNESS ANALYSIS HISTORY (Recent insights):\n${wellnessAnalyses}`
+        : ''
 
-      // Build recent recommendations summary
-      const recommendationsSummary = recentRecommendations
-        .map(
-          (r) =>
-            `${formatUserDate(r.date, timezone)}: ${r.recommendation.toUpperCase()} - ${r.reasoning}`
-        )
-        .join('\n')
+    // Build recent recommendations summary
+    const recommendationsSummary = recentRecommendations
+      .map(
+        (r) =>
+          `${formatUserDate(r.date, timezone)}: ${r.recommendation.toUpperCase()} - ${r.reasoning}`
+      )
+      .join('\n')
 
-      // Build recent reports summary
-      const reportsSummary = recentReports
-        .map((r) => {
-          const json = r.analysisJson as any
-          return `${r.type}: ${json?.executive_summary || 'Analysis completed'}`
-        })
-        .join('\n\n')
+    // Build recent reports summary
+    const reportsSummary = recentReports
+      .map((r) => {
+        const json = r.analysisJson as any
+        return `${r.type}: ${json?.executive_summary || 'Analysis completed'}`
+      })
+      .join('\n\n')
 
-      // Build goals summary
-      const goalsSummary =
-        activeGoals.length > 0
-          ? activeGoals
-              .map((g) => {
-                const daysToTarget = g.targetDate
-                  ? Math.ceil(
-                      (new Date(g.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                    )
-                  : null
-                const daysToEvent = g.eventDate
-                  ? Math.ceil(
-                      (new Date(g.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                    )
-                  : null
+    // Build goals summary
+    const goalsSummary =
+      activeGoals.length > 0
+        ? activeGoals
+            .map((g) => {
+              const daysToTarget = g.targetDate
+                ? Math.ceil((new Date(g.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null
+              const daysToEvent = g.eventDate
+                ? Math.ceil((new Date(g.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null
 
-                let goalInfo = `[${g.priority}] ${g.title} (${g.type})`
-                if (g.description) goalInfo += `\n  Description: ${g.description}`
-                if (g.metric && g.targetValue) {
-                  goalInfo += `\n  Target: ${g.metric} = ${g.targetValue}`
-                  if (g.currentValue)
-                    goalInfo += ` (Current: ${g.currentValue}, Start: ${g.startValue || 'N/A'})`
-                }
-                if (daysToTarget) goalInfo += `\n  Timeline: ${daysToTarget} days remaining`
-                if (g.eventDate)
-                  goalInfo += `\n  Event: ${g.eventType || 'race'} on ${formatUserDate(g.eventDate, timezone)} (${daysToEvent} days)`
-                if (g.aiContext) goalInfo += `\n  Context: ${g.aiContext}`
+              let goalInfo = `[${g.priority}] ${g.title} (${g.type})`
+              if (g.description) goalInfo += `\n  Description: ${g.description}`
+              if (g.metric && g.targetValue) {
+                goalInfo += `\n  Target: ${g.metric} = ${g.targetValue}`
+                if (g.currentValue)
+                  goalInfo += ` (Current: ${g.currentValue}, Start: ${g.startValue || 'N/A'})`
+              }
+              if (daysToTarget) goalInfo += `\n  Timeline: ${daysToTarget} days remaining`
+              if (g.eventDate)
+                goalInfo += `\n  Event: ${g.eventType || 'race'} on ${formatUserDate(g.eventDate, timezone)} (${daysToEvent} days)`
+              if (g.aiContext) goalInfo += `\n  Context: ${g.aiContext}`
 
-                return goalInfo
-              })
-              .join('\n\n')
-          : 'No active goals set'
+              return goalInfo
+            })
+            .join('\n\n')
+        : 'No active goals set'
 
-      // Build current plan summary
-      let currentPlanSummary = 'No active weekly plan.'
-      if (currentPlan) {
-        const planData = currentPlan.planJson as any
-        currentPlanSummary = `
+    // Build current plan summary
+    let currentPlanSummary = 'No active weekly plan.'
+    if (currentPlan) {
+      const planData = currentPlan.planJson as any
+      currentPlanSummary = `
 Active Plan TSS Target: ${currentPlan.totalTSS || planData.totalTSS || 'N/A'}
 Plan Summary: ${planData.weekSummary || 'N/A'}
 `
-      }
+    }
 
-      // Build Daily Check-in Summary
-      const checkinHistory = await getCheckinHistoryContext(
-        userId,
-        thirtyDaysAgo,
-        now, // Use 'now' or 'todayEnd' as end date
-        timezone
-      )
+    // Build Daily Check-in Summary
+    const checkinHistory = await getCheckinHistoryContext(
+      userId,
+      thirtyDaysAgo,
+      now, // Use 'now' or 'todayEnd' as end date
+      timezone
+    )
 
-      const checkinsSummary = checkinHistory
-        ? `\nDAILY CHECK-INS (Subjective Feedback):\n${checkinHistory}`
-        : 'No recent check-ins'
+    const checkinsSummary = checkinHistory
+      ? `\nDAILY CHECK-INS (Subjective Feedback):\n${checkinHistory}`
+      : 'No recent check-ins'
 
-      if (checkinHistory) {
-        logger.log('Check-ins Summary for Profile Prompt', { checkinHistory })
-      }
+    if (checkinHistory) {
+      logger.log('Check-ins Summary for Profile Prompt', { checkinHistory })
+    }
 
-      // Calculate training stats
-      const totalTSS = recentWorkouts.reduce((sum, w) => sum + (w.tss || 0), 0)
-      const avgWorkoutDuration =
-        recentWorkouts.length > 0
-          ? recentWorkouts.reduce((sum, w) => sum + w.durationSec, 0) / recentWorkouts.length / 60
-          : 0
+    // Calculate training stats
+    const totalTSS = recentWorkouts.reduce((sum, w) => sum + (w.tss || 0), 0)
+    const avgWorkoutDuration =
+      recentWorkouts.length > 0
+        ? recentWorkouts.reduce((sum, w) => sum + w.durationSec, 0) / recentWorkouts.length / 60
+        : 0
 
-      // Generate comprehensive training context with advanced metrics
-      logger.log('Generating comprehensive training context')
-      const trainingContext = await generateTrainingContext(userId, thirtyDaysAgo, todayEnd, {
-        includeZones: true,
-        period: 'Last 30 Days',
-        timezone,
-        adjustForTodayUncompletedPlannedTSS: true
-      })
-      const formattedContext = formatTrainingContextForPrompt(trainingContext)
+    // Generate comprehensive training context with advanced metrics
+    logger.log('Generating comprehensive training context')
+    const trainingContext = await generateTrainingContext(userId, thirtyDaysAgo, todayEnd, {
+      includeZones: true,
+      period: 'Last 30 Days',
+      timezone,
+      adjustForTodayUncompletedPlannedTSS: true
+    })
+    const formattedContext = formatTrainingContextForPrompt(trainingContext)
 
-      logger.log('Training context generated', {
-        workoutCount: trainingContext.summary.totalWorkouts,
-        totalTSS: trainingContext.summary.totalTSS,
-        currentCTL: trainingContext.loadTrend.currentCTL,
-        currentTSB: trainingContext.loadTrend.currentTSB,
-        hasZoneData: !!trainingContext.hrZoneDistribution,
-        hasCurrentPlan: !!currentPlan
-      })
-      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
-        weight: user?.weight,
-        weightSourceMode: user?.weightSourceMode,
-        weightUnits: user?.weightUnits
-      })
+    logger.log('Training context generated', {
+      workoutCount: trainingContext.summary.totalWorkouts,
+      totalTSS: trainingContext.summary.totalTSS,
+      currentCTL: trainingContext.loadTrend.currentCTL,
+      currentTSB: trainingContext.loadTrend.currentTSB,
+      hasZoneData: !!trainingContext.hrZoneDistribution,
+      hasCurrentPlan: !!currentPlan
+    })
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+      weight: user?.weight,
+      weightSourceMode: user?.weightSourceMode,
+      weightUnits: user?.weightUnits
+    })
 
-      // Build comprehensive prompt
-      const prompt = `You are a **${aiSettings.aiPersona}** expert coach creating a comprehensive Athlete Profile for training planning purposes.
+    // Build comprehensive prompt
+    const prompt = `You are a **${aiSettings.aiPersona}** expert coach creating a comprehensive Athlete Profile for training planning purposes.
 Analyze all available data to create a complete picture of this athlete.
 Adapt your analysis tone and insights to match your **${aiSettings.aiPersona}** persona.
 
@@ -821,96 +815,106 @@ Scoring Guidelines:
 Be specific, data-driven, and actionable. Reference actual metrics and patterns observed. Scores should reflect realistic assessment for long-term tracking.
 Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
-      logger.log('Generating athlete profile with Gemini')
+    logger.log('Generating athlete profile with Gemini')
 
-      // Generate structured profile
-      const profileJson = await generateStructuredAnalysis<any>(
-        prompt,
-        athleteProfileSchema,
-        aiSettings.aiModelPreference,
-        {
-          userId,
-          operation: 'athlete_profile_generation',
-          entityType: 'Report',
-          entityId: reportId
-        }
-      )
-
-      logger.log('Athlete profile generated successfully', {
-        scores: profileJson.athlete_scores
-      })
-
-      // Save profile as a report and update user scores
-      await prisma.$transaction(async (tx) => {
-        // Verify report still exists
-        const currentReport = await tx.report.findUnique({
-          where: { id: reportId },
-          select: { id: true }
-        })
-
-        if (!currentReport) {
-          logger.warn('Report was deleted during generation, skipping persistence', { reportId })
-          return
-        }
-
-        // Update the report with profile data
-        await tx.report.update({
-          where: { id: reportId },
-          data: {
-            status: 'COMPLETED',
-            type: 'ATHLETE_PROFILE',
-            analysisJson: profileJson as any,
-            modelVersion: aiSettings.aiModelPreference,
-            dateRangeStart: thirtyDaysAgo,
-            dateRangeEnd: now
-          }
-        })
-
-        // Update user profile scores and explanations for easy access
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            currentFitnessScore: profileJson.athlete_scores?.current_fitness,
-            recoveryCapacityScore: profileJson.athlete_scores?.recovery_capacity,
-            nutritionComplianceScore: profileJson.athlete_scores?.nutrition_compliance,
-            trainingConsistencyScore: profileJson.athlete_scores?.training_consistency,
-            currentFitnessExplanation: profileJson.athlete_scores?.current_fitness_explanation,
-            recoveryCapacityExplanation: profileJson.athlete_scores?.recovery_capacity_explanation,
-            nutritionComplianceExplanation:
-              profileJson.athlete_scores?.nutrition_compliance_explanation,
-            trainingConsistencyExplanation:
-              profileJson.athlete_scores?.training_consistency_explanation,
-            hrPowerAlignmentScore: profileJson.athlete_scores?.hr_power_alignment,
-            hrPowerAlignmentExplanation: profileJson.athlete_scores?.hr_power_alignment_explanation,
-            currentFitnessExplanationJson: profileJson.athlete_scores
-              ?.current_fitness_explanation_json as any,
-            recoveryCapacityExplanationJson: profileJson.athlete_scores
-              ?.recovery_capacity_explanation_json as any,
-            nutritionComplianceExplanationJson: profileJson.athlete_scores
-              ?.nutrition_compliance_explanation_json as any,
-            trainingConsistencyExplanationJson: profileJson.athlete_scores
-              ?.training_consistency_explanation_json as any,
-            profileLastUpdated: now
-          }
-        })
-      })
-
-      logger.log('Athlete profile and user scores saved to database')
-
-      return {
-        success: true,
-        reportId,
-        userId
+    // Generate structured profile
+    const profileJson = await generateStructuredAnalysis<any>(
+      prompt,
+      athleteProfileSchema,
+      aiSettings.aiModelPreference,
+      {
+        userId,
+        operation: 'athlete_profile_generation',
+        entityType: 'Report',
+        entityId: reportId
       }
-    } catch (error) {
-      logger.error('Error generating athlete profile', { error })
+    )
 
-      await prisma.report.update({
+    logger.log('Athlete profile generated successfully', {
+      scores: profileJson.athlete_scores
+    })
+
+    // Save profile as a report and update user scores
+    await prisma.$transaction(async (tx) => {
+      // Verify report still exists
+      const currentReport = await tx.report.findUnique({
         where: { id: reportId },
-        data: { status: 'FAILED' }
+        select: { id: true }
       })
 
-      throw error
+      if (!currentReport) {
+        logger.warn('Report was deleted during generation, skipping persistence', { reportId })
+        return
+      }
+
+      // Update the report with profile data
+      await tx.report.update({
+        where: { id: reportId },
+        data: {
+          status: 'COMPLETED',
+          type: 'ATHLETE_PROFILE',
+          analysisJson: profileJson as any,
+          modelVersion: aiSettings.aiModelPreference,
+          dateRangeStart: thirtyDaysAgo,
+          dateRangeEnd: now
+        }
+      })
+
+      // Update user profile scores and explanations for easy access
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          currentFitnessScore: profileJson.athlete_scores?.current_fitness,
+          recoveryCapacityScore: profileJson.athlete_scores?.recovery_capacity,
+          nutritionComplianceScore: profileJson.athlete_scores?.nutrition_compliance,
+          trainingConsistencyScore: profileJson.athlete_scores?.training_consistency,
+          currentFitnessExplanation: profileJson.athlete_scores?.current_fitness_explanation,
+          recoveryCapacityExplanation: profileJson.athlete_scores?.recovery_capacity_explanation,
+          nutritionComplianceExplanation:
+            profileJson.athlete_scores?.nutrition_compliance_explanation,
+          trainingConsistencyExplanation:
+            profileJson.athlete_scores?.training_consistency_explanation,
+          hrPowerAlignmentScore: profileJson.athlete_scores?.hr_power_alignment,
+          hrPowerAlignmentExplanation: profileJson.athlete_scores?.hr_power_alignment_explanation,
+          currentFitnessExplanationJson: profileJson.athlete_scores
+            ?.current_fitness_explanation_json as any,
+          recoveryCapacityExplanationJson: profileJson.athlete_scores
+            ?.recovery_capacity_explanation_json as any,
+          nutritionComplianceExplanationJson: profileJson.athlete_scores
+            ?.nutrition_compliance_explanation_json as any,
+          trainingConsistencyExplanationJson: profileJson.athlete_scores
+            ?.training_consistency_explanation_json as any,
+          profileLastUpdated: now
+        }
+      })
+    })
+
+    logger.log('Athlete profile and user scores saved to database')
+
+    return {
+      success: true,
+      reportId,
+      userId
     }
+  } catch (error) {
+    logger.error('Error generating athlete profile', { error })
+
+    await prisma.report.update({
+      where: { id: reportId },
+      data: { status: 'FAILED' }
+    })
+
+    throw error
+  }
+}
+
+registerTaskHandler('generate-athlete-profile', runGenerateAthleteProfile)
+
+export const generateAthleteProfileTask = task({
+  id: 'generate-athlete-profile',
+  maxDuration: 600,
+  queue: userReportsQueue,
+  run: async (payload: { userId: string; reportId: string }) => {
+    return runGenerateAthleteProfile(payload)
   }
 })

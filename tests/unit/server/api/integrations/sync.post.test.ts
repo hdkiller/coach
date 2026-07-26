@@ -61,6 +61,7 @@ const getHandler = async () => {
 describe('POST /api/integrations/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.TASK_QUEUE_DRIVER = 'trigger'
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'user-1' } } as any)
     vi.mocked(tasks.trigger).mockResolvedValue({ id: 'job-1' } as any)
     resolveProviderSyncBlockMock.mockResolvedValue({ blocked: false })

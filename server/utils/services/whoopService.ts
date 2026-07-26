@@ -1,3 +1,4 @@
+import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
 import {
   fetchWhoopWorkout,
@@ -197,3 +198,13 @@ export const WhoopService = {
     return { handled: true, message: `Processed ${type}` }
   }
 }
+
+registerTaskHandler(
+  'ingest-whoop',
+  (payload: { userId: string; startDate?: string; endDate?: string }) =>
+    WhoopService.syncUser(
+      payload.userId,
+      payload.startDate ? new Date(payload.startDate) : undefined,
+      payload.endDate ? new Date(payload.endDate) : undefined
+    )
+)

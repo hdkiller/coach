@@ -1,3 +1,4 @@
+import { registerTaskHandler } from '../task-registry'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../db'
 import { wellnessRepository } from '../repositories/wellnessRepository'
@@ -788,5 +789,159 @@ export const GarminService = {
     }
 
     return null
+  },
+
+  async runIngestGarmin(payload: {
+    userId: string
+    startDate?: string
+    endDate?: string
+    startTimestamp?: number
+    endTimestamp?: number
+    manualSync?: boolean
+  }) {
+    const { userId } = payload
+
+    let integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId, provider: 'garmin' } }
+    })
+
+    if (!integration) {
+      throw new Error(`Garmin integration not found for user ${userId}`)
+    }
+
+    integration = await refreshGarminIntegrationPermissions(integration)
+
+    const now = Math.floor(Date.now() / 1000)
+    let startTimestamp = payload.startTimestamp
+    let endTimestamp = payload.endTimestamp
+
+    if (!startTimestamp && payload.startDate) {
+      startTimestamp = Math.floor(new Date(payload.startDate).getTime() / 1000)
+    }
+    if (!endTimestamp && payload.endDate) {
+      endTimestamp = Math.floor(new Date(payload.endDate).getTime() / 1000)
+    }
+
+    if (!startTimestamp) {
+      endTimestamp = endTimestamp || now - 60
+      startTimestamp = endTimestamp - 86400
+    }
+    if (!endTimestamp) {
+      endTimestamp = now - 60
+    }
+
+    if (endTimestamp > now - 60) {
+      endTimestamp = now - 60
+    }
+
+    const timeSlices = buildGarminTimeSlices(startTimestamp!, endTimestamp)
+
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: { syncStatus: 'SYNCING' }
+    })
+
+    try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const wellnessEnabled = shouldIngestWellness(settings)
+      const workoutsEnabled = shouldIngestActivities('garmin', integration.ingestWorkouts, settings)
+
+      const dailies: Awaited<ReturnType<typeof fetchGarminDailies>> = []
+      const sleeps: Awaited<ReturnType<typeof fetchGarminSleeps>> = []
+      const hrv: Awaited<ReturnType<typeof fetchGarminHRV>> = []
+      const bodyComps: Awaited<ReturnType<typeof fetchGarminBodyComps>> = []
+      const userMetrics: Awaited<ReturnType<typeof fetchGarminUserMetrics>> = []
+      const activities: Awaited<ReturnType<typeof fetchGarminActivities>> = []
+      const results: PromiseSettledResult<unknown>[] = []
+
+      for (const slice of timeSlices) {
+        const sliceResults = await Promise.allSettled([
+          wellnessEnabled
+            ? fetchGarminDailies(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminSleeps(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminHRV(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminBodyComps(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          wellnessEnabled
+            ? fetchGarminUserMetrics(integration, slice.startTimestamp, slice.endTimestamp)
+            : [],
+          workoutsEnabled
+            ? fetchGarminActivities(integration, slice.startTimestamp, slice.endTimestamp)
+            : []
+        ])
+
+        results.push(...sliceResults)
+
+        if (sliceResults[0].status === 'fulfilled')
+          dailies.push(...(sliceResults[0].value as any[]))
+        if (sliceResults[1].status === 'fulfilled') sleeps.push(...(sliceResults[1].value as any[]))
+        if (sliceResults[2].status === 'fulfilled') hrv.push(...(sliceResults[2].value as any[]))
+        if (sliceResults[3].status === 'fulfilled')
+          bodyComps.push(...(sliceResults[3].value as any[]))
+        if (sliceResults[4].status === 'fulfilled')
+          userMetrics.push(...(sliceResults[4].value as any[]))
+        if (sliceResults[5].status === 'fulfilled')
+          activities.push(...(sliceResults[5].value as any[]))
+      }
+
+      if (dailies.length > 0) await GarminService.processWellness(userId, dailies)
+      if (sleeps.length > 0) await GarminService.processSleep(userId, sleeps)
+      if (hrv.length > 0) await GarminService.processHRV(userId, hrv)
+      if (bodyComps.length > 0) await GarminService.processBodyComp(userId, bodyComps)
+      if (userMetrics.length > 0) await GarminService.processUserMetrics(userId, userMetrics)
+      if (activities.length > 0)
+        await GarminService.processActivities(userId, activities, integration)
+
+      if (results.every((r) => r.status === 'rejected')) {
+        const firstFailure = results.find(
+          (r): r is PromiseRejectedResult => r.status === 'rejected'
+        )
+        const failureMessage =
+          firstFailure?.reason instanceof Error
+            ? firstFailure.reason.message
+            : String(firstFailure?.reason || 'All Garmin API requests failed')
+        throw new Error(failureMessage)
+      }
+
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'SUCCESS',
+          lastSyncAt: new Date(),
+          errorMessage: results.some((r) => r.status === 'rejected')
+            ? 'Some data types failed to sync. Check logs for details.'
+            : null
+        }
+      })
+
+      return {
+        success: true,
+        counts: {
+          dailies: dailies.length,
+          sleeps: sleeps.length,
+          hrv: hrv.length,
+          bodyComps: bodyComps.length,
+          userMetrics: userMetrics.length,
+          activities: activities.length
+        }
+      }
+    } catch (error) {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'FAILED',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        }
+      })
+      throw error
+    }
   }
 }
+
+registerTaskHandler('ingest-garmin', (payload) => GarminService.runIngestGarmin(payload))

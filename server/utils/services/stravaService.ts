@@ -1,15 +1,245 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../db'
 import { shouldIngestActivities } from '../integration-settings'
+import { dispatchTask } from '../task-dispatcher'
+import { registerTaskHandler } from '../task-registry'
+import {
+  fetchStravaActivities,
+  fetchStravaActivityDetails,
+  normalizeStravaActivity
+} from '../strava'
+import { workoutRepository } from '../repositories/workoutRepository'
+import { calculateWorkoutStress } from '../calculate-workout-stress'
+import { ingestStravaStreamsForWorkout } from '../../../trigger/utils/strava-stream-ingestion'
+import { linkWorkoutToMatchingPlannedWorkout } from '../planned-workout-linking'
+
+function buildStravaStreamRepairTrigger(userId: string, workoutId: string, activityId: number) {
+  return dispatchTask(
+    'ingest-strava-streams',
+    {
+      userId,
+      workoutId,
+      activityId
+    },
+    {
+      concurrencyKey: userId,
+      tags: [`user:${userId}`]
+    }
+  )
+}
+
+export async function runIngestStrava(payload: {
+  userId: string
+  startDate: string
+  endDate: string
+}) {
+  const { userId, startDate, endDate } = payload
+
+  const stravaEnabled = process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false'
+  if (!stravaEnabled) {
+    return {
+      success: false,
+      message: 'Strava integration is temporarily disabled',
+      counts: {}
+    }
+  }
+
+  const integration = await prisma.integration.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'strava'
+      }
+    }
+  })
+
+  if (!integration) {
+    throw new Error('Strava integration not found for user')
+  }
+
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { syncStatus: 'SYNCING' }
+  })
+
+  let syncSucceeded = false
+  let syncErrorMessage: string | null = null
+
+  try {
+    const settings = (integration.settings as Record<string, any> | null) || {}
+    if (!shouldIngestActivities('strava', integration.ingestWorkouts, settings)) {
+      syncSucceeded = true
+      return {
+        success: true,
+        counts: { workouts: 0 },
+        userId,
+        startDate,
+        endDate
+      }
+    }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    const activities = await fetchStravaActivities(integration, start, end)
+
+    const updatedIntegration = await prisma.integration.findUnique({
+      where: { id: integration.id }
+    })
+
+    if (!updatedIntegration) {
+      throw new Error('Integration not found after activities fetch')
+    }
+
+    let workoutsUpserted = 0
+    let workoutsSkipped = 0
+    let detailsFetched = 0
+    const queuedRepairWorkoutIds = new Set<string>()
+
+    for (const activity of activities) {
+      const activityDate = new Date(activity.start_date)
+      const fiveMinutesBefore = new Date(activityDate.getTime() - 5 * 60 * 1000)
+      const fiveMinutesAfter = new Date(activityDate.getTime() + 5 * 60 * 1000)
+
+      const existingFromIntervals = await prisma.workout.findFirst({
+        where: {
+          userId,
+          source: 'intervals',
+          date: {
+            gte: fiveMinutesBefore,
+            lte: fiveMinutesAfter
+          },
+          durationSec: {
+            gte: activity.moving_time - 30,
+            lte: activity.moving_time + 30
+          }
+        }
+      })
+
+      if (existingFromIntervals) {
+        workoutsSkipped++
+        continue
+      }
+
+      const existingStrava = await workoutRepository.getByExternalId(
+        userId,
+        'strava',
+        String(activity.id)
+      )
+
+      const stravaUpdatedAt = new Date(activity.updated_at || activity.start_date)
+      if (
+        existingStrava &&
+        existingStrava.updatedAt &&
+        existingStrava.updatedAt >= stravaUpdatedAt
+      ) {
+        workoutsSkipped++
+        continue
+      }
+
+      const detailedActivity = await fetchStravaActivityDetails(updatedIntegration, activity.id)
+      detailsFetched++
+
+      const workout = normalizeStravaActivity(detailedActivity, userId)
+
+      const { isNew, record: upsertedWorkout } = await workoutRepository.upsert(
+        userId,
+        'strava',
+        workout.externalId,
+        workout as any,
+        workout as any
+      )
+
+      if (isNew) {
+        workoutsUpserted++
+      }
+
+      try {
+        await linkWorkoutToMatchingPlannedWorkout(upsertedWorkout)
+      } catch {
+        // ignore matching error
+      }
+
+      try {
+        const streamIntegration =
+          (await prisma.integration.findUnique({
+            where: { id: updatedIntegration.id }
+          })) || updatedIntegration
+
+        await ingestStravaStreamsForWorkout({
+          userId,
+          workoutId: upsertedWorkout.id,
+          activityId: activity.id,
+          integration: streamIntegration
+        })
+      } catch {
+        try {
+          await calculateWorkoutStress(upsertedWorkout.id, userId)
+        } catch {
+          // ignore stress calculation error
+        }
+
+        await buildStravaStreamRepairTrigger(userId, upsertedWorkout.id, activity.id)
+        queuedRepairWorkoutIds.add(upsertedWorkout.id)
+      }
+
+      if (detailsFetched % 5 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+
+    const workoutsMissingStreams = await prisma.workout.findMany({
+      where: {
+        userId,
+        source: 'strava',
+        streams: null,
+        streamsV2: null,
+        id: { notIn: Array.from(queuedRepairWorkoutIds) }
+      },
+      orderBy: {
+        date: 'desc'
+      },
+      take: 5
+    })
+
+    if (workoutsMissingStreams.length > 0) {
+      for (const workout of workoutsMissingStreams) {
+        const activityId = parseInt(workout.externalId)
+        if (isNaN(activityId)) continue
+        await buildStravaStreamRepairTrigger(userId, workout.id, activityId)
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      }
+    }
+
+    syncSucceeded = true
+
+    return {
+      success: true,
+      counts: { workouts: workoutsUpserted },
+      skipped: workoutsSkipped,
+      userId,
+      startDate,
+      endDate
+    }
+  } catch (error) {
+    syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
+    throw error
+  } finally {
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
+        lastSyncAt: syncSucceeded ? new Date() : undefined,
+        errorMessage: syncSucceeded ? null : syncErrorMessage
+      }
+    })
+  }
+}
 
 /**
  * Process a webhook event from Strava.
- * This is called by the webhook worker.
  */
 export async function processStravaWebhookEvent(userId: string, type: string, payload: any) {
   const { object_type, object_id, aspect_type, updates } = payload
-
-  console.log(`[StravaService] Processing ${object_type}:${aspect_type} for user ${userId}`)
 
   if (object_type === 'activity') {
     if (aspect_type === 'create' || aspect_type === 'update') {
@@ -34,8 +264,7 @@ export async function processStravaWebhookEvent(userId: string, type: string, pa
         return { handled: true, message: 'Strava activity ingestion disabled' }
       }
 
-      // Trigger single activity ingestion
-      await tasks.trigger(
+      await dispatchTask(
         'ingest-strava-activity',
         {
           userId,
@@ -44,14 +273,11 @@ export async function processStravaWebhookEvent(userId: string, type: string, pa
         },
         {
           concurrencyKey: userId,
-          tags: [`user:${userId}`],
-          idempotencyKey: `strava-activity:${userId}:${object_id}`,
-          idempotencyKeyTTL: '15m'
+          tags: [`user:${userId}`]
         }
       )
       return { handled: true, message: `Triggered ingestion for activity ${object_id}` }
     } else if (aspect_type === 'delete') {
-      // Find and delete the workout from our database
       const workout = await prisma.workout.findUnique({
         where: {
           userId_source_externalId: {
@@ -94,3 +320,6 @@ export async function processStravaWebhookEvent(userId: string, type: string, pa
 
   return { handled: false, message: `Unhandled event type: ${object_type}:${aspect_type}` }
 }
+
+// Register task handler for Redis worker execution
+registerTaskHandler('ingest-strava', runIngestStrava)

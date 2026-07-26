@@ -1,3 +1,4 @@
+import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
 import {
   fetchIntervalsAthleteProfile,
@@ -2041,3 +2042,13 @@ export const IntervalsService = {
     return { handled: true, message: `Processed ${type}` }
   }
 }
+
+registerTaskHandler(
+  'ingest-intervals',
+  (payload: { userId: string; startDate?: string; endDate?: string }) =>
+    IntervalsService.syncUser(
+      payload.userId,
+      payload.startDate ? new Date(payload.startDate) : undefined,
+      payload.endDate ? new Date(payload.endDate) : undefined
+    )
+)

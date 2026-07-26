@@ -13,6 +13,8 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 
+import { registerTaskHandler } from '../server/utils/task-registry'
+
 interface NutritionAnalysis {
   type: string
   title: string
@@ -255,189 +257,195 @@ const nutritionAnalysisSchema = {
   required: ['type', 'title', 'executive_summary', 'data_completeness', 'sections', 'scores']
 }
 
-export const analyzeNutritionTask = task({
-  id: 'analyze-nutrition',
-  maxDuration: 300, // 5 minutes for AI processing
-  queue: userAnalysisQueue,
-  run: async (payload: { nutritionId: string }) => {
-    const { nutritionId } = payload
+export async function runAnalyzeNutrition(payload: { nutritionId: string }) {
+  const { nutritionId } = payload
 
-    logger.log('Starting nutrition analysis', { nutritionId })
+  logger.log('Starting nutrition analysis', { nutritionId })
 
-    try {
-      // Fetch the nutrition record
-      const nutrition = await nutritionRepository.getByIdInternal(nutritionId)
+  try {
+    // Fetch the nutrition record
+    const nutrition = await nutritionRepository.getByIdInternal(nutritionId)
 
-      if (!nutrition) {
-        throw new Error('Nutrition record not found')
-      }
+    if (!nutrition) {
+      throw new Error('Nutrition record not found')
+    }
 
-      const timezone = await getUserTimezone(nutrition.userId)
-      const today = getUserLocalDate(timezone)
+    const timezone = await getUserTimezone(nutrition.userId)
+    const today = getUserLocalDate(timezone)
 
-      // 1. Skip if future date
-      if (nutrition.date > today) {
-        logger.log('Skipping nutrition analysis for future date', {
-          nutritionId,
-          date: nutrition.date,
-          today
-        })
-        await nutritionRepository.updateStatus(nutritionId, 'NOT_STARTED')
-        return { success: true, skipped: true, reason: 'FUTURE_DATE' }
-      }
-
-      // 2. Check for data presence (nutrition, water, notes)
-      const hasNutritionData =
-        (nutrition.calories || 0) > 0 ||
-        (nutrition.waterMl || 0) > 0 ||
-        (nutrition.breakfast && (nutrition.breakfast as any[]).length > 0) ||
-        (nutrition.lunch && (nutrition.lunch as any[]).length > 0) ||
-        (nutrition.dinner && (nutrition.dinner as any[]).length > 0) ||
-        (nutrition.snacks && (nutrition.snacks as any[]).length > 0) ||
-        nutrition.notes
-
-      if (!hasNutritionData) {
-        // Also check for workouts on this day
-        const workoutCount = await prisma.workout.count({
-          where: {
-            userId: nutrition.userId,
-            date: nutrition.date,
-            isDuplicate: false
-          }
-        })
-
-        if (workoutCount === 0) {
-          logger.log('Skipping nutrition analysis for empty day', {
-            nutritionId,
-            date: nutrition.date
-          })
-          // Use a specific status for empty days so they don't keep getting picked up
-          await nutritionRepository.updateStatus(nutritionId, 'SKIPPED_EMPTY')
-          return { success: true, skipped: true, reason: 'EMPTY_DAY' }
-        }
-      }
-
-      // Check Quota
-      try {
-        await checkQuota(nutrition.userId, 'nutrition_analysis')
-      } catch (quotaError: any) {
-        if (quotaError.statusCode === 429) {
-          logger.warn('Nutrition analysis quota exceeded', {
-            userId: nutrition.userId,
-            nutritionId
-          })
-          await nutritionRepository.updateStatus(nutritionId, 'QUOTA_EXCEEDED')
-          return { success: false, reason: 'QUOTA_EXCEEDED' }
-        }
-        throw quotaError
-      }
-
-      // Update nutrition status to PROCESSING
-      await nutritionRepository.updateStatus(nutritionId, 'PROCESSING')
-
-      logger.log('Nutrition data fetched', {
+    // 1. Skip if future date
+    if (nutrition.date > today) {
+      logger.log('Skipping nutrition analysis for future date', {
         nutritionId,
         date: nutrition.date,
-        calories: nutrition.calories
+        today
       })
+      await nutritionRepository.updateStatus(nutritionId, 'NOT_STARTED')
+      return { success: true, skipped: true, reason: 'FUTURE_DATE' }
+    }
 
-      const [user, aiSettings] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: nutrition.userId },
-          select: { language: true }
-        }),
-        getUserAiSettings(nutrition.userId)
-      ])
+    // 2. Check for data presence (nutrition, water, notes)
+    const hasNutritionData =
+      (nutrition.calories || 0) > 0 ||
+      (nutrition.waterMl || 0) > 0 ||
+      (nutrition.breakfast && (nutrition.breakfast as any[]).length > 0) ||
+      (nutrition.lunch && (nutrition.lunch as any[]).length > 0) ||
+      (nutrition.dinner && (nutrition.dinner as any[]).length > 0) ||
+      (nutrition.snacks && (nutrition.snacks as any[]).length > 0) ||
+      nutrition.notes
 
-      // Check if nutrition tracking is disabled
-      if (!aiSettings.nutritionTrackingEnabled) {
-        logger.log('Nutrition tracking is disabled for this user. Skipping analysis.', {
-          nutritionId,
-          userId: nutrition.userId
-        })
-        return {
-          success: true,
-          skipped: true,
-          reason: 'Nutrition tracking disabled'
-        }
-      }
-
-      logger.log('Using AI settings', {
-        model: aiSettings.aiModelPreference,
-        persona: aiSettings.aiPersona
-      })
-
-      // Build comprehensive nutrition data for analysis
-      const nutritionData = buildNutritionAnalysisData(nutrition)
-
-      // Generate the prompt
-      const prompt = buildNutritionAnalysisPrompt(
-        nutritionData,
-        timezone,
-        aiSettings.aiPersona,
-        user?.language || 'English'
-      )
-
-      logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
-
-      // Generate structured JSON analysis
-      const structuredAnalysis = await generateStructuredAnalysis<NutritionAnalysis>(
-        prompt,
-        nutritionAnalysisSchema,
-        aiSettings.aiModelPreference,
-        {
+    if (!hasNutritionData) {
+      // Also check for workouts on this day
+      const workoutCount = await prisma.workout.count({
+        where: {
           userId: nutrition.userId,
-          operation: 'nutrition_analysis',
-          entityType: 'Nutrition',
-          entityId: nutrition.id
+          date: nutrition.date,
+          isDuplicate: false
         }
-      )
-
-      // Also generate markdown for fallback/export
-      const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis)
-
-      logger.log('Analysis generated successfully', {
-        sections: structuredAnalysis.sections?.length || 0,
-        recommendations: structuredAnalysis.recommendations?.length || 0,
-        completeness: structuredAnalysis.data_completeness?.status,
-        scores: structuredAnalysis.scores
       })
 
-      // Save both formats to the database, including scores and explanations
-      await nutritionRepository.update(nutritionId, {
-        aiAnalysis: markdownAnalysis,
-        aiAnalysisJson: structuredAnalysis as any,
-        aiAnalysisStatus: 'COMPLETED',
-        aiAnalyzedAt: new Date(),
-        // Store scores for easy querying and tracking
-        overallScore: structuredAnalysis.scores?.overall,
-        macroBalanceScore: structuredAnalysis.scores?.macro_balance,
-        qualityScore: structuredAnalysis.scores?.quality,
-        adherenceScore: structuredAnalysis.scores?.adherence,
-        hydrationScore: structuredAnalysis.scores?.hydration,
-        // Store explanations for user guidance
-        nutritionalBalanceExplanation: structuredAnalysis.scores?.overall_explanation,
-        calorieAdherenceExplanation: structuredAnalysis.scores?.adherence_explanation,
-        macroDistributionExplanation: structuredAnalysis.scores?.macro_balance_explanation,
-        hydrationStatusExplanation: structuredAnalysis.scores?.hydration_explanation,
-        timingOptimizationExplanation: structuredAnalysis.scores?.quality_explanation
+      if (workoutCount === 0) {
+        logger.log('Skipping nutrition analysis for empty day', {
+          nutritionId,
+          date: nutrition.date
+        })
+        // Use a specific status for empty days so they don't keep getting picked up
+        await nutritionRepository.updateStatus(nutritionId, 'SKIPPED_EMPTY')
+        return { success: true, skipped: true, reason: 'EMPTY_DAY' }
+      }
+    }
+
+    // Check Quota
+    try {
+      await checkQuota(nutrition.userId, 'nutrition_analysis')
+    } catch (quotaError: any) {
+      if (quotaError.statusCode === 429) {
+        logger.warn('Nutrition analysis quota exceeded', {
+          userId: nutrition.userId,
+          nutritionId
+        })
+        await nutritionRepository.updateStatus(nutritionId, 'QUOTA_EXCEEDED')
+        return { success: false, reason: 'QUOTA_EXCEEDED' }
+      }
+      throw quotaError
+    }
+
+    // Update nutrition status to PROCESSING
+    await nutritionRepository.updateStatus(nutritionId, 'PROCESSING')
+
+    logger.log('Nutrition data fetched', {
+      nutritionId,
+      date: nutrition.date,
+      calories: nutrition.calories
+    })
+
+    const [user, aiSettings] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: nutrition.userId },
+        select: { language: true }
+      }),
+      getUserAiSettings(nutrition.userId)
+    ])
+
+    // Check if nutrition tracking is disabled
+    if (!aiSettings.nutritionTrackingEnabled) {
+      logger.log('Nutrition tracking is disabled for this user. Skipping analysis.', {
+        nutritionId,
+        userId: nutrition.userId
       })
-
-      logger.log('Analysis saved to database')
-
       return {
         success: true,
-        nutritionId,
-        analysisLength: markdownAnalysis.length,
-        sectionsCount: structuredAnalysis.sections?.length || 0
+        skipped: true,
+        reason: 'Nutrition tracking disabled'
       }
-    } catch (error) {
-      logger.error('Error generating nutrition analysis', { error })
-
-      await nutritionRepository.updateStatus(nutritionId, 'FAILED')
-
-      throw error
     }
+
+    logger.log('Using AI settings', {
+      model: aiSettings.aiModelPreference,
+      persona: aiSettings.aiPersona
+    })
+
+    // Build comprehensive nutrition data for analysis
+    const nutritionData = buildNutritionAnalysisData(nutrition)
+
+    // Generate the prompt
+    const prompt = buildNutritionAnalysisPrompt(
+      nutritionData,
+      timezone,
+      aiSettings.aiPersona,
+      user?.language || 'English'
+    )
+
+    logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
+
+    // Generate structured JSON analysis
+    const structuredAnalysis = await generateStructuredAnalysis<NutritionAnalysis>(
+      prompt,
+      nutritionAnalysisSchema,
+      aiSettings.aiModelPreference,
+      {
+        userId: nutrition.userId,
+        operation: 'nutrition_analysis',
+        entityType: 'Nutrition',
+        entityId: nutrition.id
+      }
+    )
+
+    // Also generate markdown for fallback/export
+    const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis)
+
+    logger.log('Analysis generated successfully', {
+      sections: structuredAnalysis.sections?.length || 0,
+      recommendations: structuredAnalysis.recommendations?.length || 0,
+      completeness: structuredAnalysis.data_completeness?.status,
+      scores: structuredAnalysis.scores
+    })
+
+    // Save both formats to the database, including scores and explanations
+    await nutritionRepository.update(nutritionId, {
+      aiAnalysis: markdownAnalysis,
+      aiAnalysisJson: structuredAnalysis as any,
+      aiAnalysisStatus: 'COMPLETED',
+      aiAnalyzedAt: new Date(),
+      // Store scores for easy querying and tracking
+      overallScore: structuredAnalysis.scores?.overall,
+      macroBalanceScore: structuredAnalysis.scores?.macro_balance,
+      qualityScore: structuredAnalysis.scores?.quality,
+      adherenceScore: structuredAnalysis.scores?.adherence,
+      hydrationScore: structuredAnalysis.scores?.hydration,
+      // Store explanations for user guidance
+      nutritionalBalanceExplanation: structuredAnalysis.scores?.overall_explanation,
+      calorieAdherenceExplanation: structuredAnalysis.scores?.adherence_explanation,
+      macroDistributionExplanation: structuredAnalysis.scores?.macro_balance_explanation,
+      hydrationStatusExplanation: structuredAnalysis.scores?.hydration_explanation,
+      timingOptimizationExplanation: structuredAnalysis.scores?.quality_explanation
+    })
+
+    logger.log('Analysis saved to database')
+
+    return {
+      success: true,
+      nutritionId,
+      analysisLength: markdownAnalysis.length,
+      sectionsCount: structuredAnalysis.sections?.length || 0
+    }
+  } catch (error) {
+    logger.error('Error analyzing nutrition', { error, nutritionId })
+
+    await nutritionRepository.updateStatus(nutritionId, 'FAILED')
+
+    throw error
+  }
+}
+
+registerTaskHandler('analyze-nutrition', runAnalyzeNutrition)
+
+export const analyzeNutritionTask = task({
+  id: 'analyze-nutrition',
+  maxDuration: 300,
+  queue: userAnalysisQueue,
+  run: async (payload: { nutritionId: string }) => {
+    return runAnalyzeNutrition(payload)
   }
 })
 
