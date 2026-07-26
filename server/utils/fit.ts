@@ -36,9 +36,13 @@ export function parseFitFile(buffer: Buffer): Promise<FitData> {
       mode: 'list'
     })
 
-    fitParser.parse(buffer as any, (error: any, data: any) => {
+    const cleanBuffer = Buffer.isBuffer(buffer)
+      ? buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+      : buffer
+
+    fitParser.parse(cleanBuffer as any, (error: any, data: any) => {
       if (error) {
-        reject(error)
+        reject(typeof error === 'string' ? new Error(error) : error)
       } else {
         resolve(data)
       }

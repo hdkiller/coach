@@ -1,0 +1,33 @@
+{
+  "description": "Mocked adjusted structured workout plan for Zone 3 tempo",
+  "coachInstructions": "Increase power slightly during main interval sets.",
+  "steps": [
+    {
+      "type": "Warmup",
+      "name": "Warmup",
+      "durationSeconds": 300,
+      "target": {
+        "metric": "power",
+        "value": 55
+      }
+    },
+    {
+      "type": "Active",
+      "name": "Tempo Effort",
+      "durationSeconds": 2100,
+      "target": {
+        "metric": "power",
+        "value": 85
+      }
+    },
+    {
+      "type": "Cooldown",
+      "name": "Cooldown",
+      "durationSeconds": 300,
+      "target": {
+        "metric": "power",
+        "value": 50
+      }
+    }
+  ]
+}

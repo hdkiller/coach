@@ -1,0 +1,10 @@
+{
+  "overallScore": 90,
+  "intensityScore": 88,
+  "durationScore": 95,
+  "executionScore": 90,
+  "cadenceScore": 85,
+  "summary": "Mocked adherence analysis: excellent compliance with target zones.",
+  "deviations": [],
+  "recommendations": ["Keep maintaining steady power."]
+}

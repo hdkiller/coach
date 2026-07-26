@@ -5,7 +5,7 @@ import {
   ensureTaskHandlersRegistered,
   getLoadedTaskDefinitions
 } from '../../../../cli/worker/task-handler-loader'
-import taskManifest from '../../../../server/utils/task-manifest.json'
+import taskManifest from '../../../../server/utils/task-manifest.json' with { type: 'json' }
 import {
   executeRegisteredTask,
   getRegisteredTaskIds,

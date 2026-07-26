@@ -1,0 +1,23 @@
+{
+  "weeks": [
+    {
+      "weekNumber": 1,
+      "focus_key": "AEROBIC_ENDURANCE",
+      "focus_label": "Aerobic Base",
+      "explanation": "Build solid base fitness.",
+      "volumeTargetMinutes": 300,
+      "workouts": [
+        {
+          "dayOfWeek": 1,
+          "title": "Monday Zone 2 Ride",
+          "description": "60 min easy Zone 2 spin",
+          "type": "Ride",
+          "durationMinutes": 60,
+          "targetTss": 45,
+          "intensity": "Endurance",
+          "structured": true
+        }
+      ]
+    }
+  ]
+}

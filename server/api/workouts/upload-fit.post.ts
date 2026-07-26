@@ -112,6 +112,7 @@ export default defineEventHandler(async (event) => {
       state: 'queued' | 'stored' | 'failed'
       fitFileId?: string
       workoutId?: string
+      jobId?: string
     }>
   }
 
@@ -225,7 +226,7 @@ export default defineEventHandler(async (event) => {
       const fitFileId = fitFile.id
 
       // Trigger ingestion task
-      await dispatchTask(
+      const taskRun = await dispatchTask(
         'ingest-fit-file',
         {
           userId: user.id,
@@ -242,7 +243,7 @@ export default defineEventHandler(async (event) => {
       )
 
       results.processed++
-      results.items.push({ filename, state: 'queued', fitFileId })
+      results.items.push({ filename, state: 'queued', fitFileId, jobId: taskRun.id })
     } catch (error: any) {
       results.failed++
       results.errors.push(`${filePart.filename}: ${error.message}`)

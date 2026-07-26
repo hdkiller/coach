@@ -1,0 +1,11 @@
+{
+  "title": "Mock Ad-Hoc Endurance Ride",
+  "description": "Mocked 60 minute endurance ride for E2E testing.",
+  "type": "Ride",
+  "durationMinutes": 60,
+  "targetTss": 50,
+  "intensity": "Endurance",
+  "objective": "Build aerobic base fitness.",
+  "executionCues": ["Keep cadence steady", "Stay in Zone 2", "Stay hydrated"],
+  "reasoningText": "Mocked reasoning for ad-hoc workout generation."
+}

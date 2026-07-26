@@ -4,7 +4,7 @@ import type { Job, JobsOptions } from 'bullmq'
 import { mainTaskQueue } from './queue'
 import { executeRegisteredTask, getCurrentTaskExecution, hasTaskHandler } from './task-registry'
 import { isRunFresh, safeTriggerTask } from './trigger-check'
-import taskManifest from './task-manifest.json'
+import taskManifest from './task-manifest.json' with { type: 'json' }
 
 export type TaskQueueDriver = 'trigger' | 'redis' | 'inline'
 
