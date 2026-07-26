@@ -8,10 +8,10 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-gray-950" :style="{ '--header-height': headerHeight }">
+  <div class="min-h-screen bg-[oklch(12%_0.015_155)] text-gray-100" :style="{ '--header-height': headerHeight }">
     <!-- Header -->
     <header
-      class="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md"
+      class="sticky top-0 z-50 w-full border-b border-white/8 bg-[oklch(12%_0.015_155)]/90 backdrop-blur-md"
     >
       <UContainer class="h-[--header-height] flex items-center justify-between gap-4">
         <div class="flex items-center gap-4">
