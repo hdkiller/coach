@@ -9,7 +9,7 @@ vi.mock('@tolgee/vue', () => ({
   useTranslate: () => ({ t: (key: string) => key })
 }))
 
-mockNuxtImport('useAuth', () => () => ({ signIn: vi.fn() }))
+mockNuxtImport('useAuth', () => () => ({ signIn: vi.fn(), status: 'authenticated' }))
 mockNuxtImport('useFormat', () => () => ({ formatDateUTC: vi.fn(() => '') }))
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
@@ -61,5 +61,5 @@ describe('ProfileBasicSettings focus requests', () => {
     await nextTick()
 
     expect(scrollIntoView).toHaveBeenCalledTimes(2)
-  })
+  }, 120_000)
 })

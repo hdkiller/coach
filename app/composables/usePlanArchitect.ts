@@ -178,8 +178,10 @@ export function usePlanArchitect(planId: string) {
 
   // Logic Helpers
   function normalizePlan(plan: any) {
+    const raw = toRaw(plan)
     return {
-      ...structuredClone(plan),
+      ...structuredClone(raw),
+
       coachNotes: plan.coachNotes || '',
       athleteNotes: plan.athleteNotes || '',
       strategy: plan.strategy || 'LINEAR',

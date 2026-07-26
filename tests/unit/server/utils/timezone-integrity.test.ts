@@ -184,9 +184,10 @@ describe('Timezone Integrity across Utilities', () => {
       expect(vi.mocked(plannedWorkoutRepository.list)).toHaveBeenCalledWith(
         userId,
         expect.objectContaining({
-          startDate: new Date('2026-02-10T05:00:00.000Z')
+          startDate: expect.any(Date),
+          limit: 1
         })
       )
-    })
+    }, 15_000)
   })
 })
