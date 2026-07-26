@@ -1,19 +1,29 @@
 import { getE2eBaseUrl } from './app.ts'
 
-export async function mintE2eAccessToken(options?: {
-  email?: string
-  scopes?: string[]
-  clientId?: string
-  baseUrl?: string
-}) {
-  const baseUrl = (options?.baseUrl ?? getE2eBaseUrl()).replace(/\/$/, '')
+export async function mintE2eAccessToken(
+  optionsOrEmail?:
+    | string
+    | {
+        email?: string
+        scopes?: string[]
+        clientId?: string
+        baseUrl?: string
+      },
+  clientIdParam?: string
+) {
+  const opts =
+    typeof optionsOrEmail === 'string'
+      ? { email: optionsOrEmail, clientId: clientIdParam }
+      : optionsOrEmail
+
+  const baseUrl = (opts?.baseUrl ?? getE2eBaseUrl()).replace(/\/$/, '')
   const response = await fetch(`${baseUrl}/api/__e2e/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      email: options?.email ?? process.env.E2E_TEST_USER_EMAIL,
-      scopes: options?.scopes,
-      clientId: options?.clientId ?? process.env.E2E_MOBILE_CLIENT_ID
+      email: opts?.email ?? process.env.E2E_TEST_USER_EMAIL,
+      scopes: opts?.scopes,
+      clientId: opts?.clientId ?? process.env.E2E_MOBILE_CLIENT_ID
     })
   })
 

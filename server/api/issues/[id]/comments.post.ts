@@ -1,14 +1,11 @@
 import { z } from 'zod'
-import { getServerSession } from '../../../utils/session'
+import { requireAuth } from '../../../utils/auth-guard'
 import { issuesRepository } from '../../../utils/repositories/issuesRepository'
 import { getZodErrorMessage, issueCommentSchema } from '../../../utils/issues/commentValidation'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
-  const userId = session.user.id
+  const user = await requireAuth(event, ['issue:write'])
+  const userId = user.id
 
   const id = getRouterParam(event, 'id')
   if (!id) {

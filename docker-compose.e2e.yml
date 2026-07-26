@@ -79,7 +79,9 @@ services:
       INTERVALS_CLIENT_ID: e2e-placeholder
       INTERVALS_CLIENT_SECRET: e2e-placeholder
       STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      NUXT_STRIPE_SECRET_KEY: sk_test_e2e_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
+      NUXT_STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy
@@ -116,7 +118,9 @@ services:
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
       NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'
       STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      NUXT_STRIPE_SECRET_KEY: sk_test_e2e_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
+      NUXT_STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy

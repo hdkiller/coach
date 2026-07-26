@@ -15,6 +15,16 @@ export const E2E_DEFAULT_SCOPES = [
   'recommendation:read',
   'chat:read',
   'chat:write',
+  'goal:read',
+  'goal:write',
+  'issue:read',
+  'issue:write',
+  'analytics:read',
+  'analytics:write',
+  'developer:read',
+  'developer:write',
+  'subscription:read',
+  'subscription:write',
   'offline_access'
 ] as const
 
