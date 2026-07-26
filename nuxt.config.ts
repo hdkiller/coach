@@ -182,7 +182,12 @@ export default defineNuxtConfig({
   // `enabled` on the build-time env installed mocks forever and killed tracking.
   gtag: {
     enabled: true,
-    id: process.env.NUXT_PUBLIC_GTAG_ID || ''
+    id: process.env.NUXT_PUBLIC_GTAG_ID || '',
+    tags: [
+      ...(process.env.NUXT_PUBLIC_GA_MEASUREMENT_ID
+        ? [process.env.NUXT_PUBLIC_GA_MEASUREMENT_ID]
+        : ['G-M3CJW4RW5S'])
+    ]
   },
 
   vueEmail: {

@@ -50,6 +50,24 @@ describe('recordAccountCreated', () => {
       })
     )
   })
+
+  it('uses G- measurement ID fallback for MP call when GTAG_ID is GTM', async () => {
+    vi.stubEnv('NUXT_PUBLIC_GTAG_ID', 'GTM-WVHG7LMQ')
+    vi.stubEnv('NUXT_GA_MEASUREMENT_API_SECRET', 'test_secret')
+    auditLogFindFirst.mockResolvedValueOnce(null)
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const { recordAccountCreated } = await import('../../../../server/utils/product-analytics')
+    const result = await recordAccountCreated('user-2', 'google')
+
+    expect(result.ga4ServerSent).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('measurement_id=G-M3CJW4RW5S'),
+      expect.anything()
+    )
+  })
 })
 
 describe('claimAccountCreatedForClient', () => {

@@ -20,7 +20,11 @@ export async function sendGa4MeasurementEvent(options: {
   eventName: string
   params?: Record<string, string | number | boolean>
 }) {
-  const measurementId = process.env.NUXT_PUBLIC_GTAG_ID
+  const measurementId =
+    process.env.NUXT_PUBLIC_GA_MEASUREMENT_ID ||
+    (process.env.NUXT_PUBLIC_GTAG_ID?.startsWith('G-')
+      ? process.env.NUXT_PUBLIC_GTAG_ID
+      : 'G-M3CJW4RW5S')
   const apiSecret = process.env.NUXT_GA_MEASUREMENT_API_SECRET
 
   if (!measurementId || !apiSecret) {
