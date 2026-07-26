@@ -67,6 +67,7 @@
   const yTicks = computed(() => thinLabels([...(props.data?.yLabels || [])].reverse()))
 
   function renderHeatmap() {
+    if (import.meta.server) return
     const canvas = canvasRef.value
     const container = containerRef.value
     if (!canvas || !container || !props.data?.matrix) return
