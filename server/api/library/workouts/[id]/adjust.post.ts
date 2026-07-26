@@ -1,4 +1,3 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { z } from 'zod/v3'
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
@@ -8,6 +7,7 @@ import {
   parseLibraryScope
 } from '../../../../utils/library-access'
 import { structureGenerationRunTags } from '../../../../utils/trigger-run-tags'
+import { dispatchTask } from '../../../../utils/task-dispatcher'
 
 const adjustSchema = z.object({
   durationMinutes: z.number().optional(),
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     workoutTemplateId: template.id,
     source: 'library'
   })
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'adjust-structured-workout',
     {
       workoutTemplateId: template.id,

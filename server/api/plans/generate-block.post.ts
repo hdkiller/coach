@@ -1,8 +1,8 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { requireAuth } from '../../utils/auth-guard'
 import { trainingBlockRepository } from '../../utils/repositories/trainingBlockRepository'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const authUser = await requireAuth(event, ['plan:write'])
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Block not found' })
   }
 
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-training-block',
     {
       userId,

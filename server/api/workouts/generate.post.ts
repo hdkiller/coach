@@ -1,7 +1,7 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { checkQuota } from '../../utils/quotas/engine'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
 
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-ad-hoc-workout',
     {
       userId,

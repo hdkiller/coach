@@ -6,7 +6,15 @@ const registry = new Map<string, TaskHandler>()
  * Registers a task handler function for execution by BullMQ workers or fallback drivers.
  */
 export function registerTaskHandler<T = any>(taskId: string, handler: TaskHandler<T>): void {
+  const existing = registry.get(taskId)
+  if (existing && existing !== handler) {
+    throw new Error(`[TaskRegistry] Duplicate handler registered for task: ${taskId}`)
+  }
   registry.set(taskId, handler)
+}
+
+export function getRegisteredTaskIds(): string[] {
+  return Array.from(registry.keys()).sort()
 }
 
 /**

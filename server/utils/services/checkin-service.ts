@@ -265,13 +265,26 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
         }
       }),
 
-      prisma.athleteProfile.findUnique({
-        where: { userId }
+      prisma.report.findFirst({
+        where: {
+          userId,
+          type: 'ATHLETE_PROFILE',
+          status: 'COMPLETED'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { analysisJson: true, createdAt: true }
       }),
 
-      prisma.userGoal.findMany({
-        where: { userId, isCompleted: false },
-        orderBy: [{ targetDate: 'asc' }, { createdAt: 'desc' }]
+      prisma.goal.findMany({
+        where: { userId, status: 'ACTIVE' },
+        orderBy: [{ targetDate: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          title: true,
+          type: true,
+          targetDate: true,
+          eventDate: true,
+          priority: true
+        }
       }),
 
       getCurrentFitnessSummary(userId),
@@ -296,19 +309,25 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
 
       prisma.trainingPlan.findFirst({
         where: { userId, status: 'ACTIVE' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          recoveryRhythm: true,
           blocks: {
-            orderBy: { weekNumber: 'asc' },
-            include: {
-              plannedWorkouts: {
-                orderBy: { dayOfWeek: 'asc' }
-              }
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              primaryFocus: true,
+              durationWeeks: true
             }
           }
         }
       }),
 
-      prisma.calendarEvent.findMany({
+      prisma.event.findMany({
         where: {
           userId,
           date: {
@@ -322,11 +341,24 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
       prisma.calendarNote.findMany({
         where: {
           userId,
-          date: {
-            lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-          }
+          AND: [
+            { startDate: { lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) } },
+            {
+              OR: [{ endDate: null }, { endDate: { gte: today } }]
+            }
+          ]
         },
-        orderBy: { date: 'asc' }
+        orderBy: { startDate: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          startDate: true,
+          endDate: true,
+          source: true,
+          rawJson: true
+        }
       }),
 
       prisma.athleteJourneyEvent.findMany({
@@ -341,13 +373,21 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
       })
     ])
 
-    const activeGoals = filterGoalsForContext(rawActiveGoals, today)
+    const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
     const activeNotes = calendarNotes.filter((note) => {
+      if (note.startDate > today) return false
       const displayEndDate = getCalendarNoteDisplayEndDate(note)
-      return note.date <= today && displayEndDate >= today
+      if (!displayEndDate) return note.startDate <= today
+      return displayEndDate >= today
     })
 
-    const pmcProjections = calculateProjectedPMC(currentFitness, futureWorkouts)
+    const projectedMetrics = calculateProjectedPMC(
+      today,
+      new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000),
+      currentFitness.ctl,
+      currentFitness.atl,
+      futureWorkouts.map((w) => ({ date: w.date, tss: w.tss }))
+    )
 
     let prompt = `You are Coach Watts generating a Daily Check-in for an athlete.
 
@@ -363,8 +403,15 @@ ATHLETE CONTEXT:
     if (user?.height) prompt += `- Height: ${formatPromptHeight(user.height, user.heightUnits)}\n`
     if (user?.ftp) prompt += `- FTP: ${user.ftp} W\n`
 
-    if (athleteProfile?.summary) {
-      prompt += `\nATHLETE PROFILE SUMMARY:\n${athleteProfile.summary}\n`
+    if (athleteProfile?.analysisJson) {
+      const profile = athleteProfile.analysisJson as any
+      const summary =
+        profile?.planning_context?.current_focus ||
+        profile?.training_characteristics?.training_style ||
+        profile?.summary
+      if (summary) {
+        prompt += `\nATHLETE PROFILE SUMMARY:\n${summary}\n`
+      }
     }
 
     if (activeGoals.length > 0) {
@@ -373,18 +420,19 @@ ATHLETE CONTEXT:
         const targetStr = g.targetDate
           ? formatDateUTC(g.targetDate, 'yyyy-MM-dd')
           : 'No target date'
-        prompt += `- [${g.category}] ${g.title} (Target: ${targetStr})\n`
+        prompt += `- [${g.type}] ${g.title} (Target: ${targetStr})\n`
       })
     }
 
     if (activeNotes.length > 0) {
       prompt += `\nACTIVE CALENDAR NOTES / CONTEXT:\n`
       activeNotes.forEach((n) => {
-        const noteDateStr = formatDateUTC(n.date, 'yyyy-MM-dd')
-        const noteEndDateStr = formatDateUTC(getCalendarNoteDisplayEndDate(n), 'yyyy-MM-dd')
+        const noteDateStr = formatDateUTC(n.startDate, 'yyyy-MM-dd')
+        const displayEnd = getCalendarNoteDisplayEndDate(n)
+        const noteEndDateStr = displayEnd ? formatDateUTC(displayEnd, 'yyyy-MM-dd') : noteDateStr
         const rangeStr =
           noteDateStr === noteEndDateStr ? noteDateStr : `${noteDateStr} to ${noteEndDateStr}`
-        prompt += `- [${n.category}] ${n.title} (${rangeStr}): ${n.content}\n`
+        prompt += `- [${n.category}] ${n.title} (${rangeStr}): ${n.description || 'No details'}\n`
       })
     }
 
@@ -392,7 +440,7 @@ ATHLETE CONTEXT:
       prompt += `\nRECENT JOURNEY EVENTS & INJURY/ILLNESS LOGS:\n`
       journeyEvents.forEach((e) => {
         const dateStr = formatDateUTC(e.timestamp, 'yyyy-MM-dd')
-        prompt += `- [${dateStr}] [${e.category}] ${e.title} (Severity: ${e.severity}/5): ${e.description || 'No details'}\n`
+        prompt += `- [${dateStr}] [${e.category}] ${e.eventType} (Severity: ${e.severity}/5): ${e.description || 'No details'}\n`
       })
     }
 
@@ -402,8 +450,7 @@ ATHLETE CONTEXT:
       if (todayMetric.sleepScore) prompt += `- Sleep Score: ${todayMetric.sleepScore}/100\n`
       if (todayMetric.sleepHours) prompt += `- Sleep Duration: ${todayMetric.sleepHours} hours\n`
       if (todayMetric.hrv) prompt += `- HRV: ${todayMetric.hrv} ms\n`
-      if (todayMetric.readinessScore)
-        prompt += `- Readiness Score: ${todayMetric.readinessScore}/100\n`
+      if (todayMetric.readiness) prompt += `- Readiness Score: ${todayMetric.readiness}/10\n`
       if (todayMetric.soreness)
         prompt += `- Muscle Soreness: ${getSorenessLabel(todayMetric.soreness)}\n`
       if (todayMetric.fatigue) prompt += `- Fatigue: ${getFatigueLabel(todayMetric.fatigue)}\n`
@@ -417,23 +464,44 @@ ATHLETE CONTEXT:
     if (plannedWorkout) {
       prompt += `\nPLANNED WORKOUT FOR TODAY:\n`
       prompt += `- Title: ${plannedWorkout.title}\n`
-      prompt += `- Type: ${plannedWorkout.activityType}\n`
+      prompt += `- Type: ${plannedWorkout.type}\n`
       if (plannedWorkout.description) prompt += `- Description: ${plannedWorkout.description}\n`
+    }
+
+    if (currentPlan) {
+      prompt += `\nACTIVE TRAINING PLAN:\n- Name: ${currentPlan.name || 'Untitled'}\n`
+      if (currentPlan.blocks?.length) {
+        prompt += `- Blocks: ${currentPlan.blocks.map((b) => `${b.name} (${b.type})`).join(', ')}\n`
+      }
+    }
+
+    if (upcomingEvents.length > 0) {
+      prompt += `\nUPCOMING EVENTS:\n`
+      upcomingEvents.forEach((e) => {
+        prompt += `- ${formatDateUTC(e.date, 'yyyy-MM-dd')}: ${e.title}${e.type ? ` [${e.type}]` : ''}\n`
+      })
     }
 
     if (pastCheckins) {
       prompt += `\nRECENT CHECK-IN HISTORY (PAST 7 DAYS):\n${pastCheckins}\n`
     }
 
+    if (recentWorkouts.length > 0) {
+      prompt += `\nRECENT COMPLETED WORKOUTS:\n`
+      recentWorkouts.slice(0, 5).forEach((w: any) => {
+        prompt += `- ${formatDateUTC(w.date, 'yyyy-MM-dd')}: ${w.title || w.type} (TSS ${w.tss ?? 'n/a'})\n`
+      })
+    }
+
+    if (projectedMetrics.length > 0) {
+      const last = projectedMetrics[projectedMetrics.length - 1]!
+      prompt += `\nPROJECTED FITNESS (7d): CTL ${Math.round(last.ctl)}, ATL ${Math.round(last.atl)}, TSB ${Math.round(last.tsb)}\n`
+    }
+
     prompt += `
 ${ATHLETE_AUTONOMY_PROMPT_BLOCK}
 
-${buildCalendarSourceOfTruthPrompt({
-  today,
-  plannedWorkouts: plannedWorkout ? [plannedWorkout] : [],
-  upcomingEvents,
-  activeNotes
-})}
+${buildCalendarSourceOfTruthPrompt(plannedWorkout ? [plannedWorkout] : [])}
 
 Generate 3 to 5 YES/NO questions to assess athlete readiness.`
 

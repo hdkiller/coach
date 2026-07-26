@@ -2,7 +2,7 @@ import { trainingPlanRepository } from '../../../utils/repositories/trainingPlan
 import { trainingBlockRepository } from '../../../utils/repositories/trainingBlockRepository'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
 import { requireAuth } from '../../../utils/auth-guard'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../../utils/task-dispatcher'
 import { getUserTimezone, getUserLocalDate, getStartOfDayUTC } from '../../../utils/date'
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 import { buildTemplateStructureWriteData } from '../../../utils/canonical-planned-workout-write'
@@ -191,7 +191,7 @@ export default defineEventHandler(async (event) => {
   if (plan.blocks.length > 0 && !plan.isTemplate) {
     for (let i = 0; i < plan.blocks.length; i++) {
       const block = plan.blocks[i]!
-      await tasks.trigger(
+      await dispatchTask(
         'generate-training-block',
         {
           userId,

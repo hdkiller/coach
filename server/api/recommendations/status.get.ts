@@ -1,5 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { isTaskRunning, isRunIdRunning } from '../../utils/trigger-check'
+import { getTaskStatus, isTaskRunningForUser } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -41,15 +41,15 @@ export default defineEventHandler(async (event) => {
   const jobId = query.jobId as string
 
   if (jobId) {
-    const isRunning = await isRunIdRunning(jobId)
+    const status = await getTaskStatus('recommend-today-activity', jobId, user.id)
     return {
-      isRunning,
-      task: isRunning ? 'recommendation' : null
+      isRunning: status.isRunning,
+      task: status.isRunning ? 'recommendation' : null
     }
   }
 
   // Check analysis task first (since it runs first in the chain)
-  const isAnalysisRunning = await isTaskRunning('generate-score-explanations', user.id)
+  const isAnalysisRunning = await isTaskRunningForUser('generate-score-explanations', user.id)
   if (isAnalysisRunning) {
     return {
       isRunning: true,
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check recommendation task
-  const isRecommendationRunning = await isTaskRunning('generate-recommendations', user.id)
+  const isRecommendationRunning = await isTaskRunningForUser('generate-recommendations', user.id)
   if (isRecommendationRunning) {
     return {
       isRunning: true,

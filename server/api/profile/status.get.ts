@@ -1,5 +1,5 @@
-import { getServerSession } from '../../utils/session'
-import { isRunIdRunning } from '../../utils/trigger-check'
+import { requireAuth } from '../../utils/auth-guard'
+import { getTaskStatus } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -34,22 +34,15 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['profile:read'])
 
   const query = getQuery(event)
   const jobId = query.jobId as string
 
   if (jobId) {
-    const isRunning = await isRunIdRunning(jobId)
+    const status = await getTaskStatus('generate-athlete-profile', jobId, user.id)
     return {
-      isRunning
+      isRunning: status.isRunning
     }
   }
 

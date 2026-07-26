@@ -1,11 +1,13 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server/utils/date'
 import { userReportsQueue } from './queues'
+import { dispatchTask } from '../server/utils/task-dispatcher'
+import { registerTaskHandler } from '../server/utils/task-registry'
 
 interface TrendAnalysisSection {
   executive_summary: string
@@ -319,187 +321,193 @@ async function calculateWorkoutSummary(userId: string, period: number, timezone:
   }
 }
 
+type GenerateScoreExplanationsPayload = { userId: string; force?: boolean }
+
+export async function runGenerateScoreExplanations(payload: GenerateScoreExplanationsPayload) {
+  const { userId, force } = payload
+
+  logger.log('='.repeat(60))
+  logger.log('🎯 GENERATING SCORE EXPLANATIONS (BATCHED)')
+  logger.log('='.repeat(60))
+  logger.log(`User ID: ${userId}`)
+
+  const timezone = await getUserTimezone(userId)
+  const results = { generated: 0, skipped: 0, failed: 0, details: [] as any[] }
+  const expiresAt = new Date()
+  expiresAt.setHours(expiresAt.getHours() + EXPIRATION_HOURS)
+
+  // --- NUTRITION ---
+  logger.log('\n📊 Processing Nutrition...')
+  for (const period of PERIODS) {
+    const summary = await calculateNutritionSummary(userId, period, timezone)
+    if (!summary) {
+      logger.log(`  ⏭️  Skipping ${period}d - no data`)
+      results.skipped += NUTRITION_METRICS.length
+      continue
+    }
+
+    // Check if ALL metrics for this period are already valid
+    // Optimization: If we have valid caches for all, skip the batch call
+    if (!force) {
+      const existingCount = await prisma.scoreTrendExplanation.count({
+        where: {
+          userId,
+          type: 'nutrition',
+          period,
+          expiresAt: { gt: new Date() }
+        }
+      })
+      if (existingCount === NUTRITION_METRICS.length) {
+        logger.log(`  ⏭️  ${period}d Nutrition - all cached`)
+        results.skipped += NUTRITION_METRICS.length
+        continue
+      }
+    }
+
+    logger.log(`  🔄 Generating ${period}d Nutrition Batch...`)
+    try {
+      const { analysis, usageId } = await generateUnifiedNutritionAnalysis(
+        userId,
+        period,
+        summary,
+        timezone
+      )
+
+      // Save results
+      for (const metric of NUTRITION_METRICS) {
+        if (!analysis[metric]) continue
+
+        const score = summary[
+          `avg${metric.charAt(0).toUpperCase() + metric.slice(1)}` as keyof typeof summary
+        ] as number
+
+        const explanation = await prisma.scoreTrendExplanation.upsert({
+          where: {
+            userId_type_period_metric: { userId, type: 'nutrition', period, metric }
+          },
+          create: {
+            userId,
+            type: 'nutrition',
+            period,
+            metric,
+            score,
+            analysisData: analysis[metric] as any,
+            expiresAt,
+            llmUsageId: usageId
+          },
+          update: {
+            score,
+            analysisData: analysis[metric] as any,
+            generatedAt: new Date(),
+            expiresAt,
+            llmUsageId: usageId
+          }
+        })
+        results.generated++
+      }
+      logger.log(`  ✅ ${period}d Nutrition Batch Complete`)
+    } catch (error) {
+      logger.error(`  ❌ ${period}d Nutrition Batch Failed:`, error)
+      results.failed += NUTRITION_METRICS.length
+    }
+  }
+
+  // --- WORKOUT ---
+  logger.log('\n💪 Processing Workouts...')
+  for (const period of PERIODS) {
+    const summary = await calculateWorkoutSummary(userId, period, timezone)
+    if (!summary) {
+      logger.log(`  ⏭️  Skipping ${period}d - no data`)
+      results.skipped += WORKOUT_METRICS.length
+      continue
+    }
+
+    if (!force) {
+      const existingCount = await prisma.scoreTrendExplanation.count({
+        where: {
+          userId,
+          type: 'workout',
+          period,
+          expiresAt: { gt: new Date() }
+        }
+      })
+      if (existingCount === WORKOUT_METRICS.length) {
+        logger.log(`  ⏭️  ${period}d Workouts - all cached`)
+        results.skipped += WORKOUT_METRICS.length
+        continue
+      }
+    }
+
+    logger.log(`  🔄 Generating ${period}d Workout Batch...`)
+    try {
+      const { analysis, usageId } = await generateUnifiedWorkoutAnalysis(
+        userId,
+        period,
+        summary,
+        timezone
+      )
+
+      for (const metric of WORKOUT_METRICS) {
+        if (!analysis[metric]) continue
+
+        const score = summary[
+          `avg${metric.charAt(0).toUpperCase() + metric.slice(1)}` as keyof typeof summary
+        ] as number
+
+        await prisma.scoreTrendExplanation.upsert({
+          where: {
+            userId_type_period_metric: { userId, type: 'workout', period, metric }
+          },
+          create: {
+            userId,
+            type: 'workout',
+            period,
+            metric,
+            score,
+            analysisData: analysis[metric] as any,
+            expiresAt,
+            llmUsageId: usageId
+          },
+          update: {
+            score,
+            analysisData: analysis[metric] as any,
+            generatedAt: new Date(),
+            expiresAt,
+            llmUsageId: usageId
+          }
+        })
+        results.generated++
+      }
+      logger.log(`  ✅ ${period}d Workout Batch Complete`)
+    } catch (error) {
+      logger.error(`  ❌ ${period}d Workout Batch Failed:`, error)
+      results.failed += WORKOUT_METRICS.length
+    }
+  }
+
+  // --- TRIGGER RECOMMENDATIONS ---
+  logger.log('\n🚀 Triggering Recommendation Generation...')
+  await dispatchTask(
+    'generate-recommendations',
+    { userId },
+    {
+      concurrencyKey: userId,
+      tags: [`user:${userId}`]
+    }
+  )
+
+  return {
+    success: results.failed === 0,
+    ...results,
+    userId
+  }
+}
+
+registerTaskHandler('generate-score-explanations', runGenerateScoreExplanations)
+
 export const generateScoreExplanationsTask = task({
   id: 'generate-score-explanations',
   maxDuration: 600,
   queue: userReportsQueue,
-  run: async (payload: { userId: string; force?: boolean }) => {
-    const { userId, force } = payload
-
-    logger.log('='.repeat(60))
-    logger.log('🎯 GENERATING SCORE EXPLANATIONS (BATCHED)')
-    logger.log('='.repeat(60))
-    logger.log(`User ID: ${userId}`)
-
-    const timezone = await getUserTimezone(userId)
-    const results = { generated: 0, skipped: 0, failed: 0, details: [] as any[] }
-    const expiresAt = new Date()
-    expiresAt.setHours(expiresAt.getHours() + EXPIRATION_HOURS)
-
-    // --- NUTRITION ---
-    logger.log('\n📊 Processing Nutrition...')
-    for (const period of PERIODS) {
-      const summary = await calculateNutritionSummary(userId, period, timezone)
-      if (!summary) {
-        logger.log(`  ⏭️  Skipping ${period}d - no data`)
-        results.skipped += NUTRITION_METRICS.length
-        continue
-      }
-
-      // Check if ALL metrics for this period are already valid
-      // Optimization: If we have valid caches for all, skip the batch call
-      if (!force) {
-        const existingCount = await prisma.scoreTrendExplanation.count({
-          where: {
-            userId,
-            type: 'nutrition',
-            period,
-            expiresAt: { gt: new Date() }
-          }
-        })
-        if (existingCount === NUTRITION_METRICS.length) {
-          logger.log(`  ⏭️  ${period}d Nutrition - all cached`)
-          results.skipped += NUTRITION_METRICS.length
-          continue
-        }
-      }
-
-      logger.log(`  🔄 Generating ${period}d Nutrition Batch...`)
-      try {
-        const { analysis, usageId } = await generateUnifiedNutritionAnalysis(
-          userId,
-          period,
-          summary,
-          timezone
-        )
-
-        // Save results
-        for (const metric of NUTRITION_METRICS) {
-          if (!analysis[metric]) continue
-
-          const score = summary[
-            `avg${metric.charAt(0).toUpperCase() + metric.slice(1)}` as keyof typeof summary
-          ] as number
-
-          const explanation = await prisma.scoreTrendExplanation.upsert({
-            where: {
-              userId_type_period_metric: { userId, type: 'nutrition', period, metric }
-            },
-            create: {
-              userId,
-              type: 'nutrition',
-              period,
-              metric,
-              score,
-              analysisData: analysis[metric] as any,
-              expiresAt,
-              llmUsageId: usageId
-            },
-            update: {
-              score,
-              analysisData: analysis[metric] as any,
-              generatedAt: new Date(),
-              expiresAt,
-              llmUsageId: usageId
-            }
-          })
-          results.generated++
-        }
-        logger.log(`  ✅ ${period}d Nutrition Batch Complete`)
-      } catch (error) {
-        logger.error(`  ❌ ${period}d Nutrition Batch Failed:`, error)
-        results.failed += NUTRITION_METRICS.length
-      }
-    }
-
-    // --- WORKOUT ---
-    logger.log('\n💪 Processing Workouts...')
-    for (const period of PERIODS) {
-      const summary = await calculateWorkoutSummary(userId, period, timezone)
-      if (!summary) {
-        logger.log(`  ⏭️  Skipping ${period}d - no data`)
-        results.skipped += WORKOUT_METRICS.length
-        continue
-      }
-
-      if (!force) {
-        const existingCount = await prisma.scoreTrendExplanation.count({
-          where: {
-            userId,
-            type: 'workout',
-            period,
-            expiresAt: { gt: new Date() }
-          }
-        })
-        if (existingCount === WORKOUT_METRICS.length) {
-          logger.log(`  ⏭️  ${period}d Workouts - all cached`)
-          results.skipped += WORKOUT_METRICS.length
-          continue
-        }
-      }
-
-      logger.log(`  🔄 Generating ${period}d Workout Batch...`)
-      try {
-        const { analysis, usageId } = await generateUnifiedWorkoutAnalysis(
-          userId,
-          period,
-          summary,
-          timezone
-        )
-
-        for (const metric of WORKOUT_METRICS) {
-          if (!analysis[metric]) continue
-
-          const score = summary[
-            `avg${metric.charAt(0).toUpperCase() + metric.slice(1)}` as keyof typeof summary
-          ] as number
-
-          await prisma.scoreTrendExplanation.upsert({
-            where: {
-              userId_type_period_metric: { userId, type: 'workout', period, metric }
-            },
-            create: {
-              userId,
-              type: 'workout',
-              period,
-              metric,
-              score,
-              analysisData: analysis[metric] as any,
-              expiresAt,
-              llmUsageId: usageId
-            },
-            update: {
-              score,
-              analysisData: analysis[metric] as any,
-              generatedAt: new Date(),
-              expiresAt,
-              llmUsageId: usageId
-            }
-          })
-          results.generated++
-        }
-        logger.log(`  ✅ ${period}d Workout Batch Complete`)
-      } catch (error) {
-        logger.error(`  ❌ ${period}d Workout Batch Failed:`, error)
-        results.failed += WORKOUT_METRICS.length
-      }
-    }
-
-    // --- TRIGGER RECOMMENDATIONS ---
-    logger.log('\n🚀 Triggering Recommendation Generation...')
-    await tasks.trigger(
-      'generate-recommendations',
-      { userId },
-      {
-        concurrencyKey: userId,
-        tags: [`user:${userId}`]
-      }
-    )
-
-    return {
-      success: results.failed === 0,
-      ...results,
-      userId
-    }
-  }
+  run: runGenerateScoreExplanations
 })

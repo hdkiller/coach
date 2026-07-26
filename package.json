@@ -92,6 +92,7 @@
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.3",
     "@iconify-json/lucide": "^1.2.116",
+    "@iconify-json/material-symbols": "^1.2.87",
     "@iconify-json/simple-icons": "^1.2.89",
     "@iconify-json/tabler": "^1.2.35",
     "@nuxt/eslint": "^1.16.0",
@@ -166,7 +167,7 @@
     "e2e:tunnel:stop": "bash e2e/scripts/tunnel-to-mini.sh stop",
     "build": "prisma generate && nuxt build",
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' nuxt dev",
-    "dev:worker": "pnpm cw:worker start",
+    "dev:worker": "tsx watch cli/worker/index.ts start",
     "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",
     "generate": "nuxt generate",
     "lint": "eslint .",

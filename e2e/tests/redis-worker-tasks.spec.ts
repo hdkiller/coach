@@ -20,6 +20,22 @@ test.describe('Redis Task Driver & Flat-File LLM Mocking E2E', () => {
     await cleanupPool.end()
   })
 
+  async function waitForRun(authedPage: any, runId: string) {
+    let lastRun: any = null
+    await expect
+      .poll(
+        async () => {
+          const response = await authedPage.request.get(`/api/runs/${encodeURIComponent(runId)}`)
+          if (!response.ok()) return `HTTP_${response.status()}`
+          lastRun = await response.json()
+          return lastRun.status
+        },
+        { timeout: 60_000, intervals: [250, 500, 1000] }
+      )
+      .toBe('COMPLETED')
+    return lastRun
+  }
+
   test('Triggers workout analysis via Redis dispatcher and receives deterministic mock response', async ({
     authedPage
   }) => {
@@ -48,12 +64,17 @@ test.describe('Redis Task Driver & Flat-File LLM Mocking E2E', () => {
     expect(res.ok()).toBeTruthy()
     const json = await res.json()
     expect(json.success).toBe(true)
+    expect(json.jobId).toMatch(/^redis:/)
     expect(['PENDING', 'PROCESSING', 'COMPLETED']).toContain(json.status)
+
+    const run = await waitForRun(authedPage, json.jobId)
+    expect(run.output?.success).toBe(true)
 
     // 3. Verify workout status updated from NOT_STARTED
     const updated = await prisma.workout.findUnique({ where: { id: workout.id } })
     expect(updated).toBeTruthy()
-    expect(updated?.aiAnalysisStatus).not.toBe('NOT_STARTED')
+    expect(updated?.aiAnalysisStatus).toBe('COMPLETED')
+    expect(updated?.aiAnalysis).toBeTruthy()
   })
 
   test('Triggers daily activity recommendation via API with Redis task queue', async ({
@@ -67,6 +88,13 @@ test.describe('Redis Task Driver & Flat-File LLM Mocking E2E', () => {
     expect(res.ok()).toBeTruthy()
     const json = await res.json()
     expect(json.success).toBe(true)
+    expect(json.jobId).toMatch(/^redis:/)
+
+    await waitForRun(authedPage, json.jobId)
+    const recommendation = await prisma.activityRecommendation.findUnique({
+      where: { id: json.recommendationId }
+    })
+    expect(recommendation?.status).toBe('COMPLETED')
   })
 
   test('Triggers weekly training plan generation via API with Redis task queue', async ({
@@ -84,7 +112,10 @@ test.describe('Redis Task Driver & Flat-File LLM Mocking E2E', () => {
       }
     })
 
-    // Plan generation triggers background task or returns plan payload
     expect([200, 202]).toContain(res.status())
+    const json = await res.json()
+    expect(json.jobId).toMatch(/^redis:/)
+    const run = await waitForRun(authedPage, json.jobId)
+    expect(run.output?.success).toBe(true)
   })
 })

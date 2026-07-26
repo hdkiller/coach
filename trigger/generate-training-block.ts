@@ -17,6 +17,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { TRAINING_BLOCK_TYPES, TRAINING_BLOCK_FOCUSES } from '../app/utils/training-constants'
 import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
 import { enqueuePlannedWorkoutStructureGeneration } from '../server/utils/planned-workout-structure-trigger'
+import { registerTaskHandler } from '../server/utils/task-registry'
 
 const trainingBlockSchema = {
   type: 'object',
@@ -75,124 +76,120 @@ const trainingBlockSchema = {
   required: ['weeks']
 }
 
-export const generateTrainingBlockTask = task({
-  id: 'generate-training-block',
-  queue: userReportsQueue,
-  maxDuration: 600, // 10 minutes for complex block generation
-  run: async (payload: {
-    userId: string
-    blockId: string
-    anchorWorkoutIds?: string[]
-    triggerStructureForWeekNumber?: number
-  }) => {
-    const { userId, blockId, anchorWorkoutIds, triggerStructureForWeekNumber } = payload
+export async function runGenerateTrainingBlock(payload: {
+  userId: string
+  blockId: string
+  anchorWorkoutIds?: string[]
+  triggerStructureForWeekNumber?: number
+}) {
+  const { userId, blockId, anchorWorkoutIds, triggerStructureForWeekNumber } = payload
 
-    logger.log('Starting training block generation', {
-      userId,
-      blockId,
-      anchorWorkoutIds,
-      triggerStructureForWeekNumber
-    })
+  logger.log('Starting training block generation', {
+    userId,
+    blockId,
+    anchorWorkoutIds,
+    triggerStructureForWeekNumber
+  })
 
-    const timezone = await getUserTimezone(userId)
-    const aiSettings = await getUserAiSettings(userId)
-    const now = new Date()
-    const localDate = formatUserDate(now, timezone)
-    const userLocalToday = getUserLocalDate(timezone)
+  const timezone = await getUserTimezone(userId)
+  const aiSettings = await getUserAiSettings(userId)
+  const now = new Date()
+  const localDate = formatUserDate(now, timezone)
+  const userLocalToday = getUserLocalDate(timezone)
 
-    // 1. Fetch Context
-    const block = await prisma.trainingBlock.findUnique({
-      where: { id: blockId },
-      include: {
-        plan: {
-          include: {
-            goal: {
-              include: { events: true }
-            },
-            blocks: {
-              orderBy: { order: 'asc' },
-              select: {
-                id: true,
-                order: true,
-                name: true,
-                type: true,
-                durationWeeks: true,
-                primaryFocus: true
-              }
+  // 1. Fetch Context
+  const block = await prisma.trainingBlock.findUnique({
+    where: { id: blockId },
+    include: {
+      plan: {
+        include: {
+          goal: {
+            include: { events: true }
+          },
+          blocks: {
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              order: true,
+              name: true,
+              type: true,
+              durationWeeks: true,
+              primaryFocus: true
             }
           }
-        },
-        weeks: {
-          select: {
-            weekNumber: true,
-            volumeTargetMinutes: true,
-            tssTarget: true
-          },
-          orderBy: { weekNumber: 'asc' }
         }
-      }
-    })
-
-    if (!block) throw new Error('Block not found')
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        ftp: true,
-        weight: true,
-        weightUnits: true,
-        height: true,
-        heightUnits: true,
-        maxHr: true,
-        aiPersona: true,
-        dob: true,
-        sex: true,
-        language: true
-      }
-    })
-    const availability = await availabilityRepository.getFullSchedule(userId)
-    const availabilitySummary = availabilityRepository.formatForPrompt(availability)
-
-    const userAge = calculateAge(user?.dob)
-    logger.log('[GenerateBlock] Block fetched', {
-      name: block.name,
-      durationWeeks: block.durationWeeks,
-      startDate: block.startDate
-    })
-
-    // Fetch Anchored Workouts
-    const anchoredWorkouts = anchorWorkoutIds?.length
-      ? await prisma.plannedWorkout.findMany({
-          where: {
-            id: { in: anchorWorkoutIds },
-            userId
-          },
-          select: {
-            id: true,
-            date: true,
-            title: true,
-            type: true,
-            durationSec: true,
-            tss: true
-          }
-        })
-      : []
-
-    // Fetch latest athlete profile
-    const athleteProfileReport = await prisma.report.findFirst({
-      where: {
-        userId,
-        type: 'ATHLETE_PROFILE',
-        status: 'COMPLETED'
       },
-      orderBy: { createdAt: 'desc' },
-      select: { analysisJson: true, createdAt: true }
-    })
+      weeks: {
+        select: {
+          weekNumber: true,
+          volumeTargetMinutes: true,
+          tssTarget: true
+        },
+        orderBy: { weekNumber: 'asc' }
+      }
+    }
+  })
 
-    let athleteProfileContext = ''
-    if (athleteProfileReport?.analysisJson) {
-      const profile = athleteProfileReport.analysisJson as any
-      athleteProfileContext = `
+  if (!block) throw new Error('Block not found')
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      ftp: true,
+      weight: true,
+      weightUnits: true,
+      height: true,
+      heightUnits: true,
+      maxHr: true,
+      aiPersona: true,
+      dob: true,
+      sex: true,
+      language: true
+    }
+  })
+  const availability = await availabilityRepository.getFullSchedule(userId)
+  const availabilitySummary = availabilityRepository.formatForPrompt(availability)
+
+  const userAge = calculateAge(user?.dob)
+  logger.log('[GenerateBlock] Block fetched', {
+    name: block.name,
+    durationWeeks: block.durationWeeks,
+    startDate: block.startDate
+  })
+
+  // Fetch Anchored Workouts
+  const anchoredWorkouts = anchorWorkoutIds?.length
+    ? await prisma.plannedWorkout.findMany({
+        where: {
+          id: { in: anchorWorkoutIds },
+          userId
+        },
+        select: {
+          id: true,
+          date: true,
+          title: true,
+          type: true,
+          durationSec: true,
+          tss: true
+        }
+      })
+    : []
+
+  // Fetch latest athlete profile
+  const athleteProfileReport = await prisma.report.findFirst({
+    where: {
+      userId,
+      type: 'ATHLETE_PROFILE',
+      status: 'COMPLETED'
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { analysisJson: true, createdAt: true }
+  })
+
+  let athleteProfileContext = ''
+  if (athleteProfileReport?.analysisJson) {
+    const profile = athleteProfileReport.analysisJson as any
+    athleteProfileContext = `
 DETAILED ATHLETE ANALYSIS (Generated ${formatUserDate(athleteProfileReport.createdAt, timezone)}):
 Training Characteristics:
 ${profile.training_characteristics?.training_style || 'No data'}
@@ -209,124 +206,124 @@ ${profile.planning_context?.current_focus ? `Current Focus: ${profile.planning_c
 ${profile.planning_context?.limitations?.length ? `Limitations: ${profile.planning_context.limitations.join(', ')}` : ''}
 ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.planning_context.opportunities.join(', ')}` : ''}
 `
+  }
+
+  const currentFitness = await getCurrentFitnessSummary(userId, undefined, {
+    adjustForTodayUncompletedPlannedTSS: true,
+    timezone
+  })
+
+  // 2. Prepare Context Data
+  // Map existing weeks to get volume targets before we delete them
+  const volumeTargets = block.weeks
+    .map((w) => `Week ${w.weekNumber}: ${w.volumeTargetMinutes} mins (TSS ~${w.tssTarget})`)
+    .join('\n')
+
+  // Calculate Global Week Context
+  let globalWeekStart = 1
+  for (const b of block.plan.blocks) {
+    if (b.id === block.id) break
+    globalWeekStart += b.durationWeeks
+  }
+  const globalWeekEnd = globalWeekStart + block.durationWeeks - 1
+  const totalPlanWeeks = block.plan.blocks.reduce((sum, b) => sum + b.durationWeeks, 0)
+
+  const planOverview = block.plan.blocks
+    .map(
+      (b) =>
+        `${b.order}. ${b.name} (${b.type}): ${b.durationWeeks} weeks - Focus: ${b.primaryFocus}${b.id === block.id ? ' [CURRENT]' : ''}`
+    )
+    .join('\n')
+
+  const weekSchedules: {
+    weekNumber: number
+    startDate: Date
+    endDate: Date
+    validDays: Date[]
+  }[] = []
+  // Force to UTC midnight to ensure calendar stability
+  const rawCursor = new Date(block.startDate)
+  let currentCursor = new Date(
+    Date.UTC(rawCursor.getUTCFullYear(), rawCursor.getUTCMonth(), rawCursor.getUTCDate())
+  )
+  let calendarContext = ''
+
+  for (let i = 0; i < block.durationWeeks; i++) {
+    const weekStart = new Date(currentCursor)
+
+    // Always use strict 7-day weeks to match initialization logic
+    const weekEnd = new Date(weekStart)
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
+
+    // Generate valid days
+    const validDays = []
+    const loopDate = new Date(weekStart)
+
+    const todayStr = formatUserDate(userLocalToday, timezone)
+
+    // Iterate through exactly 7 days
+    for (let d = 0; d < 7; d++) {
+      const dateStr = formatDateUTC(loopDate)
+      if (dateStr >= todayStr) {
+        validDays.push(new Date(loopDate))
+      }
+      loopDate.setUTCDate(loopDate.getUTCDate() + 1)
     }
 
-    const currentFitness = await getCurrentFitnessSummary(userId, undefined, {
-      adjustForTodayUncompletedPlannedTSS: true,
-      timezone
+    weekSchedules.push({
+      weekNumber: i + 1,
+      startDate: weekStart,
+      endDate: weekEnd,
+      validDays
     })
 
-    // 2. Prepare Context Data
-    // Map existing weeks to get volume targets before we delete them
-    const volumeTargets = block.weeks
-      .map((w) => `Week ${w.weekNumber}: ${w.volumeTargetMinutes} mins (TSS ~${w.tssTarget})`)
-      .join('\n')
-
-    // Calculate Global Week Context
-    let globalWeekStart = 1
-    for (const b of block.plan.blocks) {
-      if (b.id === block.id) break
-      globalWeekStart += b.durationWeeks
-    }
-    const globalWeekEnd = globalWeekStart + block.durationWeeks - 1
-    const totalPlanWeeks = block.plan.blocks.reduce((sum, b) => sum + b.durationWeeks, 0)
-
-    const planOverview = block.plan.blocks
-      .map(
-        (b) =>
-          `${b.order}. ${b.name} (${b.type}): ${b.durationWeeks} weeks - Focus: ${b.primaryFocus}${b.id === block.id ? ' [CURRENT]' : ''}`
-      )
-      .join('\n')
-
-    const weekSchedules: {
-      weekNumber: number
-      startDate: Date
-      endDate: Date
-      validDays: Date[]
-    }[] = []
-    // Force to UTC midnight to ensure calendar stability
-    const rawCursor = new Date(block.startDate)
-    let currentCursor = new Date(
-      Date.UTC(rawCursor.getUTCFullYear(), rawCursor.getUTCMonth(), rawCursor.getUTCDate())
-    )
-    let calendarContext = ''
-
-    for (let i = 0; i < block.durationWeeks; i++) {
-      const weekStart = new Date(currentCursor)
-
-      // Always use strict 7-day weeks to match initialization logic
-      const weekEnd = new Date(weekStart)
-      weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
-
-      // Generate valid days
-      const validDays = []
-      const loopDate = new Date(weekStart)
-
-      const todayStr = formatUserDate(userLocalToday, timezone)
-
-      // Iterate through exactly 7 days
-      for (let d = 0; d < 7; d++) {
-        const dateStr = formatDateUTC(loopDate)
-        if (dateStr >= todayStr) {
-          validDays.push(new Date(loopDate))
-        }
-        loopDate.setUTCDate(loopDate.getUTCDate() + 1)
-      }
-
-      weekSchedules.push({
-        weekNumber: i + 1,
-        startDate: weekStart,
-        endDate: weekEnd,
-        validDays
+    // Format for Prompt
+    const daysText = validDays
+      .map((d) => {
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
+        const dStr = formatDateUTC(d)
+        return `${dayName} (${dStr})`
       })
+      .join(', ')
 
-      // Format for Prompt
-      const daysText = validDays
-        .map((d) => {
-          const dayName = d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-          const dStr = formatDateUTC(d)
-          return `${dayName} (${dStr})`
-        })
-        .join(', ')
+    calendarContext += `Week ${i + 1} (${formatDateUTC(weekStart)} to ${formatDateUTC(weekEnd)}): ${daysText || 'All days in this week are in the past. Provide focus/explanation but NO workouts.'}\n`
 
-      calendarContext += `Week ${i + 1} (${formatDateUTC(weekStart)} to ${formatDateUTC(weekEnd)}): ${daysText || 'All days in this week are in the past. Provide focus/explanation but NO workouts.'}\n`
+    // Next week starts next day
+    currentCursor = new Date(weekEnd)
+    currentCursor.setUTCDate(currentCursor.getUTCDate() + 1)
+  }
 
-      // Next week starts next day
-      currentCursor = new Date(weekEnd)
-      currentCursor.setUTCDate(currentCursor.getUTCDate() + 1)
-    }
+  logger.log('[GenerateBlock] Calendar schedules generated', { count: weekSchedules.length })
 
-    logger.log('[GenerateBlock] Calendar schedules generated', { count: weekSchedules.length })
+  // 3. Build Prompt
+  const rhythmLabel =
+    {
+      2: '1:1 (Return to Play)',
+      3: '2:1 (Masters/High-Stress)',
+      4: '3:1 (Standard)',
+      5: '4:1 (Professional)'
+    }[block.plan.recoveryRhythm as 2 | 3 | 4 | 5] || '3:1 (Standard)'
 
-    // 3. Build Prompt
-    const rhythmLabel =
-      {
-        2: '1:1 (Return to Play)',
-        3: '2:1 (Masters/High-Stress)',
-        4: '3:1 (Standard)',
-        5: '4:1 (Professional)'
-      }[block.plan.recoveryRhythm as 2 | 3 | 4 | 5] || '3:1 (Standard)'
+  const eventsList =
+    block.plan.goal.events && block.plan.goal.events.length > 0
+      ? block.plan.goal.events
+          .map((e: any) => `- ${e.title}: ${formatDateUTC(e.date)} (${e.type || 'Race'})`)
+          .join('\n')
+      : `- Primary Event Date: ${formatUserDate(block.plan.goal.eventDate || block.plan.targetDate || new Date(), timezone)}`
 
-    const eventsList =
-      block.plan.goal.events && block.plan.goal.events.length > 0
-        ? block.plan.goal.events
-            .map((e: any) => `- ${e.title}: ${formatDateUTC(e.date)} (${e.type || 'Race'})`)
-            .join('\n')
-        : `- Primary Event Date: ${formatUserDate(block.plan.goal.eventDate || block.plan.targetDate || new Date(), timezone)}`
+  const allowedTypes = (block.plan as any).activityTypes || ['Ride']
+  const allowedTypesString = Array.isArray(allowedTypes) ? allowedTypes.join(', ') : 'Ride'
 
-    const allowedTypes = (block.plan as any).activityTypes || ['Ride']
-    const allowedTypesString = Array.isArray(allowedTypes) ? allowedTypes.join(', ') : 'Ride'
+  const allowedBlockTypes = TRAINING_BLOCK_TYPES.map((t) => `- ${t.value}: ${t.description}`).join(
+    '\n'
+  )
+  const allowedFocuses = TRAINING_BLOCK_FOCUSES.map((f) => `- ${f.value}: ${f.description}`).join(
+    '\n'
+  )
 
-    const allowedBlockTypes = TRAINING_BLOCK_TYPES.map(
-      (t) => `- ${t.value}: ${t.description}`
-    ).join('\n')
-    const allowedFocuses = TRAINING_BLOCK_FOCUSES.map((f) => `- ${f.value}: ${f.description}`).join(
-      '\n'
-    )
+  const customInstructions = (block.plan as any).customInstructions || ''
 
-    const customInstructions = (block.plan as any).customInstructions || ''
-
-    const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach designing a specific mesocycle (training block) for an athlete.
+  const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach designing a specific mesocycle (training block) for an athlete.
 Adapt your tone and structure reasoning to match your **${aiSettings.aiPersona}** persona.
 Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL labels, explanations, reasoning, and workout descriptions MUST be written in this language)
 
@@ -437,241 +434,251 @@ ${allowedBlockTypes}
 OUTPUT FORMAT:
 Return valid JSON matching the schema provided.`
 
-    // 4. Generate with Gemini
-    logger.log(`[GenerateBlock] Prompting Gemini (${aiSettings.aiModelPreference})...`, {
-      blockId,
-      userId
-    })
-    const result = await generateStructuredAnalysis<any>(
-      prompt,
-      trainingBlockSchema,
-      aiSettings.aiModelPreference,
-      {
-        userId,
-        operation: 'generate_training_block',
-        entityType: 'TrainingBlock',
-        entityId: blockId
-      }
+  // 4. Generate with Gemini
+  logger.log(`[GenerateBlock] Prompting Gemini (${aiSettings.aiModelPreference})...`, {
+    blockId,
+    userId
+  })
+  const result = await generateStructuredAnalysis<any>(
+    prompt,
+    trainingBlockSchema,
+    aiSettings.aiModelPreference,
+    {
+      userId,
+      operation: 'generate_training_block',
+      entityType: 'TrainingBlock',
+      entityId: blockId
+    }
+  )
+
+  // 5. Persist Results
+  if (!result.weeks || result.weeks.length === 0) {
+    throw new Error('AI returned no weeks for the block')
+  }
+
+  logger.log('Persisting generated plan...', { weeksCount: result.weeks.length })
+
+  const workoutIdsToStructure: string[] = []
+
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        // Verify block still exists (it might have been deleted while Gemini was thinking)
+        const currentBlock = await tx.trainingBlock.findUnique({
+          where: { id: blockId },
+          select: { id: true }
+        })
+
+        if (!currentBlock) {
+          logger.warn('[GenerateBlock] Block was deleted during generation, skipping persistence', {
+            blockId
+          })
+          return
+        }
+
+        // Clear existing
+        const existingWeeks = await tx.trainingWeek.findMany({
+          where: { blockId },
+          select: { id: true }
+        })
+
+        const weekIds = existingWeeks.map((w) => w.id)
+
+        if (weekIds.length > 0) {
+          await tx.plannedWorkout.updateMany({
+            where: { id: { in: anchorWorkoutIds || [] }, trainingWeekId: { in: weekIds } },
+            data: { trainingWeekId: null }
+          })
+          await tx.plannedWorkout.updateMany({
+            where: {
+              trainingWeekId: { in: weekIds },
+              id: { notIn: anchorWorkoutIds || [] },
+              managedBy: 'USER'
+            },
+            data: { trainingWeekId: null }
+          })
+          await tx.plannedWorkout.deleteMany({
+            where: {
+              trainingWeekId: { in: weekIds },
+              id: { notIn: anchorWorkoutIds || [] },
+              managedBy: { not: 'USER' }
+            }
+          })
+          await tx.trainingWeek.deleteMany({ where: { blockId } })
+        }
+
+        // 5. Create New Weeks
+        for (let i = 0; i < weekSchedules.length; i++) {
+          const schedule = weekSchedules[i]
+          const globalWeekNumber = globalWeekStart + i
+
+          // Find AI data for this specific week
+          // Support: Block-relative (1-based), Global (1-based), or Fallback to array index
+          const weekData =
+            result.weeks.find((w) => Number(w.weekNumber) === schedule.weekNumber) ||
+            result.weeks.find((w) => Number(w.weekNumber) === globalWeekNumber) ||
+            result.weeks[i] // Last resort: assume same order
+
+          // Validate Focus Key
+          let focusKey = (weekData?.focus_key || '').toUpperCase()
+          const isValidKey = TRAINING_BLOCK_FOCUSES.some((f) => f.value === focusKey)
+          if (!isValidKey) focusKey = block.primaryFocus.split('_WITH_RACE')[0]
+
+          const focusLabel = weekData?.focus_label || weekData?.focus_key || 'Training Week'
+
+          const createdWeek = await tx.trainingWeek.create({
+            data: {
+              blockId,
+              weekNumber: schedule.weekNumber,
+              startDate: schedule.startDate,
+              endDate: schedule.endDate,
+              focus: focusLabel,
+              focusKey: focusKey,
+              focusLabel: focusLabel,
+              explanation: weekData?.explanation || 'Weekly progression.',
+              volumeTargetMinutes: weekData?.volumeTargetMinutes || 0,
+              tssTarget:
+                weekData?.workouts?.reduce(
+                  (acc: number, w: any) => acc + (w.tssEstimate || 0),
+                  0
+                ) || 0,
+              isRecovery: focusKey === 'RECOVERY' || focusKey === 'TAPER'
+            }
+          })
+
+          if (!weekData) {
+            logger.warn('[GenerateBlock] No AI data found for week, created skeleton only', {
+              weekNumber: schedule.weekNumber,
+              globalWeekNumber
+            })
+            continue
+          }
+
+          if (anchorWorkoutIds?.length && anchoredWorkouts.length > 0) {
+            const weekAnchors = anchoredWorkouts.filter((anchor) => {
+              const anchorDateStr = formatDateUTC(anchor.date)
+              return schedule.validDays.some((d) => formatDateUTC(d) === anchorDateStr)
+            })
+            if (weekAnchors.length > 0) {
+              await tx.plannedWorkout.updateMany({
+                where: { id: { in: weekAnchors.map((w) => w.id) } },
+                data: { trainingWeekId: createdWeek.id }
+              })
+            }
+          }
+
+          if (weekData.workouts && Array.isArray(weekData.workouts)) {
+            const workoutsToCreate = weekData.workouts
+              .map((workout: any, index: number) => {
+                const targetDate = schedule.validDays.find(
+                  (d) => d.getUTCDay() === workout.dayOfWeek
+                )
+                if (!targetDate) return null
+
+                if (anchorWorkoutIds?.length) {
+                  const targetDateStr = formatDateUTC(targetDate)
+                  const hasAnchor = anchoredWorkouts.some(
+                    (anchor) => formatDateUTC(anchor.date) === targetDateStr
+                  )
+                  if (hasAnchor) return null
+                }
+
+                return {
+                  userId,
+                  trainingWeekId: createdWeek.id,
+                  date: targetDate,
+                  title: workout.title,
+                  description: workout.description,
+                  type: workout.type,
+                  durationSec: (workout.durationMinutes || 0) * 60,
+                  tss: workout.tssEstimate,
+                  workIntensity: getIntensityScore(workout.intensity),
+                  externalId: `ai-gen-${createdWeek.id}-${workout.dayOfWeek}-${index}-${Date.now()}`,
+                  category: 'WORKOUT',
+                  managedBy: 'COACH_WATTS',
+                  syncStatus: 'LOCAL_ONLY'
+                }
+              })
+              .filter((w: any) => w !== null)
+
+            if (workoutsToCreate.length > 0) {
+              await tx.plannedWorkout.createMany({ data: workoutsToCreate })
+
+              if (triggerStructureForWeekNumber === schedule.weekNumber) {
+                const justCreated = await tx.plannedWorkout.findMany({
+                  where: {
+                    trainingWeekId: createdWeek.id,
+                    managedBy: 'COACH_WATTS',
+                    type: { notIn: ['Rest', 'Active Recovery'] }
+                  },
+                  select: { id: true }
+                })
+                workoutIdsToStructure.push(...justCreated.map((w) => w.id))
+              }
+            }
+          }
+        }
+      },
+      { timeout: 40000 }
     )
 
-    // 5. Persist Results
-    if (!result.weeks || result.weeks.length === 0) {
-      throw new Error('AI returned no weeks for the block')
-    }
-
-    logger.log('Persisting generated plan...', { weeksCount: result.weeks.length })
-
-    const workoutIdsToStructure: string[] = []
-
-    try {
-      await prisma.$transaction(
-        async (tx) => {
-          // Verify block still exists (it might have been deleted while Gemini was thinking)
-          const currentBlock = await tx.trainingBlock.findUnique({
-            where: { id: blockId },
-            select: { id: true }
-          })
-
-          if (!currentBlock) {
-            logger.warn(
-              '[GenerateBlock] Block was deleted during generation, skipping persistence',
-              {
-                blockId
-              }
-            )
-            return
-          }
-
-          // Clear existing
-          const existingWeeks = await tx.trainingWeek.findMany({
-            where: { blockId },
-            select: { id: true }
-          })
-
-          const weekIds = existingWeeks.map((w) => w.id)
-
-          if (weekIds.length > 0) {
-            await tx.plannedWorkout.updateMany({
-              where: { id: { in: anchorWorkoutIds || [] }, trainingWeekId: { in: weekIds } },
-              data: { trainingWeekId: null }
-            })
-            await tx.plannedWorkout.updateMany({
-              where: {
-                trainingWeekId: { in: weekIds },
-                id: { notIn: anchorWorkoutIds || [] },
-                managedBy: 'USER'
-              },
-              data: { trainingWeekId: null }
-            })
-            await tx.plannedWorkout.deleteMany({
-              where: {
-                trainingWeekId: { in: weekIds },
-                id: { notIn: anchorWorkoutIds || [] },
-                managedBy: { not: 'USER' }
-              }
-            })
-            await tx.trainingWeek.deleteMany({ where: { blockId } })
-          }
-
-          // 5. Create New Weeks
-          for (let i = 0; i < weekSchedules.length; i++) {
-            const schedule = weekSchedules[i]
-            const globalWeekNumber = globalWeekStart + i
-
-            // Find AI data for this specific week
-            // Support: Block-relative (1-based), Global (1-based), or Fallback to array index
-            const weekData =
-              result.weeks.find((w) => Number(w.weekNumber) === schedule.weekNumber) ||
-              result.weeks.find((w) => Number(w.weekNumber) === globalWeekNumber) ||
-              result.weeks[i] // Last resort: assume same order
-
-            // Validate Focus Key
-            let focusKey = (weekData?.focus_key || '').toUpperCase()
-            const isValidKey = TRAINING_BLOCK_FOCUSES.some((f) => f.value === focusKey)
-            if (!isValidKey) focusKey = block.primaryFocus.split('_WITH_RACE')[0]
-
-            const focusLabel = weekData?.focus_label || weekData?.focus_key || 'Training Week'
-
-            const createdWeek = await tx.trainingWeek.create({
-              data: {
-                blockId,
-                weekNumber: schedule.weekNumber,
-                startDate: schedule.startDate,
-                endDate: schedule.endDate,
-                focus: focusLabel,
-                focusKey: focusKey,
-                focusLabel: focusLabel,
-                explanation: weekData?.explanation || 'Weekly progression.',
-                volumeTargetMinutes: weekData?.volumeTargetMinutes || 0,
-                tssTarget:
-                  weekData?.workouts?.reduce(
-                    (acc: number, w: any) => acc + (w.tssEstimate || 0),
-                    0
-                  ) || 0,
-                isRecovery: focusKey === 'RECOVERY' || focusKey === 'TAPER'
-              }
-            })
-
-            if (!weekData) {
-              logger.warn('[GenerateBlock] No AI data found for week, created skeleton only', {
-                weekNumber: schedule.weekNumber,
-                globalWeekNumber
-              })
-              continue
-            }
-
-            if (anchorWorkoutIds?.length && anchoredWorkouts.length > 0) {
-              const weekAnchors = anchoredWorkouts.filter((anchor) => {
-                const anchorDateStr = formatDateUTC(anchor.date)
-                return schedule.validDays.some((d) => formatDateUTC(d) === anchorDateStr)
-              })
-              if (weekAnchors.length > 0) {
-                await tx.plannedWorkout.updateMany({
-                  where: { id: { in: weekAnchors.map((w) => w.id) } },
-                  data: { trainingWeekId: createdWeek.id }
-                })
-              }
-            }
-
-            if (weekData.workouts && Array.isArray(weekData.workouts)) {
-              const workoutsToCreate = weekData.workouts
-                .map((workout: any, index: number) => {
-                  const targetDate = schedule.validDays.find(
-                    (d) => d.getUTCDay() === workout.dayOfWeek
-                  )
-                  if (!targetDate) return null
-
-                  if (anchorWorkoutIds?.length) {
-                    const targetDateStr = formatDateUTC(targetDate)
-                    const hasAnchor = anchoredWorkouts.some(
-                      (anchor) => formatDateUTC(anchor.date) === targetDateStr
-                    )
-                    if (hasAnchor) return null
-                  }
-
-                  return {
-                    userId,
-                    trainingWeekId: createdWeek.id,
-                    date: targetDate,
-                    title: workout.title,
-                    description: workout.description,
-                    type: workout.type,
-                    durationSec: (workout.durationMinutes || 0) * 60,
-                    tss: workout.tssEstimate,
-                    workIntensity: getIntensityScore(workout.intensity),
-                    externalId: `ai-gen-${createdWeek.id}-${workout.dayOfWeek}-${index}-${Date.now()}`,
-                    category: 'WORKOUT',
-                    managedBy: 'COACH_WATTS',
-                    syncStatus: 'LOCAL_ONLY'
-                  }
-                })
-                .filter((w: any) => w !== null)
-
-              if (workoutsToCreate.length > 0) {
-                await tx.plannedWorkout.createMany({ data: workoutsToCreate })
-
-                if (triggerStructureForWeekNumber === schedule.weekNumber) {
-                  const justCreated = await tx.plannedWorkout.findMany({
-                    where: {
-                      trainingWeekId: createdWeek.id,
-                      managedBy: 'COACH_WATTS',
-                      type: { notIn: ['Rest', 'Active Recovery'] }
-                    },
-                    select: { id: true }
-                  })
-                  workoutIdsToStructure.push(...justCreated.map((w) => w.id))
-                }
-              }
-            }
-          }
-        },
-        { timeout: 40000 }
+    const structureFailures: Array<{ workoutId: string; error: string }> = []
+    if (workoutIdsToStructure.length > 0) {
+      logger.log(
+        `[GenerateBlock] Triggering structure generation for ${workoutIdsToStructure.length} workouts`,
+        {
+          userId,
+          blockId
+        }
       )
-
-      const structureFailures: Array<{ workoutId: string; error: string }> = []
-      if (workoutIdsToStructure.length > 0) {
-        logger.log(
-          `[GenerateBlock] Triggering structure generation for ${workoutIdsToStructure.length} workouts`,
-          {
-            userId,
-            blockId
-          }
-        )
-        for (const workoutId of workoutIdsToStructure) {
-          const queued = await enqueuePlannedWorkoutStructureGeneration({
-            userId,
-            plannedWorkoutId: workoutId,
-            source: 'block'
-          })
-          if (queued.status === 'failed') {
-            structureFailures.push({ workoutId, error: queued.error })
-          }
-        }
-        if (structureFailures.length > 0) {
-          logger.warn('[GenerateBlock] Some structure generation jobs failed to enqueue', {
-            blockId,
-            failureCount: structureFailures.length,
-            structureFailures
-          })
+      for (const workoutId of workoutIdsToStructure) {
+        const queued = await enqueuePlannedWorkoutStructureGeneration({
+          userId,
+          plannedWorkoutId: workoutId,
+          source: 'block'
+        })
+        if (queued.status === 'failed') {
+          structureFailures.push({ workoutId, error: queued.error })
         }
       }
-
-      logger.log('[GenerateBlock] Transaction and sub-tasks queued successfully', { blockId })
-
-      return {
-        success: true,
-        blockId,
-        structure_failures: structureFailures.length > 0 ? structureFailures : undefined
+      if (structureFailures.length > 0) {
+        logger.warn('[GenerateBlock] Some structure generation jobs failed to enqueue', {
+          blockId,
+          failureCount: structureFailures.length,
+          structureFailures
+        })
       }
-    } catch (dbErr: any) {
-      logger.error('[GenerateBlock] DB Transaction Failed', {
-        error: dbErr.message,
-        stack: dbErr.stack,
-        blockId
-      })
-      throw dbErr
     }
+
+    logger.log('[GenerateBlock] Transaction and sub-tasks queued successfully', { blockId })
+
+    return {
+      success: true,
+      blockId,
+      structure_failures: structureFailures.length > 0 ? structureFailures : undefined
+    }
+  } catch (dbErr: any) {
+    logger.error('[GenerateBlock] DB Transaction Failed', {
+      error: dbErr.message,
+      stack: dbErr.stack,
+      blockId
+    })
+    throw dbErr
   }
+}
+
+registerTaskHandler('generate-training-block', runGenerateTrainingBlock)
+
+export const generateTrainingBlockTask = task({
+  id: 'generate-training-block',
+  queue: userReportsQueue,
+  maxDuration: 600, // 10 minutes for complex block generation
+  run: (payload: {
+    userId: string
+    blockId: string
+    anchorWorkoutIds?: string[]
+    triggerStructureForWeekNumber?: number
+  }) => runGenerateTrainingBlock(payload)
 })
 
 function getIntensityScore(intensity: string): number {

@@ -11,6 +11,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { checkQuota } from '../server/utils/quotas/engine'
+import { registerTaskHandler } from '../server/utils/task-registry'
 
 interface RecommendationHistoryItem {
   date: string
@@ -39,185 +40,182 @@ interface RecommendationsResponse {
   dismissed_recommendation_ids: string[]
 }
 
-export const generateRecommendationsTask = task({
-  id: 'generate-recommendations',
-  maxDuration: 300,
-  queue: userReportsQueue,
-  run: async (payload: { userId: string }) => {
-    // ... (previous setup code remains the same) ...
-    const { userId } = payload
+type GenerateRecommendationsPayload = { userId: string }
 
-    logger.log('='.repeat(60))
-    logger.log('🚀 GENERATING RECOMMENDATIONS')
-    logger.log('='.repeat(60))
-    logger.log(`User ID: ${userId}`)
+export async function runGenerateRecommendations(payload: GenerateRecommendationsPayload) {
+  // ... (previous setup code remains the same) ...
+  const { userId } = payload
 
-    try {
-      await checkQuota(userId, 'unified_report_generation')
-    } catch (quotaError: any) {
-      if (quotaError.statusCode === 429) {
-        logger.warn('Recommendation generation quota exceeded', { userId })
-        return { success: false, reason: 'QUOTA_EXCEEDED' }
-      }
-      throw quotaError
+  logger.log('='.repeat(60))
+  logger.log('🚀 GENERATING RECOMMENDATIONS')
+  logger.log('='.repeat(60))
+  logger.log(`User ID: ${userId}`)
+
+  try {
+    await checkQuota(userId, 'unified_report_generation')
+  } catch (quotaError: any) {
+    if (quotaError.statusCode === 429) {
+      logger.warn('Recommendation generation quota exceeded', { userId })
+      return { success: false, reason: 'QUOTA_EXCEEDED' }
     }
+    throw quotaError
+  }
 
-    const timezone = await getUserTimezone(userId)
-    const aiSettings = await getUserAiSettings(userId)
+  const timezone = await getUserTimezone(userId)
+  const aiSettings = await getUserAiSettings(userId)
 
-    logger.log('Using AI settings', {
-      model: aiSettings.aiModelPreference,
-      persona: aiSettings.aiPersona
-    })
+  logger.log('Using AI settings', {
+    model: aiSettings.aiModelPreference,
+    persona: aiSettings.aiPersona
+  })
 
-    // 1. Fetch User Profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        language: true,
-        goals: {
-          where: { status: 'ACTIVE' },
-          select: {
-            title: true,
-            type: true,
-            description: true,
-            targetValue: true,
-            metric: true,
-            targetDate: true,
-            events: {
-              select: {
-                title: true,
-                date: true,
-                distance: true,
-                elevation: true,
-                priority: true,
-                type: true
-              }
+  // 1. Fetch User Profile
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      name: true,
+      language: true,
+      goals: {
+        where: { status: 'ACTIVE' },
+        select: {
+          title: true,
+          type: true,
+          description: true,
+          targetValue: true,
+          metric: true,
+          targetDate: true,
+          events: {
+            select: {
+              title: true,
+              date: true,
+              distance: true,
+              elevation: true,
+              priority: true,
+              type: true
             }
           }
         }
       }
-    })
-    const activeGoals = filterGoalsForContext(user?.goals, timezone)
-
-    // 2. Fetch Recent Score Explanations (Trends)
-    const trends = await prisma.scoreTrendExplanation.findMany({
-      where: {
-        userId,
-        expiresAt: { gt: new Date() }
-      },
-      select: {
-        type: true,
-        metric: true,
-        period: true,
-        score: true,
-        analysisData: true
-      }
-    })
-
-    // 3. Fetch Recent Daily Analyses
-    const startDate = getStartOfDaysAgoUTC(timezone, 7)
-
-    const recentWorkouts = await prisma.workout.findMany({
-      where: {
-        userId,
-        date: { gte: startDate },
-        aiAnalysis: { not: null }
-      },
-      select: {
-        date: true,
-        title: true,
-        type: true,
-        durationSec: true,
-        tss: true,
-        averageWatts: true,
-        averageHr: true,
-        rpe: true,
-        feel: true,
-        description: true,
-        aiAnalysis: true,
-        aiAnalysisJson: true,
-        overallScore: true,
-        streams: {
-          select: {
-            hrZoneTimes: true,
-            powerZoneTimes: true
-          }
-        }
-      },
-      take: 5,
-      orderBy: { date: 'desc' }
-    })
-
-    const recentNutrition = await nutritionRepository.getForUser(userId, {
-      startDate,
-      where: {
-        aiAnalysis: { not: null }
-      },
-      select: {
-        date: true,
-        aiAnalysis: true,
-        overallScore: true
-      },
-      limit: 5
-    })
-
-    // 5. Fetch Active Recommendations & Categories
-    const activeRecommendations = await recommendationRepository.getActive(userId)
-
-    const existingCategories = [
-      ...new Set(activeRecommendations.map((r) => r.category).filter(Boolean))
-    ]
-
-    // Format Contexts
-    const checkinHistory = await getCheckinHistoryContext(
-      userId,
-      getStartOfDaysAgoUTC(timezone, 14),
-      new Date(),
-      timezone
-    )
-
-    const checkinsContext = checkinHistory || 'None'
-
-    if (checkinHistory) {
-      logger.log('Check-ins Context for Recommendations Prompt', { checkinHistory })
     }
+  })
+  const activeGoals = filterGoalsForContext(user?.goals, timezone)
 
-    const goalsContext =
-      activeGoals
-        .map((g) => {
-          let details = `- GOAL: "${g.title}" (${g.type})`
-          if (g.description) details += `\n  Context: ${g.description}`
-          if (g.targetValue && g.metric) details += `\n  Target: ${g.targetValue} ${g.metric}`
-          if (g.targetDate)
-            details += `\n  Target Date: ${g.targetDate.toISOString().split('T')[0]}`
+  // 2. Fetch Recent Score Explanations (Trends)
+  const trends = await prisma.scoreTrendExplanation.findMany({
+    where: {
+      userId,
+      expiresAt: { gt: new Date() }
+    },
+    select: {
+      type: true,
+      metric: true,
+      period: true,
+      score: true,
+      analysisData: true
+    }
+  })
 
-          if (g.events && g.events.length > 0) {
-            details += `\n  LINKED EVENTS:`
-            g.events.forEach((e) => {
-              details += `\n    * ${e.title} (${e.date.toISOString().split('T')[0]}) [Priority: ${e.priority || 'C'}]`
-              if (e.distance) details += `, Dist: ${e.distance}km`
-              if (e.elevation) details += `, Elev: ${e.elevation}m`
-              if (e.type) details += `, Type: ${e.type}`
-            })
-          }
-          return details
-        })
-        .join('\n') || 'General Fitness / Maintenance (No specific goals active)'
+  // 3. Fetch Recent Daily Analyses
+  const startDate = getStartOfDaysAgoUTC(timezone, 7)
 
-    const existingRecsContext =
-      activeRecommendations.length > 0
-        ? activeRecommendations
-            .map(
-              (r) =>
-                `- ID: "${r.id}" | [${r.priority}] ${r.title} (Generated: ${r.generatedAt.toISOString().split('T')[0]})\n  Current: ${r.description}\n  Category: ${r.category || 'General'}\n  Context: ${r.sourceType}/${r.metric}`
-            )
-            .join('\n')
-        : 'None'
+  const recentWorkouts = await prisma.workout.findMany({
+    where: {
+      userId,
+      date: { gte: startDate },
+      aiAnalysis: { not: null }
+    },
+    select: {
+      date: true,
+      title: true,
+      type: true,
+      durationSec: true,
+      tss: true,
+      averageWatts: true,
+      averageHr: true,
+      rpe: true,
+      feel: true,
+      description: true,
+      aiAnalysis: true,
+      aiAnalysisJson: true,
+      overallScore: true,
+      streams: {
+        select: {
+          hrZoneTimes: true,
+          powerZoneTimes: true
+        }
+      }
+    },
+    take: 5,
+    orderBy: { date: 'desc' }
+  })
 
-    // 5. Construct Prompt
-    const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach. Synthesize the following data to generate or refine high-impact, actionable recommendations for the athlete.
+  const recentNutrition = await nutritionRepository.getForUser(userId, {
+    startDate,
+    where: {
+      aiAnalysis: { not: null }
+    },
+    select: {
+      date: true,
+      aiAnalysis: true,
+      overallScore: true
+    },
+    limit: 5
+  })
+
+  // 5. Fetch Active Recommendations & Categories
+  const activeRecommendations = await recommendationRepository.getActive(userId)
+
+  const existingCategories = [
+    ...new Set(activeRecommendations.map((r) => r.category).filter(Boolean))
+  ]
+
+  // Format Contexts
+  const checkinHistory = await getCheckinHistoryContext(
+    userId,
+    getStartOfDaysAgoUTC(timezone, 14),
+    new Date(),
+    timezone
+  )
+
+  const checkinsContext = checkinHistory || 'None'
+
+  if (checkinHistory) {
+    logger.log('Check-ins Context for Recommendations Prompt', { checkinHistory })
+  }
+
+  const goalsContext =
+    activeGoals
+      .map((g) => {
+        let details = `- GOAL: "${g.title}" (${g.type})`
+        if (g.description) details += `\n  Context: ${g.description}`
+        if (g.targetValue && g.metric) details += `\n  Target: ${g.targetValue} ${g.metric}`
+        if (g.targetDate) details += `\n  Target Date: ${g.targetDate.toISOString().split('T')[0]}`
+
+        if (g.events && g.events.length > 0) {
+          details += `\n  LINKED EVENTS:`
+          g.events.forEach((e) => {
+            details += `\n    * ${e.title} (${e.date.toISOString().split('T')[0]}) [Priority: ${e.priority || 'C'}]`
+            if (e.distance) details += `, Dist: ${e.distance}km`
+            if (e.elevation) details += `, Elev: ${e.elevation}m`
+            if (e.type) details += `, Type: ${e.type}`
+          })
+        }
+        return details
+      })
+      .join('\n') || 'General Fitness / Maintenance (No specific goals active)'
+
+  const existingRecsContext =
+    activeRecommendations.length > 0
+      ? activeRecommendations
+          .map(
+            (r) =>
+              `- ID: "${r.id}" | [${r.priority}] ${r.title} (Generated: ${r.generatedAt.toISOString().split('T')[0]})\n  Current: ${r.description}\n  Category: ${r.category || 'General'}\n  Context: ${r.sourceType}/${r.metric}`
+          )
+          .join('\n')
+      : 'None'
+
+  // 5. Construct Prompt
+  const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach. Synthesize the following data to generate or refine high-impact, actionable recommendations for the athlete.
 Adapt your tone and feedback style to fully embody your **${aiSettings.aiPersona}** persona.
 Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, reasoning, and text responses MUST be written in this language)
 
@@ -280,164 +278,164 @@ INSTRUCTIONS:
 OUTPUT SCHEMA:
 JSON object with 'new_recommendations', 'updated_recommendations', 'completed_recommendation_ids', and 'dismissed_recommendation_ids' arrays.`
 
-    const schema = {
-      type: 'object',
-      properties: {
-        new_recommendations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              title: { type: 'string' },
-              description: { type: 'string' },
-              priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-              sourceType: { type: 'string', enum: ['nutrition', 'workout'] },
-              category: { type: 'string' },
-              metric: { type: 'string' },
-              period: { type: 'number' }
-            },
-            required: [
-              'title',
-              'description',
-              'priority',
-              'sourceType',
-              'category',
-              'metric',
-              'period'
-            ]
-          }
-        },
-        updated_recommendations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              new_title: { type: 'string' },
-              new_description: { type: 'string' },
-              new_priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-              reason_for_update: { type: 'string' }
-            },
-            required: ['id', 'new_title', 'new_description', 'new_priority', 'reason_for_update']
-          }
-        },
-        completed_recommendation_ids: {
-          type: 'array',
-          items: { type: 'string' }
-        },
-        dismissed_recommendation_ids: {
-          type: 'array',
-          items: { type: 'string' }
+  const schema = {
+    type: 'object',
+    properties: {
+      new_recommendations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            description: { type: 'string' },
+            priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+            sourceType: { type: 'string', enum: ['nutrition', 'workout'] },
+            category: { type: 'string' },
+            metric: { type: 'string' },
+            period: { type: 'number' }
+          },
+          required: [
+            'title',
+            'description',
+            'priority',
+            'sourceType',
+            'category',
+            'metric',
+            'period'
+          ]
         }
       },
-      required: [
-        'new_recommendations',
-        'updated_recommendations',
-        'completed_recommendation_ids',
-        'dismissed_recommendation_ids'
-      ]
-    }
-
-    let usageId: string | undefined
-    const response = await generateStructuredAnalysis<RecommendationsResponse>(
-      prompt,
-      schema,
-      aiSettings.aiModelPreference,
-      {
-        userId,
-        operation: 'generate_recommendations',
-        entityType: 'RecommendationBatch',
-        onUsageLogged: (id) => {
-          usageId = id
+      updated_recommendations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            new_title: { type: 'string' },
+            new_description: { type: 'string' },
+            new_priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+            reason_for_update: { type: 'string' }
+          },
+          required: ['id', 'new_title', 'new_description', 'new_priority', 'reason_for_update']
         }
+      },
+      completed_recommendation_ids: {
+        type: 'array',
+        items: { type: 'string' }
+      },
+      dismissed_recommendation_ids: {
+        type: 'array',
+        items: { type: 'string' }
       }
-    )
+    },
+    required: [
+      'new_recommendations',
+      'updated_recommendations',
+      'completed_recommendation_ids',
+      'dismissed_recommendation_ids'
+    ]
+  }
 
-    const {
-      new_recommendations,
-      updated_recommendations,
-      completed_recommendation_ids,
-      dismissed_recommendation_ids
-    } = response
+  let usageId: string | undefined
+  const response = await generateStructuredAnalysis<RecommendationsResponse>(
+    prompt,
+    schema,
+    aiSettings.aiModelPreference,
+    {
+      userId,
+      operation: 'generate_recommendations',
+      entityType: 'RecommendationBatch',
+      onUsageLogged: (id) => {
+        usageId = id
+      }
+    }
+  )
 
-    // 6. Process New Recommendations
-    if (new_recommendations && new_recommendations.length > 0) {
-      const recsWithIds = new_recommendations.map((rec) => ({
-        id: uuidv4(),
-        userId,
-        sourceType: rec.sourceType,
-        category: rec.category,
-        metric: rec.metric,
-        period: rec.period,
-        title: rec.title,
-        description: rec.description,
-        priority: rec.priority,
+  const {
+    new_recommendations,
+    updated_recommendations,
+    completed_recommendation_ids,
+    dismissed_recommendation_ids
+  } = response
+
+  // 6. Process New Recommendations
+  if (new_recommendations && new_recommendations.length > 0) {
+    const recsWithIds = new_recommendations.map((rec) => ({
+      id: uuidv4(),
+      userId,
+      sourceType: rec.sourceType,
+      category: rec.category,
+      metric: rec.metric,
+      period: rec.period,
+      title: rec.title,
+      description: rec.description,
+      priority: rec.priority,
+      generatedAt: new Date(),
+      llmUsageId: usageId,
+      status: 'ACTIVE'
+    }))
+
+    await recommendationRepository.createMany(recsWithIds)
+    logger.log(`✅ Created ${recsWithIds.length} new recommendations`)
+  }
+
+  // 7. Process Updated Recommendations
+  if (updated_recommendations && updated_recommendations.length > 0) {
+    for (const update of updated_recommendations) {
+      const existing = activeRecommendations.find((r) => r.id === update.id)
+      if (!existing) continue
+
+      // Create history entry
+      const historyItem: RecommendationHistoryItem = {
+        date: new Date().toISOString(),
+        title: existing.title,
+        description: existing.description,
+        reason: update.reason_for_update
+      }
+
+      const currentHistory = (existing.history as any) || []
+      const newHistory = [...currentHistory, historyItem]
+
+      await recommendationRepository.update(update.id, userId, {
+        title: update.new_title,
+        description: update.new_description,
+        priority: update.new_priority,
+        history: newHistory as any,
         generatedAt: new Date(),
-        llmUsageId: usageId,
-        status: 'ACTIVE'
-      }))
-
-      await recommendationRepository.createMany(recsWithIds)
-      logger.log(`✅ Created ${recsWithIds.length} new recommendations`)
-    }
-
-    // 7. Process Updated Recommendations
-    if (updated_recommendations && updated_recommendations.length > 0) {
-      for (const update of updated_recommendations) {
-        const existing = activeRecommendations.find((r) => r.id === update.id)
-        if (!existing) continue
-
-        // Create history entry
-        const historyItem: RecommendationHistoryItem = {
-          date: new Date().toISOString(),
-          title: existing.title,
-          description: existing.description,
-          reason: update.reason_for_update
-        }
-
-        const currentHistory = (existing.history as any) || []
-        const newHistory = [...currentHistory, historyItem]
-
-        await recommendationRepository.update(update.id, userId, {
-          title: update.new_title,
-          description: update.new_description,
-          priority: update.new_priority,
-          history: newHistory as any,
-          generatedAt: new Date(),
-          llmUsageId: usageId
-        })
-      }
-      logger.log(`🔄 Updated ${updated_recommendations.length} existing recommendations`)
-    }
-
-    // 8. Process Completed & Dismissed
-    const completedIds = completed_recommendation_ids || []
-    if (completedIds.length > 0) {
-      await recommendationRepository.updateMany(userId, completedIds, {
-        status: 'COMPLETED',
-        completedAt: new Date()
+        llmUsageId: usageId
       })
-      logger.log(`✅ Marked ${completedIds.length} as COMPLETED`)
     }
+    logger.log(`🔄 Updated ${updated_recommendations.length} existing recommendations`)
+  }
 
-    const dismissedIds = dismissed_recommendation_ids || []
-    if (dismissedIds.length > 0) {
-      await recommendationRepository.updateMany(userId, dismissedIds, {
-        status: 'DISMISSED',
-        completedAt: new Date()
-      })
-      logger.log(`🚫 Marked ${dismissedIds.length} as DISMISSED`)
-    }
+  // 8. Process Completed & Dismissed
+  const completedIds = completed_recommendation_ids || []
+  if (completedIds.length > 0) {
+    await recommendationRepository.updateMany(userId, completedIds, {
+      status: 'COMPLETED',
+      completedAt: new Date()
+    })
+    logger.log(`✅ Marked ${completedIds.length} as COMPLETED`)
+  }
 
-    // 9. DEDUPLICATION STEP
-    logger.log('🕵️ Running Deduplication Check')
+  const dismissedIds = dismissed_recommendation_ids || []
+  if (dismissedIds.length > 0) {
+    await recommendationRepository.updateMany(userId, dismissedIds, {
+      status: 'DISMISSED',
+      completedAt: new Date()
+    })
+    logger.log(`🚫 Marked ${dismissedIds.length} as DISMISSED`)
+  }
 
-    // Fetch fresh active recommendations (including newly created ones)
-    const freshActiveRecs = await recommendationRepository.getActive(userId)
-    const createdNewRecommendations = (new_recommendations?.length || 0) > 0
+  // 9. DEDUPLICATION STEP
+  logger.log('🕵️ Running Deduplication Check')
 
-    if (freshActiveRecs.length > 1 && createdNewRecommendations) {
-      const dedupPrompt = `You are a data cleaner. Review the following list of active recommendations and identify DUPLICATES or CONFLICTING items.
+  // Fetch fresh active recommendations (including newly created ones)
+  const freshActiveRecs = await recommendationRepository.getActive(userId)
+  const createdNewRecommendations = (new_recommendations?.length || 0) > 0
+
+  if (freshActiveRecs.length > 1 && createdNewRecommendations) {
+    const dedupPrompt = `You are a data cleaner. Review the following list of active recommendations and identify DUPLICATES or CONFLICTING items.
 
 ACTIVE RECOMMENDATIONS:
 ${freshActiveRecs.map((r) => `- ID: "${r.id}" | ${r.title} (${r.description}) [Category: ${r.category}, Metric: ${r.metric}] ${r.isPinned ? '(PINNED/PROTECTED)' : ''}`).join('\n')}
@@ -452,54 +450,62 @@ INSTRUCTIONS:
 OUTPUT SCHEMA:
 JSON object with 'ids_to_dismiss' array (string IDs). If no duplicates or only pinned items, return empty array.`
 
-      const dedupSchema = {
-        type: 'object',
-        properties: {
-          ids_to_dismiss: {
-            type: 'array',
-            items: { type: 'string' }
-          }
-        },
-        required: ['ids_to_dismiss']
-      }
-
-      const dedupResponse = await generateStructuredAnalysis<{ ids_to_dismiss: string[] }>(
-        dedupPrompt,
-        dedupSchema,
-        aiSettings.aiModelPreference,
-        {
-          userId,
-          operation: 'deduplicate_recommendations',
-          entityType: 'RecommendationBatch'
+    const dedupSchema = {
+      type: 'object',
+      properties: {
+        ids_to_dismiss: {
+          type: 'array',
+          items: { type: 'string' }
         }
-      )
+      },
+      required: ['ids_to_dismiss']
+    }
 
-      let { ids_to_dismiss } = dedupResponse
-
-      // Safety: filter out any pinned items from dismissal, just in case AI missed instructions
-      const pinnedIds = new Set(freshActiveRecs.filter((r) => r.isPinned).map((r) => r.id))
-      ids_to_dismiss = ids_to_dismiss.filter((id) => !pinnedIds.has(id))
-
-      if (ids_to_dismiss && ids_to_dismiss.length > 0) {
-        await recommendationRepository.updateMany(userId, ids_to_dismiss, {
-          status: 'DISMISSED',
-          completedAt: new Date()
-        })
-        logger.log(`Sweep completed: Dismissed ${ids_to_dismiss.length} redundant recommendations`)
-      } else {
-        logger.log('✨ No redundant items found (or all kept due to focus)')
+    const dedupResponse = await generateStructuredAnalysis<{ ids_to_dismiss: string[] }>(
+      dedupPrompt,
+      dedupSchema,
+      aiSettings.aiModelPreference,
+      {
+        userId,
+        operation: 'deduplicate_recommendations',
+        entityType: 'RecommendationBatch'
       }
-    } else {
-      logger.log('Skipping deduplication sweep (no new recommendations created this run)')
-    }
+    )
 
-    return {
-      success: true,
-      new: new_recommendations?.length || 0,
-      updated: updated_recommendations?.length || 0,
-      completed: completedIds.length,
-      dismissed: dismissedIds.length,
-      userId
+    let { ids_to_dismiss } = dedupResponse
+
+    // Safety: filter out any pinned items from dismissal, just in case AI missed instructions
+    const pinnedIds = new Set(freshActiveRecs.filter((r) => r.isPinned).map((r) => r.id))
+    ids_to_dismiss = ids_to_dismiss.filter((id) => !pinnedIds.has(id))
+
+    if (ids_to_dismiss && ids_to_dismiss.length > 0) {
+      await recommendationRepository.updateMany(userId, ids_to_dismiss, {
+        status: 'DISMISSED',
+        completedAt: new Date()
+      })
+      logger.log(`Sweep completed: Dismissed ${ids_to_dismiss.length} redundant recommendations`)
+    } else {
+      logger.log('✨ No redundant items found (or all kept due to focus)')
     }
+  } else {
+    logger.log('Skipping deduplication sweep (no new recommendations created this run)')
   }
+
+  return {
+    success: true,
+    new: new_recommendations?.length || 0,
+    updated: updated_recommendations?.length || 0,
+    completed: completedIds.length,
+    dismissed: dismissedIds.length,
+    userId
+  }
+}
+
+registerTaskHandler('generate-recommendations', runGenerateRecommendations)
+
+export const generateRecommendationsTask = task({
+  id: 'generate-recommendations',
+  maxDuration: 300,
+  queue: userReportsQueue,
+  run: runGenerateRecommendations
 })

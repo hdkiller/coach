@@ -1,11 +1,8 @@
-import { getServerSession } from '../../utils/session'
-import { runs } from '@trigger.dev/sdk/v3'
+import { requireAuth } from '../../utils/auth-guard'
+import { cancelTaskRun, getTaskRun } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const user = await requireAuth(event)
 
   const runId = getRouterParam(event, 'id')
   if (!runId) {
@@ -13,17 +10,26 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const run = await runs.retrieve(runId)
+    const run = await getTaskRun(runId)
+    if (!run) throw createError({ statusCode: 404, message: 'Run not found' })
 
     // Security check: Ensure the run belongs to the user via tags
-    const hasUserTag = run.tags?.includes(`user:${session.user.id}`)
+    const hasUserTag = run.tags.includes(`user:${user.id}`)
 
     if (!hasUserTag) {
       throw createError({ statusCode: 404, message: 'Run not found' })
     }
 
-    // Cancel the run
-    await runs.cancel(runId)
+    const result = await cancelTaskRun(runId)
+    if (!result.canceled) {
+      throw createError({
+        statusCode: result.reason === 'NOT_FOUND' ? 404 : 409,
+        message:
+          result.reason === 'ALREADY_RUNNING'
+            ? 'Redis tasks cannot be canceled after execution has started'
+            : 'Run cannot be canceled'
+      })
+    }
 
     return { success: true }
   } catch (error: any) {

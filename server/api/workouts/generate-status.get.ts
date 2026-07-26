@@ -1,5 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { isRunIdRunning, isTaskRunning } from '../../utils/trigger-check'
+import { getTaskStatus, isTaskRunningForUser } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -40,14 +40,14 @@ export default defineEventHandler(async (event) => {
   const jobId = typeof query.jobId === 'string' ? query.jobId : undefined
 
   if (jobId) {
-    const isRunning = await isRunIdRunning(jobId)
+    const status = await getTaskStatus('generate-ad-hoc-workout', jobId, user.id)
     return {
-      isRunning,
-      task: isRunning ? 'generate-ad-hoc-workout' : null
+      isRunning: status.isRunning,
+      task: status.isRunning ? 'generate-ad-hoc-workout' : null
     }
   }
 
-  const isRunning = await isTaskRunning('generate-ad-hoc-workout', user.id)
+  const isRunning = await isTaskRunningForUser('generate-ad-hoc-workout', user.id)
   return {
     isRunning,
     task: isRunning ? 'generate-ad-hoc-workout' : null

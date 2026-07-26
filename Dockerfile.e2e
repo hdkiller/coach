@@ -38,6 +38,7 @@ COPY --from=builder /app/cli ./cli
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/trigger ./trigger
+COPY --from=builder /app/tests/fixtures/llm-mocks ./tests/fixtures/llm-mocks
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/start.sh ./start.sh

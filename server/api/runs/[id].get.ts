@@ -1,5 +1,5 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { runs } from '@trigger.dev/sdk/v3'
+import { getTaskRun } from '../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   // Bearer + session; no scope gate — ownership is enforced via run tags below.
@@ -11,11 +11,14 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const run = await runs.retrieve(runId)
+    const run = await getTaskRun(runId)
+    if (!run) {
+      throw createError({ statusCode: 404, message: 'Run not found' })
+    }
 
     // Security check: Ensure the run belongs to the user via tags
     // This assumes all user-specific runs are tagged with "user:{userId}"
-    const hasUserTag = run.tags?.includes(`user:${user.id}`)
+    const hasUserTag = run.tags.includes(`user:${user.id}`)
 
     // If you have system-wide runs that users need to see but aren't tagged,
     // you might need to relax this or add specific logic.

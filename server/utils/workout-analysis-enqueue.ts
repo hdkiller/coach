@@ -1,5 +1,5 @@
-import { analyzeWorkoutTask } from '../../trigger/analyze-workout'
 import { prisma } from './db'
+import { dispatchTask } from './task-dispatcher'
 import { auditLogRepository } from './repositories/auditLogRepository'
 import { isWorkoutEligibleForAutomaticInsights } from './automatic-workout-insights'
 
@@ -46,13 +46,13 @@ export async function enqueueWorkoutAnalysis(input: {
   }
 
   try {
-    const handle = await analyzeWorkoutTask.trigger(
+    const handle = await dispatchTask(
+      'analyze-workout',
       { workoutId: input.workoutId, source: input.source },
       {
         tags: [`user:${input.userId}`, `workout:${input.workoutId}`],
         concurrencyKey: input.userId,
-        idempotencyKey: `workout-analysis-${input.workoutId}-${input.source.toLowerCase()}`,
-        idempotencyKeyTTL: '5m'
+        id: `workout-analysis-${input.workoutId}-${input.source.toLowerCase()}`
       }
     )
 

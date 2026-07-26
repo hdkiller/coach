@@ -17,15 +17,31 @@ import '../../trigger/hello-world'
 import '../../trigger/sentry-error-test'
 import '../../trigger/recommend-today-activity'
 import '../../trigger/generate-weekly-plan'
+import '../../trigger/autodetect-intervals-profile'
+import '../../trigger/analyze-wellness'
+import '../../trigger/ingest-strava-activity'
+import '../../trigger/ingest-strava-streams'
+import '../../trigger/ingest-intervals'
+import '../../trigger/ingest-oura'
+import '../../trigger/ingest-whoop'
+import '../../trigger/generate-training-block'
+import '../../trigger/generate-structured-workout'
+import '../../trigger/adjust-structured-workout'
 import '../../trigger/generate-report'
 import '../../trigger/generate-athlete-profile'
+import '../../trigger/generate-ad-hoc-workout'
+import '../../trigger/generate-recommendations'
+import '../../trigger/generate-score-explanations'
 import '../../trigger/analyze-nutrition'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue, streamsQueue, mainTaskQueue } from '../../server/utils/queue'
-import { executeRegisteredTask } from '../../server/utils/task-registry'
+import { executeRegisteredTask, getRegisteredTaskIds } from '../../server/utils/task-registry'
+import { REDIS_TASK_IDS } from '../../server/utils/task-capabilities'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
 import { formatErrorMessage } from '../../server/utils/log-format'
+import { formatTaskRunId } from '../../server/utils/task-dispatcher'
+import { publishTaskRunUpdateEvent } from '../../server/utils/task-run-events'
 import { Command } from 'commander'
 import * as Sentry from '@sentry/node'
 import { tasks } from '@trigger.dev/sdk/v3'
@@ -33,6 +49,13 @@ import { tasks } from '@trigger.dev/sdk/v3'
 export const startCommand = new Command('start')
   .description('Start the webhook worker')
   .action(async () => {
+    const registeredTaskIds = new Set(getRegisteredTaskIds())
+    const missingTaskIds = Array.from(REDIS_TASK_IDS).filter(
+      (taskId) => !registeredTaskIds.has(taskId)
+    )
+    if (missingTaskIds.length > 0) {
+      throw new Error(`Redis task handlers missing at worker startup: ${missingTaskIds.join(', ')}`)
+    }
     if (process.env.SENTRY_DSN) {
       Sentry.init({
         dsn: process.env.SENTRY_DSN,
@@ -57,6 +80,26 @@ export const startCommand = new Command('start')
     const concurrency = parseInt(process.env.CW_WORKER_QUEUE_WEBHOOK_CONCURRENCY || '5')
     const streamConcurrency = parseInt(process.env.CW_WORKER_QUEUE_STREAM_CONCURRENCY || '2')
     let restartRequested = false
+    const taskConcurrencyByKey = new Map<string, { active: number; waiters: Array<() => void> }>()
+    const concurrencyPerTaskKey = 5
+
+    const runWithConcurrencyKey = async <T>(key: string | undefined, work: () => Promise<T>) => {
+      if (!key) return work()
+
+      const state = taskConcurrencyByKey.get(key) || { active: 0, waiters: [] }
+      taskConcurrencyByKey.set(key, state)
+      if (state.active >= concurrencyPerTaskKey) {
+        await new Promise<void>((resolve) => state.waiters.push(resolve))
+      }
+      state.active++
+      try {
+        return await work()
+      } finally {
+        state.active--
+        state.waiters.shift()?.()
+        if (state.active === 0 && state.waiters.length === 0) taskConcurrencyByKey.delete(key)
+      }
+    }
 
     const requestRestart = (reason: string, error?: unknown) => {
       if (restartRequested) return
@@ -70,7 +113,7 @@ export const startCommand = new Command('start')
     const healthServer = http.createServer(async (req, res) => {
       if (req.url === '/api/health' && req.method === 'GET') {
         try {
-          const [webhookCounts, pingCounts, streamCounts] = await Promise.all([
+          const [webhookCounts, pingCounts, streamCounts, mainTaskCounts] = await Promise.all([
             webhookQueue.getJobCounts(
               'waiting',
               'active',
@@ -81,6 +124,14 @@ export const startCommand = new Command('start')
             ),
             pingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
             streamsQueue.getJobCounts(
+              'waiting',
+              'active',
+              'completed',
+              'failed',
+              'delayed',
+              'paused'
+            ),
+            mainTaskQueue.getJobCounts(
               'waiting',
               'active',
               'completed',
@@ -99,7 +150,8 @@ export const startCommand = new Command('start')
             queues: {
               webhook: webhookCounts,
               ping: pingCounts,
-              streams: streamCounts
+              streams: streamCounts,
+              mainTasks: mainTaskCounts
             },
             config: {
               concurrency,
@@ -784,12 +836,62 @@ export const startCommand = new Command('start')
       async (job: Job) => {
         const taskId = job.name
         const { payload } = job.data || {}
+        const options = job.data?.options || {}
+        const tags = Array.isArray(options.tags) ? options.tags : []
+        const userTag = tags.find(
+          (tag: unknown) => typeof tag === 'string' && tag.startsWith('user:')
+        )
+        const userId = typeof userTag === 'string' ? userTag.slice('user:'.length) : null
+        const runId = formatTaskRunId('redis', String(job.id))
         console.log(
           chalk.cyan(`[TaskJob ${job.id}]`) + ` Processing background task ${chalk.bold(taskId)}`
         )
-        const result = await executeRegisteredTask(taskId, payload)
-        console.log(chalk.green(`[TaskJob ${job.id}] Completed task ${chalk.bold(taskId)}`))
-        return result
+        if (userId) {
+          await publishTaskRunUpdateEvent(userId, taskId, runId, {
+            status: 'EXECUTING',
+            startedAt: new Date().toISOString(),
+            tags
+          }).catch((error) => console.warn('[TaskWorker] Failed to publish running event:', error))
+        }
+
+        try {
+          const result = await runWithConcurrencyKey(options.concurrencyKey, () =>
+            executeRegisteredTask(taskId, payload)
+          )
+          const finishedAt = new Date().toISOString()
+          console.log(chalk.green(`[TaskJob ${job.id}] Completed task ${chalk.bold(taskId)}`))
+          if (userId) {
+            await publishTaskRunUpdateEvent(userId, taskId, runId, {
+              status: 'COMPLETED',
+              startedAt: job.processedOn
+                ? new Date(job.processedOn).toISOString()
+                : new Date(job.timestamp).toISOString(),
+              finishedAt,
+              output: result,
+              tags
+            }).catch((error) =>
+              console.warn('[TaskWorker] Failed to publish completion event:', error)
+            )
+          }
+          return result
+        } catch (error) {
+          const configuredAttempts = typeof job.opts.attempts === 'number' ? job.opts.attempts : 1
+          const isFinalAttempt = job.attemptsMade + 1 >= configuredAttempts
+          if (userId) {
+            await publishTaskRunUpdateEvent(userId, taskId, runId, {
+              status: isFinalAttempt ? 'FAILED' : 'REATTEMPTING',
+              startedAt: job.processedOn
+                ? new Date(job.processedOn).toISOString()
+                : new Date(job.timestamp).toISOString(),
+              ...(isFinalAttempt ? { finishedAt: new Date().toISOString() } : {}),
+              error: { message: error instanceof Error ? error.message : String(error) },
+              tags
+            }).catch((publishError) =>
+              console.warn('[TaskWorker] Failed to publish failure event:', publishError)
+            )
+          }
+          throw error
+        }
       },
       { connection, concurrency: taskConcurrency }
     )
@@ -806,7 +908,7 @@ export const startCommand = new Command('start')
       if (err && process.env.SENTRY_DSN) {
         Sentry.captureException(err, {
           tags: { worker: 'mainTaskWorker', taskId: job?.name },
-          extra: { jobId: job?.id, payload: job?.data }
+          extra: { jobId: job?.id, attemptsMade: job?.attemptsMade }
         })
       }
     })
@@ -835,6 +937,12 @@ export const startCommand = new Command('start')
           'completed',
           'failed'
         )
+        const mainTaskCounts = await mainTaskQueue.getJobCounts(
+          'waiting',
+          'active',
+          'completed',
+          'failed'
+        )
 
         console.log(
           chalk.gray('[Stats] ') +
@@ -845,7 +953,10 @@ export const startCommand = new Command('start')
             `W:${pingCounts.waiting} A:${pingCounts.active} C:${pingCounts.completed} F:${pingCounts.failed}` +
             chalk.gray(' | ') +
             chalk.bold('Streams: ') +
-            `W:${streamCounts.waiting} A:${streamCounts.active} C:${streamCounts.completed} F:${streamCounts.failed}`
+            `W:${streamCounts.waiting} A:${streamCounts.active} C:${streamCounts.completed} F:${streamCounts.failed}` +
+            chalk.gray(' | ') +
+            chalk.bold('Tasks: ') +
+            `W:${mainTaskCounts.waiting} A:${mainTaskCounts.active} C:${mainTaskCounts.completed} F:${mainTaskCounts.failed}`
         )
       } catch (err) {
         console.error(chalk.red('Failed to fetch queue stats:'), err)
@@ -869,10 +980,20 @@ export const startCommand = new Command('start')
         healthServer.close()
         console.log(chalk.gray('Health server closed.'))
 
-        await Promise.all([webhookWorker.close(), pingWorker.close(), streamsWorker.close()])
+        await Promise.all([
+          webhookWorker.close(),
+          pingWorker.close(),
+          streamsWorker.close(),
+          mainTaskWorker.close()
+        ])
         console.log(chalk.gray('Workers closed.'))
 
-        await Promise.all([webhookQueue.close(), pingQueue.close(), streamsQueue.close()])
+        await Promise.all([
+          webhookQueue.close(),
+          pingQueue.close(),
+          streamsQueue.close(),
+          mainTaskQueue.close()
+        ])
         console.log(chalk.gray('Queues closed.'))
 
         await connection.quit()

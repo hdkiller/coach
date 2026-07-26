@@ -1,4 +1,3 @@
-import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
 import {
@@ -7,6 +6,7 @@ import {
   parseLibraryScope
 } from '../../../../utils/library-access'
 import { publishTaskRunStartedEvent } from '../../../../utils/task-run-events'
+import { dispatchTask } from '../../../../utils/task-dispatcher'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     `template-owner:${template.userId}`
   ]
 
-  const handle = await tasks.trigger(
+  const handle = await dispatchTask(
     'generate-structured-workout',
     {
       workoutTemplateId: id
