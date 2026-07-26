@@ -1,7 +1,9 @@
 name: E2E
 
-# Manual only — never runs on push/PR. Targets the dedicated Mac Mini runner
-# labeled `e2e` so deploy/CI jobs on `shadow` are never blocked.
+# Runs on:
+# 1. Manual trigger (workflow_dispatch)
+# 2. Pull Requests targeting `master`
+# 3. Pull Requests labeled with `run-e2e`
 on:
   workflow_dispatch:
     inputs:
@@ -10,6 +12,8 @@ on:
         required: true
         default: develop
         type: string
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 concurrency:
   group: e2e-mac-mini
@@ -23,6 +27,10 @@ jobs:
     name: Playwright E2E
     runs-on: [self-hosted, e2e]
     timeout-minutes: 120
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.base_ref == 'master' ||
+      contains(github.event.pull_request.labels.*.name, 'run-e2e')
 
     steps:
       - name: Checkout
