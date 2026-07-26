@@ -625,7 +625,15 @@ export const GarminService = {
             const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
             await this.ingestFitArtifactsForWorkout(userId, upserted.record.id, externalId, buffer)
           } catch (e) {
-            console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+            const isTokenError =
+              e instanceof Error && /invalid (download|pull) token/i.test(e.message)
+            if (isTokenError) {
+              console.log(
+                `[GarminService] Stream download token not available in summary push for ${externalId}; awaiting activityFiles push...`
+              )
+            } else {
+              console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+            }
           }
         }
       }
