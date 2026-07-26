@@ -43,7 +43,7 @@
     loading.value = true
     try {
       if (isEditing.value) {
-        await $fetch(`${apiBase.value}/${props.issue.id}`, {
+        await (globalThis.$fetch as any)(`${apiBase.value}/${props.issue.id}`, {
           method: updateMethod.value,
           body: event.data
         })
@@ -57,9 +57,12 @@
           url: window.location.href
         }
 
-        await $fetch('/api/issues', {
+        await (globalThis.$fetch as any)('/api/issues', {
           method: 'POST',
-          body: { ...event.data, context }
+          body: {
+            ...event.data,
+            systemContext: context
+          }
         })
         toast.add({ title: 'Issue reported successfully', color: 'success' })
       }
