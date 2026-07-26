@@ -160,6 +160,13 @@
     allowEdit?: boolean
   }>()
 
+  defineEmits<{
+    save: [event: unknown]
+    regenerate: []
+    view: []
+    adjust: []
+  }>()
+
   const activeStepsTab = ref<'view' | 'edit'>('view')
 
   function formatDuration(seconds: number | null | undefined) {

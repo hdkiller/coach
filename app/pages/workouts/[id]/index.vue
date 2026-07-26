@@ -2437,6 +2437,7 @@
                           <span
                             class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500/50 flex-shrink-0"
                           />
+                          <!-- eslint-disable-next-line vue/no-v-html -->
                           <span v-html="highlightTechnicalData(point)"></span>
                         </li>
                       </ul>
@@ -2575,10 +2576,12 @@
               <!-- Legacy Fallback -->
               <div v-else-if="workout.aiAnalysis" class="space-y-6 relative z-10">
                 <div class="prose prose-sm dark:prose-invert max-w-none px-2">
+                  <!-- eslint-disable vue/no-v-html -- markdown-rendered analysis -->
                   <div
                     class="text-zinc-300 font-medium leading-relaxed"
                     v-html="renderedAnalysis"
                   />
+                  <!-- eslint-enable vue/no-v-html -->
                 </div>
                 <div
                   v-if="workout.aiAnalyzedAt"

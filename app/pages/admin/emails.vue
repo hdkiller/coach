@@ -291,6 +291,7 @@
             >
               <!-- Render the HTML safely using v-html -->
               <div class="bg-white dark:bg-black p-4 h-[500px] overflow-y-auto">
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div class="w-full" v-html="selectedEmail.htmlBody"></div>
               </div>
             </div>

@@ -152,7 +152,7 @@
             variant="ghost"
             @click="
               () => {
-                void $emit('update:open', false)
+                open = false
               }
             "
           />

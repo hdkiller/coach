@@ -15,7 +15,8 @@
       color: 'neutral',
       variant: 'outline',
       loading: false,
-      disabled: false
+      disabled: false,
+      to: undefined
     }
   )
 </script>

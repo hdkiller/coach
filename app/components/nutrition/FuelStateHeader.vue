@@ -142,6 +142,7 @@
     {
       isLocked: false,
       goalAdjustment: 0,
+      fuelingPlan: undefined,
       hideBanner: false
     }
   )
