@@ -119,7 +119,7 @@ This document serves as the master tracking reference for filling all E2E test g
 
 ---
 
-### Category C: Integrations & Webhook Ingestion (`e2e/tests/webhooks.spec.ts`)
+### Category C: Integrations & Webhook Ingestion (`e2e/tests/webhooks.spec.ts`) 🟢 **COMPLETED**
 
 #### Gap C1: Multi-Source Webhook Ingestion & Deduplication
 
@@ -133,7 +133,7 @@ This document serves as the master tracking reference for filling all E2E test g
 
 ---
 
-### Category D: Admin Operations & System Safety
+### Category D: Admin Operations & System Safety 🟢 **COMPLETED**
 
 #### Gap D1: System Messages & User Dismissal (`e2e/tests/admin-and-rbac.spec.ts`)
 
@@ -157,7 +157,7 @@ This document serves as the master tracking reference for filling all E2E test g
 
 ---
 
-### Category E: Timezone Resilience & Edge Cases
+### Category E: Timezone Resilience & Edge Cases 🟢 **COMPLETED**
 
 #### Gap E1: Multi-Timezone Calendar & Recommendation Alignment
 
