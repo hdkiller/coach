@@ -625,7 +625,15 @@ export const GarminService = {
             const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
             await this.ingestFitArtifactsForWorkout(userId, upserted.record.id, externalId, buffer)
           } catch (e) {
-            console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+            const isTokenError =
+              e instanceof Error && /invalid (download|pull) token/i.test(e.message)
+            if (isTokenError) {
+              console.log(
+                `[GarminService] Stream download token not available in summary push for ${externalId}; awaiting activityFiles push...`
+              )
+            } else {
+              console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+            }
           }
         }
       }
@@ -913,6 +921,45 @@ export const GarminService = {
           firstFailure?.reason instanceof Error
             ? firstFailure.reason.message
             : String(firstFailure?.reason || 'All Garmin API requests failed')
+
+        const isPullTokenError = results.some(
+          (r) =>
+            r.status === 'rejected' &&
+            String(r.reason instanceof Error ? r.reason.message : r.reason || '').includes(
+              'InvalidPullTokenException'
+            )
+        )
+
+        if (isPullTokenError) {
+          console.log(
+            `[GarminService] Direct REST pull restricted by Garmin for user ${userId}. Initiating asynchronous backfill...`
+          )
+          await this.startBackfill(userId)
+
+          await prisma.integration.update({
+            where: { id: integration.id },
+            data: {
+              syncStatus: 'SUCCESS',
+              lastSyncAt: new Date(),
+              errorMessage:
+                'Direct pull restricted by Garmin Health API. Asynchronous backfill requested via webhooks.'
+            }
+          })
+
+          return {
+            success: true,
+            backfillTriggered: true,
+            counts: {
+              dailies: 0,
+              sleeps: 0,
+              hrv: 0,
+              bodyComps: 0,
+              userMetrics: 0,
+              activities: 0
+            }
+          }
+        }
+
         throw new Error(failureMessage)
       }
 

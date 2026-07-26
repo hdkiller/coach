@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { executeChatTurn } from './turn-executor'
 import { chatTurnService } from '../services/chatTurnService'
+import { formatErrorForLog } from '../errorFormatter'
 
 const DEFAULT_POLL_INTERVAL_MS = 250
 const DEFAULT_RECOVERY_INTERVAL_MS = 30_000
@@ -77,7 +78,10 @@ class ChatTurnRunner {
     try {
       await executeChatTurn(turnId, runId)
     } catch (error) {
-      console.error('[ChatTurnRunner] Turn execution failed:', { turnId, error })
+      console.error('[ChatTurnRunner] Turn execution failed:', {
+        turnId,
+        error: formatErrorForLog(error)
+      })
     } finally {
       this.runningCount = Math.max(0, this.runningCount - 1)
       void this.pump()

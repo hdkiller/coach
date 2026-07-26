@@ -1,10 +1,24 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
 import {
   extractGarminBodyBatteryScore,
   extractGarminReadinessScore,
   extractGarminSpO2Percentage,
   GarminService
 } from '../../../../../server/utils/services/garminService'
+
+const { prismaMock } = vi.hoisted(() => ({
+  prismaMock: {
+    integration: {
+      findUnique: vi.fn(),
+      update: vi.fn()
+    }
+  }
+}))
+
+vi.mock('../../../../../server/utils/db', () => ({
+  prisma: prismaMock
+}))
 
 describe('GarminService.extractPullToken', () => {
   it('prefers the webhook query token', () => {
@@ -233,5 +247,60 @@ describe('extractGarminSpO2Percentage', () => {
         averageStressLevel: 18
       })
     ).toBeNull()
+  })
+})
+
+describe('GarminService.runIngestGarmin', () => {
+  it('triggers backfill when direct REST pulls fail with InvalidPullTokenException', async () => {
+    prismaMock.integration.findUnique.mockResolvedValue({
+      id: 'int-123',
+      userId: 'user-123',
+      provider: 'garmin',
+      ingestWorkouts: true,
+      settings: {}
+    })
+    prismaMock.integration.update.mockResolvedValue({})
+
+    const startBackfillSpy = vi.spyOn(GarminService, 'startBackfill').mockResolvedValue(undefined)
+
+    const fetchers = await import('../../../../../server/utils/garmin')
+    vi.spyOn(fetchers, 'refreshGarminIntegrationPermissions').mockImplementation(
+      async (int: any) => int
+    )
+    vi.spyOn(fetchers, 'fetchGarminDailies').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+    vi.spyOn(fetchers, 'fetchGarminSleeps').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+    vi.spyOn(fetchers, 'fetchGarminHRV').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+    vi.spyOn(fetchers, 'fetchGarminBodyComps').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+    vi.spyOn(fetchers, 'fetchGarminUserMetrics').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+    vi.spyOn(fetchers, 'fetchGarminActivities').mockRejectedValue(
+      new Error('Garmin API error (400): InvalidPullTokenException failure')
+    )
+
+    const result = await GarminService.runIngestGarmin({ userId: 'user-123' })
+
+    expect(result.success).toBe(true)
+    expect(result.backfillTriggered).toBe(true)
+    expect(startBackfillSpy).toHaveBeenCalledWith('user-123')
+    expect(prismaMock.integration.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'int-123' },
+        data: expect.objectContaining({
+          syncStatus: 'SUCCESS',
+          errorMessage: expect.stringContaining('Direct pull restricted by Garmin Health API')
+        })
+      })
+    )
+
+    vi.restoreAllMocks()
   })
 })
