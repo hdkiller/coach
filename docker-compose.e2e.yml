@@ -68,7 +68,7 @@ services:
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
       DISABLE_EMAILS: 'true'
       TOLGEE_API_ENABLED: 'false'
-      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'false'
+      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'
       CHAT_TURN_RUNNER_ENABLED: 'false'
       AUTH_BYPASS_USER: ''
       AUTH_BYPASS_NAME: ''
@@ -78,6 +78,8 @@ services:
       STRAVA_CLIENT_SECRET: e2e-placeholder
       INTERVALS_CLIENT_ID: e2e-placeholder
       INTERVALS_CLIENT_SECRET: e2e-placeholder
+      STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy
@@ -112,7 +114,9 @@ services:
       NODE_ENV: production
       CW_WORKER_HEALTH_PORT: '8081'
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
-      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'false'
+      NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'
+      STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy

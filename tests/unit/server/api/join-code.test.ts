@@ -22,6 +22,10 @@ vi.mock('../../../../server/utils/db', () => ({
   }
 }))
 
+vi.mock('../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn().mockResolvedValue({ id: 'user-1' })
+}))
+
 vi.mock('../../../../server/utils/repositories/coachingRepository', () => ({
   coachingRepository: {
     getCoachAthleteInviteByCode
