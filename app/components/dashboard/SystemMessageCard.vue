@@ -209,7 +209,7 @@
     message.value = null
 
     try {
-      await $fetch('/api/system-messages/dismiss', {
+      await (globalThis.$fetch as any)('/api/system-messages/dismiss', {
         method: 'POST',
         body: { messageId: id }
       })

@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../../utils/auth-guard'
 import { oauthRepository } from '../../../../utils/repositories/oauthRepository'
 import { getEffectiveUserId } from '../../../../utils/coaching'
 import { prisma } from '../../../../utils/db'
@@ -41,6 +42,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const userId = await getEffectiveUserId(event)
   const id = getRouterParam(event, 'id')
 

@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../utils/auth-guard'
 import { oauthRepository } from '../../../utils/repositories/oauthRepository'
 import { getEffectiveUserId } from '../../../utils/coaching'
 
@@ -48,6 +49,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const userId = await getEffectiveUserId(event)
   return await oauthRepository.listAppsForUser(userId)
 })

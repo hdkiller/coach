@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../utils/auth-guard'
 import { oauthRepository } from '../../../utils/repositories/oauthRepository'
 import { getEffectiveUserId } from '../../../utils/coaching'
 import { logAction } from '../../../utils/audit'
@@ -58,6 +59,7 @@ defineRouteMeta({
 } as any)
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const userId = await getEffectiveUserId(event)
   const body = await readBody(event)
 
