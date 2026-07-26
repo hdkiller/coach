@@ -18,15 +18,15 @@ test.describe('E2E Goals Endpoints', () => {
     const createRes = await request.post('/api/goals', {
       headers,
       data: {
+        type: 'PERFORMANCE',
         title: 'Run Sub-3 Marathon',
-        category: 'RACE',
         targetDate: new Date(Date.now() + 86400000 * 90).toISOString(),
-        targetValue: 180,
-        unit: 'minutes'
+        targetValue: 180
       }
     })
     expect(createRes.ok()).toBeTruthy()
-    const newGoal = await createRes.json()
+    const createData = await createRes.json()
+    const newGoal = createData.goal || createData
     expect(newGoal.id).toBeTruthy()
     expect(newGoal.title).toBe('Run Sub-3 Marathon')
 
