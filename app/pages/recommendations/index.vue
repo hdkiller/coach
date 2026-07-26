@@ -310,7 +310,7 @@
   async function confirmClearAll() {
     clearing.value = true
     try {
-      const res: any = await $fetch<unknown, string & {}>('/api/recommendations/clear', {
+      const res: any = await $fetch('/api/recommendations/clear', {
         method: 'DELETE'
       })
 
@@ -337,7 +337,7 @@
 
     refreshingAdvice.value = true
     try {
-      const res: any = await $fetch<unknown, string & {}>('/api/recommendations/generate', {
+      const res: any = await $fetch('/api/recommendations/generate', {
         method: 'POST'
       })
 
@@ -445,7 +445,7 @@
     const newPinnedState = !rec.isPinned
 
     try {
-      await $fetch<unknown, string & {}>(`/api/recommendations/${rec.id}`, {
+      await $fetch(`/api/recommendations/${rec.id}`, {
         method: 'PATCH',
         body: { isPinned: newPinnedState }
       })
@@ -459,7 +459,7 @@
 
   async function updateStatus(rec: any, status: string) {
     try {
-      await $fetch<unknown, string & {}>(`/api/recommendations/${rec.id}`, {
+      await $fetch(`/api/recommendations/${rec.id}`, {
         method: 'PATCH',
         body: { status }
       })

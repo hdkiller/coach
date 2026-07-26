@@ -114,18 +114,14 @@
   const hasSuccessBypass = computed(() => route.query.success === 'true')
 
   // Fetch AI settings
-  const { data: aiSettings, refresh: refreshSettings } = await useFetch<
-    unknown,
-    Error,
-    string & {}
-  >('/api/settings/ai', {
+  const { data: aiSettings, refresh: refreshSettings } = await useFetch('/api/settings/ai', {
     lazy: true,
     server: false
   })
 
   async function saveAiSettings(settings: any) {
     try {
-      await $fetch<unknown, string & {}>('/api/settings/ai', {
+      await $fetch('/api/settings/ai', {
         method: 'POST',
         body: settings
       })

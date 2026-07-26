@@ -296,9 +296,7 @@
     loading.value = true
     error.value = null
     try {
-      data.value = await $fetch<unknown, string & {}>(
-        `/api/workouts/${route.params.id}/intervals?debug=true`
-      )
+      data.value = await $fetch(`/api/workouts/${route.params.id}/intervals?debug=true`)
     } catch (e: any) {
       error.value = e.data?.message || 'Failed to fetch interval audit data'
     } finally {

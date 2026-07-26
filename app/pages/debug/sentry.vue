@@ -48,7 +48,7 @@
   const triggerServerLog = async () => {
     loadingServer.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/debug/sentry', { method: 'POST' })
+      await $fetch('/api/debug/sentry', { method: 'POST' })
       alert('Server logs triggered. Check your Sentry dashboard and server console.')
     } catch (e) {
       console.error(e)

@@ -448,9 +448,9 @@
     loadingTeams.value = true
     try {
       const [coachesData, inviteData, teamsData] = await Promise.all([
-        $fetch<unknown, string & {}>('/api/coaching/coaches'),
-        $fetch<unknown, string & {}>('/api/coaching/invite'),
-        $fetch<unknown, string & {}>('/api/coaching/teams')
+        $fetch('/api/coaching/coaches'),
+        $fetch('/api/coaching/invite'),
+        $fetch('/api/coaching/teams')
       ])
       coaches.value = coachesData as any[]
       invite.value = inviteData
@@ -468,7 +468,7 @@
     if (!newTeam.value.name) return
     creatingTeam.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/coaching/teams', {
+      await $fetch('/api/coaching/teams', {
         method: 'POST',
         body: newTeam.value
       })
@@ -487,7 +487,7 @@
     if (!joinCode.value) return
     joiningTeam.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/coaching/teams/accept', {
+      await $fetch('/api/coaching/teams/accept', {
         method: 'POST',
         body: { code: joinCode.value.toUpperCase() }
       })
@@ -512,7 +512,7 @@
   async function createInvite() {
     generatingInvite.value = true
     try {
-      invite.value = await $fetch<unknown, string & {}>('/api/coaching/invite', { method: 'POST' })
+      invite.value = await $fetch('/api/coaching/invite', { method: 'POST' })
       toast.add({ title: 'Invite code generated!', color: 'success' })
     } catch (e) {
       toast.add({ title: 'Failed to generate code', color: 'error' })
@@ -530,9 +530,7 @@
     if (!coachToRemove.value) return
     removingCoach.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/coaches/${coachToRemove.value.id}`, {
-        method: 'DELETE'
-      })
+      await $fetch(`/api/coaching/coaches/${coachToRemove.value.id}`, { method: 'DELETE' })
       toast.add({ title: 'Coach removed', color: 'success' })
       await fetchData()
       isRemoveModalOpen.value = false

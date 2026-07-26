@@ -79,7 +79,7 @@
   async function fetchTemplate(id: string) {
     loading.value = true
     try {
-      const data: any = await $fetch<unknown, string & {}>(`/api/library/workouts/${id}`, {
+      const data: any = await $fetch(`/api/library/workouts/${id}`, {
         query: {
           scope: props.templateOwnerScope
         }

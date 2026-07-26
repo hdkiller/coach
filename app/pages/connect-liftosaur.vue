@@ -130,12 +130,12 @@
   async function connect() {
     connecting.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/integrations/liftosaur', {
+      await $fetch('/api/integrations/liftosaur', {
         method: 'POST',
         body: { apiKey: state.apiKey }
       })
 
-      await $fetch<unknown, string & {}>('/api/integrations/sync', {
+      await $fetch('/api/integrations/sync', {
         method: 'POST',
         body: { provider: 'liftosaur' }
       })

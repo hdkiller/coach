@@ -372,12 +372,9 @@
     )
   )
 
-  const { data, pending } = await useFetch<{ plans: unknown[] }, Error, string & {}>(
-    '/api/public/plans',
-    {
-      query: apiQuery
-    }
-  )
+  const { data, pending } = await useFetch('/api/public/plans', {
+    query: apiQuery
+  })
 
   const plans = computed(() => (data.value as any)?.plans || [])
   const sportBrowsePath = computed(() => buildTrainingPlansBrowsePath({ sport: filters.sport }))

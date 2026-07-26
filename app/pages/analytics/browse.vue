@@ -285,7 +285,7 @@
 
       let dashboard = activeDashboard.value as any
       if (!dashboard) {
-        dashboard = await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
+        dashboard = await $fetch('/api/analytics/dashboards', {
           method: 'POST',
           body: {
             name: 'Main Dashboard',
@@ -309,7 +309,7 @@
         timeRangeMode: 'override'
       })
 
-      await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
+      await $fetch('/api/analytics/dashboards', {
         method: 'POST',
         body: {
           id: dashboard.id,

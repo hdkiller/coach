@@ -391,10 +391,10 @@
     try {
       const days = props.days || 90
       const [data, eventData] = await Promise.all([
-        $fetch<unknown, string & {}>('/api/performance/pmc', {
+        $fetch('/api/performance/pmc', {
           query: { days: String(days), displayMode: trainingLoadDisplayMode.value }
         }),
-        $fetch<unknown, string & {}>('/api/recovery-context', {
+        $fetch('/api/recovery-context', {
           query: { days: String(days) }
         })
       ])

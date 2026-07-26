@@ -226,7 +226,7 @@
     }
 
     try {
-      const data: any = await $fetch<unknown, string & {}>('/api/oauth/authorize-details', {
+      const data: any = await $fetch('/api/oauth/authorize-details', {
         params: { client_id: query.client_id }
       })
       app.value = data

@@ -621,7 +621,7 @@
   const { formatDateUTC } = useFormat()
   const slug = (props.overrideSlug || route.params.planSlug || route.params.slug) as string
 
-  const { data, pending } = await useFetch<any, Error, string & {}>(`/api/public/plans/${slug}`)
+  const { data, pending } = await useFetch(`/api/public/plans/${slug}`)
   const plan = computed(() => (data.value as any)?.plan)
 
   const expandedBlockIds = ref<string[]>([])

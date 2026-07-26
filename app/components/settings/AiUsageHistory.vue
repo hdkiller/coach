@@ -117,18 +117,6 @@
   import type { TableColumn } from '@nuxt/ui'
   import { useTranslate } from '@tolgee/vue'
 
-  interface LlmUsageHistoryResponse {
-    items: any[]
-    pagination: {
-      page: number
-      pageSize: number
-      total: number
-      totalPages: number
-      from: number
-      to: number
-    }
-  }
-
   const { t } = useTranslate('settings')
   const { formatDateTime } = useFormat()
 
@@ -170,18 +158,15 @@
     data,
     status,
     refresh: refreshData
-  } = await useFetch<LlmUsageHistoryResponse, Error, string & {}>(
-    '/api/analytics/llm-usage/history',
-    {
-      query: computed(() => ({
-        page: currentPage.value,
-        pageSize: pageSize.value
-      })),
-      immediate: true,
-      server: false,
-      watch: [currentPage]
-    }
-  )
+  } = await useFetch('/api/analytics/llm-usage/history', {
+    query: computed(() => ({
+      page: currentPage.value,
+      pageSize: pageSize.value
+    })),
+    immediate: true,
+    server: false,
+    watch: [currentPage]
+  })
 
   const loading = computed(() => status.value === 'pending')
 

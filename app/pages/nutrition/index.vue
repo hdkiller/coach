@@ -878,10 +878,10 @@
 
     try {
       const [waveRes, strategyRes, feedRes, upcomingRes] = await Promise.allSettled([
-        $fetch<unknown, string & {}>('/api/nutrition/extended-wave', { query: { daysAhead: 3 } }),
-        $fetch<unknown, string & {}>('/api/nutrition/strategy'),
-        $fetch<unknown, string & {}>('/api/nutrition/active-feed'),
-        $fetch<unknown, string & {}>('/api/nutrition/upcoming-plan')
+        $fetch('/api/nutrition/extended-wave', { query: { daysAhead: 3 } }),
+        $fetch('/api/nutrition/strategy'),
+        $fetch('/api/nutrition/active-feed'),
+        $fetch('/api/nutrition/upcoming-plan')
       ])
 
       if (waveRes.status === 'fulfilled') {
@@ -934,7 +934,7 @@
   async function generatePlan() {
     generatingPlan.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/nutrition/plan/generate', {
+      await $fetch('/api/nutrition/plan/generate', {
         method: 'POST',
         body: { startDate: weekStartDate.value, endDate: weekEndDate.value }
       })
@@ -1051,7 +1051,7 @@
 
   async function resetHydrationDebt() {
     try {
-      await $fetch<unknown, string & {}>('/api/nutrition/hydration-reset', { method: 'POST' })
+      await $fetch('/api/nutrition/hydration-reset', { method: 'POST' })
       await refreshData()
       toast.add({
         title: t.value('hydration_reset_success_title'),
@@ -1089,7 +1089,7 @@
     groceryLoading.value = true
     try {
       const range = getGroceryRangeDates()
-      const response = await $fetch<unknown, string & {}>('/api/nutrition/grocery', {
+      const response = await $fetch('/api/nutrition/grocery', {
         query: range
       })
       groceryData.value = {

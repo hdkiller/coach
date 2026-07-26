@@ -794,7 +794,7 @@
     isApplyingPlan.value = true
     try {
       if (selectedTargetUserId.value === 'self') {
-        await $fetch<unknown, string & {}>(`/api/plans/${plan.value.id}/activate`, {
+        await $fetch(`/api/plans/${plan.value.id}/activate`, {
           method: 'POST',
           body: {
             startDate: new Date(`${startDate.value}T00:00:00`).toISOString()
@@ -811,17 +811,14 @@
         return
       }
 
-      const response: any = await $fetch<unknown, string & {}>(
-        `/api/library/plans/${plan.value.id}/apply`,
-        {
-          method: 'POST',
-          body: {
-            startDate: new Date(`${startDate.value}T00:00:00`).toISOString(),
-            athleteId: selectedTargetUserId.value,
-            replaceFutureWorkouts: replaceFutureWorkouts.value
-          }
+      const response: any = await $fetch(`/api/library/plans/${plan.value.id}/apply`, {
+        method: 'POST',
+        body: {
+          startDate: new Date(`${startDate.value}T00:00:00`).toISOString(),
+          athleteId: selectedTargetUserId.value,
+          replaceFutureWorkouts: replaceFutureWorkouts.value
         }
-      )
+      })
 
       toast.add({
         title: 'Plan applied',

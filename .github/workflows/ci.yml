@@ -36,14 +36,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # TEMPORARY: typecheck is non-blocking so deploys are not gated on the
-      # remaining TS2589 in app/pages/data.vue. TS2589 is a global instantiation
-      # budget failure from the Nitro route map, not a per-site type bug, so it
-      # surfaces one call site at a time as earlier sites are fixed. Errors are
-      # still printed in this step's log. Remove `continue-on-error` once the
-      # route-map inference cost is brought back under TypeScript's ceiling.
       - name: Run Nuxt typecheck
-        continue-on-error: true
         run: pnpm typecheck
 
   lint:

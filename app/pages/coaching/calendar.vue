@@ -1020,16 +1020,13 @@
     panelState[panel].error = null
     try {
       const range = getRangeForPanel(panel)
-      const data = await $fetch<unknown, string & {}>(
-        `/api/coaching/athletes/${athleteId}/calendar`,
-        {
-          query: {
-            startDate: range.start.toISOString(),
-            endDate: range.end.toISOString(),
-            viewMode: viewMode.value
-          }
+      const data = await $fetch(`/api/coaching/athletes/${athleteId}/calendar`, {
+        query: {
+          startDate: range.start.toISOString(),
+          endDate: range.end.toISOString(),
+          viewMode: viewMode.value
         }
-      )
+      })
       if (fetchToken !== panelFetchTokens[panel]) return
       panelState[panel].data = data
     } catch (error: any) {
@@ -1078,7 +1075,7 @@
     }
 
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
+      await $fetch(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
         method: 'POST',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd'),
@@ -1128,23 +1125,20 @@
         throw new Error('Source workout not found')
       }
 
-      await $fetch<unknown, string & {}>(
-        `/api/coaching/athletes/${targetAthleteId}/planned-workouts`,
-        {
-          method: 'POST',
-          body: {
-            date: formatDateUTC(date, 'yyyy-MM-dd'),
-            title: sourceWorkout.title,
-            description: sourceWorkout.description || '',
-            type: sourceWorkout.type || sourceWorkout.category || 'Ride',
-            category: sourceWorkout.category || 'Workout',
-            durationSec: sourceWorkout.durationSec || 0,
-            tss: sourceWorkout.tss ?? null,
-            workIntensity: sourceWorkout.workIntensity ?? null,
-            structuredWorkout: sourceWorkout.structuredWorkout ?? undefined
-          }
+      await $fetch(`/api/coaching/athletes/${targetAthleteId}/planned-workouts`, {
+        method: 'POST',
+        body: {
+          date: formatDateUTC(date, 'yyyy-MM-dd'),
+          title: sourceWorkout.title,
+          description: sourceWorkout.description || '',
+          type: sourceWorkout.type || sourceWorkout.category || 'Ride',
+          category: sourceWorkout.category || 'Workout',
+          durationSec: sourceWorkout.durationSec || 0,
+          tss: sourceWorkout.tss ?? null,
+          workIntensity: sourceWorkout.workIntensity ?? null,
+          structuredWorkout: sourceWorkout.structuredWorkout ?? undefined
         }
-      )
+      })
 
       await refreshAffectedPanel(targetAthleteId)
       toast.add({
@@ -1171,13 +1165,10 @@
     date: Date
   }) {
     try {
-      await $fetch<unknown, string & {}>(
-        `/api/coaching/athletes/${athleteId}/planned-workouts/${workoutId}/move`,
-        {
-          method: 'POST',
-          body: { targetDate: date.toISOString() }
-        }
-      )
+      await $fetch(`/api/coaching/athletes/${athleteId}/planned-workouts/${workoutId}/move`, {
+        method: 'POST',
+        body: { targetDate: date.toISOString() }
+      })
       await refreshAffectedPanel(athleteId)
       toast.add({ title: 'Workout moved', color: 'success' })
     } catch (error: any) {

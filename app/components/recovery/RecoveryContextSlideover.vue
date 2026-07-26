@@ -631,7 +631,7 @@
 
     try {
       if (createMode.value) {
-        await $fetch<unknown, string & {}>('/api/recovery-context/journey', {
+        await $fetch('/api/recovery-context/journey', {
           method: 'POST',
           body: {
             timestamp: new Date(journeyForm.timestamp).toISOString(),
@@ -642,21 +642,18 @@
           }
         })
       } else if (isJourneyEvent.value && selectedItem.value) {
-        await $fetch<unknown, string & {}>(
-          `/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`,
-          {
-            method: 'PATCH',
-            body: {
-              timestamp: new Date(journeyForm.timestamp).toISOString(),
-              eventType: journeyForm.eventType,
-              category: journeyForm.category,
-              severity: Number(journeyForm.severity),
-              description: journeyForm.description || null
-            }
+        await $fetch(`/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`, {
+          method: 'PATCH',
+          body: {
+            timestamp: new Date(journeyForm.timestamp).toISOString(),
+            eventType: journeyForm.eventType,
+            category: journeyForm.category,
+            severity: Number(journeyForm.severity),
+            description: journeyForm.description || null
           }
-        )
+        })
       } else if (isCheckin.value && selectedItem.value) {
-        await $fetch<unknown, string & {}>(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
+        await $fetch(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
           method: 'PATCH',
           body: {
             questions: checkinForm.questions,
@@ -690,14 +687,11 @@
 
     try {
       if (selectedItem.value.kind === 'journey_event') {
-        await $fetch<unknown, string & {}>(
-          `/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`,
-          {
-            method: 'DELETE'
-          }
-        )
+        await $fetch(`/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`, {
+          method: 'DELETE'
+        })
       } else if (selectedItem.value.kind === 'daily_checkin') {
-        await $fetch<unknown, string & {}>(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
+        await $fetch(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
           method: 'DELETE'
         })
       }

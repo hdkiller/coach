@@ -215,7 +215,7 @@
     error.value = null
 
     try {
-      const data = await $fetch<unknown, string & {}>('/api/performance/ftp-evolution', {
+      const data = await $fetch('/api/performance/ftp-evolution', {
         query: {
           months: props.months || 12,
           sport: props.sport,

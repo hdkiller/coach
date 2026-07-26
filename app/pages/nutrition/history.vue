@@ -905,7 +905,7 @@
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
         now.getDate()
       ).padStart(2, '0')}`
-      const response: any = await $fetch<unknown, string & {}>('/api/nutrition', {
+      const response: any = await $fetch('/api/nutrition', {
         query: {
           limit: 3650,
           endDate: today
@@ -1047,7 +1047,7 @@
   async function generateExplanations() {
     generatingExplanations.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/scores/generate-explanations', { method: 'POST' })
+      await $fetch('/api/scores/generate-explanations', { method: 'POST' })
       refreshRuns()
 
       toast.add({
@@ -1074,7 +1074,7 @@
     analyzingNutrition.value = true
     trackNutritionAnalyze('bulk')
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/nutrition/analyze-all', {
+      const response: any = await $fetch('/api/nutrition/analyze-all', {
         method: 'POST'
       })
       refreshRuns()
@@ -1135,7 +1135,7 @@
 
     try {
       // Fetch from database (or trigger generation if not available)
-      const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
+      const response: any = await $fetch('/api/scores/explanation', {
         query: {
           type: 'nutrition',
           period: selectedPeriod.value,
@@ -1156,12 +1156,9 @@
         // Auto-retry after 3 seconds
         setTimeout(async () => {
           try {
-            const retryResponse: any = await $fetch<unknown, string & {}>(
-              '/api/scores/explanation',
-              {
-                query: { type: 'nutrition', period: selectedPeriod.value, metric }
-              }
-            )
+            const retryResponse: any = await $fetch('/api/scores/explanation', {
+              query: { type: 'nutrition', period: selectedPeriod.value, metric }
+            })
 
             if (retryResponse.cached && retryResponse.analysis) {
               nutritionExplanations.value[cacheKey] = retryResponse.analysis
@@ -1434,7 +1431,7 @@
 
     for (const metric of metrics) {
       try {
-        const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
+        const response: any = await $fetch('/api/scores/explanation', {
           query: {
             type: 'nutrition',
             period: selectedPeriod.value,

@@ -29,9 +29,7 @@
     scope: { target: 'self' }
   })
 
-  const { data: fieldsData, pending: loadingFields } = await useFetch<unknown, Error, string & {}>(
-    '/api/analytics/fields'
-  )
+  const { data: fieldsData, pending: loadingFields } = await useFetch('/api/analytics/fields')
 
   const sourceOptions = [
     { label: 'Workouts', value: 'workouts' },
@@ -113,7 +111,7 @@
 
     loadingWidget.value = true
     try {
-      const widget = await $fetch<unknown, string & {}>(`/api/analytics/widgets/${widgetId.value}`)
+      const widget = await $fetch(`/api/analytics/widgets/${widgetId.value}`)
       const config = (widget as any).config || {}
 
       state.value = {
@@ -151,7 +149,7 @@
 
     saving.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/analytics/widgets', {
+      await $fetch('/api/analytics/widgets', {
         method: 'POST',
         body: {
           id: widgetId.value || undefined,

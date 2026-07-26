@@ -214,7 +214,7 @@
   async function saveToLibrary(workout: any) {
     savingId.value = workout.id
     try {
-      await $fetch<unknown, string & {}>('/api/library/workouts/save', {
+      await $fetch('/api/library/workouts/save', {
         method: 'POST',
         body: {
           workoutId: workout.id,

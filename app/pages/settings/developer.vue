@@ -477,7 +477,7 @@
 
     creating.value = true
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/settings/api-keys', {
+      const response: any = await $fetch('/api/settings/api-keys', {
         method: 'POST',
         body: { name: newKeyName.value }
       })
@@ -506,7 +506,7 @@
 
     deleting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/settings/api-keys/${keyToDelete.value.id}`, {
+      await $fetch(`/api/settings/api-keys/${keyToDelete.value.id}`, {
         method: 'DELETE'
       })
       await fetchKeys()

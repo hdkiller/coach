@@ -92,7 +92,7 @@
       }
     } else {
       try {
-        await $fetch<unknown, string & {}>('/api/stripe/sync', { method: 'POST' })
+        await $fetch('/api/stripe/sync', { method: 'POST' })
       } catch (error) {
         console.warn('Initial billing sync failed:', error)
       }
@@ -145,7 +145,7 @@
     // Poll every 5 seconds while in PAST_DUE state
     pastDuePollingInterval.value = setInterval(async () => {
       try {
-        await $fetch<unknown, string & {}>('/api/stripe/sync', { method: 'POST' })
+        await $fetch('/api/stripe/sync', { method: 'POST' })
         await userStore.fetchUser(true)
       } catch (e) {
         console.warn('Background status sync failed:', e)
@@ -169,7 +169,7 @@
     while (attempts < maxAttempts) {
       try {
         // 1. Sync with Stripe
-        await $fetch<unknown, string & {}>('/api/stripe/sync', { method: 'POST' })
+        await $fetch('/api/stripe/sync', { method: 'POST' })
         // 2. Fetch updated user store
         await userStore.fetchUser(true)
 
@@ -386,7 +386,7 @@
   async function handleSync(silent = false) {
     if (!silent) syncing.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/stripe/sync', { method: 'POST' })
+      await $fetch('/api/stripe/sync', { method: 'POST' })
       await userStore.fetchUser(true)
 
       if (!silent) {

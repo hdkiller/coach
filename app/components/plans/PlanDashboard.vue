@@ -1176,7 +1176,7 @@
     if (!focus) return
 
     try {
-      await $fetch<unknown, string & {}>(`/api/plans/weeks/${selectedWeek.value.id}`, {
+      await $fetch(`/api/plans/weeks/${selectedWeek.value.id}`, {
         method: 'PATCH',
 
         body: {
@@ -1200,7 +1200,7 @@
     if (!selectedWeek.value) return
 
     try {
-      await $fetch<unknown, string & {}>(`/api/plans/weeks/${selectedWeek.value.id}`, {
+      await $fetch(`/api/plans/weeks/${selectedWeek.value.id}`, {
         method: 'PATCH',
 
         body: { volumeTargetMinutes: Math.round(hours * 60) }
@@ -1218,7 +1218,7 @@
     if (!selectedWeek.value) return
 
     try {
-      await $fetch<unknown, string & {}>(`/api/plans/weeks/${selectedWeek.value.id}`, {
+      await $fetch(`/api/plans/weeks/${selectedWeek.value.id}`, {
         method: 'PATCH',
 
         body: { tssTarget: tss }
@@ -1238,7 +1238,7 @@
     try {
       const newState = !selectedWeek.value.isRecovery
 
-      await $fetch<unknown, string & {}>(`/api/plans/weeks/${selectedWeek.value.id}`, {
+      await $fetch(`/api/plans/weeks/${selectedWeek.value.id}`, {
         method: 'PATCH',
 
         body: { isRecovery: newState }
@@ -1568,7 +1568,7 @@
 
     // Call API
     try {
-      await $fetch<unknown, string & {}>(`/api/workouts/planned/${sourceId}/move`, {
+      await $fetch(`/api/workouts/planned/${sourceId}/move`, {
         method: 'POST',
         body: { targetDate: targetDate }
       })
@@ -1636,7 +1636,7 @@
         workoutId: workout.id,
         weekId: selectedWeek.value.id
       })
-      await $fetch<unknown, string & {}>(`/api/workouts/planned/${workout.id}/link`, {
+      await $fetch(`/api/workouts/planned/${workout.id}/link`, {
         method: 'POST',
         body: { trainingWeekId: selectedWeek.value.id }
       })
@@ -1655,7 +1655,7 @@
   async function unlinkWorkout(workout: any) {
     try {
       console.log('[Dashboard] Unlinking workout', { workoutId: workout.id })
-      await $fetch<unknown, string & {}>(`/api/workouts/planned/${workout.id}/unlink`, {
+      await $fetch(`/api/workouts/planned/${workout.id}/unlink`, {
         method: 'POST'
       })
 
@@ -1683,7 +1683,7 @@
     generatingBlockId.value = blockId
 
     try {
-      const response: any = await $fetch<unknown, string & {}>('/api/plans/generate-block', {
+      const response: any = await $fetch('/api/plans/generate-block', {
         method: 'POST',
         body: { blockId }
       })
@@ -1722,7 +1722,7 @@
     generatingStructureForWorkoutId.value = workoutId
     try {
       console.log('[Dashboard] Generating structure for workout', { workoutId })
-      await $fetch<unknown, string & {}>(`/api/workouts/planned/${workoutId}/generate-structure`, {
+      await $fetch(`/api/workouts/planned/${workoutId}/generate-structure`, {
         method: 'POST'
       })
       refreshRuns()
@@ -1782,9 +1782,7 @@
         const batch = pendingWorkouts.slice(i, i + batchSize)
         const results = await Promise.allSettled(
           batch.map((w: any) =>
-            $fetch<unknown, string & {}>(`/api/workouts/planned/${w.id}/generate-structure`, {
-              method: 'POST'
-            })
+            $fetch(`/api/workouts/planned/${w.id}/generate-structure`, { method: 'POST' })
           )
         )
 
@@ -1839,7 +1837,7 @@
     adapting.value = type
     try {
       console.log('[Dashboard] Adapting plan', { type })
-      await $fetch<unknown, string & {}>('/api/plans/adapt', {
+      await $fetch('/api/plans/adapt', {
         method: 'POST',
         body: {
           planId: props.plan.id,
@@ -1882,7 +1880,7 @@
     abandoning.value = true
     try {
       console.log('[Dashboard] Abandoning plan', { id: props.plan.id })
-      await $fetch<unknown, string & {}>(`/api/plans/${props.plan.id}/abandon`, { method: 'POST' })
+      await $fetch(`/api/plans/${props.plan.id}/abandon`, { method: 'POST' })
       toast.add({ title: 'Plan Abandoned', color: 'success' })
       emit('refresh')
       showAbandonModal.value = false
@@ -1906,7 +1904,7 @@
         id: props.plan.id,
         name: templateName.value
       })
-      await $fetch<unknown, string & {}>(`/api/plans/${props.plan.id}/save-template`, {
+      await $fetch(`/api/plans/${props.plan.id}/save-template`, {
         method: 'POST',
         body: {
           name: templateName.value,
@@ -1932,7 +1930,7 @@
 
     try {
       console.log('[Dashboard] Starting generate-ai-week', { weekId: selectedWeekId.value })
-      await $fetch<unknown, string & {}>('/api/plans/generate-ai-week', {
+      await $fetch('/api/plans/generate-ai-week', {
         method: 'POST',
         body: {
           blockId: selectedBlockId.value,
@@ -1977,12 +1975,9 @@
     publishingId.value = workout.id
     try {
       console.log('[Dashboard] Publishing workout to Intervals.icu', { id: workout.id })
-      const response: any = await $fetch<unknown, string & {}>(
-        `/api/workouts/planned/${workout.id}/publish`,
-        {
-          method: 'POST'
-        }
-      )
+      const response: any = await $fetch(`/api/workouts/planned/${workout.id}/publish`, {
+        method: 'POST'
+      })
       if (response.success && response.workout) {
         workout.syncStatus = response.workout.syncStatus
         workout.externalId = response.workout.externalId

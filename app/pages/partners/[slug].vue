@@ -7,19 +7,6 @@
     auth: false
   })
 
-  interface PartnerRedeemResponse {
-    status: 'REDEEMED' | 'ALREADY_REDEEMED'
-    redemption?: {
-      grantedTier?: string | null
-      startsAt?: string | null
-      endsAt?: string | null
-    } | null
-  }
-
-  interface PublicEventJoinResponse {
-    status: 'JOINED' | 'ALREADY_JOINED'
-  }
-
   const { t } = useTranslate('partners')
   const tolgee = useTolgee(['language'])
   const route = useRoute()
@@ -184,7 +171,7 @@
     loading.value = true
     error.value = null
     try {
-      campaignData.value = await $fetch<unknown, string & {}>(`/api/partners/${slug.value}`)
+      campaignData.value = await $fetch(`/api/partners/${slug.value}`)
       trackPartnerPageView(slug.value, campaignData.value.campaign.availability)
     } catch {
       error.value = t.value('error_offer_not_found')
@@ -202,12 +189,9 @@
 
     redeeming.value = true
     try {
-      const response = await $fetch<PartnerRedeemResponse, string & {}>(
-        `/api/partners/${slug.value}/redeem`,
-        {
-          method: 'POST'
-        }
-      )
+      const response = await $fetch(`/api/partners/${slug.value}/redeem`, {
+        method: 'POST'
+      })
       redemptionResult.value = response
       trackPartnerRedemption(
         slug.value,
@@ -259,13 +243,10 @@
     joiningSlug.value = event.slug
     try {
       trackPartnerEventJoinStart(slug.value, event.slug)
-      const response = await $fetch<PublicEventJoinResponse, string & {}>(
-        `/api/public-events/${event.slug}/join`,
-        {
-          method: 'POST',
-          body: { priority: priority.value, phase: phase.value }
-        }
-      )
+      const response = await $fetch(`/api/public-events/${event.slug}/join`, {
+        method: 'POST',
+        body: { priority: priority.value, phase: phase.value }
+      })
       if (response.status === 'ALREADY_JOINED') {
         trackPartnerEventJoinAlreadyExists(slug.value, event.slug)
       } else {

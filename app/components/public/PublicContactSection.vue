@@ -196,7 +196,7 @@
 
     sending.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/public/contact', {
+      await $fetch('/api/public/contact', {
         method: 'POST',
         body: {
           role: props.role,

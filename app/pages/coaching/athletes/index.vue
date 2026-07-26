@@ -643,11 +643,11 @@
     loading.value = true
     try {
       const [athletesData, groupsData, teamsData, invitesData, requestsData] = await Promise.all([
-        $fetch<unknown, string & {}>('/api/coaching/athletes'),
-        $fetch<unknown, string & {}>('/api/coaching/groups'),
-        $fetch<unknown, string & {}>('/api/coaching/teams'),
-        $fetch<unknown, string & {}>('/api/coaching/athletes/invites').catch(() => []),
-        $fetch<unknown, string & {}>('/api/coaching/athletes/requests').catch(() => [])
+        $fetch('/api/coaching/athletes'),
+        $fetch('/api/coaching/groups'),
+        $fetch('/api/coaching/teams'),
+        $fetch('/api/coaching/athletes/invites').catch(() => []),
+        $fetch('/api/coaching/athletes/requests').catch(() => [])
       ])
       athletes.value = athletesData as any[]
       groups.value = groupsData as any[]
@@ -677,7 +677,7 @@
 
     connecting.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/coaching/athletes/connect', {
+      await $fetch('/api/coaching/athletes/connect', {
         method: 'POST',
         body: { code }
       })
@@ -698,7 +698,7 @@
   async function createInvite() {
     creatingInvite.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/coaching/athletes/invites', {
+      await $fetch('/api/coaching/athletes/invites', {
         method: 'POST',
         body: { email: inviteEmail.value.trim() }
       })
@@ -719,7 +719,7 @@
   async function revokeInvite(inviteId: string) {
     revokingInviteId.value = inviteId
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/invites/${inviteId}`, {
+      await $fetch(`/api/coaching/athletes/invites/${inviteId}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Invite revoked', color: 'success' })
@@ -737,7 +737,7 @@
   async function createShareInvite() {
     creatingInvite.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/coaching/athletes/invites', {
+      await $fetch('/api/coaching/athletes/invites', {
         method: 'POST',
         body: {}
       })
@@ -768,7 +768,7 @@
     reviewingRequestId.value = requestId
     reviewingAction.value = 'approve'
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/requests/${requestId}/approve`, {
+      await $fetch(`/api/coaching/athletes/requests/${requestId}/approve`, {
         method: 'POST'
       })
       toast.add({ title: 'Coaching request approved', color: 'success' })
@@ -788,7 +788,7 @@
     reviewingRequestId.value = requestId
     reviewingAction.value = 'decline'
     try {
-      await $fetch<unknown, string & {}>(`/api/coaching/athletes/requests/${requestId}/decline`, {
+      await $fetch(`/api/coaching/athletes/requests/${requestId}/decline`, {
         method: 'POST'
       })
       toast.add({ title: 'Coaching request declined', color: 'success' })

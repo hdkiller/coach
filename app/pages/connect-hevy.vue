@@ -137,7 +137,7 @@
 
     connecting.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/integrations/hevy', {
+      await $fetch('/api/integrations/hevy', {
         method: 'POST',
         body: {
           apiKey: apiKey.value
@@ -145,7 +145,7 @@
       })
 
       // Trigger initial sync immediately
-      await $fetch<unknown, string & {}>('/api/integrations/sync', {
+      await $fetch('/api/integrations/sync', {
         method: 'POST',
         body: {
           provider: 'hevy'
