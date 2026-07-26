@@ -37,8 +37,8 @@
     pending: loading,
     error: fetchError,
     refresh: refreshEvent
-  } = await useAsyncData<any>(`public-event-${props.slug}`, () =>
-    (globalThis.$fetch as any)(`/api/public-events/${props.slug}`)
+  } = await useFetch<{ event: any; enrollment: any }, Error, string & {}>(
+    () => `/api/public-events/${props.slug}`
   )
   const error = computed(() => (fetchError.value ? t.value('error_event_not_found') : null))
 
@@ -128,10 +128,13 @@
     joining.value = true
     try {
       trackPartnerEventJoinStart(props.campaignSlug || null, props.slug)
-      const response = await (globalThis.$fetch as any)(`/api/public-events/${props.slug}/join`, {
-        method: 'POST',
-        body: { priority: priority.value, phase: phase.value }
-      })
+      const response = await $fetch<{ status: string }, string & {}>(
+        `/api/public-events/${props.slug}/join`,
+        {
+          method: 'POST',
+          body: { priority: priority.value, phase: phase.value }
+        }
+      )
       if (response.status === 'ALREADY_JOINED') {
         trackPartnerEventJoinAlreadyExists(props.campaignSlug || null, props.slug)
       } else {

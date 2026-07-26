@@ -157,7 +157,7 @@
       // Find the currently active tab ID before reordering
       const currentActiveId = activeDashboardId.value
 
-      await $fetch('/api/analytics/dashboards/reorder', {
+      await $fetch<unknown, string & {}>('/api/analytics/dashboards/reorder', {
         method: 'POST',
         body: { ids: localTabs.value.map((t) => t.id) }
       })
@@ -295,7 +295,7 @@
         dateRange: normalizeDateRange(activeDateRange.value)
       }
       analyticsLog('saveDashboard request', payload)
-      const dashboard = await $fetch('/api/analytics/dashboards', {
+      const dashboard = await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
         method: 'POST',
         body: payload
       })
@@ -323,7 +323,7 @@
     if (!newDashboardName.value) return
     creatingDashboard.value = true
     try {
-      const dashboard = await $fetch('/api/analytics/dashboards', {
+      const dashboard = await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
         method: 'POST',
         body: {
           name: newDashboardName.value,
@@ -461,7 +461,7 @@
     if (!dashboard) return
 
     try {
-      await $fetch('/api/analytics/dashboards', {
+      await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
         method: 'POST',
         body: {
           id: dashboard.id,

@@ -153,16 +153,19 @@
 
     connecting.value = true
     try {
-      const result = await $fetch('/api/integrations/intervals', {
-        method: 'POST',
-        body: {
-          apiKey: apiKey.value,
-          athleteId: athleteId.value || undefined
+      const result = await $fetch<{ athlete: { name: string } }, string & {}>(
+        '/api/integrations/intervals',
+        {
+          method: 'POST',
+          body: {
+            apiKey: apiKey.value,
+            athleteId: athleteId.value || undefined
+          }
         }
-      })
+      )
 
       // Trigger initial sync immediately
-      await $fetch('/api/integrations/sync', {
+      await $fetch<unknown, string & {}>('/api/integrations/sync', {
         method: 'POST',
         body: {
           provider: 'intervals'

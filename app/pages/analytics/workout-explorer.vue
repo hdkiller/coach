@@ -319,12 +319,15 @@
     }
 
     try {
-      const response = await $fetch('/api/analytics/workout-explorer/workout', {
-        method: 'POST',
-        body: {
-          workoutId: selectedWorkoutId.value
+      const response = await $fetch<Record<string, any>, string & {}>(
+        '/api/analytics/workout-explorer/workout',
+        {
+          method: 'POST',
+          body: {
+            workoutId: selectedWorkoutId.value
+          }
         }
-      })
+      )
       if (requestId !== selectedWorkoutRequestId.value) return
       selectedWorkoutData.value = response
       if (import.meta.dev) {
@@ -900,7 +903,7 @@
 
       let dashboard = dashboards.value?.[0] as any
       if (!dashboard) {
-        dashboard = await $fetch('/api/analytics/dashboards', {
+        dashboard = await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
           method: 'POST',
           body: {
             name: 'Main Dashboard',
@@ -919,7 +922,7 @@
         timeRangeMode: 'override'
       })
 
-      await $fetch('/api/analytics/dashboards', {
+      await $fetch<unknown, string & {}>('/api/analytics/dashboards', {
         method: 'POST',
         body: {
           id: dashboard.id,

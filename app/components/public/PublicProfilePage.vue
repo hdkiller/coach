@@ -148,7 +148,7 @@
       : {}
   )
 
-  const { data, pending, refresh } = await useFetch(publicEndpoint, {
+  const { data, pending, refresh } = await useFetch<unknown, Error, string & {}>(publicEndpoint, {
     key: () => `${props.role}-public-profile-${slug.value}`
   })
 
@@ -1237,7 +1237,7 @@
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const result = await $fetch('/api/storage/upload', {
+      const result = await $fetch<unknown, string & {}>('/api/storage/upload', {
         method: 'POST',
         body: formData
       })

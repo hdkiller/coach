@@ -900,6 +900,10 @@
       showSaveToLibrary?: boolean
     }>(),
     {
+      userFtp: undefined,
+      allSportSettings: undefined,
+      endpointBase: undefined,
+      viewPathBase: undefined,
       showCompletionActions: true,
       showStructureActions: true,
       showViewDetails: true,

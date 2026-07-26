@@ -631,7 +631,7 @@
 
     try {
       if (createMode.value) {
-        await (globalThis.$fetch as any)('/api/recovery-context/journey', {
+        await $fetch<unknown, string & {}>('/api/recovery-context/journey', {
           method: 'POST',
           body: {
             timestamp: new Date(journeyForm.timestamp).toISOString(),
@@ -642,7 +642,7 @@
           }
         })
       } else if (isJourneyEvent.value && selectedItem.value) {
-        await (globalThis.$fetch as any)(
+        await $fetch<unknown, string & {}>(
           `/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`,
           {
             method: 'PATCH',
@@ -656,7 +656,7 @@
           }
         )
       } else if (isCheckin.value && selectedItem.value) {
-        await (globalThis.$fetch as any)(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
+        await $fetch<unknown, string & {}>(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
           method: 'PATCH',
           body: {
             questions: checkinForm.questions,
@@ -690,14 +690,14 @@
 
     try {
       if (selectedItem.value.kind === 'journey_event') {
-        await (globalThis.$fetch as any)(
+        await $fetch<unknown, string & {}>(
           `/api/recovery-context/journey/${selectedItem.value.sourceRecordId}`,
           {
             method: 'DELETE'
           }
         )
       } else if (selectedItem.value.kind === 'daily_checkin') {
-        await (globalThis.$fetch as any)(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
+        await $fetch<unknown, string & {}>(`/api/checkin/${selectedItem.value.sourceRecordId}`, {
           method: 'DELETE'
         })
       }

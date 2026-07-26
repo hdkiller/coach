@@ -2500,7 +2500,7 @@
 
     detectingSportId.value = sport.id
     try {
-      const result: any = await $fetch(
+      const result: any = await $fetch<unknown, string & {}>(
         `/api/profile/sport-settings/${sport.id}/detect-from-workouts`,
         {
           method: 'POST'
@@ -2605,7 +2605,7 @@
   async function autodetectProfile() {
     autodetecting.value = true
     try {
-      const response: any = await $fetch('/api/profile/autodetect', {
+      const response: any = await $fetch<unknown, string & {}>('/api/profile/autodetect', {
         method: 'POST'
       })
 

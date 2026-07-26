@@ -2437,6 +2437,7 @@
                           <span
                             class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500/50 flex-shrink-0"
                           />
+                          <!-- eslint-disable-next-line vue/no-v-html -->
                           <span v-html="highlightTechnicalData(point)"></span>
                         </li>
                       </ul>
@@ -2575,10 +2576,12 @@
               <!-- Legacy Fallback -->
               <div v-else-if="workout.aiAnalysis" class="space-y-6 relative z-10">
                 <div class="prose prose-sm dark:prose-invert max-w-none px-2">
+                  <!-- eslint-disable vue/no-v-html -- markdown-rendered analysis -->
                   <div
                     class="text-zinc-300 font-medium leading-relaxed"
                     v-html="renderedAnalysis"
                   />
+                  <!-- eslint-enable vue/no-v-html -->
                 </div>
                 <div
                   v-if="workout.aiAnalyzedAt"
@@ -5323,7 +5326,7 @@
     error.value = null
     try {
       const id = route.params.id
-      const result = await $fetch(`/api/workouts/${id}`)
+      const result = await $fetch<unknown, string & {}>(`/api/workouts/${id}`)
       if (!isPageActive.value) return
       workout.value = result
     } catch (e: any) {
@@ -5381,9 +5384,12 @@
 
     analyzingWorkout.value = true
     try {
-      const result = (await $fetch(`/api/workouts/${workout.value.id}/analyze`, {
-        method: 'POST'
-      })) as any
+      const result = (await $fetch<unknown, string & {}>(
+        `/api/workouts/${workout.value.id}/analyze`,
+        {
+          method: 'POST'
+        }
+      )) as any
 
       // If already completed, update immediately
       if (result.status === 'COMPLETED' && 'analysis' in result && result.analysis) {
@@ -5441,7 +5447,7 @@
 
     analyzingAdherence.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/analyze-adherence`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}/analyze-adherence`, {
         method: 'POST'
       })
       refreshRuns()
@@ -5479,7 +5485,7 @@
 
     unlinkingPlannedWorkout.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/unlink`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}/unlink`, {
         method: 'POST'
       })
 
@@ -5509,7 +5515,7 @@
 
     publishingSummary.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/publish-summary`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}/publish-summary`, {
         method: 'POST'
       })
 
@@ -5612,9 +5618,12 @@
 
     unlinkingDuplicateId.value = duplicateUnlinkTargetId.value
     try {
-      await $fetch(`/api/workouts/${duplicateUnlinkTargetId.value}/unlink-duplicate`, {
-        method: 'POST'
-      })
+      await $fetch<unknown, string & {}>(
+        `/api/workouts/${duplicateUnlinkTargetId.value}/unlink-duplicate`,
+        {
+          method: 'POST'
+        }
+      )
 
       toast.add({
         title: 'Workout unlinked',
@@ -5645,7 +5654,7 @@
 
     promoting.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/promote`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}/promote`, {
         method: 'POST'
       })
 
@@ -5675,7 +5684,7 @@
 
     deleting.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}`, {
         method: 'DELETE'
       })
 
@@ -5974,7 +5983,7 @@
 
     savingToLibrary.value = true
     try {
-      await $fetch('/api/library/workouts/save', {
+      await $fetch<unknown, string & {}>('/api/library/workouts/save', {
         method: 'POST',
         body: {
           workoutId: workout.value.id,
@@ -6210,7 +6219,7 @@
   async function updateStomachFeel(val: number) {
     stomachFeel.value = val
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/metadata`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${workout.value.id}/metadata`, {
         method: 'POST' as any,
         body: { stomachFeel: val }
       })

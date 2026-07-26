@@ -560,27 +560,33 @@
   const coachJoinPage = ref(structuredClone(buildDefaultCoachPublicProfile().joinPage))
   const coachStartPage = ref(structuredClone(buildDefaultCoachPublicProfile().startPage))
 
-  const { data: coachData, refresh: refreshCoach } = await useFetch('/api/profile/public/coach', {
-    key: 'public-presence-coach'
+  const { data: coachData, refresh: refreshCoach } = await useFetch<unknown, Error, string & {}>(
+    '/api/profile/public/coach',
+    {
+      key: 'public-presence-coach'
+    }
+  )
+  const { data: coachJoinData, refresh: refreshCoachJoin } = await useFetch<
+    unknown,
+    Error,
+    string & {}
+  >('/api/profile/public/coach/join', {
+    key: 'public-presence-coach-join'
   })
-  const { data: coachJoinData, refresh: refreshCoachJoin } = await useFetch(
-    '/api/profile/public/coach/join',
-    {
-      key: 'public-presence-coach-join'
-    }
-  )
-  const { data: coachStartData, refresh: refreshCoachStart } = await useFetch(
-    '/api/profile/public/coach/start',
-    {
-      key: 'public-presence-coach-start'
-    }
-  )
-  const { data: athleteData, refresh: refreshAthlete } = await useFetch(
-    '/api/profile/public/athlete',
-    {
-      key: 'public-presence-athlete'
-    }
-  )
+  const { data: coachStartData, refresh: refreshCoachStart } = await useFetch<
+    unknown,
+    Error,
+    string & {}
+  >('/api/profile/public/coach/start', {
+    key: 'public-presence-coach-start'
+  })
+  const { data: athleteData, refresh: refreshAthlete } = await useFetch<
+    unknown,
+    Error,
+    string & {}
+  >('/api/profile/public/athlete', {
+    key: 'public-presence-athlete'
+  })
 
   const coachHydrated = ref(false)
   const coachJoinHydrated = ref(false)
@@ -715,7 +721,7 @@
 
     savingCoach.value = true
     try {
-      await $fetch('/api/profile/public/coach', {
+      await $fetch<unknown, string & {}>('/api/profile/public/coach', {
         method: 'PATCH',
         body: coachProfile.value
       })
@@ -751,7 +757,7 @@
 
     savingAthlete.value = true
     try {
-      await $fetch('/api/profile/public/athlete', {
+      await $fetch<unknown, string & {}>('/api/profile/public/athlete', {
         method: 'PATCH',
         body: athleteProfile.value
       })
@@ -777,7 +783,7 @@
   async function saveCoachJoinPage() {
     savingCoachJoin.value = true
     try {
-      await $fetch('/api/profile/public/coach/join', {
+      await $fetch<unknown, string & {}>('/api/profile/public/coach/join', {
         method: 'PATCH',
         body: coachJoinPage.value
       })
@@ -803,7 +809,7 @@
   async function saveCoachStartPage() {
     savingCoachStart.value = true
     try {
-      await $fetch('/api/profile/public/coach/start', {
+      await $fetch<unknown, string & {}>('/api/profile/public/coach/start', {
         method: 'PATCH',
         body: coachStartPage.value
       })

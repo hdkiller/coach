@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import type { FetchError } from 'ofetch'
+
   definePageMeta({
     layout: 'admin',
     middleware: ['auth', 'admin']
@@ -7,7 +9,9 @@
   const route = useRoute()
   const appId = route.params.id as string
 
-  const { data, pending, error } = await useFetch(`/api/admin/oauth/apps/${appId}`)
+  const { data, pending, error } = await useFetch<any, FetchError, string & {}>(
+    `/api/admin/oauth/apps/${appId}`
+  )
 
   useHead({
     title: computed(() => `OAuth App: ${data.value?.app.name || 'Loading...'}`)

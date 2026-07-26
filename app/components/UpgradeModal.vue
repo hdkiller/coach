@@ -193,6 +193,7 @@
     title: 'Upgrade Your Plan',
     featureTitle: 'Elite Feature',
     featureDescription: 'This feature requires a premium subscription.',
+    recommendedTier: undefined,
     bullets: () => [],
     quotaResetLabel: undefined
   })

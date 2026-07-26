@@ -293,7 +293,7 @@
     if (!activePlan.value?.id) return
 
     try {
-      await $fetch(`/api/plans/${activePlan.value.id}/abandon`, {
+      await $fetch<unknown, string & {}>(`/api/plans/${activePlan.value.id}/abandon`, {
         method: 'POST'
       })
       // Clear local state

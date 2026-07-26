@@ -96,11 +96,12 @@
       <div
         class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-6"
       >
-        <!-- eslint-disable-next-line vue/no-v-html -->
+        <!-- eslint-disable vue/no-v-html -- markdown-rendered notes -->
         <div
           class="prose prose-sm dark:prose-invert max-w-none font-medium leading-relaxed text-gray-700 dark:text-gray-300"
           v-html="renderedNotes"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
       <div
         v-if="notesUpdatedAt"

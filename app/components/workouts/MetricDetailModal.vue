@@ -523,12 +523,15 @@
     if (!props.workoutId || !props.metricKey) return
 
     try {
-      const result = await $fetch(`/api/workouts/${props.workoutId}/metric-history`, {
-        query: {
-          metricKey: props.metricKey,
-          limit: 12
+      const result = await $fetch<unknown, string & {}>(
+        `/api/workouts/${props.workoutId}/metric-history`,
+        {
+          query: {
+            metricKey: props.metricKey,
+            limit: 12
+          }
         }
-      })
+      )
       history.value = {
         activityType: (result as any)?.activityType || null,
         currentDate: (result as any)?.currentDate || null,

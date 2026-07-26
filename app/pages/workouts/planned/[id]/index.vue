@@ -2785,7 +2785,7 @@
   ) {
     if (!workout.value?.id) return
     try {
-      await $fetch(`/api/workouts/planned/${workout.value.id}/conflict`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/planned/${workout.value.id}/conflict`, {
         method: 'POST',
         body: { resolution }
       })

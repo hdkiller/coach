@@ -378,8 +378,10 @@
       stepsTab?: 'view' | 'edit'
     }>(),
     {
+      userFtp: undefined,
       preference: 'power',
-      sportSettings: undefined
+      sportSettings: undefined,
+      stepsTab: undefined
     }
   )
 

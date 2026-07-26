@@ -1075,7 +1075,7 @@
   async function analyzeAllWorkouts() {
     analyzingWorkouts.value = true
     try {
-      const response: any = await $fetch('/api/workouts/analyze-all', {
+      const response: any = await $fetch<unknown, string & {}>('/api/workouts/analyze-all', {
         method: 'POST'
       })
       refreshRuns()
@@ -1139,9 +1139,12 @@
   async function generateExplanations() {
     generatingExplanations.value = true
     try {
-      const response: any = await $fetch('/api/scores/generate-explanations', {
-        method: 'POST'
-      })
+      const response: any = await $fetch<unknown, string & {}>(
+        '/api/scores/generate-explanations',
+        {
+          method: 'POST'
+        }
+      )
       refreshRuns()
 
       toast.add({
@@ -1184,7 +1187,7 @@
     }
 
     try {
-      const response: any = await $fetch('/api/scores/explanation', {
+      const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
         query: {
           type: 'workout',
           period: selectedPeriod.value.toString(),
@@ -1195,7 +1198,7 @@
       if (response.cached === false && response.generating) {
         // Wait 3 seconds and retry
         await new Promise((resolve) => setTimeout(resolve, 3000))
-        const retryResponse: any = await $fetch('/api/scores/explanation', {
+        const retryResponse: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
           query: {
             type: 'workout',
             period: selectedPeriod.value.toString(),

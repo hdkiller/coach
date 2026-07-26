@@ -223,7 +223,7 @@
     maxAge: 60 * 30
   })
 
-  const { data, pending, refresh } = await useFetch(publicEndpoint, {
+  const { data, pending, refresh } = await useFetch<unknown, Error, string & {}>(publicEndpoint, {
     key: () => `coach-start-${slug.value}`
   })
 
@@ -367,7 +367,7 @@
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const result = await $fetch('/api/storage/upload', {
+      const result = await $fetch<unknown, string & {}>('/api/storage/upload', {
         method: 'POST',
         body: formData
       })
@@ -439,7 +439,7 @@
 
     submitting.value = true
     try {
-      await $fetch(`/api/public/coaches/${slug.value}/start/request`, {
+      await $fetch<unknown, string & {}>(`/api/public/coaches/${slug.value}/start/request`, {
         method: 'POST',
         body: {
           answers

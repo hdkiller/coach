@@ -32,7 +32,7 @@
     data: report,
     refresh: refreshReport,
     pending: loading
-  } = await useFetch(`/api/issues/${id}`)
+  } = await useFetch<any, Error, string & {}>(`/api/issues/${id}`)
 
   const newComment = ref('')
   const sendingComment = ref(false)
@@ -77,7 +77,7 @@
     if (!newComment.value.trim()) return
     sendingComment.value = true
     try {
-      await $fetch(`/api/issues/${id}/comments`, {
+      await $fetch<unknown, string & {}>(`/api/issues/${id}/comments`, {
         method: 'POST',
         body: { content: newComment.value }
       })
@@ -110,7 +110,7 @@
     if (!editingCommentId.value || !editingCommentContent.value.trim()) return
     savingComment.value = true
     try {
-      await $fetch(`/api/issues/${id}/comments/${editingCommentId.value}`, {
+      await $fetch<unknown, string & {}>(`/api/issues/${id}/comments/${editingCommentId.value}`, {
         method: 'PATCH',
         body: { content: editingCommentContent.value }
       })
@@ -131,7 +131,7 @@
   async function deleteComment(commentId: string) {
     deletingCommentId.value = commentId
     try {
-      await $fetch(`/api/issues/${id}/comments/${commentId}`, {
+      await $fetch<unknown, string & {}>(`/api/issues/${id}/comments/${commentId}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Comment deleted', color: 'success' })
@@ -146,7 +146,7 @@
   async function deleteIssue() {
     deletingIssue.value = true
     try {
-      await $fetch(`/api/issues/${id}`, { method: 'DELETE' })
+      await $fetch<unknown, string & {}>(`/api/issues/${id}`, { method: 'DELETE' })
       toast.add({ title: 'Issue deleted', color: 'success' })
       await navigateTo('/issues')
     } catch {
