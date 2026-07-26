@@ -2,7 +2,7 @@ import { defineEventHandler, readMultipartFormData, createError } from 'h3'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import crypto from 'crypto'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchTask } from '../../utils/task-dispatcher'
 
 defineRouteMeta({
   openAPI: {
@@ -189,7 +189,7 @@ export default defineEventHandler(async (event) => {
             data: { externalId: stableExternalId }
           })
         } else if (!existing.workoutId) {
-          await tasks.trigger(
+          await dispatchTask(
             'ingest-fit-file',
             {
               userId: user.id,
@@ -225,7 +225,7 @@ export default defineEventHandler(async (event) => {
       const fitFileId = fitFile.id
 
       // Trigger ingestion task
-      await tasks.trigger(
+      await dispatchTask(
         'ingest-fit-file',
         {
           userId: user.id,

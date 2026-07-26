@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/test-fixtures.ts'
+import { loginAs } from '../helpers/auth.ts'
 import { BillingPage } from '../pages/BillingPage.ts'
 import { E2E_ATHLETE_EMAIL } from '../seed.ts'
 import { createE2ePrisma } from '../helpers/db.ts'
@@ -52,6 +53,7 @@ test.describe('Billing & Entitlements Suite', () => {
     authedPage
   }) => {
     // Set athlete to clean FREE tier baseline (no active Stripe customer ID to prevent external API calls)
+    await prisma.providerSubscription.deleteMany({ where: { userId: athleteId } })
     await prisma.user.update({
       where: { id: athleteId },
       data: {
@@ -62,6 +64,7 @@ test.describe('Billing & Entitlements Suite', () => {
         stripeSubscriptionId: null
       }
     })
+    await loginAs(authedPage, E2E_ATHLETE_EMAIL)
 
     // Assert subscriptions API returns FREE tier
     const subRes = await authedPage.request.get('/api/subscriptions/me')

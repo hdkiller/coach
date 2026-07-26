@@ -87,10 +87,14 @@ test.describe('Admin Suite & RBAC', () => {
     await expect(bannerTitle).toBeVisible()
 
     // 4. Click dismiss button on banner
+    const dismissPromise = authedPage.waitForResponse((resp) =>
+      resp.url().includes('/api/system-messages/dismiss')
+    )
     const closeButton = authedPage
       .locator('button[aria-label*="close" i], button:has(.i-heroicons-x-mark-20-solid)')
       .first()
     await closeButton.click()
+    await dismissPromise
 
     // 5. Banner disappears from UI
     await expect(bannerTitle).not.toBeVisible()
