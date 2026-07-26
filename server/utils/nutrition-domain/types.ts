@@ -36,6 +36,13 @@ export interface EnergyPoint {
   eventIcon?: string
   eventCarbs?: number
   eventFluid?: number
+  /**
+   * Whether this point's intake is measured, assumed from the plan, or projected forward.
+   *
+   * Barely one production day in a hundred carries logged food, so most of the curve is inference.
+   * Clients must be able to tell the difference rather than present all of it as fact.
+   */
+  intakeProvenance?: 'logged' | 'assumed' | 'projected'
 }
 
 export interface MealContext {
@@ -46,7 +53,8 @@ export interface MealContext {
   totalFluid: number
   profile: AbsorptionProfile
   isSynthetic?: boolean
-  isProbable?: boolean
+  /** Whether this meal is measured, assumed from the plan, or projected forward. */
+  provenance?: 'logged' | 'assumed' | 'projected'
 }
 
 export interface WorkoutEvent {

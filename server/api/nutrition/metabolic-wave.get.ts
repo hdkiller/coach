@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import { summariseIntakeConfidence } from '../../utils/nutrition/intake-confidence'
 
 defineRouteMeta({
   openAPI: {
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     points,
+    intakeConfidence: summariseIntakeConfidence(points as any),
     journeyEvents
   }
 })

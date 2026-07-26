@@ -95,7 +95,13 @@ describe('resting drain', () => {
 
   it('drains a rest day at the previous rate', () => {
     const points = calculateEnergyTimeline(
-      { date: '2026-07-22', carbsGoal: 0 },
+      {
+        date: '2026-07-22',
+        carbsGoal: 0,
+        // A zero-carb log in the only meal slot suppresses the assumed meal that would otherwise
+        // be modelled there, isolating the resting drain.
+        breakfast: [{ name: 'Water', carbs: 0, calories: 0, logged_at: '2026-07-22T07:00:00Z' }]
+      },
       [],
       settings,
       'UTC',

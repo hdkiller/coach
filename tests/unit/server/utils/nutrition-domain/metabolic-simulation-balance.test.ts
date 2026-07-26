@@ -59,8 +59,12 @@ describe('energy timeline carbohydrate and calorie balance', () => {
       },
       [],
       {},
-      // Note: `bmr: 0` would fall through `settings?.bmr || 1600`, so use a negligible value.
-      { bmr: 1 }
+      {
+        // Negligible rather than zero: `bmr: 0` falls through `settings?.bmr || 1600`.
+        bmr: 1,
+        // A single slot, filled by the logged meal, so no assumed meals are added on top of it.
+        mealPattern: [{ name: 'Breakfast', time: '07:00' }]
+      }
     )
 
     const last = huge[huge.length - 1]!
@@ -111,8 +115,15 @@ describe('energy timeline carbohydrate and calorie balance', () => {
       }
     ]
 
-    const withWorkout = timeline({}, workout)
-    const restDay = timeline({})
+    // Both days log a zero-carb meal in the only slot, so neither picks up assumed intake and the
+    // difference between them is purely the session's drain.
+    const noIntake = {
+      breakfast: [{ name: 'Water', carbs: 0, calories: 0, logged_at: `${DATE}T07:00:00Z` }]
+    }
+    const onePattern = { mealPattern: [{ name: 'Breakfast', time: '07:00' }] }
+
+    const withWorkout = timeline(noIntake, workout, {}, onePattern)
+    const restDay = timeline(noIntake, [], {}, onePattern)
 
     const carbDelta =
       restDay[restDay.length - 1]!.carbBalance - withWorkout[withWorkout.length - 1]!.carbBalance

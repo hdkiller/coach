@@ -1,6 +1,10 @@
 import { Command } from 'commander'
 import Table from 'cli-table3'
 import chalk from 'chalk'
+import pg from 'pg'
+import { createHash } from 'node:crypto'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { prisma } from '../../server/utils/db'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../server/utils/date'
 import { metabolicService } from '../../server/utils/services/metabolicService'
@@ -49,9 +53,29 @@ const replayModelCommand = new Command('replay-model')
   .option('-d, --days <number>', 'Days of history to replay', '28')
   .option('-u, --users <number>', 'Maximum users to sample when no email is given', '10')
   .option('--verbose', 'Print a row per day', false)
+  .option('--prod', 'Read the production database (read-only; this command never writes)', false)
   .action(async (email: string | undefined, options) => {
     const days = Math.max(1, Number(options.days) || 28)
     const maxUsers = Math.max(1, Number(options.users) || 10)
+    const isProd = Boolean(options.prod)
+
+    if (isProd) {
+      const connectionString = process.env.DATABASE_URL_PROD
+      if (!connectionString) {
+        console.error(chalk.red('Missing DATABASE_URL_PROD in environment variables.'))
+        process.exit(1)
+      }
+
+      console.log(chalk.yellow('⚠️  Reading the PRODUCTION database (read-only).'))
+      process.env.DATABASE_URL = connectionString
+      const pool = new pg.Pool({ connectionString })
+      globalThis.prismaGlobalV2 = new PrismaClient({ adapter: new PrismaPg(pool) })
+    }
+
+    // Real addresses are never printed: this is meant to be run against production and its output
+    // pasted into issues and chats.
+    const label = (value: string) =>
+      isProd ? `user:${createHash('sha256').update(value).digest('hex').slice(0, 8)}` : value
 
     const users = email
       ? await prisma.user.findMany({ where: { email } })
@@ -86,7 +110,9 @@ const replayModelCommand = new Command('replay-model')
       try {
         wave = await metabolicService.getWaveRange(user.id, start, today)
       } catch (error: any) {
-        console.error(chalk.red(`  ${user.email}: replay failed - ${error?.message || error}`))
+        console.error(
+          chalk.red(`  ${label(user.email)}: replay failed - ${error?.message || error}`)
+        )
         continue
       }
 
@@ -170,7 +196,7 @@ const replayModelCommand = new Command('replay-model')
             String(day.workouts)
           ])
         }
-        console.log(chalk.bold(`\n${user.email}`))
+        console.log(chalk.bold(`\n${label(user.email)}`))
         console.log(table.toString())
       }
     }
@@ -221,6 +247,31 @@ const replayModelCommand = new Command('replay-model')
       ]
     )
     console.log(summary.toString())
+
+    const loggedDays = allDays.filter((d) => d.hasLogs)
+    const trainingDays = allDays.filter((d) => d.workouts > 0)
+    const clipRate = (set: DaySummary[]) =>
+      set.length === 0
+        ? 'n/a'
+        : `${((set.filter((d) => d.min <= 0).length / set.length) * 100).toFixed(0)}%`
+
+    console.log(chalk.bold('\n═══ How much of this is measured? ═══\n'))
+    const coverage = new Table()
+    coverage.push(
+      [
+        chalk.bold('Days with logged food'),
+        `${loggedDays.length}/${allDays.length} (${((loggedDays.length / allDays.length) * 100).toFixed(0)}%)`
+      ],
+      [
+        'Days with training',
+        `${trainingDays.length}/${allDays.length} (${((trainingDays.length / allDays.length) * 100).toFixed(0)}%)`
+      ],
+      ['Days hitting 0% — logged', clipRate(loggedDays)],
+      ['Days hitting 0% — unlogged', clipRate(allDays.filter((d) => !d.hasLogs))],
+      ['Days hitting 0% — training', clipRate(trainingDays)],
+      ['Days hitting 0% — rest', clipRate(allDays.filter((d) => d.workouts === 0))]
+    )
+    console.log(coverage.toString())
 
     console.log(chalk.bold('\nDistribution of daily minimum\n'))
     const buckets = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]

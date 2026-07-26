@@ -78,8 +78,20 @@ export function resolveGlycogenCapacityG(settings: any): number {
   return Math.max(MIN_GLYCOGEN_CAPACITY_G, capacity)
 }
 
+/** Bounds on how far an unlogged day's assumed intake may be scaled from the plan's target. */
+export const MIN_ASSUMED_INTAKE_SCALE = 0.3
+export const MAX_ASSUMED_INTAKE_SCALE = 1.25
+
 /** Gut absorption ceiling per 15 minute interval (~90g/hr). */
 export const INTERVAL_CARB_ABSORPTION_CAP_G = 22.5
+
+/**
+ * Where a meal in the simulation came from.
+ *
+ * `logged` is measured. `assumed` is the plan's target for a slot that has passed with nothing
+ * logged. `projected` is the plan's target for a slot still to come. Only the first is evidence.
+ */
+export type MealProvenance = 'logged' | 'assumed' | 'projected'
 
 /** Sedentary uplift applied to BMR for everyday non-training movement. */
 export const RESTING_ACTIVITY_FACTOR = 1.2
@@ -511,6 +523,36 @@ export function calculateEnergyTimeline(
     })
   }
 
+  // What a day with no logged food should assume the athlete ate.
+  //
+  // Assuming the plan's full target says "you finished every day topped up", which pins the tank
+  // full and tells the athlete nothing. Assuming nothing says "you fasted", which empties it and
+  // tells them nothing either. Absence of evidence should mean absence of movement: an unlogged day
+  // is modelled as energy balance, so the level ends where it began and only training moves it.
+  const restingDrainGramsPerDay =
+    (dailyBmr * RESTING_ACTIVITY_FACTOR * GLYCOGEN_SHARE_OF_RESTING_ENERGY) / 4
+  const workoutDrainGrams = workouts
+    .filter((w: any) => w.type !== 'Rest')
+    .reduce((sum: number, w: any) => {
+      const durationMin = (w.durationSec || w.duration || w.plannedDuration || 3600) / 60
+      const intensity = w.workIntensity || w.intensityFactor || w.intensity || 0.7
+      return (
+        sum +
+        getGramsPerMin(intensity, getSportFuelingClass(w.type)) *
+          WORKOUT_DRAIN_MULTIPLIER *
+          durationMin
+      )
+    }, 0)
+
+  const dayExpenditureGrams = restingDrainGramsPerDay + workoutDrainGrams
+  const assumedIntakeScale =
+    effectiveCarbsGoal > 0
+      ? Math.min(
+          MAX_ASSUMED_INTAKE_SCALE,
+          Math.max(MIN_ASSUMED_INTAKE_SCALE, dayExpenditureGrams / effectiveCarbsGoal)
+        )
+      : 1
+
   const sortedCandidates = syntheticCandidates.sort((a, b) => a.time.getTime() - b.time.getTime())
 
   sortedCandidates.forEach((cand: any, idx: number) => {
@@ -530,36 +572,45 @@ export function calculateEnergyTimeline(
     )
 
     if (!hasRealLog && !hasBetterSynthetic) {
-      const factor = isFutureDay || !hasPassed ? 1.0 : 0.0
+      // A slot that has not arrived yet is a projection of the plan. A slot that has passed with
+      // nothing logged is an assumption that the plan was followed.
+      //
+      // It used to be neither: past unlogged slots contributed no intake at all, which modelled the
+      // athlete as having fasted. Against production that emptied the tank on half of all training
+      // days, because barely one day in a hundred carries logged food. An assumption stated as an
+      // assumption is far more useful than a starvation curve presented as fact.
+      const isProjected = isFutureDay || !hasPassed
+      const provenance: MealProvenance = isProjected ? 'projected' : 'assumed'
 
-      if (factor > 0) {
-        let mealCarbs = cand.targetCarbs * factor
-        const currentTankPct = (currentGrams / C_cap) * 100
+      // Projected slots carry the plan as recommended; assumed slots are scaled to the day's
+      // expenditure so an unlogged day neither fills nor empties the tank.
+      let mealCarbs = isProjected ? cand.targetCarbs : cand.targetCarbs * assumedIntakeScale
+      const currentTankPct = (currentGrams / C_cap) * 100
 
-        if (idx === 0 && currentTankPct < 40 && (isFutureDay || !hasPassed)) {
-          const gramsTo80 = C_cap * 0.8 - currentGrams
-          if (mealCarbs < gramsTo80) {
-            const boost = gramsTo80 - mealCarbs
-            mealCarbs += boost
-          }
-        } else if (idx === 0 && currentTankPct < 85 && (isFutureDay || !hasPassed)) {
-          const gramsTo85 = C_cap * 0.85 - currentGrams
-          const maxFrontLoad = effectiveCarbsGoal * 0.6
-          const recoveryBonus = Math.min(gramsTo85, maxFrontLoad - mealCarbs)
-          if (recoveryBonus > 0) mealCarbs += recoveryBonus
+      // Front-loading is planning advice - "you are low, eat early" - so it only applies to slots
+      // still ahead of the athlete. Applying it retrospectively would invent intake beyond the plan.
+      if (isProjected && idx === 0 && currentTankPct < 40) {
+        const gramsTo80 = C_cap * 0.8 - currentGrams
+        if (mealCarbs < gramsTo80) {
+          mealCarbs = gramsTo80
         }
-
-        finalMeals.push({
-          time: windowStartTime,
-          name: factor === 1.0 ? `Synthetic ${cand.name}` : `Probable ${cand.name} (50%)`,
-          totalCarbs: mealCarbs,
-          totalKcal: mealCarbs * 4,
-          totalFluid: (cand.targetFluid || 0) * factor,
-          profile: cand.profile,
-          isSynthetic: true,
-          isProbable: factor < 1.0
-        })
+      } else if (isProjected && idx === 0 && currentTankPct < 85) {
+        const gramsTo85 = C_cap * 0.85 - currentGrams
+        const maxFrontLoad = effectiveCarbsGoal * 0.6
+        const recoveryBonus = Math.min(gramsTo85, maxFrontLoad - mealCarbs)
+        if (recoveryBonus > 0) mealCarbs += recoveryBonus
       }
+
+      finalMeals.push({
+        time: windowStartTime,
+        name: `${isProjected ? 'Planned' : 'Assumed'} ${cand.name}`,
+        totalCarbs: mealCarbs,
+        totalKcal: mealCarbs * 4,
+        totalFluid: (cand.targetFluid || 0) * (isProjected ? 1 : assumedIntakeScale),
+        profile: cand.profile,
+        isSynthetic: true,
+        provenance
+      })
     }
   })
 
@@ -578,12 +629,26 @@ export function calculateEnergyTimeline(
   }
 
   if (ghostMeal) {
+    // A hypothetical "what if I ate this" meal is a projection, never evidence.
     finalMeals.push({
       ...ghostMeal,
       totalFluid: 0,
-      name: 'Ghost Recommendation'
+      name: 'Ghost Recommendation',
+      isSynthetic: true,
+      provenance: 'projected' as MealProvenance
     })
   }
+
+  // Derived from the meals themselves rather than from whether the date is in the future: today is
+  // half elapsed, so a day whose remaining slots are projected but whose morning went unlogged is
+  // partly assumed, and saying otherwise would overstate what is known.
+  const hasLoggedIntake = finalMeals.some((meal: any) => !meal.isSynthetic)
+  const hasAssumedIntake = finalMeals.some((meal: any) => meal.provenance === 'assumed')
+  const dayIntakeProvenance: MealProvenance = hasLoggedIntake
+    ? 'logged'
+    : hasAssumedIntake
+      ? 'assumed'
+      : 'projected'
 
   const workoutEvents: WorkoutEvent[] = workouts
     .filter((w) => w.type !== 'Rest')
@@ -667,6 +732,7 @@ export function calculateEnergyTimeline(
       carbBalance: Math.round(cumulativeCarbDelta),
       fluidDeficit: Math.round(currentFluidDeficit),
       isFuture: currentTime > now,
+      intakeProvenance: dayIntakeProvenance,
       event: hasEvents ? combinedName : undefined,
       eventType: hasEvents ? primaryType : undefined,
       eventCarbs: hasEvents ? Math.round(totalEventCarbs) : undefined,

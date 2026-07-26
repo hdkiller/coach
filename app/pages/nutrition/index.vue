@@ -176,6 +176,19 @@
                             t('horizon_legend_multiple')
                           }}</span>
                         </div>
+                        <UBadge
+                          v-if="intakeConfidenceNote"
+                          color="neutral"
+                          variant="subtle"
+                          size="xs"
+                          class="font-bold"
+                          data-testid="intake-confidence"
+                          :title="intakeConfidenceNote"
+                        >
+                          {{
+                            intakeConfidence?.level === 'inferred' ? 'Assumed' : 'Partly assumed'
+                          }}
+                        </UBadge>
                         <UButton
                           icon="i-heroicons-cog-6-tooth"
                           color="neutral"
@@ -658,6 +671,27 @@
   const generatingPlan = ref(false)
   const planDashboard = ref<any>(null)
   const wavePoints = ref<any[]>([])
+  const intakeConfidence = ref<{
+    measuredDays: number
+    totalDays: number
+    ratio: number
+    level: string
+  } | null>(null)
+
+  /**
+   * The horizon is mostly inference for most athletes, so it says so. Presenting an assumed curve
+   * as a measured one is the difference between a useful projection and a misleading claim.
+   */
+  const intakeConfidenceNote = computed(() => {
+    const c = intakeConfidence.value
+    if (!c || c.totalDays === 0 || c.level === 'measured') return null
+
+    const logged = `${c.measuredDays} of ${c.totalDays} days`
+    if (c.level === 'inferred') {
+      return `Assumes you followed your plan — food logged on ${logged}.`
+    }
+    return `Partly assumed — food logged on ${logged}.`
+  })
   const journeyEvents = ref<any[]>([])
   const waveWorkouts = ref<any[]>([])
   const strategy = ref<any>(null)
@@ -852,6 +886,7 @@
 
       if (waveRes.status === 'fulfilled') {
         wavePoints.value = (waveRes.value as any).points || []
+        intakeConfidence.value = (waveRes.value as any).intakeConfidence || null
         journeyEvents.value = (waveRes.value as any).journeyEvents || []
         waveWorkouts.value = (waveRes.value as any).workouts || []
         await refreshMissingStartTimeWarning()

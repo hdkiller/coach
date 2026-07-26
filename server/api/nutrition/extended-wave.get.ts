@@ -1,5 +1,6 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { summariseIntakeConfidence } from '../../utils/nutrition/intake-confidence'
 
 defineRouteMeta({
   openAPI: {
@@ -60,7 +61,8 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       points,
-      journeyEvents
+      journeyEvents,
+      intakeConfidence: summariseIntakeConfidence(points as any)
     }
   } catch (error: any) {
     console.error('Error generating extended wave:', error)

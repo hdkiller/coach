@@ -968,6 +968,10 @@ export const metabolicService = {
           (Array.isArray(dayNutrition.dinner) && dayNutrition.dinner.length > 0) ||
           (Array.isArray(dayNutrition.snacks) && dayNutrition.snacks.length > 0))
       )
+      // synthesizeRefills is forward-looking: it lays out the plan at full target for days still to
+      // come. Past days are inferred inside the simulation instead, where the assumed intake is
+      // scaled to the day's expenditure - feeding unscaled plan targets in here would refill the
+      // tank on every unlogged day and pin it full.
       const shouldSynthesizeMeals = !hasLogs && dataType !== 'historical'
       const simulationMeals = shouldSynthesizeMeals
         ? synthesizeRefills(
