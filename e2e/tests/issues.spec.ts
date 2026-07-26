@@ -1,20 +1,12 @@
-import { expect, test } from '@playwright/test'
-import { mintE2eAccessToken } from '../helpers/token.ts'
-import { E2E_MOBILE_CLIENT_ID } from '../seed.ts'
+import { expect, test } from '../fixtures/test-fixtures.ts'
 
 test.describe('E2E Issues & Bug Reports Endpoints', () => {
-  test('creates, lists, comments on, and fetches issue reports', async ({ request }) => {
-    const token = await mintE2eAccessToken(process.env.E2E_TEST_USER_EMAIL, E2E_MOBILE_CLIENT_ID)
-    const headers = { Authorization: `Bearer ${token.access_token}` }
-
-    // 1. Create issue
-    const createRes = await request.post('/api/issues', {
-      headers,
+  test('creates, lists, comments on, and fetches issue reports', async ({ authedPage }) => {
+    // Issues routes use getServerSession (cookie), not Bearer OAuth tokens.
+    const createRes = await authedPage.request.post('/api/issues', {
       data: {
         title: 'E2E Test Sync Glitch',
-        description: 'Encountered unexpected latency during Strava sync',
-        category: 'BUG',
-        priority: 'MEDIUM'
+        description: 'Encountered unexpected latency during Strava sync'
       }
     })
     expect(createRes.ok()).toBeTruthy()
@@ -22,15 +14,12 @@ test.describe('E2E Issues & Bug Reports Endpoints', () => {
     expect(issue.id).toBeTruthy()
     expect(issue.title).toBe('E2E Test Sync Glitch')
 
-    // 2. Fetch issue details
-    const getRes = await request.get(`/api/issues/${issue.id}`, { headers })
+    const getRes = await authedPage.request.get(`/api/issues/${issue.id}`)
     expect(getRes.ok()).toBeTruthy()
     const fetchedIssue = await getRes.json()
     expect(fetchedIssue.id).toBe(issue.id)
 
-    // 3. Add comment to issue
-    const commentRes = await request.post(`/api/issues/${issue.id}/comments`, {
-      headers,
+    const commentRes = await authedPage.request.post(`/api/issues/${issue.id}/comments`, {
       data: {
         content: 'Issue reproduced on staging build'
       }
@@ -39,10 +28,14 @@ test.describe('E2E Issues & Bug Reports Endpoints', () => {
     const comment = await commentRes.json()
     expect(comment.id).toBeTruthy()
 
-    // 4. Fetch issue comments list
-    const commentsListRes = await request.get(`/api/issues/${issue.id}/comments`, { headers })
-    expect(commentsListRes.ok()).toBeTruthy()
-    const comments = await commentsListRes.json()
-    expect(Array.isArray(comments)).toBeTruthy()
+    // User-facing issues API embeds comments on the issue detail payload
+    // (there is no separate /comments GET for non-admin callers).
+    const withCommentsRes = await authedPage.request.get(`/api/issues/${issue.id}`)
+    expect(withCommentsRes.ok()).toBeTruthy()
+    const withComments = await withCommentsRes.json()
+    expect(Array.isArray(withComments.comments)).toBeTruthy()
+    expect(
+      withComments.comments.some((c: { id: string }) => c.id === comment.id)
+    ).toBeTruthy()
   })
 })

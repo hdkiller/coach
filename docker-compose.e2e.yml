@@ -78,8 +78,12 @@ services:
       STRAVA_CLIENT_SECRET: e2e-placeholder
       INTERVALS_CLIENT_ID: e2e-placeholder
       INTERVALS_CLIENT_SECRET: e2e-placeholder
+      # Nuxt runtimeConfig overrides use the NUXT_ prefix (STRIPE_SECRET_KEY alone is
+      # only the build-time default and stays empty in the baked e2e image).
       STRIPE_SECRET_KEY: sk_test_e2e_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
+      NUXT_STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      NUXT_STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy
@@ -117,6 +121,8 @@ services:
       NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'
       STRIPE_SECRET_KEY: sk_test_e2e_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
+      NUXT_STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      NUXT_STRIPE_WEBHOOK_SECRET: whsec_e2e_placeholder
     depends_on:
       postgres-e2e:
         condition: service_healthy
