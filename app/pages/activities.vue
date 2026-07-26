@@ -1997,7 +1997,7 @@
 
   async function openCalendarNoteModal(noteId: string) {
     try {
-      const note = await $fetch(`/api/calendar/notes/${noteId}`)
+      const note = await $fetch<unknown, string & {}>(`/api/calendar/notes/${noteId}`)
       selectedCalendarNote.value = note
       showCalendarNoteModal.value = true
     } catch (error) {
@@ -2012,7 +2012,9 @@
 
   async function openPlannedWorkoutModal(plannedWorkoutId: string) {
     try {
-      const plannedWorkout = await $fetch(`/api/planned-workouts/${plannedWorkoutId}`)
+      const plannedWorkout = await $fetch<unknown, string & {}>(
+        `/api/planned-workouts/${plannedWorkoutId}`
+      )
       selectedPlannedWorkout.value = plannedWorkout
       showPlannedWorkoutModal.value = true
     } catch (error) {
@@ -2027,7 +2029,7 @@
 
   async function openWorkoutModal(workoutId: string) {
     try {
-      const workout = await $fetch(`/api/workouts/${workoutId}`)
+      const workout = await $fetch<unknown, string & {}>(`/api/workouts/${workoutId}`)
       selectedWorkout.value = workout
       showWorkoutModal.value = true
     } catch (error) {
@@ -2103,7 +2105,7 @@
 
     isLinking.value = true
     try {
-      await $fetch(`/api/workouts/${linkCompleted.value.id}/link`, {
+      await $fetch<unknown, string & {}>(`/api/workouts/${linkCompleted.value.id}/link`, {
         method: 'POST',
         body: {
           plannedWorkoutId: linkPlanned.value.id
@@ -2141,7 +2143,7 @@
 
     isMerging.value = true
     try {
-      await $fetch('/api/workouts/merge', {
+      await $fetch<unknown, string & {}>('/api/workouts/merge', {
         method: 'POST',
         body: {
           primaryWorkoutId: mergeTarget.value.id,
@@ -2185,7 +2187,7 @@
     const toast = useToast()
 
     try {
-      await $fetch(`/api/planned-workouts/${activity.id}`, {
+      await $fetch<unknown, string & {}>(`/api/planned-workouts/${activity.id}`, {
         method: 'PATCH',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd')
@@ -2282,7 +2284,7 @@
     const toast = useToast()
 
     try {
-      await $fetch('/api/planned-workouts', {
+      await $fetch<unknown, string & {}>('/api/planned-workouts', {
         method: 'POST',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd'),

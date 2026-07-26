@@ -207,7 +207,7 @@
 
     deleting.value = true
     try {
-      await $fetch(`/api/events/${eventToDelete.value.id}`, {
+      await $fetch<unknown, string & {}>(`/api/events/${eventToDelete.value.id}`, {
         method: 'DELETE'
       })
 

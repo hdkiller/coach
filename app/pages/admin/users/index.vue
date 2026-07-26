@@ -36,7 +36,7 @@
   async function impersonateUser(userId: string) {
     impersonating.value = userId
     try {
-      await $fetch('/api/admin/impersonate', {
+      await $fetch<unknown, string & {}>('/api/admin/impersonate', {
         method: 'POST',
         body: { userId }
       })

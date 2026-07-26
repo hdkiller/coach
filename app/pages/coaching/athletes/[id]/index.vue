@@ -921,13 +921,17 @@
   async function confirmRemoveAthlete() {
     if (!athlete.value) return
     const name = athlete.value.name || athlete.value.email || 'this athlete'
-    if (!confirm(`Remove ${name} from your coaching roster? They will no longer be connected to you.`)) {
+    if (
+      !confirm(`Remove ${name} from your coaching roster? They will no longer be connected to you.`)
+    ) {
       return
     }
 
     removingAthlete.value = true
     try {
-      await $fetch(`/api/coaching/athletes/${athleteId}`, { method: 'DELETE' })
+      await $fetch<unknown, string & {}>(`/api/coaching/athletes/${athleteId}`, {
+        method: 'DELETE'
+      })
       toast.add({ title: 'Athlete removed', color: 'success' })
       await router.push('/coaching/athletes')
     } catch (err: any) {

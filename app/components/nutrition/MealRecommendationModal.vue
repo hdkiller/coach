@@ -709,7 +709,7 @@
       // Phase 3 will implement actual plan locking
       // For now, we can log it or just emit success
       // Let's assume we want to "Lock" this into the nutrition plan for the day
-      const response = await $fetch('/api/nutrition/plan/meal', {
+      const response = await $fetch<unknown, string & {}>('/api/nutrition/plan/meal', {
         method: 'POST',
         body: {
           date: props.date,

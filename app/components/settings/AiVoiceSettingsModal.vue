@@ -139,7 +139,7 @@
     previewAbortController = abortController
 
     try {
-      const audioBlob = await $fetch('/api/chat/tts', {
+      const audioBlob = await $fetch<unknown, string & {}>('/api/chat/tts', {
         method: 'POST',
         body: {
           text: previewText,

@@ -1089,7 +1089,7 @@
 
     try {
       // Fetch from database (or trigger generation if not available)
-      const response: any = await $fetch('/api/scores/explanation', {
+      const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
         query: {
           type: 'workout',
           period: selectedPeriod.value,
@@ -1161,7 +1161,7 @@
 
     try {
       // Fetch from database (or trigger generation if not available)
-      const response: any = await $fetch('/api/scores/explanation', {
+      const response: any = await $fetch<unknown, string & {}>('/api/scores/explanation', {
         query: {
           type: 'nutrition',
           period: selectedPeriod.value,
@@ -1200,7 +1200,7 @@
   const generateExplanations = async () => {
     generatingExplanations.value = true
     try {
-      await $fetch('/api/scores/generate-explanations', { method: 'POST' })
+      await $fetch<unknown, string & {}>('/api/scores/generate-explanations', { method: 'POST' })
       refreshRuns()
 
       toast.add({

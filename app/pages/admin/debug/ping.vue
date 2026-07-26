@@ -18,7 +18,7 @@
     result.value = null
 
     try {
-      const data = await $fetch('/api/admin/debug/ping', {
+      const data = await $fetch<unknown, string & {}>('/api/admin/debug/ping', {
         method: 'POST',
         body: { url: url.value, method: method.value }
       })
@@ -142,8 +142,7 @@
             </div>
             <pre
               class="p-4 bg-[oklch(10%_0.015_155)] border-t border-white/8 text-green-400 overflow-x-auto max-w-full break-all text-xs font-mono whitespace-pre-wrap max-h-[500px]"
-              >{{ result.body || '(Empty body)' }}</pre
-            >
+              >{{ result.body || '(Empty body)' }}</pre>
           </div>
         </UCard>
       </div>

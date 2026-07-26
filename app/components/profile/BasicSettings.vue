@@ -719,7 +719,7 @@
   async function autodetectProfile() {
     autodetecting.value = true
     try {
-      const response: any = await $fetch('/api/profile/autodetect', {
+      const response: any = await $fetch<unknown, string & {}>('/api/profile/autodetect', {
         method: 'POST'
       })
 

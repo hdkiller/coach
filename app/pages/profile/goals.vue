@@ -220,7 +220,7 @@
     if (!goalToDelete.value) return
 
     try {
-      await $fetch(`/api/goals/${goalToDelete.value}`, {
+      await $fetch<unknown, string & {}>(`/api/goals/${goalToDelete.value}`, {
         method: 'DELETE'
       })
       refreshGoals()
@@ -308,7 +308,7 @@
     acceptingSuggestionKeys.value = [...acceptingSuggestionKeys.value, suggestionKey]
 
     try {
-      await $fetch('/api/goals', {
+      await $fetch<unknown, string & {}>('/api/goals', {
         method: 'POST',
         body: {
           type: suggestion.type,

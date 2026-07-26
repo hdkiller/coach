@@ -54,7 +54,7 @@
     }
 
     try {
-      await $fetch(`/api/admin/emails/${row.id}/send`, {
+      await $fetch<unknown, string & {}>(`/api/admin/emails/${row.id}/send`, {
         method: 'POST'
       })
 

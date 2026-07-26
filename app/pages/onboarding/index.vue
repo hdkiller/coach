@@ -213,7 +213,7 @@
     try {
       const uiLanguage = resolveConsentUiLanguage()
 
-      await $fetch('/api/user/consent', {
+      await $fetch<unknown, string & {}>('/api/user/consent', {
         method: 'POST',
         body: {
           termsVersion: TERMS_OF_SERVICE_VERSION,

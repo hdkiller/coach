@@ -48,7 +48,7 @@
 
       const full = route.query.full === '1' || route.query.full === 'true'
 
-      await $fetch('/api/user/onboarding/restart', {
+      await $fetch<unknown, string & {}>('/api/user/onboarding/restart', {
         method: 'POST',
         query: full ? { full: '1' } : undefined
       })

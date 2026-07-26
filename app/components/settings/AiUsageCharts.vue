@@ -117,6 +117,24 @@
 </template>
 
 <script setup lang="ts">
+  interface LlmUsageResponse {
+    summary: {
+      totalCalls: number
+      successfulCalls: number
+      failedCalls: number
+      successRate: number
+      totalCost: number
+      totalTokens: number
+      totalPromptTokens: number
+      totalCompletionTokens: number
+      avgDuration: number
+      totalRetries: number
+      avgRetriesPerCall: number
+    }
+    groupedData: any[]
+    recentUsage: any[]
+  }
+
   const loading = ref(true)
   const { formatDate } = useFormat()
   const chartContainer = ref<HTMLElement | null>(null)
@@ -144,7 +162,7 @@
     tooltip.visible = false
   }
 
-  const { data } = useFetch('/api/analytics/llm-usage', {
+  const { data } = useFetch<LlmUsageResponse, Error, string & {}>('/api/analytics/llm-usage', {
     query: {
       days: 30,
       groupBy: 'operation'
@@ -154,14 +172,17 @@
   })
 
   // Also fetch daily data
-  const { data: dailyDataRaw } = useFetch('/api/analytics/llm-usage', {
-    query: {
-      days: 7,
-      groupBy: 'date'
-    },
-    lazy: true,
-    server: false
-  })
+  const { data: dailyDataRaw } = useFetch<LlmUsageResponse, Error, string & {}>(
+    '/api/analytics/llm-usage',
+    {
+      query: {
+        days: 7,
+        groupBy: 'date'
+      },
+      lazy: true,
+      server: false
+    }
+  )
 
   watchEffect(() => {
     if (data.value && dailyDataRaw.value) {

@@ -17,7 +17,9 @@
   const toast = useToast()
   const supportActionLoading = ref<'deactivate' | 'reactivate' | 'delete' | null>(null)
 
-  const { data: report, refresh: refreshReport } = await useFetch(`/api/admin/issues/${id}`)
+  const { data: report, refresh: refreshReport } = await useFetch<any, Error, string & {}>(
+    `/api/admin/issues/${id}`
+  )
   const { data: comments, refresh: refreshComments } = await useFetch(
     `/api/admin/issues/${id}/comments`
   )
@@ -47,7 +49,7 @@
 
   async function updateStatus(newStatus: string) {
     try {
-      await $fetch(`/api/admin/issues/${id}`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}`, {
         method: 'PUT',
         body: { status: newStatus }
       })
@@ -60,7 +62,7 @@
 
   async function updatePriority(newPriority: string) {
     try {
-      await $fetch(`/api/admin/issues/${id}`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}`, {
         method: 'PUT',
         body: { priority: newPriority }
       })
@@ -84,7 +86,7 @@
   async function saveMetadata() {
     try {
       const currentMetadata = (report.value?.metadata as any) || {}
-      await $fetch(`/api/admin/issues/${id}`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}`, {
         method: 'PUT',
         body: {
           metadata: {
@@ -121,7 +123,7 @@
     if (!newComment.value.trim()) return
     sendingComment.value = true
     try {
-      await $fetch(`/api/admin/issues/${id}/comments`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}/comments`, {
         method: 'POST',
         body: { content: newComment.value, type: newCommentType.value }
       })
@@ -153,10 +155,13 @@
     if (!editingCommentId.value || !editingCommentContent.value.trim()) return
     savingComment.value = true
     try {
-      await $fetch(`/api/admin/issues/${id}/comments/${editingCommentId.value}`, {
-        method: 'PATCH',
-        body: { content: editingCommentContent.value }
-      })
+      await $fetch<unknown, string & {}>(
+        `/api/admin/issues/${id}/comments/${editingCommentId.value}`,
+        {
+          method: 'PATCH',
+          body: { content: editingCommentContent.value }
+        }
+      )
       toast.add({ title: 'Comment updated', color: 'success' })
       closeEditCommentModal()
       await refreshComments()
@@ -174,7 +179,7 @@
   async function deleteComment(commentId: string) {
     deletingCommentId.value = commentId
     try {
-      await $fetch(`/api/admin/issues/${id}/comments/${commentId}`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}/comments/${commentId}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Comment deleted', color: 'success' })
@@ -261,7 +266,7 @@
   async function deleteIssue() {
     deletingIssue.value = true
     try {
-      await $fetch(`/api/admin/issues/${id}`, { method: 'DELETE' })
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}`, { method: 'DELETE' })
       toast.add({ title: 'Issue deleted', color: 'success' })
       await navigateTo('/admin/issues')
     } catch {
@@ -273,7 +278,7 @@
   }
 
   async function addSupportActionNote(content: string) {
-    await $fetch(`/api/admin/issues/${id}/comments`, {
+    await $fetch<unknown, string & {}>(`/api/admin/issues/${id}/comments`, {
       method: 'POST',
       body: { content, type: 'NOTE' }
     })
@@ -285,12 +290,12 @@
     supportActionLoading.value = action
     try {
       if (action === 'delete') {
-        await $fetch(`/api/admin/users/${report.value.user.id}`, {
+        await $fetch<unknown, string & {}>(`/api/admin/users/${report.value.user.id}`, {
           method: 'DELETE'
         })
         await addSupportActionNote('Admin scheduled account deletion from the ticket workspace.')
       } else if (action === 'deactivate') {
-        await $fetch(`/api/admin/users/${report.value.user.id}/deactivate`, {
+        await $fetch<unknown, string & {}>(`/api/admin/users/${report.value.user.id}/deactivate`, {
           method: 'POST',
           body: {
             reason: `Requested from support ticket ${report.value.id}: ${report.value.title}`
@@ -298,13 +303,13 @@
         })
         await addSupportActionNote('Admin deactivated the account from the ticket workspace.')
       } else {
-        await $fetch(`/api/admin/users/${report.value.user.id}/reactivate`, {
+        await $fetch<unknown, string & {}>(`/api/admin/users/${report.value.user.id}/reactivate`, {
           method: 'POST'
         })
         await addSupportActionNote('Admin reactivated the account from the ticket workspace.')
       }
 
-      await $fetch(`/api/admin/issues/${id}`, {
+      await $fetch<unknown, string & {}>(`/api/admin/issues/${id}`, {
         method: 'PUT',
         body: { status: 'RESOLVED' }
       })

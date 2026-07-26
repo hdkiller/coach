@@ -88,7 +88,9 @@
   const route = useRoute()
   const token = route.params.token as string
 
-  const { data, pending } = await useFetch(`/api/public/plans/access/${token}`)
+  const { data, pending } = await useFetch<any, Error, string & {}>(
+    `/api/public/plans/access/${token}`
+  )
   const plan = computed(() => (data.value as any)?.plan)
 
   useSeoMeta({
