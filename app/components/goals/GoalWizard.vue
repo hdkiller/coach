@@ -486,14 +486,14 @@
 
       if (isEditMode.value && props.goal) {
         // Update existing goal
-        await $fetch(`/api/goals/${props.goal.id}`, {
+        await $fetch<any, string & {}>(`/api/goals/${props.goal.id}`, {
           method: 'PATCH',
           body: payload
         })
         emit('updated')
       } else {
         // Create new goal
-        await $fetch('/api/goals', {
+        await $fetch<any, string & {}>('/api/goals', {
           method: 'POST',
           body: payload
         })

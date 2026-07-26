@@ -41,7 +41,7 @@
 
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>('/api/analytics/fields/definitions', {
+      await $fetch<any, string & {}>('/api/analytics/fields/definitions', {
         method: 'POST',
         body: newField.value
       })
@@ -76,7 +76,7 @@
 
     deleting.value = id
     try {
-      await $fetch<unknown, string & {}>(`/api/analytics/fields/definitions/${id}`, {
+      await $fetch<any, string & {}>(`/api/analytics/fields/definitions/${id}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Metric definition removed', color: 'neutral' })

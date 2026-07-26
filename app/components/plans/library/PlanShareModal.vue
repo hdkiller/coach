@@ -98,7 +98,7 @@
   async function fetchTeams() {
     loadingTeams.value = true
     try {
-      const data: any = await $fetch('/api/coaching/teams')
+      const data: any = await $fetch<any, string & {}>('/api/coaching/teams')
       teams.value = data.map((t: any) => ({
         id: t.id,
         label: t.name
@@ -113,7 +113,7 @@
   async function save() {
     saving.value = true
     try {
-      await $fetch(`/api/library/plans/${props.plan.id}/publication`, {
+      await $fetch<any, string & {}>(`/api/library/plans/${props.plan.id}/publication`, {
         method: 'PATCH',
         body: {
           visibility: visibility.value,

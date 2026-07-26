@@ -153,7 +153,7 @@
     if (!goalToDelete.value) return
 
     try {
-      await $fetch(`/api/goals/${goalToDelete.value}`, {
+      await $fetch<any, string & {}>(`/api/goals/${goalToDelete.value}`, {
         method: 'DELETE'
       })
       refreshGoals()

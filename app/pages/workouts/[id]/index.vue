@@ -5326,7 +5326,7 @@
     error.value = null
     try {
       const id = route.params.id
-      const result = await $fetch(`/api/workouts/${id}`)
+      const result = await $fetch<any, string & {}>(`/api/workouts/${id}`)
       if (!isPageActive.value) return
       workout.value = result
     } catch (e: any) {
@@ -5384,7 +5384,7 @@
 
     analyzingWorkout.value = true
     try {
-      const result = (await $fetch(`/api/workouts/${workout.value.id}/analyze`, {
+      const result = (await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/analyze`, {
         method: 'POST'
       })) as any
 
@@ -5444,7 +5444,7 @@
 
     analyzingAdherence.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/analyze-adherence`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/analyze-adherence`, {
         method: 'POST'
       })
       refreshRuns()
@@ -5482,7 +5482,7 @@
 
     unlinkingPlannedWorkout.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/unlink`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/unlink`, {
         method: 'POST'
       })
 
@@ -5512,7 +5512,7 @@
 
     publishingSummary.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/publish-summary`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/publish-summary`, {
         method: 'POST'
       })
 
@@ -5615,9 +5615,12 @@
 
     unlinkingDuplicateId.value = duplicateUnlinkTargetId.value
     try {
-      await $fetch(`/api/workouts/${duplicateUnlinkTargetId.value}/unlink-duplicate`, {
-        method: 'POST'
-      })
+      await $fetch<any, string & {}>(
+        `/api/workouts/${duplicateUnlinkTargetId.value}/unlink-duplicate`,
+        {
+          method: 'POST'
+        }
+      )
 
       toast.add({
         title: 'Workout unlinked',
@@ -5648,7 +5651,7 @@
 
     promoting.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/promote`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/promote`, {
         method: 'POST'
       })
 
@@ -5678,7 +5681,7 @@
 
     deleting.value = true
     try {
-      await $fetch(`/api/workouts/${workout.value.id}`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}`, {
         method: 'DELETE'
       })
 
@@ -5977,7 +5980,7 @@
 
     savingToLibrary.value = true
     try {
-      await $fetch('/api/library/workouts/save', {
+      await $fetch<any, string & {}>('/api/library/workouts/save', {
         method: 'POST',
         body: {
           workoutId: workout.value.id,
@@ -6213,7 +6216,7 @@
   async function updateStomachFeel(val: number) {
     stomachFeel.value = val
     try {
-      await $fetch(`/api/workouts/${workout.value.id}/metadata`, {
+      await $fetch<any, string & {}>(`/api/workouts/${workout.value.id}/metadata`, {
         method: 'POST' as any,
         body: { stomachFeel: val }
       })

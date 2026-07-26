@@ -1138,7 +1138,7 @@
   async function updateMealStatus(window: FuelWindow, action: 'complete' | 'skip' | 'unlock') {
     if (!window.planMealId) return
     try {
-      await $fetch(`/api/nutrition/plan/meals/${window.planMealId}`, {
+      await $fetch<any, string & {}>(`/api/nutrition/plan/meals/${window.planMealId}`, {
         method: 'PATCH',
         body: { action }
       })

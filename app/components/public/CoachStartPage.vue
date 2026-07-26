@@ -340,7 +340,7 @@
     }
     saving.value = true
     try {
-      await $fetch<unknown, string & {}>(privateEndpoint, {
+      await $fetch<any, string & {}>(privateEndpoint, {
         method: 'PATCH',
         body: editableStartPage.value
       })
@@ -367,7 +367,7 @@
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const result = await $fetch('/api/storage/upload', {
+      const result = await $fetch<any, string & {}>('/api/storage/upload', {
         method: 'POST',
         body: formData
       })
@@ -439,7 +439,7 @@
 
     submitting.value = true
     try {
-      await $fetch(`/api/public/coaches/${slug.value}/start/request`, {
+      await $fetch<any, string & {}>(`/api/public/coaches/${slug.value}/start/request`, {
         method: 'POST',
         body: {
           answers

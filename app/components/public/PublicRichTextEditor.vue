@@ -207,7 +207,7 @@
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const result = await $fetch('/api/storage/upload', {
+      const result = await $fetch<any, string & {}>('/api/storage/upload', {
         method: 'POST',
         body: formData
       })

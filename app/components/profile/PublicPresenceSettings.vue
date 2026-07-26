@@ -715,7 +715,7 @@
 
     savingCoach.value = true
     try {
-      await $fetch('/api/profile/public/coach', {
+      await $fetch<any, string & {}>('/api/profile/public/coach', {
         method: 'PATCH',
         body: coachProfile.value
       })
@@ -751,7 +751,7 @@
 
     savingAthlete.value = true
     try {
-      await $fetch('/api/profile/public/athlete', {
+      await $fetch<any, string & {}>('/api/profile/public/athlete', {
         method: 'PATCH',
         body: athleteProfile.value
       })
@@ -777,7 +777,7 @@
   async function saveCoachJoinPage() {
     savingCoachJoin.value = true
     try {
-      await $fetch('/api/profile/public/coach/join', {
+      await $fetch<any, string & {}>('/api/profile/public/coach/join', {
         method: 'PATCH',
         body: coachJoinPage.value
       })
@@ -803,7 +803,7 @@
   async function saveCoachStartPage() {
     savingCoachStart.value = true
     try {
-      await $fetch('/api/profile/public/coach/start', {
+      await $fetch<any, string & {}>('/api/profile/public/coach/start', {
         method: 'PATCH',
         body: coachStartPage.value
       })

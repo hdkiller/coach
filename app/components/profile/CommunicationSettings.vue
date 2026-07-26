@@ -74,7 +74,7 @@
 
   onMounted(async () => {
     try {
-      const data = (await $fetch('/api/profile/email-preferences')) as any
+      const data = (await $fetch<any, string & {}>('/api/profile/email-preferences')) as any
       if (data) {
         state.workoutAnalysis = data.workoutAnalysis ?? true
         state.thresholdUpdates = data.thresholdUpdates ?? true
@@ -133,7 +133,7 @@
   async function onSubmit(event: FormSubmitEvent<Schema>) {
     isSaving.value = true
     try {
-      await $fetch('/api/profile/email-preferences', {
+      await $fetch<any, string & {}>('/api/profile/email-preferences', {
         method: 'PUT',
         body: event.data
       })

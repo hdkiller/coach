@@ -121,7 +121,7 @@
 
   async function saveAiSettings(settings: any) {
     try {
-      await $fetch('/api/settings/ai', {
+      await $fetch<any, string & {}>('/api/settings/ai', {
         method: 'POST',
         body: settings
       })

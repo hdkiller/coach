@@ -120,7 +120,7 @@
 
     matching.value = true
     try {
-      await $fetch(`/api/workouts/${selectedCompleted.value.id}/link`, {
+      await $fetch<any, string & {}>(`/api/workouts/${selectedCompleted.value.id}/link`, {
         method: 'POST',
         body: { plannedWorkoutId: selectedPlanned.value.id }
       })

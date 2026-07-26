@@ -112,7 +112,7 @@
     loading.value = true
 
     try {
-      const data = await $fetch('/api/scores/efficiency-trends', {
+      const data = await $fetch<any, string & {}>('/api/scores/efficiency-trends', {
         query: {
           days: props.days || 90,
           sport: props.sport,

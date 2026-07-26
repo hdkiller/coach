@@ -511,7 +511,7 @@
 
     isUnlinking.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/workouts/${props.workout.id}/unlink`, {
+      await $fetch<any, string & {}>(`/api/workouts/${props.workout.id}/unlink`, {
         method: 'POST'
       })
 
@@ -541,7 +541,7 @@
 
     isDeleting.value = true
     try {
-      await $fetch<unknown, string & {}>(`/api/workouts/${props.workout.id}`, {
+      await $fetch<any, string & {}>(`/api/workouts/${props.workout.id}`, {
         method: 'DELETE'
       })
 

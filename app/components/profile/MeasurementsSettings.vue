@@ -880,7 +880,7 @@
           ? ftInToCm(heightFt.value || 0, heightIn.value || 0)
           : fromDisplayValue(value.value || 0, buildMetricKey(), selectedUnit.value)
 
-      await $fetch('/api/body-measurements', {
+      await $fetch<any, string & {}>('/api/body-measurements', {
         method: 'POST',
         body: {
           recordedAt: new Date(recordedAt.value).toISOString(),
@@ -923,7 +923,7 @@
   async function deleteMeasurement(entry: any) {
     deletingId.value = entry.id
     try {
-      await $fetch(`/api/body-measurements/${entry.id}`, {
+      await $fetch<any, string & {}>(`/api/body-measurements/${entry.id}`, {
         method: 'PATCH',
         body: {
           isDeleted: true
@@ -994,7 +994,7 @@
               editingEntry.value.metricKey,
               editingEntry.value.unit
             )
-      await $fetch(`/api/body-measurements/${editingEntry.value.id}`, {
+      await $fetch<any, string & {}>(`/api/body-measurements/${editingEntry.value.id}`, {
         method: 'PATCH',
         body: {
           value: nextValue,

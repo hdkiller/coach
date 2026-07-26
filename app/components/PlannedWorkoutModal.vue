@@ -957,7 +957,7 @@
 
       updatingStrategy.value = true
       try {
-        await $fetch<unknown, string & {}>(
+        await $fetch<any, string & {}>(
           `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
           {
             method: 'PATCH',
@@ -1040,7 +1040,7 @@
 
     generating.value = true
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `/api/workouts/planned/${props.plannedWorkout.id}/generate-structure`,
         {
           method: 'POST'
@@ -1048,7 +1048,7 @@
       )
 
       // Refresh planned workout data
-      const updated = await $fetch<unknown, string & {}>(
+      const updated = await $fetch<any, string & {}>(
         `/api/planned-workouts/${props.plannedWorkout.id}`
       )
       if (updated) {
@@ -1148,15 +1148,12 @@
 
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>(
-        `/api/planned-workouts/${props.plannedWorkout.id}/complete`,
-        {
-          method: 'POST',
-          body: {
-            workoutId: selectedWorkoutId.value
-          }
+      await $fetch<any, string & {}>(`/api/planned-workouts/${props.plannedWorkout.id}/complete`, {
+        method: 'POST',
+        body: {
+          workoutId: selectedWorkoutId.value
         }
-      )
+      })
 
       emit('completed')
       closeModal()
@@ -1182,13 +1179,10 @@
 
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>(
-        `/api/planned-workouts/${props.plannedWorkout.id}/complete`,
-        {
-          method: 'POST',
-          body: {} // No workoutId
-        }
-      )
+      await $fetch<any, string & {}>(`/api/planned-workouts/${props.plannedWorkout.id}/complete`, {
+        method: 'POST',
+        body: {} // No workoutId
+      })
 
       emit('completed')
       closeModal()
@@ -1215,7 +1209,7 @@
         ? parseFloat(manualWorkout.value.distanceKm) * 1000
         : null
 
-      await $fetch<unknown, string & {}>('/api/workouts/manual', {
+      await $fetch<any, string & {}>('/api/workouts/manual', {
         method: 'POST',
         body: {
           title: manualWorkout.value.title,
@@ -1254,7 +1248,7 @@
 
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
         {
           method: 'DELETE'
@@ -1292,7 +1286,7 @@
     if (!props.plannedWorkout?.id) return
     updatingTime.value = true
     try {
-      await $fetch<unknown, string & {}>(
+      await $fetch<any, string & {}>(
         `${plannedWorkoutEndpointBase.value}/${props.plannedWorkout.id}`,
         {
           method: 'PATCH',

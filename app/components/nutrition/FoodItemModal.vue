@@ -41,7 +41,11 @@
             variant="soft"
             icon="i-heroicons-magnifying-glass"
             class="mb-[2px]"
-            @click="() => { isSearchModalOpen = true }"
+            @click="
+              () => {
+                isSearchModalOpen = true
+              }
+            "
           >
             Search DB
           </UButton>
@@ -275,7 +279,7 @@
         }
       }
 
-      await $fetch(`/api/nutrition/${props.nutritionId || props.date}/items`, {
+      await $fetch<any, string & {}>(`/api/nutrition/${props.nutritionId || props.date}/items`, {
         method: 'PATCH',
         body: {
           action: isEditing.value ? 'update' : 'add',
@@ -307,7 +311,7 @@
     if (!confirm('Are you sure you want to delete this item?')) return
     loading.value = true
     try {
-      await $fetch(`/api/nutrition/${props.nutritionId || props.date}/items`, {
+      await $fetch<any, string & {}>(`/api/nutrition/${props.nutritionId || props.date}/items`, {
         method: 'PATCH',
         body: {
           action: 'delete',

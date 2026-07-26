@@ -172,7 +172,7 @@
   const requestUrl = useRequestURL()
   const slug = route.params.slug as string
 
-  const { data, pending } = await useFetch(`/api/public/authors/${slug}`)
+  const { data, pending } = await useFetch<any, Error, string & {}>(`/api/public/authors/${slug}`)
   const author = computed(() => (data.value as any)?.author)
   const plans = computed(() => (data.value as any)?.plans || [])
   const canonicalUrl = computed(

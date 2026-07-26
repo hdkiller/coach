@@ -240,7 +240,7 @@
   async function fetchData() {
     loading.value = true
     try {
-      const data = await $fetch('/api/coaching/overview')
+      const data = await $fetch<any, string & {}>('/api/coaching/overview')
       overviewData.value = data
       pendingRequestCount.value =
         typeof (data as any)?.pendingRequestCount === 'number'
@@ -249,7 +249,7 @@
 
       if (overviewData.value.athletes.length === 0 && pendingRequestCount.value === 0) {
         try {
-          const requests = await $fetch('/api/coaching/athletes/requests')
+          const requests = await $fetch<any, string & {}>('/api/coaching/athletes/requests')
           pendingRequestCount.value = Array.isArray(requests) ? requests.length : 0
         } catch {
           // Requests endpoint may be unavailable for some roles; keep overview CTA as-is.

@@ -1559,7 +1559,7 @@
         }
       }
 
-      await $fetch(`/api/chat/rooms/${roomId}`, {
+      await $fetch<any, string & {}>(`/api/chat/rooms/${roomId}`, {
         method: 'DELETE'
       })
 
@@ -1593,7 +1593,7 @@
 
   async function renameRoom(roomId: string, newName: string) {
     try {
-      await $fetch(`/api/chat/rooms/${roomId}`, {
+      await $fetch<any, string & {}>(`/api/chat/rooms/${roomId}`, {
         method: 'PATCH',
         body: { name: newName }
       })
@@ -1856,7 +1856,7 @@
   const saveMemoryEnabledSetting = async (value: boolean) => {
     savingMemorySettings.value = true
     try {
-      await $fetch('/api/settings/ai', {
+      await $fetch<any, string & {}>('/api/settings/ai', {
         method: 'POST',
         body: {
           aiMemoryEnabled: value
@@ -1884,7 +1884,7 @@
     if (!content) return
 
     try {
-      await $fetch('/api/chat/memory', {
+      await $fetch<any, string & {}>('/api/chat/memory', {
         method: 'POST',
         body: {
           content,
@@ -1928,7 +1928,7 @@
     const editingMemoryId = editingMemory.value.id
 
     try {
-      await $fetch(`/api/chat/memory/${editingMemory.value.id}`, {
+      await $fetch<any, string & {}>(`/api/chat/memory/${editingMemory.value.id}`, {
         method: 'PATCH',
         body: {
           content: editingMemory.value.content,
@@ -1957,7 +1957,7 @@
 
   const deleteMemory = async (memoryId: string) => {
     try {
-      await $fetch(`/api/chat/memory/${memoryId}`, {
+      await $fetch<any, string & {}>(`/api/chat/memory/${memoryId}`, {
         method: 'DELETE'
       })
       await loadMemoryState()
@@ -1979,7 +1979,7 @@
 
   const toggleMemoryPinned = async (memory: any) => {
     try {
-      await $fetch(`/api/chat/memory/${memory.id}`, {
+      await $fetch<any, string & {}>(`/api/chat/memory/${memory.id}`, {
         method: 'PATCH',
         body: {
           pinned: !memory.pinned
@@ -1997,7 +1997,7 @@
 
   const moveMemoryScope = async (memory: any, scope: 'GLOBAL' | 'ROOM') => {
     try {
-      await $fetch(`/api/chat/memory/${memory.id}`, {
+      await $fetch<any, string & {}>(`/api/chat/memory/${memory.id}`, {
         method: 'PATCH',
         body: {
           scope,
@@ -2019,7 +2019,7 @@
     if (!content) return
 
     try {
-      await $fetch('/api/chat/memory/remember', {
+      await $fetch<any, string & {}>('/api/chat/memory/remember', {
         method: 'POST',
         body: {
           content,
@@ -2160,7 +2160,7 @@
     if (!turnId) return
 
     try {
-      await $fetch(`/api/chat/turns/${turnId}/resume`, {
+      await $fetch<any, string & {}>(`/api/chat/turns/${turnId}/resume`, {
         method: 'POST'
       })
       if (currentRoomId.value) {
@@ -2184,7 +2184,7 @@
     if (!turnId) return
 
     try {
-      await $fetch(`/api/chat/turns/${turnId}/retry`, {
+      await $fetch<any, string & {}>(`/api/chat/turns/${turnId}/retry`, {
         method: 'POST'
       })
       if (currentRoomId.value) {

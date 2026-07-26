@@ -220,7 +220,7 @@
     if (!goalToDelete.value) return
 
     try {
-      await $fetch(`/api/goals/${goalToDelete.value}`, {
+      await $fetch<any, string & {}>(`/api/goals/${goalToDelete.value}`, {
         method: 'DELETE'
       })
       refreshGoals()
@@ -249,7 +249,7 @@
     showSuggestions.value = true
 
     try {
-      const result = await $fetch('/api/goals/suggest', { method: 'POST' })
+      const result = await $fetch<any, string & {}>('/api/goals/suggest', { method: 'POST' })
       refreshRuns()
 
       toast.add({
@@ -283,7 +283,7 @@
     showReview.value = true
 
     try {
-      const result = await $fetch('/api/goals/review', { method: 'POST' })
+      const result = await $fetch<any, string & {}>('/api/goals/review', { method: 'POST' })
       refreshRuns()
 
       toast.add({
@@ -308,7 +308,7 @@
     acceptingSuggestionKeys.value = [...acceptingSuggestionKeys.value, suggestionKey]
 
     try {
-      await $fetch('/api/goals', {
+      await $fetch<any, string & {}>('/api/goals', {
         method: 'POST',
         body: {
           type: suggestion.type,
