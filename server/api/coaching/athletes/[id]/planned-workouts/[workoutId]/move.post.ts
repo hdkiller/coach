@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../../../../utils/auth-guard'
 import { z } from 'zod/v3'
 import { requireCoachAccessToAthlete } from '../../../../../../utils/coaching-auth'
 import { movePlannedWorkoutForUser } from '../../../../../../utils/planned-workout-service'
@@ -12,6 +13,7 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const { id: athleteId, workoutId } = await getValidatedRouterParams(event, paramsSchema.parse)
   await requireCoachAccessToAthlete(event, athleteId)
   const body = await readBody(event)

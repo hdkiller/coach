@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { defineEventHandler, createError, readBody } from 'h3'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'

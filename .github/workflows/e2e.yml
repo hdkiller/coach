@@ -44,9 +44,7 @@ jobs:
 
       - name: Prepare e2e env
         run: |
-          if [ ! -f .env.e2e ]; then
-            cp .env.e2e.example .env.e2e
-          fi
+          cp .env.e2e.example .env.e2e
 
       - name: Free e2e ports / previous stack
         run: |

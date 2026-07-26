@@ -11,6 +11,10 @@ vi.stubGlobal('createError', (err: any) => {
   return error
 })
 
+vi.mock('../../../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn(async () => ({ id: 'coach-1' }))
+}))
+
 vi.mock('../../../../../../server/utils/coaching-auth', () => ({
   requireCoachAccessToAthlete: vi.fn()
 }))

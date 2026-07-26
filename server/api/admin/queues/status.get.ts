@@ -1,3 +1,4 @@
+import { requireAdmin } from '../../../utils/auth-guard'
 import { webhookQueue, pingQueue, streamsQueue } from '../../../utils/queue'
 
 defineRouteMeta({
@@ -7,13 +8,14 @@ defineRouteMeta({
     description: 'Returns the current status and metrics for all background job queues.',
     responses: {
       200: { description: 'OK' },
-      401: { description: 'Unauthorized' }
+      401: { description: 'Unauthorized' },
+      403: { description: 'Forbidden' }
     }
   }
 })
 
 export default defineEventHandler(async (event) => {
-  // TODO: Add admin authorization check here if not globally applied to /api/admin/*
+  await requireAdmin(event)
 
   const getQueueStats = async (queue: any, name: string) => {
     const counts = await queue.getJobCounts(

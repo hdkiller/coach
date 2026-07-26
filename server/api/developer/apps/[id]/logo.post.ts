@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../../utils/auth-guard'
 import { oauthRepository } from '../../../../utils/repositories/oauthRepository'
 import { getEffectiveUserId } from '../../../../utils/coaching'
 import { uploadPublicAsset } from '../../../../utils/storage'
@@ -45,6 +46,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const userId = await getEffectiveUserId(event)
   const id = getRouterParam(event, 'id')
 

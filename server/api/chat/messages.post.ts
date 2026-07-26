@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'

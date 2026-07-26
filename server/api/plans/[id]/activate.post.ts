@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { trainingPlanRepository } from '../../../utils/repositories/trainingPlanRepository'
 import { trainingBlockRepository } from '../../../utils/repositories/trainingBlockRepository'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'

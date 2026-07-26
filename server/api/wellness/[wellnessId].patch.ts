@@ -1,3 +1,4 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { handleWellnessPatch } from '../../utils/wellnessPatch'
 
 defineRouteMeta({
@@ -27,5 +28,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   return handleWellnessPatch(event)
 })
