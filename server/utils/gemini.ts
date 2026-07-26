@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { prisma } from './db'
 import { formatUserDate, formatDateUTC } from './date'
 import { generateText, generateObject, jsonSchema } from 'ai'
@@ -539,12 +541,51 @@ export async function generateCoachAnalysis(
   }
 }
 
+/**
+ * Reads a flat-file JSON mock fixture from tests/fixtures/llm-mocks/${operation}.json
+ */
+export function loadFlatFileMock<T = any>(operation?: string): T {
+  const normalizedOp = (operation || 'default_structured')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_]/g, '_')
+
+  const baseDir = path.resolve(process.cwd(), 'tests/fixtures/llm-mocks')
+  const specificPath = path.join(baseDir, `${normalizedOp}.json`)
+  const fallbackPath = path.join(baseDir, 'default_structured.json')
+
+  try {
+    if (fs.existsSync(specificPath)) {
+      const content = fs.readFileSync(specificPath, 'utf-8')
+      console.log(`[MockLLM] Loaded fixture: tests/fixtures/llm-mocks/${normalizedOp}.json`)
+      return JSON.parse(content) as T
+    }
+
+    if (fs.existsSync(fallbackPath)) {
+      const content = fs.readFileSync(fallbackPath, 'utf-8')
+      console.log(`[MockLLM] Loaded fallback: tests/fixtures/llm-mocks/default_structured.json`)
+      return JSON.parse(content) as T
+    }
+  } catch (err) {
+    console.error('[MockLLM] Error reading flat-file mock fixture:', err)
+  }
+
+  return {
+    title: 'Mocked Response',
+    executive_summary: 'Default mock response',
+    success: true
+  } as any
+}
+
 export async function generateStructuredAnalysis<T>(
   prompt: string,
   schema: any,
   modelType: GeminiModel = 'flash',
   trackingContext?: LlmTrackingContext
 ): Promise<T> {
+  if (process.env.MOCK_LLM_RESPONSES === 'true') {
+    return loadFlatFileMock<T>(trackingContext?.operation)
+  }
   const opSettings = await getLlmOperationSettings(
     trackingContext?.userId,
     trackingContext?.operation

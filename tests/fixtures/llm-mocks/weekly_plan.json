@@ -1,0 +1,39 @@
+{
+  "weekSummary": "Base Building Week 3 focusing on Zone 2 volume and tempo progression.",
+  "totalTSS": 320,
+  "days": [
+    {
+      "dayOfWeek": 1,
+      "date": "2026-07-27",
+      "workout": {
+        "title": "Rest & Mobility",
+        "type": "Rest",
+        "durationMin": 30,
+        "tss": 0,
+        "description": "Light stretching and foam rolling."
+      }
+    },
+    {
+      "dayOfWeek": 2,
+      "date": "2026-07-28",
+      "workout": {
+        "title": "Zone 2 Endurance Ride",
+        "type": "Ride",
+        "durationMin": 90,
+        "tss": 65,
+        "description": "Steady aerobic effort at 65-75% FTP."
+      }
+    },
+    {
+      "dayOfWeek": 3,
+      "date": "2026-07-29",
+      "workout": {
+        "title": "Sweet Spot Progression 3x12min",
+        "type": "Ride",
+        "durationMin": 75,
+        "tss": 85,
+        "description": "Intervals at 88-93% FTP with 4min recovery."
+      }
+    }
+  ]
+}

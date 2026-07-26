@@ -120,6 +120,8 @@ Instructional documents for developers.
 - [**LLM Quotas & Limits**](./04-guides/llm-quotas-and-limits.md) - Tier-based usage tracking and enforcement.
 - [**Timezone Handling**](./04-guides/timezone-handling.md) - Architecture for multi-source date consistency.
 - [**Chat Development**](./04-guides/chat-development.md) - Strict AI SDK sequencing and message normalization.
+- [**E2E Testing Guide**](./04-guides/e2e-testing.md) - Playwright E2E test stack, setup, and Page Object guidelines.
+- [**E2E Gap Analysis & Roadmap**](./04-guides/e2e-gap-analysis-and-roadmap.md) - Master tracking reference for filling all E2E test gaps.
 - [**Background Task Monitoring**](./04-guides/background-task-monitoring.md) - How task runs appear in the UI and how realtime/polling interact.
 - [**CLI Reference**](./04-guides/cli-reference.md) - Guide to using and extending the project CLI (`cw:cli`).
 - [**TSS Calculation**](./04-guides/tss-calculation.md) - How TSS is calculated from stream data.

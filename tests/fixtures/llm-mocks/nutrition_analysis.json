@@ -1,0 +1,37 @@
+{
+  "type": "nutrition_analysis",
+  "title": "Daily Nutrition Analysis",
+  "date": "2026-07-26",
+  "executive_summary": "Intake was well-balanced with optimal protein distribution and adequate hydration for training demands.",
+  "data_completeness": {
+    "status": "complete",
+    "confidence": 0.95,
+    "reasoningText": "All 3 main meals and post-workout snack were logged."
+  },
+  "sections": [
+    {
+      "title": "Macro Distribution",
+      "status": "excellent",
+      "analysis_points": [
+        "Protein intake reached 2.0g/kg body weight.",
+        "Carbohydrates replenished glycogen effectively post-workout."
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "title": "Evening Electrolytes",
+      "description": "Include extra sodium/potassium in evening meal to replace sweat losses.",
+      "priority": "low"
+    }
+  ],
+  "strengths": ["High protein meal distribution", "Good hydration volume"],
+  "areas_for_improvement": ["Increase fiber intake from whole vegetables"],
+  "scores": {
+    "overall": 9,
+    "macro_balance": 9,
+    "quality": 8,
+    "adherence": 9,
+    "hydration": 8
+  }
+}

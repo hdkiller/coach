@@ -13,6 +13,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 - **Oura Integration**: Expanded to include SpO2, Stress, VO2 Max, and Weight. Raw biometrics (HRV/RHR) are strictly extracted to avoid score conflicts.
 - **Location Tracking**: Added `cw:cli users location` tools to manage user countries based on last login IP.
 - **Chat Stability**: fully stabilized using AI SDK v5 UIMessage schema. See `docs/04-guides/chat-development.md`.
+- **LLM Response Mocking**: Flat JSON fixtures in `tests/fixtures/llm-mocks/` are loaded when `MOCK_LLM_RESPONSES=true` is set. Whenever you modify AI schemas or add operations, update/create the corresponding `tests/fixtures/llm-mocks/${operation}.json` file. See `docs/04-guides/e2e-testing.md`.
 
 ### Feature Pointers
 

@@ -28,7 +28,7 @@ async function main() {
   process.env.NUXT_PUBLIC_SITE_URL = process.env.NUXT_PUBLIC_SITE_URL ?? `${baseUrl}/`
   process.env.PORT = String(port)
   process.env.HOST = process.env.HOST ?? '0.0.0.0'
-  process.env.NODE_OPTIONS = process.env.NODE_OPTIONS ?? '--max-old-space-size=8192'
+  process.env.NODE_OPTIONS = '--max-old-space-size=12288'
   // Prevent root .env auth bypass from leaking into E2E (breaks login redirect tests).
   delete process.env.AUTH_BYPASS_USER
   delete process.env.AUTH_BYPASS_NAME

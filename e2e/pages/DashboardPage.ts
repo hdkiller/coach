@@ -34,14 +34,14 @@ export class DashboardPage {
   }
 
   async goto() {
-    await this.page.goto('/dashboard')
+    await this.page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
   }
 
   async gotoCheckin() {
-    await this.page.goto('/dashboard?focus=checkin')
+    await this.page.goto('/dashboard?focus=checkin', { waitUntil: 'domcontentloaded' })
   }
 
   async gotoWellness() {
-    await this.page.goto('/dashboard?focus=wellness')
+    await this.page.goto('/dashboard?focus=wellness', { waitUntil: 'domcontentloaded' })
   }
 }

@@ -1,0 +1,29 @@
+{
+  "type": "athlete_profile",
+  "title": "Athlete Profile Analysis",
+  "generated_date": "2026-07-26",
+  "executive_summary": "Athlete demonstrates strong endurance base with high aerobic efficiency and consistent training adherence.",
+  "current_fitness": {
+    "ctl": 68,
+    "atl": 72,
+    "tsb": -4,
+    "fitness_level": "Intermediate",
+    "summary": "Building towards peak event fitness."
+  },
+  "training_characteristics": {
+    "training_style": "Polarized endurance build",
+    "strengths": ["Consistent weekly volume", "Disciplined low-intensity execution"],
+    "areas_for_development": ["Anaerobic capacity work", "Neuromuscular power sprints"]
+  },
+  "planning_context": {
+    "current_focus": "FTP development & VO2max repeatability",
+    "limitations": ["Time constraint on weekdays"],
+    "opportunities": ["Weekend long ride availability"]
+  },
+  "athlete_scores": {
+    "current_fitness": 8,
+    "recovery_capacity": 8,
+    "training_consistency": 9,
+    "hr_power_alignment": 8
+  }
+}

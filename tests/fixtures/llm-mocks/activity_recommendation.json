@@ -1,0 +1,33 @@
+{
+  "recommendation": "proceed",
+  "confidence": 0.95,
+  "reasoning": "Recovery biometrics are strong with high HRV and normal resting heart rate. Planned workout is appropriate.",
+  "planned_workout": {
+    "original_title": "Threshold Intervals 4x8min",
+    "original_tss": 75,
+    "original_duration_min": 60
+  },
+  "suggested_modifications": {
+    "action": "Proceed as planned",
+    "new_title": "Threshold Intervals 4x8min",
+    "new_type": "Ride",
+    "new_tss": 75,
+    "new_duration_min": 60,
+    "description": "Execute main set at 95-100% FTP with full recovery intervals."
+  },
+  "readiness_summary": {
+    "status": "OPTIMAL",
+    "hrv_status": "NORMAL",
+    "sleep_status": "GOOD",
+    "fatigue_level": "LOW",
+    "readiness_score": 88
+  },
+  "meal_recommendation": {
+    "item": "Oatmeal with banana and honey",
+    "carbs": 65,
+    "absorptionType": "FAST",
+    "timing": "90 minutes before ride",
+    "reasoning": "Provide readily available muscle glycogen for high-intensity threshold efforts."
+  },
+  "key_factors": ["High recovery score", "Resting HR 48 bpm", "No muscle soreness reported"]
+}

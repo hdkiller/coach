@@ -143,6 +143,22 @@ pnpm test:e2e:ui
 
 > **Mandatory Rule**: Only run the full E2E test suite (`pnpm test:e2e`) when feature implementation is considered complete, right before committing changes or opening a pull request. Avoid running the entire suite repeatedly while actively tweaking a single component or test case.
 
+### 7. LLM Response Mocking (`tests/fixtures/llm-mocks/`)
+
+To prevent API costs, rate-limiting, external latency, and non-deterministic response flakiness during Playwright E2E and background task execution, the system supports zero-latency flat-file LLM response mocking:
+
+- **Environment Flag**: Set `MOCK_LLM_RESPONSES=true` in `.env.e2e` (default in E2E runs).
+- **Flat Fixtures Location**: `tests/fixtures/llm-mocks/`
+  - `workout_analysis.json` — Workout AI analysis scores, technical/effort explanations, and strengths/weaknesses.
+  - `activity_recommendation.json` — Daily readiness scores, workout modifications, and fueling recommendations.
+  - `daily_checkin.json` — Check-in summary and coach notes.
+  - `weekly_plan.json` — Multi-day periodized training plan workouts and TSS distribution.
+  - `athlete_profile.json` — Fitness CTL/ATL/TSB, strengths, and recovery capacity.
+  - `nutrition_analysis.json` — Macro compliance, data completeness, and quality scores.
+  - `default_structured.json` — Fallback fixture for unlisted AI operations.
+
+> **Developer Maintenance Rule**: Whenever you implement a new AI operation or modify an existing structured AI output schema (in `server/utils/gemini.ts` or background triggers), you **MUST** create or update the corresponding JSON file in `tests/fixtures/llm-mocks/${operation}.json` to match the updated schema.
+
 ---
 
 ## Auth Endpoints (E2E_MODE Only)

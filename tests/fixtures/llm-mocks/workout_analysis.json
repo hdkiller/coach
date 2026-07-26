@@ -1,0 +1,41 @@
+{
+  "title": "Mocked Endurance Ride Analysis",
+  "date": "2026-07-26T10:00:00Z",
+  "executive_summary": "The athlete completed a well-controlled Zone 2 endurance session with steady heart rate and power alignment throughout.",
+  "scores": {
+    "overall": 8,
+    "technical": 9,
+    "effort": 8,
+    "pacing": 8,
+    "execution": 9,
+    "overall_explanation": "Great steady-state effort perfectly aligned with training goals.",
+    "technical_explanation": "Smooth pedaling cadence with minimal power spikes.",
+    "effort_explanation": "Heart rate stayed safely within Zone 2 targets.",
+    "pacing_explanation": "Even power distribution across all segments.",
+    "execution_explanation": "Followed target duration and intensity precisely."
+  },
+  "sections": [
+    {
+      "title": "Heart Rate & Effort",
+      "status": "excellent",
+      "analysis_points": [
+        "Average heart rate of 135 bpm remained well below LTHR.",
+        "Minimal cardiac drift observed over 90 minutes."
+      ]
+    },
+    {
+      "title": "Pacing Consistency",
+      "status": "good",
+      "analysis_points": ["Power variability index was 1.03, indicating high steadiness."]
+    }
+  ],
+  "recommendations": [
+    {
+      "title": "Hydration Focus",
+      "description": "Maintain active fluid intake on longer rides exceeding 90 minutes.",
+      "priority": "medium"
+    }
+  ],
+  "strengths": ["Disciplined intensity control in Zone 2", "Consistent pedaling cadence"],
+  "areas_for_improvement": ["Fueling on rides longer than 2 hours"]
+}
