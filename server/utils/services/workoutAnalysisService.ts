@@ -618,6 +618,7 @@ Format your analysis according to the requested schema. Provide clear, objective
   return prompt
 }
 
+export const convertStructuredToMarkdown = convertWorkoutAnalysisToMarkdown
 export function convertWorkoutAnalysisToMarkdown(analysis: any): string {
   let markdown = `# ${analysis.title}\n\n`
 

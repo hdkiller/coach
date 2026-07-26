@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   buildWorkoutAnalysisData,
-  convertStructuredToMarkdown,
+  convertWorkoutAnalysisToMarkdown,
   runWorkoutAnalysis,
   type StructuredAnalysis
 } from '../../../../../server/utils/services/workoutAnalysisService'
@@ -106,7 +106,7 @@ describe('Workout Analysis Service', () => {
       ]
     }
 
-    const md = convertStructuredToMarkdown(structured)
+    const md = convertWorkoutAnalysisToMarkdown(structured)
 
     expect(md).toContain('# Endurance Run Analysis')
     expect(md).toContain('Solid steady-state run with excellent pacing.')
