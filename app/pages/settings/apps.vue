@@ -768,7 +768,7 @@
             ? '/api/integrations/withings/disconnect'
             : `/api/integrations/${provider}/disconnect`
 
-      await $fetch<unknown, string & {}>(endpoint, {
+      await $fetch<any, string & {}>(endpoint, {
         method: 'DELETE'
       })
 

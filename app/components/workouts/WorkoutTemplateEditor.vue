@@ -209,7 +209,7 @@
         : `/api/library/workouts/${localTemplate.value.id}`
       const method = isNew ? 'POST' : 'PATCH'
 
-      await $fetch<unknown, string & {}>(url, {
+      await $fetch<any, string & {}>(url, {
         method,
         body: {
           ...localTemplate.value,

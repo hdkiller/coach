@@ -813,13 +813,13 @@
 
     try {
       if (isEditMode.value) {
-        await $fetch<unknown, string & {}>(`/api/goals/${props.goal.id}`, {
+        await $fetch<any, string & {}>(`/api/goals/${props.goal.id}`, {
           method: 'PATCH',
           body: payload
         })
         emit('updated')
       } else {
-        await $fetch<unknown, string & {}>('/api/goals', { method: 'POST', body: payload })
+        await $fetch<any, string & {}>('/api/goals', { method: 'POST', body: payload })
         emit('created')
       }
       emit('close')

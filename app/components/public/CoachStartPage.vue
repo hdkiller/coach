@@ -340,7 +340,7 @@
     }
     saving.value = true
     try {
-      await $fetch<unknown, string & {}>(privateEndpoint, {
+      await $fetch<any, string & {}>(privateEndpoint, {
         method: 'PATCH',
         body: editableStartPage.value
       })

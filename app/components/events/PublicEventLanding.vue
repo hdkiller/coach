@@ -126,7 +126,7 @@
     joining.value = true
     try {
       trackPartnerEventJoinStart(props.campaignSlug || null, props.slug)
-      const response = await $fetch<unknown, string & {}>(`/api/public-events/${props.slug}/join`, {
+      const response = await $fetch<any, string & {}>(`/api/public-events/${props.slug}/join`, {
         method: 'POST',
         body: { priority: priority.value, phase: phase.value }
       })

@@ -279,22 +279,19 @@
         }
       }
 
-      await $fetch<unknown, string & {}>(
-        `/api/nutrition/${props.nutritionId || props.date}/items`,
-        {
-          method: 'PATCH',
-          body: {
-            action: isEditing.value ? 'update' : 'add',
-            mealType: state.value.mealType,
-            item: {
-              ...payload,
-              ...(typeof currentItemId.value === 'string' && currentItemId.value.length > 0
-                ? { id: currentItemId.value }
-                : {})
-            }
+      await $fetch<any, string & {}>(`/api/nutrition/${props.nutritionId || props.date}/items`, {
+        method: 'PATCH',
+        body: {
+          action: isEditing.value ? 'update' : 'add',
+          mealType: state.value.mealType,
+          item: {
+            ...payload,
+            ...(typeof currentItemId.value === 'string' && currentItemId.value.length > 0
+              ? { id: currentItemId.value }
+              : {})
           }
         }
-      )
+      })
       isOpen.value = false
       emit('updated')
     } catch (e) {
@@ -314,17 +311,14 @@
     if (!confirm('Are you sure you want to delete this item?')) return
     loading.value = true
     try {
-      await $fetch<unknown, string & {}>(
-        `/api/nutrition/${props.nutritionId || props.date}/items`,
-        {
-          method: 'PATCH',
-          body: {
-            action: 'delete',
-            mealType: state.value.mealType,
-            itemId: currentItemId.value
-          }
+      await $fetch<any, string & {}>(`/api/nutrition/${props.nutritionId || props.date}/items`, {
+        method: 'PATCH',
+        body: {
+          action: 'delete',
+          mealType: state.value.mealType,
+          itemId: currentItemId.value
         }
-      )
+      })
       isOpen.value = false
       emit('updated')
     } catch (e) {
