@@ -130,8 +130,9 @@ describe('energy timeline carbohydrate and calorie balance', () => {
     expect(impliedKcalPerGram).toBeLessThan(6)
   })
 
-  it('exposes the drain uplift as a named constant', () => {
-    expect(WORKOUT_DRAIN_MULTIPLIER).toBeGreaterThan(1)
+  it('no longer stacks a separate uplift on the drain table', () => {
+    // The 1.25 was folded into the anchors, so the table is now the single source of truth.
+    expect(WORKOUT_DRAIN_MULTIPLIER).toBe(1)
   })
 
   it('never lets the tank leave the 0-100 range', () => {

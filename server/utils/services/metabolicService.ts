@@ -16,6 +16,7 @@ import {
   calculateEnergyTimeline,
   calculateGlycogenState,
   buildDayFuelingPlan,
+  carryForwardGlycogen,
   estimateDailyCarbTargetGrams,
   selectRelevantWorkouts,
   synthesizeRefills,
@@ -1016,7 +1017,15 @@ export const metabolicService = {
 
       const lastPoint = points[points.length - 1]
       if (lastPoint) {
-        currentStartingGlycogen = lastPoint.level
+        // A day nobody logged food on tells us nothing about what was eaten, so its drained ending
+        // must not be carried forward as if it were measured - three unlogged days in a row would
+        // otherwise leave an athlete permanently empty however well they actually ate. Days with
+        // real intake data are trusted in full, including ending at zero.
+        currentStartingGlycogen = carryForwardGlycogen(
+          lastPoint.level,
+          hasLogs || shouldSynthesizeMeals,
+          settings?.metabolicFloor
+        )
         currentStartingFluid = lastPoint.fluidDeficit
       } else {
         const metabolicFloor = settings?.metabolicFloor || 0.6

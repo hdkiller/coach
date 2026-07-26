@@ -16,28 +16,145 @@ import {
 } from '../nutrition/hydration'
 import { extractWorkoutTemperatureC, getEstimatedSweatRateLph } from '../nutrition/sweat-rate'
 import { pickMealScheduledTime } from '../nutrition/meal-pattern'
+import { getSportFuelingClass, type SportFuelingClass } from './day-plan'
 
 /**
- * Applied on top of the tabulated drain rate. Carbohydrate use in the tank has always carried this
- * uplift; the calorie side did not, which left `kcalBalance` disagreeing with `carbBalance` for the
- * same session.
+ * Retained at 1 so the drain has a single source of truth.
+ *
+ * A flat 1.25 used to sit on top of an already-calibrated table, applied to carbohydrate but not to
+ * calories. The uplift is now folded into the anchors below, where it can be reasoned about.
  */
-export const WORKOUT_DRAIN_MULTIPLIER = 1.25
+export const WORKOUT_DRAIN_MULTIPLIER = 1
+
+/**
+ * The glycogen level a day should hand to the next one.
+ *
+ * A day with no intake information is uninformative, not evidence of depletion: the simulation
+ * drains it with nothing going in, so trusting that ending would compound a fictional deficit
+ * across every unlogged day. Such days are floored at the metabolic baseline. Days that do carry
+ * intake data are handed on exactly as simulated, including an honest zero.
+ */
+export function carryForwardGlycogen(
+  endLevel: number,
+  dayHadIntakeData: boolean,
+  metabolicFloor?: number | null
+): number {
+  const level = Number.isFinite(endLevel) ? endLevel : 0
+  if (dayHadIntakeData) return level
+
+  const floor = Number.isFinite(metabolicFloor as number) ? Number(metabolicFloor) : 0.6
+  return Math.max(level, floor * 100)
+}
+
+/**
+ * Total glycogen capacity in grams.
+ *
+ * Glycogen is stored in muscle and liver, so capacity tracks lean mass. Scaling on bodyweight - the
+ * previous behaviour - flatters heavier, less lean athletes: at 8 g/kg a 100kg rider at 30% body fat
+ * was credited 800g, well beyond what their muscle mass can hold.
+ *
+ * Lean mass is used whenever body composition is known. Without it the bodyweight basis is kept, so
+ * athletes who have never logged body fat see no change.
+ */
+export const GLYCOGEN_G_PER_KG_BODYWEIGHT = 8
+export const GLYCOGEN_G_PER_KG_LEAN_MASS = 9
+export const MIN_GLYCOGEN_CAPACITY_G = 100
+
+export function resolveGlycogenCapacityG(settings: any): number {
+  const weight = Number(settings?.weight || settings?.user?.weight || 75)
+
+  const explicitLeanMass = Number(settings?.leanMassKg)
+  const bodyFatPercent = Number(settings?.bodyFatPercent)
+
+  let capacity: number
+  if (Number.isFinite(explicitLeanMass) && explicitLeanMass > 0) {
+    capacity = explicitLeanMass * GLYCOGEN_G_PER_KG_LEAN_MASS
+  } else if (Number.isFinite(bodyFatPercent) && bodyFatPercent > 0 && bodyFatPercent < 60) {
+    capacity = weight * (1 - bodyFatPercent / 100) * GLYCOGEN_G_PER_KG_LEAN_MASS
+  } else {
+    capacity = weight * GLYCOGEN_G_PER_KG_BODYWEIGHT
+  }
+
+  return Math.max(MIN_GLYCOGEN_CAPACITY_G, capacity)
+}
 
 /** Gut absorption ceiling per 15 minute interval (~90g/hr). */
 export const INTERVAL_CARB_ABSORPTION_CAP_G = 22.5
 
-/** Share of resting energy expenditure met from carbohydrate. */
-export const RESTING_CARB_FRACTION = 0.4
-
 /** Sedentary uplift applied to BMR for everyday non-training movement. */
 export const RESTING_ACTIVITY_FACTOR = 1.2
 
-export function getGramsPerMin(intensity: number): number {
-  if (intensity >= 0.9) return 4.5
-  if (intensity >= 0.75) return 2.75
-  if (intensity < 0.6) return 0.75
-  return 1.5
+/**
+ * Share of resting energy expenditure drawn from the glycogen tank.
+ *
+ * Not the same as the carbohydrate share of resting substrate oxidation: muscle has no
+ * glucose-6-phosphatase, so most resting carbohydrate use is fed by blood glucose from the liver
+ * and by gluconeogenesis rather than by emptying the muscle store this model tracks.
+ *
+ * One third of `BMR x RESTING_ACTIVITY_FACTOR` reproduces the previous figure (40% of bare BMR)
+ * exactly, so the carbohydrate and calorie drains now derive from one daily number without moving
+ * any athlete's curve.
+ */
+export const GLYCOGEN_SHARE_OF_RESTING_ENERGY = 1 / 3
+
+/**
+ * Glycogen cost per minute at a given intensity, in grams, before the sport weighting.
+ *
+ * Interpolated between three anchors rather than stepped between bands: the old table jumped by
+ * two thirds across a hundredth of a point at 0.9, which is not a distinction an imported intensity
+ * estimate can support.
+ *
+ * Each anchor sits at the midpoint of one of the old bands, carrying that band's effective rate
+ * (its value times the 1.25 uplift that used to be applied separately). Anchoring at midpoints
+ * rather than edges keeps the curve convex, which is how carbohydrate oxidation actually behaves,
+ * and avoids the interpolation running away between widely spaced anchors.
+ *
+ * The top anchor is deliberately below what that arithmetic gives: 4.5 g/min is already at the
+ * ceiling of measured whole-body carbohydrate oxidation, and the previous effective 5.6 g/min asked
+ * the athlete to burn glycogen faster than it can be oxidised.
+ */
+const DRAIN_ANCHORS: Array<{ intensity: number; gramsPerMin: number }> = [
+  { intensity: 0.5, gramsPerMin: 0.94 },
+  { intensity: 0.675, gramsPerMin: 1.88 },
+  { intensity: 0.825, gramsPerMin: 3.44 },
+  { intensity: 0.95, gramsPerMin: 4.5 }
+]
+
+/**
+ * How much of the tabulated drain a sport actually costs.
+ *
+ * Mirrors the weights the fueling plan already uses: resistance work is mostly short efforts
+ * separated by rest, so its glycogen turnover per elapsed minute is well below an hour of
+ * continuous endurance work at the same nominal intensity.
+ */
+const SPORT_DRAIN_WEIGHTS: Record<SportFuelingClass, number> = {
+  ENDURANCE: 1,
+  RESISTANCE: 0.7,
+  LOW_INTENSITY: 0.4
+}
+
+export function getGramsPerMin(
+  intensity: number,
+  sportClass: SportFuelingClass = 'ENDURANCE'
+): number {
+  const first = DRAIN_ANCHORS[0]!
+  const last = DRAIN_ANCHORS[DRAIN_ANCHORS.length - 1]!
+
+  let base: number
+  if (!Number.isFinite(intensity) || intensity <= first.intensity) {
+    base = first.gramsPerMin
+  } else if (intensity >= last.intensity) {
+    base = last.gramsPerMin
+  } else {
+    const upperIndex = DRAIN_ANCHORS.findIndex((anchor) => anchor.intensity > intensity)
+    const upper = DRAIN_ANCHORS[upperIndex]!
+    const lower = DRAIN_ANCHORS[upperIndex - 1]!
+    const span = upper.intensity - lower.intensity
+    const ratio = span > 0 ? (intensity - lower.intensity) / span : 0
+    base = lower.gramsPerMin + (upper.gramsPerMin - lower.gramsPerMin) * ratio
+  }
+
+  return base * (SPORT_DRAIN_WEIGHTS[sportClass] ?? 1)
 }
 
 function getDateStr(date: any): string {
@@ -106,8 +223,7 @@ export function calculateGlycogenState(
   currentTime: Date = new Date(),
   startingPercentage?: number
 ): GlycogenResult {
-  const weight = settings?.weight || settings?.user?.weight || 75
-  const C_cap = weight * 8
+  const C_cap = resolveGlycogenCapacityG(settings)
 
   const metabolicFloor = settings?.metabolicFloor || 0.6
   const baselinePct = startingPercentage !== undefined ? startingPercentage : metabolicFloor * 100
@@ -158,7 +274,9 @@ export function calculateGlycogenState(
   const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
   const minsSinceMidnight = differenceInMinutes(currentTime, dayStart)
   const dailyBmr = settings?.bmr || 1600
-  const gramsDrainedBmr = ((dailyBmr * RESTING_CARB_FRACTION) / 4) * (minsSinceMidnight / 1440)
+  const restingDailyKcal = dailyBmr * RESTING_ACTIVITY_FACTOR
+  const gramsDrainedBmr =
+    ((restingDailyKcal * GLYCOGEN_SHARE_OF_RESTING_ENERGY) / 4) * (minsSinceMidnight / 1440)
 
   currentGrams -= gramsDrainedBmr
 
@@ -177,7 +295,8 @@ export function calculateGlycogenState(
     const durationMin =
       (workout.duration || workout.durationSec || workout.plannedDuration || 3600) / 60
 
-    const gramsPerMin = getGramsPerMin(intensity) * WORKOUT_DRAIN_MULTIPLIER
+    const gramsPerMin =
+      getGramsPerMin(intensity, getSportFuelingClass(workout.type)) * WORKOUT_DRAIN_MULTIPLIER
     const drainGramsTotal = gramsPerMin * durationMin
     const drainAmountPct = (drainGramsTotal / C_cap) * 100
 
@@ -264,20 +383,27 @@ export function calculateEnergyTimeline(
   const TOTAL_POINTS = (24 * 60) / INTERVAL
 
   const weight = settings?.weight || settings?.user?.weight || 75
-  const C_cap = Math.max(weight * 8, 100) // Ensure C_cap is never 0
+  const C_cap = resolveGlycogenCapacityG(settings)
   const metabolicFloor = settings?.metabolicFloor || 0.6
 
   const effectiveCarbsGoal =
     nutritionRecord.carbsGoal || (settings?.fuelState1Min ? settings.fuelState1Min * weight : 300)
 
-  let startingPct =
-    options.startingGlycogenPercentage !== undefined
-      ? options.startingGlycogenPercentage
-      : metabolicFloor * 100
+  // The metabolic floor is a default for days the chain knows nothing about, not a correction to
+  // apply to a value it does know. It used to be forced on any starting value at or below zero,
+  // which meant a day that genuinely ended empty began the next morning at 60% - inventing most of
+  // a tank overnight and putting a 60 point step in a line that is supposed to be continuous.
+  //
+  // A day that ended empty now starts empty. That reads as an athlete digging a hole, which is the
+  // signal worth showing; a chain that is actually broken supplies no starting value at all and
+  // still gets the floor.
+  const hasKnownStart =
+    options.startingGlycogenPercentage !== undefined &&
+    Number.isFinite(options.startingGlycogenPercentage)
 
-  // Safety floor: A new day shouldn't realistically start at 0% unless something is wrong with the chain
-
-  if (startingPct <= 0) startingPct = metabolicFloor * 100
+  const startingPct = hasKnownStart
+    ? Math.max(0, options.startingGlycogenPercentage as number)
+    : metabolicFloor * 100
 
   let currentGrams = C_cap * (startingPct / 100)
   let currentFluidDeficit = options.startingFluidDeficit || 0
@@ -286,13 +412,11 @@ export function calculateEnergyTimeline(
   let cumulativeCarbDelta = 0
 
   const dailyBmr = settings?.bmr || 1600
-  // NOTE: these two are deliberately left inconsistent for now. The carbohydrate drain is taken as
-  // 40% of bare BMR, while the calorie drain applies a 1.2 sedentary uplift first. Reconciling them
-  // moves every athlete's glycogen curve, so it needs a physiological decision rather than a tidy-up:
-  // either rest burns carbohydrate 20% faster than modelled, or the calorie balance drains 17% too
-  // fast. Whichever is chosen, both lines should derive from the same daily figure.
-  const intervalRestDrainGrams = (dailyBmr * RESTING_CARB_FRACTION) / (4 * 96)
-  const intervalRestDrainKcal = (dailyBmr * RESTING_ACTIVITY_FACTOR) / 96
+  // Both lines derive from the same daily resting figure. They used to disagree: grams came off
+  // bare BMR while calories came off BMR x 1.2, so the two balances drifted apart over a rest day.
+  const restingDailyKcal = dailyBmr * RESTING_ACTIVITY_FACTOR
+  const intervalRestDrainGrams = (restingDailyKcal * GLYCOGEN_SHARE_OF_RESTING_ENERGY) / (4 * 96)
+  const intervalRestDrainKcal = restingDailyKcal / 96
   const intervalRestFluidLoss = 50 / 96
 
   const actualMeals: any[] = []
@@ -480,8 +604,9 @@ export function calculateEnergyTimeline(
       return {
         start,
         end: new Date(start.getTime() + durationMin * 60000),
-        drainGramsPerInterval: getGramsPerMin(intensity) * INTERVAL,
-        drainKcalPerInterval: ((getGramsPerMin(intensity) * 4) / 0.8) * INTERVAL,
+        drainGramsPerInterval: getGramsPerMin(intensity, getSportFuelingClass(w.type)) * INTERVAL,
+        drainKcalPerInterval:
+          ((getGramsPerMin(intensity, getSportFuelingClass(w.type)) * 4) / 0.8) * INTERVAL,
         drainFluidPerInterval: sweatRateLph * 1000 * (INTERVAL / 60),
         title: w.title
       }
