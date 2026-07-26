@@ -618,7 +618,7 @@ Format your analysis according to the requested schema. Provide clear, objective
   return prompt
 }
 
-export function convertStructuredToMarkdown(analysis: any): string {
+export function convertWorkoutAnalysisToMarkdown(analysis: any): string {
   let markdown = `# ${analysis.title}\n\n`
 
   if (analysis.date) {
@@ -836,7 +836,7 @@ export async function runWorkoutAnalysis(payload: {
       }
     )
 
-    const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis)
+    const markdownAnalysis = convertWorkoutAnalysisToMarkdown(structuredAnalysis)
 
     const clampScore = (val?: number | null) => {
       if (typeof val !== 'number' || isNaN(val)) return null
