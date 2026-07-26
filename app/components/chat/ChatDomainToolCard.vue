@@ -1077,7 +1077,7 @@
 
       <pre
         v-if="showRaw"
-        class="max-h-96 overflow-auto rounded-md border border-gray-200 bg-gray-950 px-3 py-3 text-xs text-gray-100 dark:border-gray-800"
+        class="max-h-96 max-w-full overflow-x-auto break-all whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-950 px-3 py-3 text-xs text-gray-100 dark:border-gray-800"
       ><code>{{ rawJson }}</code></pre>
     </div>
   </div>

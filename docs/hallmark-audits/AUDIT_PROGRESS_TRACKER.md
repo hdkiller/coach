@@ -32,6 +32,7 @@
 
 ## 🎯 Current Audit Target
 
+**Current Patch Progress**: `11 / 16 Criticals Patched` (68.8%)
 **Current Stage**: Category 1 — Public Marketing & Landing (15 routes)
 - [ ] `app/pages/index.vue`
 - [ ] `app/pages/join.vue` & `app/pages/join/[code].vue`

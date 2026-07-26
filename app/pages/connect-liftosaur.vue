@@ -16,7 +16,7 @@
           <template #header>
             <div class="flex items-center gap-4">
               <div
-                class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden rounded-lg"
+                class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden rounded-lg bg-white/10 dark:bg-white/10 ring-1 ring-white/20"
               >
                 <img
                   src="/images/logos/liftosaur.svg"
