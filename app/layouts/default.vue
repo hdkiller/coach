@@ -1132,17 +1132,14 @@
   })
 
   // Smart Item Data Fetching
-  const { data: recentWorkouts } = await useFetch('/api/workouts', {
+  const { data: recentWorkouts } = await useFetch<any>('/api/workouts', {
     query: { limit: 3 },
     key: 'recent-workouts-search'
   })
 
-  const { data: upcomingWorkouts } = await useFetch(
-    '/api/workouts/planned/upcoming',
-    {
-      key: 'upcoming-workouts-search'
-    }
-  )
+  const { data: upcomingWorkouts } = await useFetch<any>('/api/workouts/planned/upcoming', {
+    key: 'upcoming-workouts-search'
+  })
 </script>
 
 <template>
