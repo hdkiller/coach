@@ -337,7 +337,7 @@
   const chartConfig = computed(() => {
     if (!data.value?.chartData) return null
 
-    const isDark = document.documentElement.classList.contains('dark')
+    const isDark = import.meta.client && document.documentElement.classList.contains('dark')
     const metric = data.value.detectionMetric || 'power'
 
     // Choose dataset based on detection metric

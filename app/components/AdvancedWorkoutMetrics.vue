@@ -794,7 +794,7 @@
 
   // Chart Helpers
   function getSparklineOptions(label: string, precision: number = 0) {
-    const isDark = document.documentElement.classList.contains('dark')
+    const isDark = import.meta.client && document.documentElement.classList.contains('dark')
 
     return {
       responsive: true,
@@ -893,7 +893,7 @@
   }
 
   function getRecoveryChartOptions() {
-    const isDark = document.documentElement.classList.contains('dark')
+    const isDark = import.meta.client && document.documentElement.classList.contains('dark')
 
     return {
       responsive: true,
