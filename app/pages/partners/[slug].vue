@@ -171,7 +171,7 @@
     loading.value = true
     error.value = null
     try {
-      campaignData.value = await $fetch(`/api/partners/${slug.value}`)
+      campaignData.value = await $fetch<any, string & {}>(`/api/partners/${slug.value}`)
       trackPartnerPageView(slug.value, campaignData.value.campaign.availability)
     } catch {
       error.value = t.value('error_offer_not_found')
@@ -189,7 +189,7 @@
 
     redeeming.value = true
     try {
-      const response = await $fetch(`/api/partners/${slug.value}/redeem`, {
+      const response = await $fetch<any, string & {}>(`/api/partners/${slug.value}/redeem`, {
         method: 'POST'
       })
       redemptionResult.value = response
@@ -243,7 +243,7 @@
     joiningSlug.value = event.slug
     try {
       trackPartnerEventJoinStart(slug.value, event.slug)
-      const response = await $fetch(`/api/public-events/${event.slug}/join`, {
+      const response = await $fetch<any, string & {}>(`/api/public-events/${event.slug}/join`, {
         method: 'POST',
         body: { priority: priority.value, phase: phase.value }
       })

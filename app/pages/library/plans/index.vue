@@ -670,7 +670,7 @@
   async function createNewPlanTemplate() {
     isCreating.value = true
     try {
-      const newPlan: any = await $fetch('/api/library/plans', {
+      const newPlan: any = await $fetch<any, string & {}>('/api/library/plans', {
         method: 'POST',
         body: {
           name: 'New Training Blueprint',
@@ -706,7 +706,7 @@
 
     importingPlanIds.value = [...importingPlanIds.value, plan.id]
     try {
-      const imported: any = await $fetch(`/api/library/plans/${plan.id}/import`, {
+      const imported: any = await $fetch<any, string & {}>(`/api/library/plans/${plan.id}/import`, {
         method: 'POST',
         body: {
           folderId:
@@ -764,7 +764,7 @@
     const next = !plan.isFavorite
     plan.isFavorite = next
     try {
-      await $fetch('/api/library/plans/favorite', {
+      await $fetch<any, string & {}>('/api/library/plans/favorite', {
         method: 'POST',
         body: { planId: plan.id, isFavorite: next }
       })
@@ -884,7 +884,7 @@
     savingFolder.value = true
     try {
       if (folderModalMode.value === 'create') {
-        await $fetch('/api/library/plan-folders', {
+        await $fetch<any, string & {}>('/api/library/plan-folders', {
           method: 'POST',
           body: {
             name: folderFormName.value.trim(),
@@ -893,7 +893,7 @@
           }
         })
       } else {
-        await $fetch(`/api/library/plan-folders/${activeFolder.value.id}`, {
+        await $fetch<any, string & {}>(`/api/library/plan-folders/${activeFolder.value.id}`, {
           method: 'PATCH',
           body: { name: folderFormName.value.trim(), ownerScope: librarySource.value }
         })
@@ -912,7 +912,7 @@
     if (!activeFolder.value) return
     savingFolder.value = true
     try {
-      await $fetch(`/api/library/plan-folders/${activeFolder.value.id}`, {
+      await $fetch<any, string & {}>(`/api/library/plan-folders/${activeFolder.value.id}`, {
         method: 'DELETE',
         query: { scope: librarySource.value }
       })
@@ -925,7 +925,7 @@
 
   async function moveFolder(payload: any) {
     try {
-      await $fetch(`/api/library/plan-folders/${payload.folderId}`, {
+      await $fetch<any, string & {}>(`/api/library/plan-folders/${payload.folderId}`, {
         method: 'PATCH',
         body: { ...payload, ownerScope: librarySource.value }
       })
@@ -945,7 +945,7 @@
     if (movePlansTargetScope.value === 'all') return
     movingPlans.value = true
     try {
-      await $fetch('/api/library/plans/bulk-move', {
+      await $fetch<any, string & {}>('/api/library/plans/bulk-move', {
         method: 'POST',
         body: {
           planIds: movePlanIds.value,
@@ -963,7 +963,7 @@
 
   async function dropPlansToFolder({ planIds, folderId }: any) {
     try {
-      await $fetch('/api/library/plans/bulk-move', {
+      await $fetch<any, string & {}>('/api/library/plans/bulk-move', {
         method: 'POST',
         body: { planIds, folderId, ownerScope: librarySource.value }
       })

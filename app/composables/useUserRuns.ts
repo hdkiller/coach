@@ -245,7 +245,7 @@ export function useUserRuns() {
   }
 
   const cancelRun = async (runId: string) => {
-    await $fetch(`/api/runs/${runId}`, { method: 'DELETE' as any })
+    await $fetch<any, string & {}>(`/api/runs/${runId}`, { method: 'DELETE' as any })
   }
 
   const init = async () => {

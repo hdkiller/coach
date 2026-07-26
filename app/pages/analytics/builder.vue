@@ -111,7 +111,7 @@
 
     loadingWidget.value = true
     try {
-      const widget = await $fetch(`/api/analytics/widgets/${widgetId.value}`)
+      const widget = await $fetch<any, string & {}>(`/api/analytics/widgets/${widgetId.value}`)
       const config = (widget as any).config || {}
 
       state.value = {
@@ -149,7 +149,7 @@
 
     saving.value = true
     try {
-      await $fetch('/api/analytics/widgets', {
+      await $fetch<any, string & {}>('/api/analytics/widgets', {
         method: 'POST',
         body: {
           id: widgetId.value || undefined,

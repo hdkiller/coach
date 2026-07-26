@@ -969,7 +969,7 @@
 
     deleting.value = true
     try {
-      await $fetch(`/api/library/workouts/${editingTemplate.value.id}`, {
+      await $fetch<any, string & {}>(`/api/library/workouts/${editingTemplate.value.id}`, {
         method: 'DELETE',
         query: {
           scope: editingTemplate.value.ownerScope
@@ -1033,7 +1033,7 @@
     savingFolder.value = true
     try {
       if (folderModalMode.value === 'create') {
-        await $fetch('/api/library/workout-folders', {
+        await $fetch<any, string & {}>('/api/library/workout-folders', {
           method: 'POST',
           body: {
             name: folderFormName.value.trim(),
@@ -1042,7 +1042,7 @@
           }
         })
       } else if (activeFolder.value) {
-        await $fetch(`/api/library/workout-folders/${activeFolder.value.id}`, {
+        await $fetch<any, string & {}>(`/api/library/workout-folders/${activeFolder.value.id}`, {
           method: 'PATCH',
           body: {
             name: folderFormName.value.trim(),
@@ -1069,7 +1069,7 @@
 
     savingFolder.value = true
     try {
-      await $fetch(`/api/library/workout-folders/${activeFolder.value.id}`, {
+      await $fetch<any, string & {}>(`/api/library/workout-folders/${activeFolder.value.id}`, {
         method: 'DELETE',
         query: {
           scope: activeFolder.value.ownerScope || librarySource.value
@@ -1096,7 +1096,7 @@
   }) {
     draggedItem.value = null
     try {
-      await $fetch(`/api/library/workout-folders/${payload.folderId}`, {
+      await $fetch<any, string & {}>(`/api/library/workout-folders/${payload.folderId}`, {
         method: 'PATCH',
         body: {
           parentId: payload.parentId,
@@ -1132,7 +1132,7 @@
 
     movingTemplates.value = true
     try {
-      await $fetch('/api/library/workouts/bulk-move', {
+      await $fetch<any, string & {}>('/api/library/workouts/bulk-move', {
         method: 'POST',
         body: {
           templateIds: moveTemplateIds.value,
@@ -1184,7 +1184,7 @@
     draggedItem.value = null
 
     try {
-      await $fetch('/api/library/workouts/bulk-move', {
+      await $fetch<any, string & {}>('/api/library/workouts/bulk-move', {
         method: 'POST',
         body: {
           templateIds,

@@ -541,7 +541,7 @@
 
   async function fetchCustomFields() {
     try {
-      const fieldsData = await $fetch('/api/analytics/fields/definitions')
+      const fieldsData = await $fetch<any, string & {}>('/api/analytics/fields/definitions')
       customFieldDefinitions.value = (fieldsData as any[]).filter((f) => f.entityType === 'WORKOUT')
     } catch (e) {
       console.error('Failed to fetch custom fields:', e)
@@ -622,7 +622,7 @@
 
     saving.value = true
     try {
-      await $fetch(`/api/workouts/${props.workout.id}`, {
+      await $fetch<any, string & {}>(`/api/workouts/${props.workout.id}`, {
         method: 'PATCH',
         body: {
           title: state.title,

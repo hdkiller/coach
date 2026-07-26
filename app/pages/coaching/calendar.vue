@@ -1020,7 +1020,7 @@
     panelState[panel].error = null
     try {
       const range = getRangeForPanel(panel)
-      const data = await $fetch(`/api/coaching/athletes/${athleteId}/calendar`, {
+      const data = await $fetch<any, string & {}>(`/api/coaching/athletes/${athleteId}/calendar`, {
         query: {
           startDate: range.start.toISOString(),
           endDate: range.end.toISOString(),
@@ -1075,7 +1075,7 @@
     }
 
     try {
-      await $fetch(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
+      await $fetch<any, string & {}>(`/api/coaching/athletes/${athleteId}/planned-workouts`, {
         method: 'POST',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd'),
@@ -1117,7 +1117,7 @@
     date: Date
   }) {
     try {
-      const sourceWorkout = await $fetch(
+      const sourceWorkout = await $fetch<any, string & {}>(
         `/api/coaching/athletes/${sourceAthleteId}/planned-workouts/${workoutId}`
       )
 
@@ -1125,7 +1125,7 @@
         throw new Error('Source workout not found')
       }
 
-      await $fetch(`/api/coaching/athletes/${targetAthleteId}/planned-workouts`, {
+      await $fetch<any, string & {}>(`/api/coaching/athletes/${targetAthleteId}/planned-workouts`, {
         method: 'POST',
         body: {
           date: formatDateUTC(date, 'yyyy-MM-dd'),
@@ -1165,10 +1165,13 @@
     date: Date
   }) {
     try {
-      await $fetch(`/api/coaching/athletes/${athleteId}/planned-workouts/${workoutId}/move`, {
-        method: 'POST',
-        body: { targetDate: date.toISOString() }
-      })
+      await $fetch<any, string & {}>(
+        `/api/coaching/athletes/${athleteId}/planned-workouts/${workoutId}/move`,
+        {
+          method: 'POST',
+          body: { targetDate: date.toISOString() }
+        }
+      )
       await refreshAffectedPanel(athleteId)
       toast.add({ title: 'Workout moved', color: 'success' })
     } catch (error: any) {
@@ -1184,7 +1187,7 @@
     try {
       if (activity.source === 'planned') {
         selectedPlannedWorkoutAthleteId.value = athleteId
-        selectedPlannedWorkout.value = await $fetch(
+        selectedPlannedWorkout.value = await $fetch<any, string & {}>(
           `/api/coaching/athletes/${athleteId}/planned-workouts/${activity.id}`
         )
         showPlannedWorkoutModal.value = true
@@ -1192,7 +1195,7 @@
       }
 
       if (activity.source === 'completed') {
-        selectedWorkout.value = await $fetch(
+        selectedWorkout.value = await $fetch<any, string & {}>(
           `/api/coaching/athletes/${athleteId}/workouts/${activity.id}`
         )
         showWorkoutPreviewModal.value = true

@@ -780,7 +780,7 @@
 
     try {
       const id = route.params.id as string
-      wellness.value = await $fetch(`/api/wellness/${id}`)
+      wellness.value = await $fetch<any, string & {}>(`/api/wellness/${id}`)
     } catch (e: any) {
       console.error('Error fetching wellness:', e)
       error.value = e.data?.message || e.message || 'Failed to load wellness data'
@@ -822,7 +822,7 @@
 
     analyzingWellness.value = true
     try {
-      const result = (await $fetch('/api/wellness/analyze', {
+      const result = (await $fetch<any, string & {}>('/api/wellness/analyze', {
         method: 'POST',
         body: {
           wellnessId: wellness.value.id

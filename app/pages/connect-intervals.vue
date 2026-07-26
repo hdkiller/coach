@@ -153,7 +153,7 @@
 
     connecting.value = true
     try {
-      const result = await $fetch('/api/integrations/intervals', {
+      const result = await $fetch<any, string & {}>('/api/integrations/intervals', {
         method: 'POST',
         body: {
           apiKey: apiKey.value,
@@ -162,7 +162,7 @@
       })
 
       // Trigger initial sync immediately
-      await $fetch('/api/integrations/sync', {
+      await $fetch<any, string & {}>('/api/integrations/sync', {
         method: 'POST',
         body: {
           provider: 'intervals'

@@ -33,7 +33,7 @@
   async function impersonateUser() {
     impersonating.value = true
     try {
-      await $fetch('/api/admin/impersonate', {
+      await $fetch<any, string & {}>('/api/admin/impersonate', {
         method: 'POST',
         body: { userId }
       })
@@ -85,7 +85,7 @@
 
     sendingEmailIds.value.push(deliveryId)
     try {
-      await $fetch(`/api/admin/emails/${deliveryId}/send`, {
+      await $fetch<any, string & {}>(`/api/admin/emails/${deliveryId}/send`, {
         method: 'POST'
       })
       toast.add({
@@ -110,7 +110,7 @@
 
     deletingUser.value = true
     try {
-      await $fetch(`/api/admin/users/${userId}`, {
+      await $fetch<any, string & {}>(`/api/admin/users/${userId}`, {
         method: 'DELETE'
       })
       toast.add({
@@ -158,7 +158,7 @@
 
     togglingLifetimeSubscription.value = true
     try {
-      await $fetch(`/api/admin/users/${userId}/lifetime-subscription`, {
+      await $fetch<any, string & {}>(`/api/admin/users/${userId}/lifetime-subscription`, {
         method: 'POST',
         body: {
           action: lifetimeAction.value,
@@ -198,7 +198,7 @@
 
     togglingDeactivation.value = true
     try {
-      await $fetch(`/api/admin/users/${userId}/deactivate`, {
+      await $fetch<any, string & {}>(`/api/admin/users/${userId}/deactivate`, {
         method: 'POST',
         body: {
           reason: deactivationReason.value.trim() || undefined
@@ -228,7 +228,7 @@
 
     togglingDeactivation.value = true
     try {
-      await $fetch(`/api/admin/users/${userId}/reactivate`, {
+      await $fetch<any, string & {}>(`/api/admin/users/${userId}/reactivate`, {
         method: 'POST'
       })
       toast.add({

@@ -157,7 +157,7 @@
     success.value = false
 
     try {
-      const response = await $fetch('/api/integrations/yazio/connect', {
+      const response = await $fetch<any, string & {}>('/api/integrations/yazio/connect', {
         method: 'POST',
         body: {
           username: username.value,

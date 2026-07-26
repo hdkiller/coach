@@ -26,7 +26,7 @@
     loading.value = true
     error.value = null
     try {
-      invite.value = await $fetch(`/api/join/${code.value}`)
+      invite.value = await $fetch<any, string & {}>(`/api/join/${code.value}`)
     } catch (err: any) {
       error.value = err.data?.message || 'Invalid or expired invitation code.'
     } finally {
@@ -42,7 +42,7 @@
 
     joining.value = true
     try {
-      const response: any = await $fetch(`/api/join/${code.value}`, {
+      const response: any = await $fetch<any, string & {}>(`/api/join/${code.value}`, {
         method: 'POST'
       })
 

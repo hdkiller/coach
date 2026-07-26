@@ -426,7 +426,7 @@
   async function handleAvailabilitySave(updatedAvailability: any[]) {
     savingAvailability.value = true
     try {
-      await $fetch('/api/availability', {
+      await $fetch<any, string & {}>('/api/availability', {
         method: 'POST',
         body: { availability: updatedAvailability }
       })
@@ -475,7 +475,7 @@
     savingProfile.value = true
 
     try {
-      await $fetch('/api/profile', {
+      await $fetch<any, string & {}>('/api/profile', {
         method: 'PATCH',
         body: payload
       })
@@ -527,7 +527,7 @@
     Object.assign(profile.value, updatePayload)
 
     try {
-      await $fetch('/api/profile', {
+      await $fetch<any, string & {}>('/api/profile', {
         method: 'PATCH',
         body: updatePayload
       })
@@ -806,7 +806,7 @@
   async function persistSportSettings(updatedSettings: any[]) {
     savingSportSettings.value = true
     try {
-      await $fetch('/api/profile', {
+      await $fetch<any, string & {}>('/api/profile', {
         method: 'PATCH',
         body: { sportSettings: updatedSettings }
       })
