@@ -67,7 +67,7 @@ export type DailyCheckinSource = 'auto' | 'user'
 
 export type GenerateDailyCheckinPayload = {
   userId: string
-  date: Date
+  date?: Date | string
   checkinId?: string
   source?: DailyCheckinSource
 }
@@ -173,7 +173,12 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
   const source: DailyCheckinSource = payload.source ?? 'user'
 
   try {
-    const today = new Date(date)
+    // Redis/BullMQ JSON payloads revive Dates as ISO strings.
+    const parsedDate = date ? new Date(date) : null
+    const today =
+      parsedDate && !Number.isNaN(parsedDate.getTime())
+        ? parsedDate
+        : getUserLocalDate(await getUserTimezone(userId))
 
     if (!checkinId) {
       const existing = await dailyCheckinRepository.getByDate(userId, today)

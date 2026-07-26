@@ -98,7 +98,7 @@ const nutritionAnalysisSchema = {
           description: 'Explanation of completeness assessment'
         }
       },
-      required: ['status', 'confidence', 'reasoning']
+      required: ['status', 'confidence', 'reasoningText']
     },
     sections: {
       type: 'array',
@@ -432,7 +432,11 @@ export async function runAnalyzeNutrition(payload: { nutritionId: string }) {
   } catch (error) {
     logger.error('Error analyzing nutrition', { error, nutritionId })
 
-    await nutritionRepository.updateStatus(nutritionId, 'FAILED')
+    if (nutritionId) {
+      await nutritionRepository.updateStatus(nutritionId, 'FAILED').catch((statusError) => {
+        logger.warn('Failed to mark nutrition analysis as FAILED', { nutritionId, statusError })
+      })
+    }
 
     throw error
   }
