@@ -179,10 +179,12 @@ We have extensive documentation available in the [`docs/`](./docs) directory:
 We welcome contributions! Whether it's fixing bugs, improving documentation, or suggesting new features.
 
 1. Fork the repo.
-2. Create a branch (`git checkout -b feature/amazing-feature`).
+2. Create a branch from `develop` (`git checkout -b feature/amazing-feature develop`).
 3. Commit your changes.
 4. Push to the branch.
-5. Open a Pull Request.
+5. Open a Pull Request targeting the **`develop`** branch.
+
+> **Note on Release Workflow:** All PRs are merged into `develop`. Releases and production deployments occur when `develop` is merged into `master`.
 
 ## 📄 License
 

@@ -64,8 +64,13 @@ Verify that OAuth providers (Google, Strava, WHOOP, etc.) have the correct callb
 2.  **Integrations**: Verify that third-party integrations can complete their OAuth flows.
 3.  **Database**: Check logs for any connection errors or query failures immediately after startup.
 
-## 5. Version Control Protection
+## 5. Version Control Protection & Branching Strategy
 
-### Master Branch Protection
+### Branching Strategy & PR Target
 
-- **ALWAYS** request explicit developer approval before pushing any changes directly to the `master` branch.
+- **Default Base Branch**: All Pull Requests **MUST** target the `develop` branch by default.
+- **Workflow**: Feature and bugfix PRs are merged into `develop`, and `develop` is subsequently merged into `master` for production deployment.
+
+### Branch Protection
+
+- **Master & Develop Branch Protection**: **ALWAYS** request explicit developer approval before pushing any changes directly to `master` or `develop`.

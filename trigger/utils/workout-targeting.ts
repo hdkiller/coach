@@ -431,11 +431,9 @@ export function resolveWorkoutTargeting(
     mergedTargetPolicy,
     override?.loadPreference || sportSettings?.loadPreference
   )
-  console.log('[Targeting] Resolved TargetPolicy:', {
-    strict: targetPolicy.strictPrimary,
-    primary: targetPolicy.primaryMetric,
-    fallback: targetPolicy.fallbackOrder
-  })
+  console.log(
+    `[Targeting] Resolved TargetPolicy: strict=${targetPolicy.strictPrimary} primary=${targetPolicy.primaryMetric} fallback=${JSON.stringify(targetPolicy.fallbackOrder)}`
+  )
   const targetFormatPolicy = normalizeTargetFormatPolicy(mergedTargetFormatPolicy)
 
   // Keep explicit single-value targeting authoritative across save/regenerate flows.
@@ -859,12 +857,6 @@ function normalizeCadenceTarget(step: any, targetFormatPolicy: TargetFormatPolic
 }
 
 export function applyTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
-  console.log('[Targeting] Policy:', {
-    primary: targetPolicy.primaryMetric,
-    strict: targetPolicy.strictPrimary,
-    fallback: targetPolicy.fallbackOrder
-  })
-
   const candidateMetrics: TargetStepMetric[] = targetPolicy.fallbackOrder
     .filter((metric) => ['power', 'heartRate', 'pace', 'rpe'].includes(metric))
     .map((metric) => metric as TargetStepMetric)
@@ -900,14 +892,7 @@ export function applyTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
     : orderedMetrics.find((metric) => hasMetricTarget(step, metric))
 
   console.log(
-    '[Targeting] Step:',
-    step.name,
-    'Ordered:',
-    orderedMetrics,
-    'Selected:',
-    selectedMetric,
-    'HasPace:',
-    hasMetricTarget(step, 'pace')
+    `[Targeting] Step '${step.name || 'step'}': selected=${selectedMetric} ordered=${orderedMetrics.join(',')} hasPace=${hasMetricTarget(step, 'pace')}`
   )
 
   if (!selectedMetric) {
