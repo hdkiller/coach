@@ -131,6 +131,8 @@ export async function runGenerateTrainingBlock(payload: {
   })
 
   if (!block) throw new Error('Block not found')
+  const goal = block.plan.goal
+  if (!goal) throw new Error('Training plan goal not found')
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -305,11 +307,11 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
     }[block.plan.recoveryRhythm as 2 | 3 | 4 | 5] || '3:1 (Standard)'
 
   const eventsList =
-    block.plan.goal.events && block.plan.goal.events.length > 0
-      ? block.plan.goal.events
+    goal.events && goal.events.length > 0
+      ? goal.events
           .map((e: any) => `- ${e.title}: ${formatDateUTC(e.date)} (${e.type || 'Race'})`)
           .join('\n')
-      : `- Primary Event Date: ${formatUserDate(block.plan.goal.eventDate || block.plan.targetDate || new Date(), timezone)}`
+      : `- Primary Event Date: ${formatUserDate(goal.eventDate || block.plan.targetDate || new Date(), timezone)}`
 
   const allowedTypes = (block.plan as any).activityTypes || ['Ride']
   const allowedTypesString = Array.isArray(allowedTypes) ? allowedTypes.join(', ') : 'Ride'
@@ -356,7 +358,7 @@ NOTE: These instructions take precedence over "Allowed Workout Types" or standar
     : ''
 }
 TRAINING GOAL:
-- Goal Title: ${block.plan.goal.title}
+- Goal Title: ${goal.title}
 - Events:
 ${eventsList}
 - Strategy: ${block.plan.strategy}
@@ -510,13 +512,14 @@ Return valid JSON matching the schema provided.`
         // 5. Create New Weeks
         for (let i = 0; i < weekSchedules.length; i++) {
           const schedule = weekSchedules[i]
+          if (!schedule) continue
           const globalWeekNumber = globalWeekStart + i
 
           // Find AI data for this specific week
           // Support: Block-relative (1-based), Global (1-based), or Fallback to array index
           const weekData =
-            result.weeks.find((w) => Number(w.weekNumber) === schedule.weekNumber) ||
-            result.weeks.find((w) => Number(w.weekNumber) === globalWeekNumber) ||
+            result.weeks.find((w: any) => Number(w.weekNumber) === schedule.weekNumber) ||
+            result.weeks.find((w: any) => Number(w.weekNumber) === globalWeekNumber) ||
             result.weeks[i] // Last resort: assume same order
 
           // Validate Focus Key

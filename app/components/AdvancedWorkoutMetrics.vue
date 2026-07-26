@@ -750,7 +750,7 @@
         ? `/api/share/workouts/${props.publicToken}/intervals`
         : `/api/workouts/${props.workoutId}/intervals`
 
-      const result = await $fetch(endpoint)
+      const result = await $fetch<any, string & {}>(endpoint)
       if (!metricsActive) return
       data.value = result
     } catch (e) {

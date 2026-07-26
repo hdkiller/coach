@@ -34,6 +34,8 @@ export interface EnergyPoint {
   eventIcon?: string
   eventCarbs?: number
   eventFluid?: number
+  eventProvenance?: 'logged' | 'assumed' | 'projected'
+  intakeProvenance?: 'logged' | 'assumed' | 'projected'
 }
 
 export type JourneyEventType = 'SYMPTOM' | 'WELLNESS_CHECK' | 'RECOVERY_NOTE'

@@ -41,7 +41,7 @@
             variant="soft"
             icon="i-heroicons-magnifying-glass"
             class="mb-[2px]"
-            @click="isSearchModalOpen = true"
+            @click="() => { isSearchModalOpen = true }"
           >
             Search DB
           </UButton>

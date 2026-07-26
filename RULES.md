@@ -194,6 +194,8 @@ const data = await prisma.model.findUnique({
 ## 10. TypeScript & Code Quality
 
 - **Follow Guidelines**: Strictly adhere to [.roo/rules-code/typescript-guidelines.md](.roo/rules-code/typescript-guidelines.md).
+- **Typecheck Workflow**: Use `pnpm typecheck` for final validation and the focused commands documented in [docs/04-guides/typechecking.md](docs/04-guides/typechecking.md) during development.
+- **External HTTP**: Import `ofetch` for general external URLs. Reserve Nuxt's global `$fetch`/`useFetch` route inference for internal API routes; selectively widen the request generic when a dynamic internal route causes a measured `TS2589` hotspot.
 - **Strict Null Checks**: Always handle `undefined`/`null` using `?.` and `??`.
 - **Semantic Colors**: Use `primary`, `neutral`, `success`, `error`, `warning` instead of raw colors.
 - **No Duplicate Imports**: Check for existing imports before adding new ones.
