@@ -22,21 +22,15 @@
             </p>
           </div>
 
-          <div class="mt-10 space-y-4">
-            <div class="rounded-xl border border-white/8 bg-black/30 p-4">
-              <p class="text-sm text-gray-300">“{{ userInquiry }}”</p>
-            </div>
-            <div class="rounded-xl border border-white/8 bg-black/40 p-4">
-              <div class="mb-2 flex items-center gap-2">
-                <UIcon name="i-heroicons-bolt-solid" class="h-4 w-4 text-primary-400" />
-                <span class="text-xs font-bold uppercase tracking-widest text-gray-500"
-                  >Coach Watts</span
-                >
-              </div>
-              <p class="text-sm font-medium leading-relaxed text-gray-200">
-                <span v-html="aiGreeting" />
-              </p>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-white" v-html="aiAdvice" />
+          <div class="mt-10 border-t border-white/8 pt-8">
+            <blockquote class="text-sm font-medium leading-relaxed text-gray-300">
+              “Precision endurance coaching backed by live biometric load & readiness analytics.”
+            </blockquote>
+            <div class="mt-4 flex items-center gap-3">
+              <span class="h-2 w-2 rounded-full bg-primary-400" />
+              <span class="text-xs font-bold uppercase tracking-widest text-gray-400"
+                >Adaptive Intelligence</span
+              >
             </div>
           </div>
         </aside>

@@ -398,7 +398,7 @@
     selectedPlanId.value = id
     loadingPlan.value = true
     try {
-      detailedPlan.value = await $fetch(`/api/plans/${id}`)
+      detailedPlan.value = await ($fetch as any)(`/api/plans/${id}`)
       // Expand first block by default if available
       if (detailedPlan.value?.blocks?.[0]) {
         expandedBlockIds.value = [detailedPlan.value.blocks[0].id]

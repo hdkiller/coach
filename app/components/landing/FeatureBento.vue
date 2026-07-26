@@ -11,7 +11,7 @@
 
       <div class="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-6 lg:grid-rows-2">
         <div
-          class="floating-card-base group relative min-h-[420px] overflow-hidden rounded-2xl p-8 sm:p-10 lg:col-span-3 lg:row-span-2"
+          class="floating-card-base group relative min-h-[420px] overflow-hidden rounded-2xl p-8 sm:p-10 lg:col-span-4 lg:row-span-2"
         >
           <div class="relative z-10 flex h-full flex-col">
             <UIcon name="i-heroicons-calendar-days-solid" class="mb-6 h-7 w-7 text-primary-400" />
@@ -54,7 +54,7 @@
         </div>
 
         <div
-          class="floating-card-base relative overflow-hidden rounded-2xl p-8 sm:p-10 lg:col-span-3"
+          class="floating-card-base relative overflow-hidden rounded-2xl p-8 sm:p-10 lg:col-span-2"
         >
           <div class="relative z-10 flex h-full flex-col">
             <UIcon

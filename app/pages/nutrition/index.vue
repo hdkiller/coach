@@ -157,20 +157,20 @@
                           }}</span>
                         </div>
                         <div class="flex items-center gap-1">
-                          <div class="size-2 rounded bg-[#ef4444]" />
+                          <div class="size-2 rounded bg-error-500" />
                           <span class="text-[10px] text-gray-500">{{
                             t('horizon_legend_workout')
                           }}</span>
                         </div>
                         <div class="flex items-center gap-1">
-                          <div class="size-2 rounded-full bg-[#10b981]" />
+                          <div class="size-2 rounded-full bg-primary-500" />
                           <span class="text-[10px] text-gray-500">{{
                             t('horizon_legend_meal')
                           }}</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <div
-                            class="size-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-[#8b5cf6]"
+                            class="size-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-primary-400"
                           />
                           <span class="text-[10px] text-gray-500">{{
                             t('horizon_legend_multiple')

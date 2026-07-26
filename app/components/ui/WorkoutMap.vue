@@ -610,8 +610,7 @@
       setTimeout(() => {
         fitBounds()
       }, 100)
-    },
-    { deep: true }
+    }
   )
 </script>
 

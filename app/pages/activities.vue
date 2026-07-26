@@ -717,7 +717,7 @@
             <!-- List View -->
             <div
               v-else
-              class="bg-white dark:bg-gray-900 rounded-lg shadow overflow-x-auto h-full flex flex-col"
+              class="bg-[oklch(14%_0.018_155)] rounded-xl border border-white/8 shadow overflow-x-auto h-full flex flex-col"
             >
               <UTable
                 ref="table"
@@ -730,9 +730,9 @@
                 :ui="{
                   root: 'w-full',
                   base: 'w-full table-auto',
-                  th: 'text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-gray-900 z-10 px-4 py-3',
-                  td: 'text-sm text-gray-900 dark:text-gray-100 cursor-pointer px-4 py-3',
-                  tbody: 'divide-y divide-gray-200 dark:divide-gray-800'
+                  th: 'text-left text-xs font-bold uppercase tracking-widest text-gray-400 sticky top-0 bg-[oklch(14%_0.018_155)] z-10 px-4 py-3 border-b border-white/8',
+                  td: 'text-sm text-gray-100 cursor-pointer px-4 py-3',
+                  tbody: 'divide-y divide-white/8'
                 }"
                 @select="(_, row) => openActivity(row.original)"
               >

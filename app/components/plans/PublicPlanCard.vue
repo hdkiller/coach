@@ -1,6 +1,7 @@
 <template>
   <div
     class="group relative flex flex-col overflow-hidden rounded-[2.2rem] border border-default/70 bg-default shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md md:flex-row"
+    :class="{ 'ring-1 ring-primary-500/30 border-primary-500/40': plan.isFeatured }"
   >
     <!-- Left Visual/Badge Side (on Desktop) -->
     <div

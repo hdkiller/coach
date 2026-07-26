@@ -51,8 +51,6 @@
 </template>
 
 <script setup lang="ts">
-  import TrophyCase from '~/components/profile/TrophyCase.vue'
-
   definePageMeta({
     middleware: 'auth'
   })

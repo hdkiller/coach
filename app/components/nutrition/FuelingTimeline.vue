@@ -1,7 +1,10 @@
 <template>
   <div class="space-y-4">
     <div class="relative py-4">
-      <template v-for="(window, index) in filteredWindows" :key="index">
+      <template
+        v-for="(window, index) in filteredWindows"
+        :key="window.startTime || window.type || index"
+      >
         <!-- Physical Effort Anchor -->
         <div
           v-if="window.type === 'WORKOUT_EVENT'"

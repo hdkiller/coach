@@ -25,7 +25,7 @@
           <template #header>
             <div class="flex items-center gap-4">
               <div
-                class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
+                class="w-12 h-12 bg-white/10 dark:bg-white/10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-white/20"
               >
                 <img
                   src="/images/logos/fitbit_square.png"

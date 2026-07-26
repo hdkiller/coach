@@ -269,10 +269,8 @@
         >
           <!-- Surge markers -->
           <div
-            v-for="(surge, index) in (streams.surges || []).filter(
-              (s) => s && s.time !== undefined
-            )"
-            :key="index"
+            v-for="(surge, index) in validSurges"
+            :key="surge.time ?? index"
             class="absolute top-0 bottom-0 w-0.5 bg-amber-500/40 hover:bg-amber-500 transition-all cursor-crosshair"
             :style="{ left: getSurgePosition(surge.time) + '%' }"
             :title="`${formatTime(surge.time)} - +${formatSurgeIncrease(surge.increase)}`"
@@ -419,6 +417,9 @@
   const splitMetricLabel = computed(() => (isRideWorkout.value ? 'Speed' : 'Pace'))
   const differenceLabel = computed(() => (isRideWorkout.value ? 'Speed Delta' : 'Pace Delta'))
   const variabilityUnit = computed(() => (isRideWorkout.value ? speedUnit.value : 'm/s'))
+  const validSurges = computed(() => {
+    return (streams.value?.surges || []).filter((s) => s && s.time !== undefined)
+  })
 
   // Calculate surge position as percentage of total workout time
   function getSurgePosition(surgeTime: number): number {

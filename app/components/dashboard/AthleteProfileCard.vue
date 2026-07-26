@@ -1124,15 +1124,17 @@
       const endDate = today.toISOString().split('T')[0]
 
       const [pmc, ftp, wellness, weight, events] = await Promise.all([
-        $fetch('/api/performance/pmc', {
+        ($fetch as any)('/api/performance/pmc', {
           query: { days: 7, displayMode: trainingLoadDisplayMode.value }
         }).catch(() => null),
         integrationStore.intervalsConnected
-          ? $fetch('/api/performance/ftp-evolution')
+          ? ($fetch as any)('/api/performance/ftp-evolution')
           : Promise.resolve([]),
-        $fetch(`/api/wellness/trend?startDate=${startDate}&endDate=${endDate}`).catch(() => []),
-        $fetch('/api/performance/weight-evolution').catch(() => []),
-        $fetch('/api/events').catch(() => [])
+        ($fetch as any)(`/api/wellness/trend?startDate=${startDate}&endDate=${endDate}`).catch(
+          () => []
+        ),
+        ($fetch as any)('/api/performance/weight-evolution').catch(() => []),
+        ($fetch as any)('/api/events').catch(() => [])
       ])
 
       pmcData.value = pmc

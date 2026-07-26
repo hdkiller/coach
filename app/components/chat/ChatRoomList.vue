@@ -109,7 +109,7 @@
         color: 'neutral'
       })
 
-      await $fetch(`/api/chat/rooms/${roomId}/summarize`, {
+      await ($fetch as any)(`/api/chat/rooms/${roomId}/summarize`, {
         method: 'POST'
       })
 
@@ -138,7 +138,7 @@
         color: 'neutral'
       })
 
-      await $fetch(`/api/chat/rooms/${roomId}/summarize`, {
+      await ($fetch as any)(`/api/chat/rooms/${roomId}/summarize`, {
         method: 'POST',
         body: { forceRename: true }
       })

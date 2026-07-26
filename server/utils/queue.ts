@@ -45,7 +45,6 @@ function resetQueueInstances() {
 function createConnection() {
   const nextConnection = new IORedis(connectionString, {
     maxRetriesPerRequest: null, // Required by BullMQ
-    lazyConnect: true,
     retryStrategy: (times) => getRedisRetryDelay(times)
   })
 
@@ -90,6 +89,7 @@ function getWebhookQueueInstance() {
   if (!webhookQueueInstance) {
     webhookQueueInstance = new Queue('webhookQueue', {
       connection: activeConnection as any,
+      skipVersionCheck: true,
       defaultJobOptions: WEBHOOK_JOB_OPTIONS
     })
   }
@@ -101,6 +101,7 @@ function getPingQueueInstance() {
   if (!pingQueueInstance) {
     pingQueueInstance = new Queue('pingQueue', {
       connection: activeConnection as any,
+      skipVersionCheck: true,
       defaultJobOptions: PING_JOB_OPTIONS
     })
   }
@@ -112,6 +113,7 @@ function getStreamsQueueInstance() {
   if (!streamsQueueInstance) {
     streamsQueueInstance = new Queue('streamsQueue', {
       connection: activeConnection as any,
+      skipVersionCheck: true,
       defaultJobOptions: STREAM_JOB_OPTIONS
     })
   }
@@ -123,6 +125,7 @@ function getMainTaskQueueInstance() {
   if (!mainTaskQueueInstance) {
     mainTaskQueueInstance = new Queue('mainTaskQueue', {
       connection: activeConnection as any,
+      skipVersionCheck: true,
       defaultJobOptions: MAIN_TASK_JOB_OPTIONS
     })
   }

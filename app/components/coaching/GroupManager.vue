@@ -294,7 +294,7 @@
         ...newGroup.value,
         teamId: newGroup.value.teamId === 'private' ? undefined : newGroup.value.teamId
       }
-      await $fetch('/api/coaching/groups', {
+      await ($fetch as any)('/api/coaching/groups', {
         method: 'POST',
         body: payload
       })
@@ -314,7 +314,7 @@
     isMemberModalOpen.value = true
     loadingMembers.value = true
     try {
-      const data = await $fetch(`/api/coaching/groups/${group.id}`)
+      const data = await ($fetch as any)(`/api/coaching/groups/${group.id}`)
       currentMembers.value = (data as any).members
     } catch (e) {
       toast.add({ title: 'Failed to load members', color: 'error' })
@@ -327,14 +327,14 @@
     if (!selectedAthleteId.value || !editingGroup.value) return
     addingMember.value = true
     try {
-      await $fetch(`/api/coaching/groups/${editingGroup.value.id}/members`, {
+      await ($fetch as any)(`/api/coaching/groups/${editingGroup.value.id}/members`, {
         method: 'POST',
         body: { athleteId: selectedAthleteId.value }
       })
       toast.add({ title: 'Athlete added to group', color: 'success' })
       selectedAthleteId.value = ''
       // Refresh members
-      const data = await $fetch(`/api/coaching/groups/${editingGroup.value.id}`)
+      const data = await ($fetch as any)(`/api/coaching/groups/${editingGroup.value.id}`)
       currentMembers.value = (data as any).members
       emit('refresh')
     } catch (e) {
@@ -347,7 +347,7 @@
   async function removeMember(athleteId: string) {
     if (!editingGroup.value) return
     try {
-      await $fetch(`/api/coaching/groups/${editingGroup.value.id}/members/${athleteId}`, {
+      await ($fetch as any)(`/api/coaching/groups/${editingGroup.value.id}/members/${athleteId}`, {
         method: 'DELETE'
       })
       currentMembers.value = currentMembers.value.filter((m) => m.athleteId !== athleteId)

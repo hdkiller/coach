@@ -492,7 +492,7 @@
     activeTtsAbortController = abortController
 
     try {
-      const audioBlob = await $fetch('/api/chat/tts', {
+      const audioBlob = await ($fetch as any)('/api/chat/tts', {
         method: 'POST',
         body: {
           text,
@@ -564,7 +564,7 @@
     if (!didHydrateTtsPrefs.value) return
 
     try {
-      await $fetch('/api/settings/ai', {
+      await ($fetch as any)('/api/settings/ai', {
         method: 'POST',
         body: {
           aiTtsStyle: defaultVoicePreset.value,

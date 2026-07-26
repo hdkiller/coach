@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="col-span-11 grid grid-cols-2 gap-5">
-                  <div class="col-span-2 rounded-xl border border-white/8 bg-black/40 p-5">
+                  <div class="col-span-2 py-3 px-1">
                     <div class="mb-3 flex items-center gap-3">
                       <div
                         class="flex h-9 w-9 items-center justify-center rounded-lg border border-primary-500/20 bg-primary-500/10 text-primary-400"

@@ -39,7 +39,7 @@
             :lat-lng="scrubPoint"
             :radius="8"
             :color="'white'"
-            :fill-color="'#3b82f6'"
+            :fill-color="'#10b981'"
             :fill-opacity="1"
             :weight="3"
             class="z-[2000]"
@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+  import { shallowRef } from 'vue'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
 
   const props = defineProps<{
@@ -98,7 +99,7 @@
   const theme = useTheme()
   const colorMode = useColorMode()
 
-  const mapObject = ref<any>(null)
+  const mapObject = shallowRef<any>(null)
   const zoom = ref(13)
   const center = ref<[number, number]>([0, 0])
   const scrubIndex = ref<number | null>(null)
@@ -156,11 +157,11 @@
       const hue = (1 - normalized) * 120
       const color = `hsl(${hue}, 80%, 50%)`
 
+      const pt1: [number, number] = [p1.lat, p1.lng]
+      const pt2: [number, number] = [p2.lat, p2.lng]
+
       segments.push({
-        points: [
-          [p1.lat, p1.lng],
-          [p2.lat, p2.lng]
-        ],
+        points: [pt1, pt2],
         color
       })
     }
@@ -175,7 +176,7 @@
   })
 
   const attribution = '&copy; OpenStreetMap contributors &copy; CARTO'
-  const primaryColor = '#3b82f6'
+  const primaryColor = '#10b981'
 
   const mapOptions = computed(() => ({
     scrollWheelZoom: false,

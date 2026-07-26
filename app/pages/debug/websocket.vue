@@ -177,7 +177,7 @@
         </div>
 
         <div
-          class="bg-gray-900 text-green-400 p-4 rounded-md h-96 overflow-y-auto font-mono text-xs shadow-inner"
+          class="bg-[oklch(10%_0.015_155)] border border-white/8 text-green-400 p-4 rounded-xl h-96 overflow-y-auto font-mono text-xs shadow-inner"
         >
           <div v-if="messages.length === 0" class="text-gray-500 italic">No logs yet...</div>
           <div
