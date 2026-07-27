@@ -1,162 +1,137 @@
-# Issue Management Guidelines
+# Linear & Agentic Issue Management Guide — Coach Watts
 
-This document outlines the standards and procedures for creating and managing GitHub issues in the Coach Watts project. Consistent issue reporting ensures efficient tracking, prioritization, and resolution of bugs and features.
+This document defines the issue tracking standards, ticket templates, and AI agent execution workflows for the **Coach Watts** project using **Linear** (Team Key: **`CW`**) and **Model Context Protocol (MCP)**.
 
-## 1. Issue Types
-
-We categorize issues into the following primary types:
-
-- **Bug Report**: Something isn't working as expected.
-- **Feature Request**: A suggestion for a new feature or improvement.
-- **Maintenance**: Refactoring, technical debt, dependencies, or documentation updates.
-
-## 2. Issue Templates
-
-When creating an issue, please adhere to the following templates.
-
-### 🐛 Bug Report Template
-
-**Title**: `Concise description of the bug`
-
-- _Example_: `Recent activities widget is not clickable`
-
-**Body**:
-
-```markdown
-### 📝 Description
-
-A clear and concise description of what the bug is.
-
-### 👣 Steps to Reproduce
-
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
-
-### 😯 Expected Behavior
-
-A clear and concise description of what you expected to happen.
-
-### 🐛 Actual Behavior
-
-A clear and concise description of what actually happened.
-
-### 🖼️ Screenshots / Logs
-
-If applicable, add screenshots or copy-paste error logs to help explain your problem.
-
-### 💻 Environment
-
-- **Browser/Device**: [e.g. Chrome 120, iPhone 14]
-- **OS**: [e.g. macOS Sonoma, iOS 17]
-- **User ID (if known)**:
-```
-
-### ✨ Feature Request Template
-
-**Title**: `Concise description of the feature`
-
-- _Example_: `Add "Training Availability" section`
-
-**Body**:
-
-```markdown
-### 💡 Summary
-
-A clear and concise description of the proposed feature.
-
-### 🤷 Motivation / Use Case
-
-Why is this feature needed? What problem does it solve for the user?
-
-### 📋 Detailed Requirements
-
-- [ ] Requirement 1
-- [ ] Requirement 2
-- [ ] Requirement 3
-
-### ✅ Acceptance Criteria
-
-- The user can...
-- The system should...
-```
-
-### 🛠️ Maintenance / Tech Debt
-
-**Title**: `Concise description of the task`
-
-- _Example_: `Update API documentation for v2 endpoints`
-
-**Body**:
-
-```markdown
-### 🎯 Goal
-
-What needs to be done?
-
-### ❓ Why
-
-Why is this maintenance necessary?
-
-### 🔄 Tasks
-
-- [ ] Task 1
-- [ ] Task 2
-```
-
-## 3. Labeling Strategy
-
-We use a specific set of labels to categorize issues. Please apply at least one label from each category where applicable.
-
-### Type Labels
-
-- `bug`: Something isn't working.
-- `enhancement`: New feature or request.
-- `documentation`: Improvements or additions to documentation.
-- `maintenance`: Technical debt, refactoring, dependencies.
-- `question`: Further information is requested.
-
-### Priority Labels
-
-- `priority: critical`: Blocker, needs immediate attention.
-- `priority: high`: Important functionality is broken or missing.
-- `priority: medium`: Standard priority.
-- `priority: low`: Nice to have, minor issue.
-
-### Status Labels
-
-- `status: needs-info`: Waiting for user or more details.
-- `status: in-progress`: Currently being worked on.
-- `status: blocked`: Waiting on something else.
-- `status: review`: Pull request submitted.
-
-### Area Labels (Technical)
-
-- `ui/ux`: Visual design, Vue components, and frontend logic.
-- `backend`: API endpoints, server-side logic, and authentication.
-- `data`: Database schema, ingestion pipelines, and synchronization.
-- `infra`: Docker, CI/CD, CLI tools, and environment configuration.
-- `ai`: Gemini/LLM prompts, agents, and AI logic.
-
-### Feature Labels (Functional)
-
-- `dashboard`: Main landing page and widgets.
-- `activities`: Activities list, calendar, and summary.
-- `workouts`: Workout execution, details, and intervals.
-- `planning`: Training blocks, weekly plans, and scheduling.
-- `wellness`: Sleep, HRV, weight, and readiness metrics.
-- `integrations`: External services (Strava, Intervals.icu, etc.).
-
-## 4. Best Practices
-
-1.  **Search First**: Before creating an issue, search existing issues to avoid duplicates.
-2.  **Be Specific**: Use clear, unambiguous language.
-3.  **One Issue per Topic**: Do not combine multiple unrelated bugs or features into a single issue.
-4.  **Keep it Updated**: If you find new information, update the issue comments.
-5.  **Reference Code**: If you know where the issue might be in the codebase, link to the file or line number.
-6.  **PR Target Branch**: When opening Pull Requests to resolve issues, default to targeting the `develop` branch. PRs are merged into `develop`, and `develop` is subsequently merged into `master`.
+> [!NOTE]
+> This guide focuses strictly on product development and distribution for Coach Watts (`CW`). Internal company governance, multi-team infrastructure, and private consulting workflows live in the internal Watt Mind documentation repository.
 
 ---
 
-**Note to AI Agents**: When asked to create issues, always follow these templates and labeling conventions. Do not prefix titles with the area/component, as labels handle categorization.
+## 1. Linear as an Agentic Execution Substrate
+
+Modern agentic engineering treats Linear not just as a passive human tracking board, but as the **persistent execution substrate and memory store** for autonomous AI agents (Claude Code, Gemini CLI, Cursor, subagents).
+
+- **Human-as-Architect, Agent-as-Executor**: Humans define strategic requirements, review architectural plans, and approve Pull Requests. AI agents pick up tickets via MCP, write code, run verification tests, and report status updates directly to Linear.
+- **Context Efficiency**: Instead of swelling LLM context windows with entire codebase task lists, agents fetch only the precise issue context, file path pointers, and acceptance criteria needed for their assigned ticket (`CW-104`).
+- **Branch Isolation & Zero Git Churn**: Task states live in Linear rather than git-tracked markdown files, eliminating git merge conflicts when multiple agents run in parallel.
+
+---
+
+## 2. Team Scope & Hierarchy
+
+For Coach Watts development, all product engineering, mobile, feeder, and distribution issues are grouped under the **Coach Watts Core** team:
+
+- **Team Name**: `Coach Watts`
+- **Team Key**: **`CW`** (All issues follow the format `CW-1`, `CW-105`, etc.)
+
+### Projects Catalog
+
+| Project Name                                | Domain / Scope                                                                 | Primary Repositories                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------- |
+| ⚡ **Coach Watts – Web & AI Core Platform** | Nuxt 3 web app, AI Coach chatroom, Prisma DB, Trigger.dev tasks                | `coach-wattz`                         |
+| 📱 **Coach Watts – Mobile App**             | Expo / React Native app for iOS & Android                                      | `watts-mobile`                        |
+| 🚀 **Coach Watts – App Store Distribution** | iOS App Store & Google Play enrollment, TestFlight, RevenueCat, store listings | `watts-mobile` (`docs/distribution/`) |
+| 🔄 **Coach Watts – Feeder & Ingestion**     | Ingestion connectors (Intervals.icu, Strava, Oura, Yazio) & event scrapers     | `watts-feeder`                        |
+| 📊 **Coach Watts – BI & Analytics**         | Platform analytics, telemetry, operational dashboards                          | `watts-bi`                            |
+| 📣 **Coach Watts – Marketing & Outreach**   | Social setup, event promos, race entrant campaigns                             | `watts-marketing`                     |
+
+---
+
+## 3. Taxonomy & Labels
+
+Labels standardize cross-project filtering and agent queue routing within `CW`.
+
+### AI Execution & Readiness Labels
+
+- `ai:agent-ready` — Fully specified with acceptance criteria and file pointers; queued for an AI agent to execute autonomously.
+- `ai:in-progress` — Currently being actively worked on by an AI agent.
+- `ai:needs-review` — Agent execution completed; PR opened and ready for code review.
+- `ai:blocked` — Agent encountered a runtime error, missing credentials, or architectural ambiguity requiring human input.
+- `quick-win` — Small, isolated fix (~15 min execution).
+
+### Distribution Target Labels (`dist:<target>`)
+
+- `dist:app-store` — iOS App Store Connect & TestFlight
+- `dist:play-store` — Google Play Console & Internal Track
+- `dist:web` — Web deployment & Dokploy production release
+- `dist:raycast` — Raycast extension store
+
+### Core Type & Area Labels
+
+- **Type**: `type:bug`, `type:feature`, `type:refactor`, `type:maintenance`
+- **Area**: `area:mobile`, `area:web`, `area:backend`, `area:feeder`, `area:ai-engine`, `area:analytics`
+
+---
+
+## 4. Workflow State Machine
+
+Linear issues follow a standard state machine:
+
+| Workflow State  | Type      | Description / Trigger                                                |
+| --------------- | --------- | -------------------------------------------------------------------- |
+| **Backlog**     | Backlog   | Unscheduled idea or raw report needing specification.                |
+| **Todo**        | Unstarted | Actionable, specified issue ready to be picked up by human or agent. |
+| **In Progress** | Started   | Branch created (`feat/CW-105-...`) and actively being developed.     |
+| **In Review**   | Started   | PR submitted; awaiting CI pass and code review.                      |
+| **Done**        | Completed | PR merged into target branch and verified.                           |
+| **Canceled**    | Canceled  | Deprecated or no longer relevant.                                    |
+| **Duplicate**   | Canceled  | Duplicate issue reference.                                           |
+
+---
+
+## 5. Standardized "AI-Ready" Definition of Done Template
+
+When creating issues for AI agent execution, use the following template to guarantee unambiguous execution:
+
+````markdown
+## 📝 Problem & Context
+
+Clear description of the bug or feature request.
+
+## 🎯 Acceptance Criteria
+
+- [ ] Requirement 1 (e.g. "Token refresh logic propagates auth failure to caller")
+- [ ] Requirement 2 (e.g. "Unit test passes for expired refresh token scenario")
+
+## 📂 Source File Pointers
+
+- Primary file: `apps/mobile/src/services/api.ts`
+- Test file: `apps/mobile/src/__tests__/api.test.ts`
+
+## 🛠️ Verification Command
+
+```bash
+pnpm test:unit apps/mobile/src/__tests__/api.test.ts
+```
+````
+
+````
+
+---
+
+## 6. Git Branching & Magic Link Conventions
+
+1. **Branch Naming Standard**:
+   Always prefix branch names with the team key `CW` and issue number:
+   ```bash
+   git checkout -b feature/CW-105-spo2-chart
+   git checkout -b fix/CW-42-token-refresh-race
+````
+
+2. **Commit & PR Magic Link Protocol**:
+   Prefix commit messages and PR descriptions with magic keywords:
+   ```bash
+   git commit -m "fix(mobile): resolve token refresh race condition (fixes CW-105)"
+   ```
+   - `Fixes CW-105` or `Closes CW-105` automatically moves the ticket to **`Done`** when the PR merges.
+
+---
+
+## 7. Agent Execution Protocol (Plan ➔ Act ➔ Reflect ➔ Log)
+
+Every AI agent participating in the codebase must strictly adhere to the 4-step execution loop:
+
+1. **Plan**: Formulate architectural approach and verify target file locations.
+2. **Act**: Modify source files cleanly without breaking existing API contracts.
+3. **Reflect & Verify**: Execute verification commands (`pnpm test`, `tsc`, build scripts). **Never mark an issue complete without clean test outputs.**
+4. **Log & Sync**: Post a completion comment on the Linear ticket detailing changes made and verification results.
