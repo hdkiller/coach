@@ -18,12 +18,14 @@ module.exports = {
         `${targetBaseUrl}/chat`
       ],
       puppeteerScript: './e2e/scripts/lhci-auth.cjs',
+      puppeteerLaunchOptions: {
+        args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--headless=new']
+      },
       numberOfRuns: 2,
       ...(chromePath || process.env.CHROME_PATH
         ? { chromePath: process.env.CHROME_PATH || chromePath }
         : {}),
       settings: {
-        chromeFlags: '--no-sandbox --disable-gpu --disable-dev-shm-usage --headless=new',
         preset: 'desktop'
       }
     },
