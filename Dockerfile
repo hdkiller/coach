@@ -17,7 +17,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
-RUN --mount=type=cache,id=pnpm-v2,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts && pnpm prisma generate
+RUN --mount=type=cache,id=pnpm-v3,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild better-sqlite3 bcrypt && pnpm prisma generate
 
 # Stage 2: Build the application
 FROM base AS builder
