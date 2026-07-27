@@ -86,6 +86,12 @@ jobs:
         env:
           CI: true
 
+      - name: Run Lighthouse CI
+        run: pnpm e2e:lighthouse
+        env:
+          CI: true
+          E2E_BASE_URL: 'http://localhost:3199'
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,6 +100,15 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouserc-report-${{ github.run_id }}
+          path: .lighthouseci/
           if-no-files-found: ignore
           retention-days: 14
 
