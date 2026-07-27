@@ -26,14 +26,14 @@ For Coach Watts development, all product engineering, mobile, feeder, and distri
 
 ### Projects Catalog
 
-| Project Name                                | Domain / Scope                                                                 | Primary Repositories                  |
-| ------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------- |
-| ⚡ **Coach Watts – Web & AI Core Platform** | Nuxt 3 web app, AI Coach chatroom, Prisma DB, Trigger.dev tasks                | `coach-wattz`                         |
-| 📱 **Coach Watts – Mobile App**             | Expo / React Native app for iOS & Android                                      | `watts-mobile`                        |
-| 🚀 **Coach Watts – App Store Distribution** | iOS App Store & Google Play enrollment, TestFlight, RevenueCat, store listings | `watts-mobile` (`docs/distribution/`) |
-| 🔄 **Coach Watts – Feeder & Ingestion**     | Ingestion connectors (Intervals.icu, Strava, Oura, Yazio) & event scrapers     | `watts-feeder`                        |
-| 📊 **Coach Watts – BI & Analytics**         | Platform analytics, telemetry, operational dashboards                          | `watts-bi`                            |
-| 📣 **Coach Watts – Marketing & Outreach**   | Social setup, event promos, race entrant campaigns                             | `watts-marketing`                     |
+| Project Name                             | Domain / Scope                                                                 | Primary Repositories                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------- |
+| **Coach Watts – Web & AI Core Platform** | Nuxt 3 web app, AI Coach chatroom, Prisma DB, Trigger.dev tasks                | `coach-wattz`                         |
+| **Coach Watts – Mobile App**             | Expo / React Native app for iOS & Android                                      | `watts-mobile`                        |
+| **Coach Watts – App Store Distribution** | iOS App Store & Google Play enrollment, TestFlight, RevenueCat, store listings | `watts-mobile` (`docs/distribution/`) |
+| **Coach Watts – Feeder & Ingestion**     | Ingestion connectors (Intervals.icu, Strava, Oura, Yazio) & event scrapers     | `watts-feeder`                        |
+| **Coach Watts – BI & Analytics**         | Platform analytics, telemetry, operational dashboards                          | `watts-bi`                            |
+| **Coach Watts – Marketing & Outreach**   | Social setup, event promos, race entrant campaigns                             | `watts-marketing`                     |
 
 ---
 
@@ -84,28 +84,35 @@ Linear issues follow a standard state machine:
 When creating issues for AI agent execution, use the following template to guarantee unambiguous execution:
 
 ````markdown
-## 📝 Problem & Context
+## Problem & Context
 
 Clear description of the bug or feature request.
 
-## 🎯 Acceptance Criteria
+## Acceptance Criteria
 
 - [ ] Requirement 1 (e.g. "Token refresh logic propagates auth failure to caller")
 - [ ] Requirement 2 (e.g. "Unit test passes for expired refresh token scenario")
 
-## 📂 Source File Pointers
+## Source File Pointers
 
 - Primary file: `apps/mobile/src/services/api.ts`
 - Test file: `apps/mobile/src/__tests__/api.test.ts`
 
-## 🛠️ Verification Command
+## Verification Command
 
 ```bash
 pnpm test:unit apps/mobile/src/__tests__/api.test.ts
 ```
 ````
 
-````
+```
+sh
+pnpm test:unit apps/mobile/src/__tests__/api.test.ts
+```
+
+```
+
+```
 
 ---
 
@@ -116,6 +123,8 @@ pnpm test:unit apps/mobile/src/__tests__/api.test.ts
    ```bash
    git checkout -b feature/CW-105-spo2-chart
    git checkout -b fix/CW-42-token-refresh-race
+   ```
+
 ````
 
 2. **Commit & PR Magic Link Protocol**:
@@ -135,3 +144,4 @@ Every AI agent participating in the codebase must strictly adhere to the 4-step 
 2. **Act**: Modify source files cleanly without breaking existing API contracts.
 3. **Reflect & Verify**: Execute verification commands (`pnpm test`, `tsc`, build scripts). **Never mark an issue complete without clean test outputs.**
 4. **Log & Sync**: Post a completion comment on the Linear ticket detailing changes made and verification results.
+````
