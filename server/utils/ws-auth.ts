@@ -23,7 +23,11 @@ export type WsAuthResult = {
 }
 
 function getWsAuthSecret() {
-  return process.env.INTERNAL_API_TOKEN || process.env.NUXT_SESSION_PASSWORD || null
+  return (
+    process.env.INTERNAL_API_TOKEN ||
+    process.env.NUXT_SESSION_PASSWORD ||
+    (process.env.NODE_ENV !== 'production' ? 'dev-websocket-secret-key-32-chars-minimum' : null)
+  )
 }
 
 /**

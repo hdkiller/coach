@@ -747,6 +747,7 @@
         type="file"
         accept="image/*,video/*"
         multiple
+        aria-label="Upload files"
         class="hidden"
         @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, imageInputRef)"
       />
@@ -755,6 +756,7 @@
         type="file"
         accept="image/*"
         capture="environment"
+        aria-label="Take photo"
         class="hidden"
         @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, cameraInputRef)"
       />
@@ -763,6 +765,7 @@
         type="file"
         accept="video/*"
         capture="environment"
+        aria-label="Record video"
         class="hidden"
         @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, videoInputRef)"
       />
@@ -794,6 +797,7 @@
           </div>
           <button
             type="button"
+            aria-label="Remove attachment"
             class="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white"
             @click="
               () => {
