@@ -13,17 +13,20 @@ export default defineEventHandler(async () => {
       if (file.endsWith('.md')) {
         const filePath = path.join(releasesDir, file)
         try {
-          const [stats, content] = await Promise.all([
-            fs.stat(filePath),
-            fs.readFile(filePath, 'utf-8')
-          ])
-          const version = file.replace(/^v/, '').replace(/\.md$/, '')
+          const handle = await fs.open(filePath, 'r')
+          try {
+            const content = await handle.readFile('utf-8')
+            const stats = await handle.stat()
+            const version = file.replace(/^v/, '').replace(/\.md$/, '')
 
-          releaseNotes.push({
-            version: `v${version}`,
-            content,
-            date: stats.mtime
-          })
+            releaseNotes.push({
+              version: `v${version}`,
+              content,
+              date: stats.mtime
+            })
+          } finally {
+            await handle.close()
+          }
         } catch {
           // File may have been deleted or moved concurrently
           continue

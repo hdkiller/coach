@@ -51,8 +51,7 @@ troubleshootWorkoutsCommand
           console.log(chalk.yellow('Detected coachwatts.com URL. Forcing --prod mode.'))
         }
       } catch {
-        // Fallback for malformed URLs
-        if (url.includes('coachwatts.com')) {
+        if (/^https?:\/\/(?:[a-z0-9-]+\.)*coachwatts\.com(?::\d+)?(?:\/|$)/i.test(url)) {
           isProd = true
           console.log(chalk.yellow('Detected coachwatts.com URL. Forcing --prod mode.'))
         }
