@@ -8,6 +8,7 @@ module.exports = async (browser, context) => {
   const email = process.env.E2E_TEST_USER_EMAIL || 'e2e-athlete@coachwatts.test'
   const password = process.env.E2E_TEST_USER_PASSWORD || 'password123'
 
+  const urlObj = new URL(targetUrl)
   const page = context?.page || (await browser.newPage())
   page.setDefaultTimeout(10000)
 
@@ -24,20 +25,28 @@ module.exports = async (browser, context) => {
         ? res.headers.getSetCookie()
         : [res.headers.get('set-cookie')].filter(Boolean)
 
+      const isSecure = urlObj.protocol === 'https:'
+
       for (const cookieStr of cookieHeaders) {
         if (!cookieStr) continue
         const [firstPart] = cookieStr.split(';')
         const eqIdx = firstPart.indexOf('=')
         if (eqIdx === -1) continue
 
-        const name = firstPart.slice(0, eqIdx).trim()
+        let name = firstPart.slice(0, eqIdx).trim()
         const value = firstPart.slice(eqIdx + 1).trim()
 
         if (name && value) {
+          // Chrome CDP setCookies rejects __Secure- prefix on HTTP localhost unless secure is handled
+          if (!isSecure && name.startsWith('__Secure-')) {
+            name = name.replace('__Secure-', '')
+          }
+
           await page.setCookie({
             name,
             value,
-            url: targetUrl
+            url: targetUrl,
+            secure: isSecure
           })
         }
       }
