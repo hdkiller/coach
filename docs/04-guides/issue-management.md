@@ -155,7 +155,7 @@ Each agent runs as its **own Linear member with its own API key**, so `assignee`
 3. **Claim** — set assignee to self, state `In Progress`, add `ai:in-progress` + `agent:<name>`.
 4. **Re-read the ticket.** If the assignee is not you, another agent won — release and take the next. Linear has no compare-and-swap; this read-back _is_ the concurrency control.
 5. **Heartbeat** — comment at least every 10 minutes while working.
-6. **Finish** — PR open → `In Review` + `ai:needs-review`. CI green and verification output posted → `Done`.
+6. **Finish** — push branch (`git push origin <branch>`), open PR (`gh pr create --title "..." --body "Fixes <ISSUE-ID>"`), set state `In Review` + `ai:needs-review` (remove `ai:in-progress`), and post verification comment with PR link. Set to `Done` after PR merge and CI pass.
 
 **Stale claims:** anything `In Progress` with no comment for 45 minutes is reclaimed — assignee cleared, back to `Todo`.
 
@@ -165,10 +165,10 @@ Each agent runs as its **own Linear member with its own API key**, so `assignee`
 
 ## 8. Execution loop
 
-**Plan → Act → Verify → Publish PR → Log**
+**Plan → Act → Verify → Publish PR → Log & Transition**
 
 1. **Plan** — confirm file locations; restate the approach on the ticket.
 2. **Act** — implement in the ticket's worktree, touching only `Owned Paths`, without breaking existing API contracts.
 3. **Verify** — run the Verification Command (`pnpm test`, `pnpm typecheck`, build). **Never mark complete without clean output.**
 4. **Publish PR** — push the worktree branch (`git push origin <branch>`) and open a GitHub Pull Request (`gh pr create --title "..." --body "Fixes <ISSUE-ID>"`).
-5. **Log & Complete** — post verification results, PR link, and diff summary to the Linear ticket.
+5. **Log & Transition** — post verification results, PR link, and diff summary to the Linear ticket, transitioning state to `In Review` (`ai:needs-review`). Set to `Done` once PR is merged.
