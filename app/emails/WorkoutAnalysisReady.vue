@@ -17,28 +17,33 @@
     EFont
   } from 'vue-email'
 
-  defineProps<{
-    name?: string
-    workoutId?: string
-    workoutUrl?: string
-    workoutTitle: string
-    workoutDate?: string
-    workoutType?: string
-    durationMinutes?: number
-    averageHr?: number
-    averageWatts?: number
-    tss?: number
-    overallScore?: number
-    analysisSummary?: string
-    recommendationHighlights?: string[]
-    adherenceSummary?: string
-    adherenceScore?: number
-    unsubscribeUrl?: string
-    utmQuery?: string
-  }>()
-
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const siteUrl = 'https://coachwatts.com'
+  withDefaults(
+    defineProps<{
+      name?: string
+      workoutId?: string
+      workoutUrl?: string
+      workoutTitle: string
+      workoutDate?: string
+      workoutType?: string
+      durationMinutes?: number
+      averageHr?: number
+      averageWatts?: number
+      tss?: number
+      overallScore?: number
+      analysisSummary?: string
+      recommendationHighlights?: string[]
+      adherenceSummary?: string
+      adherenceScore?: number
+      siteUrl?: string
+      logoUrl?: string
+      unsubscribeUrl?: string
+      utmQuery?: string
+    }>(),
+    {
+      siteUrl: 'https://coachwatts.com',
+      logoUrl: 'https://coachwatts.com/icon.png'
+    }
+  )
 </script>
 
 <template>

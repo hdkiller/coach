@@ -14,14 +14,22 @@
     EFont
   } from 'vue-email'
 
-  defineProps<{
-    name?: string
-    unsubscribeUrl?: string
-    utmQuery?: string
-  }>()
-  const siteUrl = 'https://coachwatts.com'
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const connectSourceUrl = 'https://coachwatts.com/settings/apps'
+  import { computed } from 'vue'
+
+  const props = withDefaults(
+    defineProps<{
+      name?: string
+      siteUrl?: string
+      logoUrl?: string
+      unsubscribeUrl?: string
+      utmQuery?: string
+    }>(),
+    {
+      siteUrl: 'https://coachwatts.com',
+      logoUrl: 'https://coachwatts.com/icon.png'
+    }
+  )
+  const connectSourceUrl = computed(() => `${props.siteUrl}/settings/apps`)
   const discordUrl = 'https://discord.gg/dPYkzg49T9'
 </script>
 
