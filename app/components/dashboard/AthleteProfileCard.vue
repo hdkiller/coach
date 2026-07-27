@@ -24,6 +24,7 @@
             variant="ghost"
             size="xs"
             class="rounded-full"
+            aria-label="Edit Profile Settings"
           />
           <UButton
             icon="i-heroicons-cog-6-tooth"
@@ -31,6 +32,7 @@
             variant="ghost"
             size="xs"
             class="rounded-full"
+            aria-label="Open Settings Modal"
             @click="
               () => {
                 showSettingsModal = true
