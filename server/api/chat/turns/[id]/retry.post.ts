@@ -27,7 +27,8 @@ export default defineEventHandler(async (event) => {
   await assertQuotaAllowed(
     userId,
     'chat',
-    'Chat quota exceeded. Turn retry is unavailable until your limit resets.'
+    'Chat quota exceeded. Turn retry is unavailable until your limit resets.',
+    event
   )
 
   const originalMessage = await prisma.chatMessage.findUnique({

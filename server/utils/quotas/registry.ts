@@ -132,3 +132,58 @@ export function mapOperationToQuota(operation: string): QuotaOperation | null {
 
   return null
 }
+
+/**
+ * Feature codes shared with API clients (mobile app, MCP) so a 429 identifies
+ * *what* was limited without parsing operation names or English copy.
+ * Operations without a client-facing feature are omitted; clients then fall back
+ * to the feature they asked for.
+ */
+export const QUOTA_FEATURE_BY_OPERATION: Partial<Record<QuotaOperation, string>> = {
+  chat: 'COACH_CHAT',
+  workout_analysis: 'ACTIVITY_ANALYSIS',
+  athlete_profile_generation: 'ATHLETE_REPORT',
+  daily_checkin: 'DAILY_CHECKIN',
+  activity_recommendation: 'READINESS_RECOMMENDATION',
+  meal_recommendation: 'MEAL_RECOMMENDATION',
+  generate_structured_workout: 'WORKOUT_GENERATION'
+}
+
+export function quotaFeatureCode(operation: string): string | null {
+  const canonical = mapOperationToQuota(operation)
+  if (!canonical) return null
+  return QUOTA_FEATURE_BY_OPERATION[canonical] ?? null
+}
+
+/** Next paid tier above `tier`, or null when already on the top tier. */
+export function getNextTier(tier: SubscriptionTier): 'SUPPORTER' | 'PRO' | null {
+  if (tier === 'FREE') return 'SUPPORTER'
+  if (tier === 'SUPPORTER') return 'PRO'
+  return null
+}
+
+/**
+ * Lowest tier above `tier` that actually raises the limit for `operation`.
+ * Returns null when no higher tier improves it — never point at an upgrade that
+ * would not lift the limit the user just hit.
+ */
+export function resolveUpgradeForOperation(
+  operation: string,
+  tier: SubscriptionTier
+): { nextTier: 'SUPPORTER' | 'PRO'; nextTierLimit: number } | null {
+  const canonical = mapOperationToQuota(operation)
+  if (!canonical) return null
+
+  const currentLimit = QUOTA_REGISTRY[tier][canonical]?.limit ?? 0
+  const candidates: ('SUPPORTER' | 'PRO')[] =
+    tier === 'FREE' ? ['SUPPORTER', 'PRO'] : tier === 'SUPPORTER' ? ['PRO'] : []
+
+  for (const candidate of candidates) {
+    const limit = QUOTA_REGISTRY[candidate][canonical]?.limit
+    if (limit !== undefined && limit > currentLimit) {
+      return { nextTier: candidate, nextTierLimit: limit }
+    }
+  }
+
+  return null
+}

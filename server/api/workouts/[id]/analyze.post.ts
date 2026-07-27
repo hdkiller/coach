@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = user.id
-  await assertQuotaAllowed(userId, 'workout_analysis')
+  await assertQuotaAllowed(userId, 'workout_analysis', undefined, event)
 
   // Fetch the workout
   const workout = await workoutRepository.getById(id, userId)

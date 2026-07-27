@@ -1,10 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { getQuotaSummary } from '../../utils/quotas/engine'
-import {
-  QUOTA_REGISTRY,
-  mapOperationToQuota,
-  type QuotaOperation
-} from '../../utils/quotas/registry'
+import { getNextTier, resolveUpgradeForOperation } from '../../utils/quotas/registry'
 import type { SubscriptionTier } from '@prisma/client'
 import type { QuotaStatus } from '~~/app/types/quotas'
 
@@ -16,12 +12,6 @@ function resolveEffectiveTier(user: {
   return user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
 }
 
-function getNextTier(tier: SubscriptionTier): 'SUPPORTER' | 'PRO' | null {
-  if (tier === 'FREE') return 'SUPPORTER'
-  if (tier === 'SUPPORTER') return 'PRO'
-  return null
-}
-
 function enrichQuotasWithNextTier(
   quotas: QuotaStatus[],
   effectiveTier: SubscriptionTier
@@ -30,12 +20,12 @@ function enrichQuotasWithNextTier(
   if (!nextTier) return quotas
 
   return quotas.map((quota) => {
-    const canonicalOp = mapOperationToQuota(quota.operation) || (quota.operation as QuotaOperation)
-    const nextTierLimit = QUOTA_REGISTRY[nextTier][canonicalOp]?.limit ?? null
+    // Only surface an upgrade that actually raises this operation's limit.
+    const upgrade = resolveUpgradeForOperation(quota.operation, effectiveTier)
     return {
       ...quota,
-      nextTier,
-      nextTierLimit
+      nextTier: upgrade?.nextTier ?? nextTier,
+      nextTierLimit: upgrade?.nextTierLimit ?? null
     }
   })
 }
