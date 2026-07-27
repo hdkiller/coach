@@ -26,7 +26,9 @@ module.exports = {
           '--no-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--headless=new'
+          '--headless=new',
+          '--no-pings',
+          '--disable-background-networking'
         ]
       },
       // 1 run locally for instant feedback; 2 runs in CI for statistical stability
@@ -40,6 +42,10 @@ module.exports = {
         skipAudits: ['full-page-screenshot'],
         logLevel: process.env.LHCI_LOG_LEVEL || (isFastLocal ? 'info' : 'silent'),
         disableStorageReset: true,
+        // Prevent hanging on background Vite HMR WebSockets
+        pauseAfterFulfillMs: 1000,
+        pauseAfterLoadMs: 1000,
+        networkQuietThresholdMs: 1000,
         // Disable artificial CPU/network throttling during local dev runs for 3x speedup
         ...(isFastLocal
           ? {
