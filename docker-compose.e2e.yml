@@ -44,6 +44,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.e2e
+      cache_from:
+        - coach-e2e-app:local
     container_name: coach-app-e2e
     ports:
       - '3199:3199'

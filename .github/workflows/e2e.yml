@@ -32,6 +32,11 @@ jobs:
       github.base_ref == 'master' ||
       contains(github.event.pull_request.labels.*.name, 'run-e2e')
 
+    env:
+      DOCKER_BUILDKIT: '1'
+      COMPOSE_DOCKER_CLI_BUILD: '1'
+      PLAYWRIGHT_BROWSERS_PATH: '~/.cache/ms-playwright'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,6 +69,14 @@ jobs:
 
       - name: Build and start Docker e2e stack
         run: pnpm e2e:setup
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium

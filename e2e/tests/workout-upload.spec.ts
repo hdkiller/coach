@@ -25,6 +25,10 @@ test.describe('Workout Upload & FIT Ingestion Suite', () => {
   })
 
   test.afterAll(async () => {
+    if (athleteId && prisma) {
+      await prisma.workout.deleteMany({ where: { userId: athleteId } })
+      await prisma.fitFile.deleteMany({ where: { userId: athleteId } })
+    }
     if (cleanupPool) {
       await cleanupPool.end()
     }
