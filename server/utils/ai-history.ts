@@ -310,18 +310,20 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
           })
 
           if (validToolParts.length > 0) {
-            const existingCalls = coreContent.filter((p) => p.type === 'tool-call')
+            // Tracked as a live set: patching two UI parts that share a tool call id must
+            // not append two `tool-call` parts, because Gemini rejects duplicate
+            // `functionCall` ids inside a single model turn with a 400 INVALID_ARGUMENT.
+            const existingCallIds = new Set(
+              coreContent.filter((p) => p.type === 'tool-call').map((p) => p.toolCallId)
+            )
 
             validToolParts.forEach((tp: any) => {
               const toolCallId = tp.toolCallId || tp.approvalId
               const toolName = tp.toolCall?.toolName || getUiToolName(tp)
 
               // Only add if not already present (checked by ID)
-              if (
-                toolCallId &&
-                toolName &&
-                !existingCalls.find((ec) => ec.toolCallId === toolCallId)
-              ) {
+              if (toolCallId && toolName && !existingCallIds.has(toolCallId)) {
+                existingCallIds.add(toolCallId)
                 coreContent.push(
                   buildCoreToolCallPart(tp.toolCall, {
                     toolCallId,
@@ -434,14 +436,14 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
   // Gemini requires that every 'tool' message is preceded by a 'model' message containing the call.
   // We iterate backwards to safely remove.
   const validCoreMessages: any[] = []
-  const toolCallIds = new Set<string>()
+  const toolNamesByCallId = new Map<string, string>()
 
   // First pass: Collect all valid tool call IDs from assistant messages
   coreMessages.forEach((msg) => {
     if (msg.role === 'assistant' && Array.isArray(msg.content)) {
       msg.content.forEach((p: any) => {
         if (p.type === 'tool-call') {
-          toolCallIds.add(p.toolCallId)
+          toolNamesByCallId.set(p.toolCallId, p.toolName)
         }
       })
     }
@@ -451,8 +453,13 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
   for (const msg of coreMessages) {
     if (msg.role === 'tool') {
       const content = mergeToolResultParts(msg.content as any[])
-      // Filter out parts that don't have a matching call
-      const validContent = content.filter((p: any) => toolCallIds.has(p.toolCallId))
+      // Filter out parts that don't have a matching call, and realign the tool name with
+      // the originating call. Gemini rejects a `functionResponse` whose name does not match
+      // a declared tool with a bare 400 INVALID_ARGUMENT, so the `'unknown'` fallback used
+      // for approval responses (which carry no tool name) must never reach the provider.
+      const validContent = content
+        .filter((p: any) => toolNamesByCallId.has(p.toolCallId))
+        .map((p: any) => ({ ...p, toolName: toolNamesByCallId.get(p.toolCallId) || p.toolName }))
 
       if (validContent.length > 0) {
         const previous = validCoreMessages[validCoreMessages.length - 1]
