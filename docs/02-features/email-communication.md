@@ -40,7 +40,9 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 ### 3. Subscription (Transactional)
 
 - **Subscription Started**: Confirmation of upgrade.
-- **Renewal/Billing (Planned)**: Critical account notifications.
+- **Payment Failed**: Critical account notice when a billing invoice payment fails.
+- **Payment Succeeded**: Renewal receipt when a recurring subscription payment succeeds.
+- **Subscription Canceled**: Notice when a subscription is canceled or entitlement expires.
 
 ## Compliance & Security
 
