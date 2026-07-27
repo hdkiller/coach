@@ -111,6 +111,20 @@ export const metabolicService = {
   },
 
   /**
+   * The label to show for a window that may already carry one from a previous generation.
+   *
+   * A stored label used to win outright, so once a window had been labelled from the time of day it
+   * kept that label forever - production plans exist with `slotName: "Snack"` and `label: "Lunch"`
+   * on the same window, which renders as two "Lunch" headings on one day. The slot name is the
+   * athlete's own word for the meal and is what the window key is built from, so whenever there is
+   * one the label is recomputed from it.
+   */
+  resolveWindowDisplayLabel(window: any, timezone: string): string {
+    if (window?.slotName) return this.buildWindowLabel(window, timezone)
+    return window?.label || this.buildWindowLabel(window, timezone)
+  },
+
+  /**
    * Human-facing window label, e.g. "Pre-Workout Breakfast" or "Intra-Workout Fueling".
    */
   buildWindowLabel(window: any, timezone: string): string {
@@ -477,7 +491,7 @@ export const metabolicService = {
       return {
         type: w.type,
         windowKey: this.getWindowKey(w, timezone),
-        label: (w as any).label || this.buildWindowLabel(w, timezone),
+        label: this.resolveWindowDisplayLabel(w, timezone),
         slotName: (w as any).slotName,
         startTime: w.start.toISOString(),
         endTime: w.end.toISOString(),
