@@ -1197,6 +1197,7 @@
       <template #default="{ collapsed }">
         <UDashboardSearchButton
           :collapsed="collapsed"
+          :aria-label="isTReady ? t('navigation_search') : 'Search'"
           class="mb-4 shrink-0 bg-transparent ring-default"
         />
 
