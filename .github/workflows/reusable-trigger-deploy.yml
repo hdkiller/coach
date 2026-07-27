@@ -57,6 +57,7 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy' }}
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
       - name: Checkout code

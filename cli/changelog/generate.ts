@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import * as fs from 'fs'
 import * as path from 'path'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import 'dotenv/config'
 import { generateCoachAnalysis } from '../../server/utils/gemini'
 
@@ -31,8 +31,9 @@ export const generateCommand = new Command('generate')
       try {
         version = options.releaseVersion
         // Get commits: subject, hash
-        latestVersionBlock = execSync(
-          `git log ${options.from}..HEAD --pretty=format:"- %s (%h)" --no-merges`,
+        latestVersionBlock = execFileSync(
+          'git',
+          ['log', `${options.from}..HEAD`, '--pretty=format:- %s (%h)', '--no-merges'],
           { encoding: 'utf-8' }
         )
       } catch (error) {
@@ -117,8 +118,10 @@ Format as Markdown.
       if (options.write) {
         // 1. Update master USER_CHANGELOG.md
         let existingContent = ''
-        if (fs.existsSync(outputFile)) {
+        try {
           existingContent = fs.readFileSync(outputFile, 'utf-8')
+        } catch {
+          // File does not exist yet
         }
         const newContent = userChangelog + '\n\n' + existingContent
         fs.writeFileSync(outputFile, newContent)
@@ -126,9 +129,7 @@ Format as Markdown.
 
         // 2. Create version-specific release file
         const releasesDir = path.resolve(projectRoot, 'public/content/releases')
-        if (!fs.existsSync(releasesDir)) {
-          fs.mkdirSync(releasesDir, { recursive: true })
-        }
+        fs.mkdirSync(releasesDir, { recursive: true })
 
         const releaseFile = path.join(releasesDir, `v${version}.md`)
 

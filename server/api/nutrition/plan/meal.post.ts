@@ -18,9 +18,7 @@ export default defineEventHandler(async (event) => {
     slotName: body.slotName,
     windowAssignmentsCount: Array.isArray(body.windowAssignments)
       ? body.windowAssignments.length
-      : 0,
-    mealTitle: body.meal?.title,
-    mealTotals: body.meal?.totals
+      : 0
   })
 
   try {
