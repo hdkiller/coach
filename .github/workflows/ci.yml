@@ -21,8 +21,57 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  quality-gates:
-    name: Quality Gates (Typecheck, Lint, Unit Tests)
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Nuxt typecheck
+        run: pnpm typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare Nuxt
+        run: pnpm exec nuxt prepare
+
+      - name: Run ESLint
+        run: pnpm lint
+
+  unit-tests:
+    name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -43,20 +92,6 @@ jobs:
 
       - name: Prepare Nuxt
         run: pnpm exec nuxt prepare
-
-      - name: Cache ESLint
-        uses: actions/cache@v4
-        with:
-          path: .eslintcache
-          key: eslint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          restore-keys: |
-            eslint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-
-      - name: Run ESLint
-        run: pnpm lint --cache --cache-location .eslintcache
-
-      - name: Run Nuxt typecheck
-        run: pnpm typecheck
 
       - name: Run unit tests
         run: pnpm test:unit
