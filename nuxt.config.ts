@@ -462,6 +462,7 @@ export default defineNuxtConfig({
     org: 'newpush-y4',
     project: 'coach-watts',
     sourceMapsUploadOptions: {
+      enabled: !!process.env.SENTRY_AUTH_TOKEN,
       telemetry: false
     }
   },

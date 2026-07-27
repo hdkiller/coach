@@ -16,9 +16,16 @@ module.exports = {
       url: process.env.LHCI_URL
         ? [process.env.LHCI_URL]
         : [
+            `${targetBaseUrl}/`,
+            `${targetBaseUrl}/login`,
             `${targetBaseUrl}/dashboard`,
             `${targetBaseUrl}/calendar`,
-            `${targetBaseUrl}/chat`
+            `${targetBaseUrl}/chat`,
+            `${targetBaseUrl}/activities`,
+            `${targetBaseUrl}/settings`,
+            `${targetBaseUrl}/admin`,
+            `${targetBaseUrl}/admin/stats/llm`,
+            `${targetBaseUrl}/admin/system-messages`
           ],
       puppeteerScript: './e2e/scripts/lhci-auth.cjs',
       puppeteerLaunchOptions: {

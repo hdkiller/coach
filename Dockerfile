@@ -20,7 +20,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Stage 2: Build the application
 FROM base AS builder
 ARG COMMIT_SHA
+ARG SENTRY_AUTH_TOKEN
 ENV COMMIT_SHA=${COMMIT_SHA}
+ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 ENV CHAT_TURN_RUNNER_ENABLED=false
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
