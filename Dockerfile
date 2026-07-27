@@ -31,7 +31,7 @@ COPY . .
 # Typecheck is NOT run here: the CI workflow (.github/workflows/ci.yml) runs it on a
 # GitHub-hosted runner and gates the deploy job, so it fails minutes earlier and we
 # don't pay for it twice per push. Run `pnpm typecheck` locally before building by hand.
-RUN NODE_OPTIONS=--max-old-space-size=14336 pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 
 # Stage 3: Production image
 FROM base AS runner
