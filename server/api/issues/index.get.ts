@@ -1,14 +1,11 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { issuesRepository } from '../../utils/repositories/issuesRepository'
 import { prisma } from '../../utils/db'
 import type { BugStatus } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
-  const userId = session.user.id
+  const user = await requireAuth(event, ['issue:read'])
+  const userId = user.id
 
   const query = getQuery(event)
   const page = Number(query.page) || 1

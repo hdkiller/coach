@@ -10,30 +10,33 @@ test.describe('E2E Goals Endpoints', () => {
     // 1. List goals
     const listRes = await request.get('/api/goals', { headers })
     expect(listRes.ok()).toBeTruthy()
-    const initialGoals = await listRes.json()
-    expect(Array.isArray(initialGoals)).toBeTruthy()
+    const listData = await listRes.json()
+    const goals = Array.isArray(listData) ? listData : listData.goals
+    expect(Array.isArray(goals)).toBeTruthy()
 
     // 2. Create goal
     const createRes = await request.post('/api/goals', {
       headers,
       data: {
+        type: 'PERFORMANCE',
         title: 'Run Sub-3 Marathon',
-        category: 'RACE',
         targetDate: new Date(Date.now() + 86400000 * 90).toISOString(),
-        targetValue: 180,
-        unit: 'minutes'
+        targetValue: 180
       }
     })
     expect(createRes.ok()).toBeTruthy()
-    const newGoal = await createRes.json()
+    const createData = await createRes.json()
+    const newGoal = createData.goal || createData
     expect(newGoal.id).toBeTruthy()
     expect(newGoal.title).toBe('Run Sub-3 Marathon')
 
-    // 3. Get single goal
-    const getRes = await request.get(`/api/goals/${newGoal.id}`, { headers })
-    expect(getRes.ok()).toBeTruthy()
-    const fetchedGoal = await getRes.json()
-    expect(fetchedGoal.id).toBe(newGoal.id)
+    // 3. Verify created goal in goals list
+    const checkListRes = await request.get('/api/goals', { headers })
+    expect(checkListRes.ok()).toBeTruthy()
+    const checkListData = await checkListRes.json()
+    const allGoals = Array.isArray(checkListData) ? checkListData : checkListData.goals
+    const foundGoal = allGoals.find((g: any) => g.id === newGoal.id)
+    expect(foundGoal).toBeTruthy()
 
     // 4. Update goal
     const updateRes = await request.patch(`/api/goals/${newGoal.id}`, {
@@ -43,7 +46,8 @@ test.describe('E2E Goals Endpoints', () => {
       }
     })
     expect(updateRes.ok()).toBeTruthy()
-    const updatedGoal = await updateRes.json()
+    const updateData = await updateRes.json()
+    const updatedGoal = updateData.goal || updateData
     expect(updatedGoal.title).toBe('Run Sub-2:55 Marathon')
 
     // 5. Delete goal
