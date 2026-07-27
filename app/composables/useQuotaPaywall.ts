@@ -21,6 +21,9 @@ interface QuotaSummaryResponse {
 
 const QUOTA_CACHE_TTL_MS = 30_000
 
+/** Warn from this many uses left; above it the countdown stays hidden. */
+const LOW_ALLOWANCE_THRESHOLD = 2
+
 export interface QuotaPaywallOptions {
   operation?: QuotaPaywallOperation
   title?: string
@@ -178,11 +181,30 @@ export function useQuotaPaywall() {
       return recommendedTier === 'pro' ? 'Pro' : recommendedTier === 'supporter' ? 'Supporter' : ''
     })
 
+    const remaining = computed(() => {
+      const quota = getQuotaForOperation(operation)
+      if (!quota || !Number.isFinite(quota.limit)) return null
+      if (hasQuotaResetPassed(quota.resetsAt, now.value)) return quota.limit
+      return Math.max(0, quota.remaining)
+    })
+
+    /**
+     * Short warning for the trigger control, so an athlete is never surprised
+     * mid-task. Silent until the allowance is nearly gone — a countdown on every
+     * button would just be noise.
+     */
+    const remainingLabel = computed(() => {
+      const left = remaining.value
+      if (left === null || left > LOW_ALLOWANCE_THRESHOLD || locked.value) return null
+      if (left === 0) return 'None left'
+      return left === 1 ? '1 left' : `${left} left`
+    })
+
     onMounted(() => {
       void ensureQuotasLoaded()
     })
 
-    return { locked, lockedTierLabel }
+    return { locked, lockedTierLabel, remaining, remainingLabel }
   }
 
   return {

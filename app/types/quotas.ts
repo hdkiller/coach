@@ -7,6 +7,8 @@ export interface QuotaStatus {
   window: string
   resetsAt: Date | string | null
   enforcement: 'STRICT' | 'MEASURE'
+  /** Client-facing feature code, matching the 429 payload. */
+  feature?: string | null
   nextTier?: 'SUPPORTER' | 'PRO' | null
   nextTierLimit?: number | null
 }
