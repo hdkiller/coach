@@ -185,8 +185,25 @@ export function expandStoredChatMessage(message: any) {
   const shouldHideEmptyFailure = !!metadata.hiddenBecauseEmptyFailure
   const shouldHideUntilContent = !!metadata.hideUntilContent
 
+  // A tool call must be represented by exactly one part per assistant message. Legacy
+  // messages persist the same call under both `toolApprovals` and `toolCalls`, and emitting
+  // both produces two `functionCall` parts with the same id inside one Gemini `model`
+  // content, which the API rejects with a bare 400 INVALID_ARGUMENT. The stored tool call
+  // wins because it also carries the args, the raw call (thought signature) and the output.
+  const storedToolCalls = normalizeStoredToolCalls(metadata, message.id)
+  const storedToolCallIds = new Set<string>(
+    storedToolCalls.map((toolCall: any) => toolCall.toolCallId).filter(Boolean)
+  )
+  const emittedToolCallIds = new Set<string>()
+
   if (Array.isArray(metadata.toolApprovals)) {
     metadata.toolApprovals.forEach((approval: any) => {
+      if (approval?.toolCallId) {
+        if (storedToolCallIds.has(approval.toolCallId)) return
+        if (emittedToolCallIds.has(approval.toolCallId)) return
+        emittedToolCallIds.add(approval.toolCallId)
+      }
+
       parts.push({
         type: `tool-${approval.name}`,
         toolCallId: approval.toolCallId,
@@ -208,7 +225,12 @@ export function expandStoredChatMessage(message: any) {
       : []
   )
 
-  normalizeStoredToolCalls(metadata, message.id).forEach((toolCall: any) => {
+  storedToolCalls.forEach((toolCall: any) => {
+    if (toolCall.toolCallId) {
+      if (emittedToolCallIds.has(toolCall.toolCallId)) return
+      emittedToolCallIds.add(toolCall.toolCallId)
+    }
+
     if (pendingApprovalIds.has(toolCall.toolCallId)) {
       parts.push({
         type: `tool-${toolCall.name}`,

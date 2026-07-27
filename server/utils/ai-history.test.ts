@@ -82,7 +82,7 @@ describe('transformHistoryToCoreMessages', () => {
         {
           type: 'tool-result',
           toolCallId: 'call_123',
-          toolName: 'unknown',
+          toolName: 'test_tool',
           output: { type: 'text', value: 'User confirmed action.' }
         }
       ])
@@ -436,5 +436,30 @@ describe('transformHistoryToCoreMessages', () => {
         google: { thoughtSignature: 'signed-part' }
       }
     })
+  })
+  it('names approval-response tool results after the originating tool call', async () => {
+    const result = await transformHistoryToCoreMessages([
+      {
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-log_meal',
+            toolCallId: 'call_approval',
+            state: 'approval-requested',
+            input: { meal: 'oats' },
+            approval: { id: 'call_approval' }
+          }
+        ]
+      },
+      {
+        role: 'tool',
+        parts: [{ type: 'tool-approval-response', toolCallId: 'call_approval', approved: true }]
+      }
+    ])
+
+    const toolMessage = result.find((message) => message.role === 'tool')
+
+    expect(toolMessage).toBeDefined()
+    expect((toolMessage!.content as any[])[0].toolName).toBe('log_meal')
   })
 })
