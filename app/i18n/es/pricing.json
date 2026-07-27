@@ -34,12 +34,16 @@
   "headline": "Planes para cada deportista",
   "label": "PRECIOS",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "Confirmar cambio",
     "description": "Revisar los cambios en su plan de suscripción",
     "keep_plan": "Mantener mi plan actual",
     "stripe_note": "Stripe calculará automáticamente los créditos por el tiempo no utilizado y los aplicará a tus facturas futuras.",
     "switch_to": "¿Cambiar a {name}?",
     "title": "Confirmar degradación",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "Estás migrando a un nivel inferior. Algunas funciones (como el Análisis Profundo de IA) estarán restringidas una vez procesado el cambio."
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "Seguimiento confiable de tendencias y resúmenes semanales",
       "name": "Seguidor"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

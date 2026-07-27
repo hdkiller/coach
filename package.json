@@ -99,6 +99,7 @@
     "@iconify-json/tabler": "^1.2.35",
     "@lhci/cli": "^0.15.1",
     "@nuxt/eslint": "^1.16.0",
+    "@nuxt/icon": "^2.3.1",
     "@nuxt/test-utils": "^4.0.3",
     "@playwright/test": "^1.58.2",
     "@release-it/conventional-changelog": "^10.0.4",
@@ -240,13 +241,17 @@
       "unrs-resolver"
     ],
     "overrides": {
+      "ai": "$ai",
       "@vercel/nft": "^0.27.4",
       "@vueuse/core": "^14.3.0",
       "@vueuse/shared": "^14.3.0"
     }
   },
   "overrides": {
-    "ai": "$ai"
+    "ai": "$ai",
+    "@vercel/nft": "^0.27.4",
+    "@vueuse/core": "^14.3.0",
+    "@vueuse/shared": "^14.3.0"
   },
   "lint-staged": {
     "*.{js,jsx,mjs,ts,tsx,vue}": [
@@ -257,5 +262,5 @@
       "prettier --write"
     ]
   },
-  "packageManager": "pnpm@9.13.0+sha512.beb9e2a803db336c10c9af682b58ad7181ca0fbd0d4119f2b33d5f2582e96d6c0d93c85b23869295b765170fbdaa92890c0da6ada457415039769edf3c959efe"
+  "packageManager": "pnpm@11.17.0"
 }

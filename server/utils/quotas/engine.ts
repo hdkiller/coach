@@ -2,7 +2,12 @@ import { Prisma } from '@prisma/client'
 import type { SubscriptionTier } from '@prisma/client'
 import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
-import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
+import {
+  QUOTA_REGISTRY,
+  mapOperationToQuota,
+  quotaFeatureCode,
+  resolveUpgradeForOperation
+} from './registry'
 import type { QuotaStatus } from '~~/app/types/quotas'
 import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../date'
 import { resolveEffectiveTier } from '../../../shared/effective-tier'
@@ -156,6 +161,8 @@ export async function getQuotaStatus(
       resetsAt = new Date(firstUsedAt.getTime() + parseIntervalToMs(quotaDef.window))
     }
 
+    const upgrade = resolveUpgradeForOperation(operation, effectiveTier)
+
     return {
       operation,
       allowed: quotaDef.enforcement === 'MEASURE' || used < quotaDef.limit,
@@ -164,7 +171,9 @@ export async function getQuotaStatus(
       remaining,
       window: isCalendarReset ? 'calendar day' : quotaDef.window,
       resetsAt,
-      enforcement: quotaDef.enforcement
+      enforcement: quotaDef.enforcement,
+      nextTier: upgrade?.nextTier ?? null,
+      nextTierLimit: upgrade?.nextTierLimit ?? null
     }
   } catch (error) {
     console.error(`Failed to get quota status for ${operation}:`, error)
@@ -215,15 +224,52 @@ export async function checkQuota(userId: string, operation: string): Promise<Quo
     }
     error.statusCode = 429
     error.statusMessage = `Quota exceeded for ${operation}. Upgrade your plan for higher limits.`
-    error.data = {
-      operation,
-      quotaExceeded: true
-    }
+    error.data = buildQuotaErrorPayload(status)
     error.quotaExceeded = true
     throw error
   }
 
   return status
+}
+
+/**
+ * Seconds until the allowance refills, for the `Retry-After` header.
+ * Null when the reset time is unknown or already in the past.
+ */
+export function quotaRetryAfterSeconds(
+  resetsAt: Date | string | null | undefined,
+  now: Date = new Date()
+): number | null {
+  if (!resetsAt) return null
+  const reset = new Date(resetsAt)
+  if (Number.isNaN(reset.getTime())) return null
+  const seconds = Math.ceil((reset.getTime() - now.getTime()) / 1000)
+  return seconds > 0 ? seconds : null
+}
+
+/**
+ * The 429 body contract shared with API clients: what was limited, how much of
+ * the allowance was used, when it comes back, and which tier lifts it. Clients
+ * must never have to parse English copy to build a plan-limit state.
+ */
+export function buildQuotaErrorPayload(status: QuotaStatus): Record<string, unknown> {
+  const retryAfterSeconds = quotaRetryAfterSeconds(status.resetsAt)
+
+  return {
+    code: 'QUOTA_EXCEEDED',
+    operation: status.operation,
+    feature: quotaFeatureCode(status.operation),
+    limit: status.limit,
+    used: status.used,
+    remaining: status.remaining,
+    window: status.window,
+    resetsAt: status.resetsAt instanceof Date ? status.resetsAt.toISOString() : status.resetsAt,
+    retryAfterSeconds,
+    requiredTier: status.nextTier ?? null,
+    requiredTierLimit: status.nextTierLimit ?? null,
+    // Retained for existing consumers that branch on this flag.
+    quotaExceeded: true
+  }
 }
 
 /**

@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const { wellnessId } = await readValidatedBody(event, analyzeSchema.parse)
   const userId = user.id
 
-  await assertQuotaAllowed(userId, 'wellness_analysis')
+  await assertQuotaAllowed(userId, 'wellness_analysis', undefined, event)
 
   const wellness = await prisma.wellness.findUnique({
     where: { id: wellnessId }

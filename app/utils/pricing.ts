@@ -67,6 +67,21 @@ export const PRICING_PLANS: PricingPlan[] = [
 ]
 
 /**
+ * Real annual saving from two amounts, or null when there is nothing to claim.
+ * Never assert a discount the prices do not support: the pricing toggle used to
+ * promise a flat 33% while the plans below it saved 17% and 34%.
+ */
+export function computeSavingsPercent(
+  monthlyAmount: number | null | undefined,
+  annualAmount: number | null | undefined
+): number | null {
+  if (!monthlyAmount || !annualAmount || monthlyAmount <= 0 || annualAmount <= 0) return null
+  const yearAtMonthlyRate = monthlyAmount * 12
+  const saving = Math.round(((yearAtMonthlyRate - annualAmount) / yearAtMonthlyRate) * 100)
+  return saving >= 1 && saving < 100 ? saving : null
+}
+
+/**
  * Calculate savings percentage for annual plans
  */
 export function calculateAnnualSavings(plan: PricingPlan): number {

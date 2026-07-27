@@ -5,6 +5,31 @@
   import { profileSettingsCardUi } from '~/utils/mobile-surface-ui'
 
   const { t } = useTranslate('settings')
+
+  type CurrentSubscription = {
+    amount: number | null
+    currency: string | null
+    interval: 'monthly' | 'annual' | null
+  }
+
+  // What Stripe actually bills. The page previously showed a renewal date with
+  // no amount, so athletes had to open the portal to learn what they pay.
+  const { data: currentSubscription } = useAsyncData<CurrentSubscription>(
+    'billing-current-subscription',
+    () => ($fetch as any)('/api/stripe/subscription'),
+    { lazy: true }
+  )
+
+  function formatSubscriptionAmount(subscription: CurrentSubscription | null): string {
+    if (!subscription || subscription.amount == null) return ''
+    const formatted = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: (subscription.currency || 'usd').toUpperCase()
+    }).format(subscription.amount)
+    if (subscription.interval === 'annual') return `${formatted} ${t.value('billing_per_year')}`
+    if (subscription.interval === 'monthly') return `${formatted} ${t.value('billing_per_month')}`
+    return formatted
+  }
   const tr = (key: string, fallback: string, params?: Record<string, any>) =>
     typeof t.value === 'function' ? t.value(key, params) : fallback
 
@@ -722,6 +747,14 @@
                   >
                     <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400" />
                   </UTooltip>
+                </dd>
+              </div>
+              <div v-if="currentSubscription?.amount != null">
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {{ t('billing_amount') }}
+                </dt>
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {{ formatSubscriptionAmount(currentSubscription) }}
                 </dd>
               </div>
               <div v-if="userStore.user?.subscriptionPeriodEnd">

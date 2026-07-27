@@ -1087,6 +1087,16 @@
       })
     } catch (error: any) {
       analyzingNutrition.value = false
+
+      if (error.statusCode === 429 || error.status === 429) {
+        const { showQuotaPaywall } = useQuotaPaywall()
+        await showQuotaPaywall({
+          operation: 'nutrition_analysis',
+          featureTitle: t.value('history_analysis_failed_title')
+        })
+        return
+      }
+
       toast.add({
         title: t.value('history_analysis_failed_title'),
         description: error.data?.message || error.message || t.value('detail_analyze_error_desc'),

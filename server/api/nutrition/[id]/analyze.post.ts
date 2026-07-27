@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await assertQuotaAllowed(userId, 'nutrition_analysis')
+  await assertQuotaAllowed(userId, 'nutrition_analysis', undefined, event)
 
   let nutrition: any = null
 
