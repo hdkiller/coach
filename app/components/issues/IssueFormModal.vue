@@ -59,7 +59,10 @@
 
         await $fetch<any, string & {}>('/api/issues', {
           method: 'POST',
-          body: { ...event.data, context }
+          body: {
+            ...event.data,
+            systemContext: context
+          }
         })
         toast.add({ title: 'Issue reported successfully', color: 'success' })
       }

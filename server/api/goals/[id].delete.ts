@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 
 defineRouteMeta({
   openAPI: {
@@ -34,14 +34,7 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['goal:write'])
 
   const id = event.context.params?.id
 
@@ -53,17 +46,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'User not found'
-      })
-    }
-
     // Check if goal belongs to user
     const goal = await prisma.goal.findUnique({
       where: { id }

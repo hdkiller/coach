@@ -11,6 +11,10 @@ vi.stubGlobal('createError', (err: any) => {
   return error
 })
 
+vi.mock('../../../../../server/utils/auth-guard', () => ({
+  requireAuth: vi.fn().mockResolvedValue({ id: 'user-1' })
+}))
+
 // Mock vue-email compiler
 vi.mock('@vue-email/compiler', () => ({
   config: vi.fn().mockReturnValue({

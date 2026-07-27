@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { createPlannedWorkoutForUser } from '../../utils/planned-workout-service'
 

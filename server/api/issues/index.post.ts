@@ -1,4 +1,4 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { issuesRepository } from '../../utils/repositories/issuesRepository'
 import { z } from 'zod/v3'
 
@@ -10,11 +10,8 @@ const createSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
-  const userId = session.user.id
+  const user = await requireAuth(event, ['issue:write'])
+  const userId = user.id
 
   const body = await readBody(event)
   const result = createSchema.safeParse(body)

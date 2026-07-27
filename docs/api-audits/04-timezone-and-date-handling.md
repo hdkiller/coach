@@ -1,0 +1,134 @@
+# Audit Domain 4: Timezone & Date Handling Alignment
+
+## Overview
+
+Total Issues Identified: 122
+
+| File                                                                  | Severity  | Finding Description                                               |
+| --------------------------------------------------------------------- | --------- | ----------------------------------------------------------------- |
+| `server/api/activity/recent.get.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/queues/status.get.ts`                               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats.get.ts`                                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/developers.get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/llm/denials.get.ts`                           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/llm/operations.get.ts`                        | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/tickets.get.ts`                               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/users.get.ts`                                 | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/webhooks.get.ts`                              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/stats/workouts.get.ts`                              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/system-messages.post.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/admin/system-messages/[id].put.ts`                        | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/llm-usage.get.ts`                               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/presets/[preset].post.ts`                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/workout-comparison/intervals.post.ts`           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/workout-comparison/streams.post.ts`             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/workout-explorer/intervals.post.ts`             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/analytics/workout-explorer/streams.post.ts`               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/auth/[...].ts`                                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/auth/unsubscribe.post.ts`                                 | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/body-measurements/[id].patch.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/body-measurements/index.get.ts`                           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/body-measurements/index.post.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/calendar/index.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/chat/messages/[id].patch.ts`                              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/chat/rooms.get.ts`                                        | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/chat/rooms.post.ts`                                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/chat/rooms/[id].delete.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/chat/turns/[id]/retry.post.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/coaching/athletes/[id]/calendar.get.ts`                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/debug/system.get.ts`                                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/debug/workouts.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/events/[id].put.ts`                                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/events/index.post.ts`                                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/goals/[id].patch.ts`                                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/goals/index.post.ts`                                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/health.get.ts`                                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/integrations/hevy.post.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/integrations/intervals.post.ts`                           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/integrations/status.get.ts`                               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/integrations/strava/callback.get.ts`                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/integrations/withings/webhook.post.ts`                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/join/[code].get.ts`                                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/join/[code].post.ts`                                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/library/plans/[id]/apply.post.ts`                         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/library/plans/[id]/architect.get.ts`                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/library/plans/[id]/architect.patch.ts`                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/library/plans/index.post.ts`                              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/monitoring/trigger.get.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/monitoring/worker.get.ts`                                 | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/[id].get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/[id]/analyze.post.ts`                           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/[id]/items.patch.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/[id]/notes.patch.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/generate-plan.post.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/grocery.get.ts`                                 | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/hydration-quick-add.post.ts`                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/index.get.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/metabolic-wave.get.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/plan.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/plan/generate.post.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/nutrition/upcoming-plan.get.ts`                           | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/oauth/userinfo.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/orchestrate/full-sync.post.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/planned-workouts/[id]/complete.post.ts`                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/planned-workouts/index.get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/[id]/blocks/[blockId].patch.ts`                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/[id]/blocks/index.post.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/[id]/blocks/reorder.put.ts`                         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/[id]/save-template.post.ts`                         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/generate.post.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/workouts/future.delete.ts`                          | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/workouts/orphaned.delete.ts`                        | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/plans/workouts/past.delete.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/email-preferences.put.ts`                         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/export.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/index.patch.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/quotas.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/sport-settings/[id]/detect-from-workouts.post.ts` | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/profile/trial-summary.get.ts`                             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/public/plans/access/[token].get.ts`                       | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/recommendations/[id].patch.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/recovery-context/journey.post.ts`                         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/recovery-context/journey/[id].patch.ts`                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/reports/index.get.ts`                                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/scores/athlete-profile.get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/scores/explanation.get.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/scores/nutrition-trends-explanation.post.ts`              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/scores/workout-trends-explanation.post.ts`                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/[token].get.ts`                                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/chat/[token].get.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/generate.post.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/workouts/[token].get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/workouts/[token]/image.get.ts`                      | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/workouts/[token]/intervals.get.ts`                  | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/workouts/[token]/power-curve.get.ts`                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/share/workouts/[token]/streams.get.ts`                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/stripe/webhook.post.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/system-messages/latest.get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/system-messages/share-reward/claim.post.ts`               | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/user/consent.post.ts`                                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/webhooks/oauth/[clientId].post.ts`                        | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/webhooks/revenuecat.post.ts`                              | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/websocket.ts`                                             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/wellness/[wellnessId].get.ts`                             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/wellness/[wellnessId]/analyze.post.ts`                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/wellness/index.post.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/wellness/trend.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/[id].get.ts`                                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/[id].patch.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/[id]/notes.patch.ts`                             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/[id]/streams.get.ts`                             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/count.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/generate.post.ts`                                | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/index.get.ts`                                    | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/[id]/adjust.post.ts`                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/[id]/conflict.post.ts`                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/[id]/generate-structure.post.ts`         | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/[id]/publish-garmin.post.ts`             | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/bulk-delete.post.ts`                     | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/planned/range.get.ts`                            | **Major** | Direct Date instantiation without user timezone utility handling. |
+| `server/api/workouts/sports.get.ts`                                   | **Major** | Direct Date instantiation without user timezone utility handling. |
+
+## Remediation Guidelines & Standard Operating Procedures
+
+- Follow project guidelines in `docs/04-guides/` for remediation.

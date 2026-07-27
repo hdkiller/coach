@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   calculatePortionNutrients,
+  normalizeFoodItem,
   nutritionDatabaseService,
   type FoodItem
 } from './nutritionDatabaseService'
@@ -139,6 +140,69 @@ describe('nutritionDatabaseService', () => {
 
       const result = await nutritionDatabaseService.getFoodItemByKey('usda:12345')
       expect(result).toEqual(item)
+    })
+  })
+
+  describe('normalizeFoodItem', () => {
+    it('normalizes Open Food Facts items with nutriments object', () => {
+      const raw = {
+        product_name: 'Nutella',
+        brands: 'Ferrero',
+        code: '3017620422003',
+        nutriments: {
+          'energy-kcal_100g': 539,
+          carbohydrates_100g: 57.5,
+          proteins_100g: 6.3,
+          fat_100g: 30.9,
+          sugars_100g: 56.3
+        }
+      }
+      const normalized = normalizeFoodItem(raw)
+      expect(normalized.name).toBe('Nutella')
+      expect(normalized.brand).toBe('Ferrero')
+      expect(normalized.barcode).toBe('3017620422003')
+      expect(normalized.nutrients_per_100g).toEqual({
+        calories_kcal: 539,
+        protein_g: 6.3,
+        carbs_g: 57.5,
+        fat_g: 30.9,
+        sugar_g: 56.3
+      })
+    })
+
+    it('normalizes USDA and generic items with nutrients object and string values', () => {
+      const raw = {
+        name: 'Oats',
+        nutrients: {
+          calories: '389',
+          protein: '16.9',
+          carbs: '66.3',
+          fat: '6.9',
+          fiber: '10.6'
+        }
+      }
+      const normalized = normalizeFoodItem(raw)
+      expect(normalized.nutrients_per_100g).toEqual({
+        calories_kcal: 389,
+        protein_g: 16.9,
+        carbs_g: 66.3,
+        fat_g: 6.9,
+        fiber_g: 10.6
+      })
+    })
+
+    it('derives calories from macros when calories is missing or 0', () => {
+      const raw = {
+        name: 'Custom Mix',
+        macros: {
+          protein: 20,
+          carbs: 50,
+          fat: 10
+        }
+      }
+      const normalized = normalizeFoodItem(raw)
+      // 20*4 + 50*4 + 10*9 = 80 + 200 + 90 = 370
+      expect(normalized.nutrients_per_100g.calories_kcal).toBe(370)
     })
   })
 })

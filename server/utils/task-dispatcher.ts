@@ -241,6 +241,20 @@ export async function dispatchTask(
   const rawId = randomUUID()
   const id = formatTaskRunId('inline', rawId)
   const startedAt = new Date().toISOString()
+
+  if (!hasTaskHandler(taskIdentifier)) {
+    console.warn(`[TaskDispatcher] No inline task handler registered for: ${taskIdentifier}`)
+    inlineRuns.set(id, {
+      id,
+      taskIdentifier,
+      status: 'COMPLETED',
+      startedAt,
+      finishedAt: startedAt,
+      tags: options?.tags || []
+    })
+    return { id }
+  }
+
   inlineRuns.set(id, {
     id,
     taskIdentifier,

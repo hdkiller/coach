@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { processWahooWebhookEvent } from '../../../utils/services/wahooService'
 
 export default defineEventHandler(async (event) => {

@@ -138,8 +138,8 @@ export default defineEventHandler(async (event) => {
               text: promptText
             },
             {
-              type: 'image',
-              image: Buffer.from(base64Data, 'base64'),
+              type: 'file',
+              data: Buffer.from(base64Data, 'base64'),
               mediaType: mimeType
             }
           ]

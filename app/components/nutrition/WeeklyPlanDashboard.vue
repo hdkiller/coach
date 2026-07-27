@@ -568,6 +568,7 @@
 
 <script setup lang="ts">
   import { addDays, format, parseISO } from 'date-fns'
+  import { normalizeWindowLabel } from '~/utils/nutrition-window-label'
 
   const toast = useToast()
   const userStore = useUserStore()
@@ -703,11 +704,6 @@
     const parsed = new Date(window.startTime)
     if (Number.isNaN(parsed.getTime())) return ''
     return format(parsed, 'HH:mm')
-  }
-
-  function normalizeWindowLabel(window: any) {
-    const raw = String(window.label || window.slotName || window.type || 'Window')
-    return raw.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
   }
 
   function toWindowStatus(meal: any): WindowStatus {

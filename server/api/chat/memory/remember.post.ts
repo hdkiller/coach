@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { UserMemoryCategory, UserMemoryScope } from '@prisma/client'
 import { getServerSession } from '../../../utils/session'
 import { chatService } from '../../../utils/services/chatService'

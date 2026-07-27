@@ -1,7 +1,9 @@
+import { requireAuth } from '../../../utils/auth-guard'
 import { defineEventHandler, sendRedirect, setCookie, createError } from 'h3'
 import crypto from 'uncrypto'
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const config = useRuntimeConfig()
 
   const clientId = process.env.ROUVY_CLIENT_ID

@@ -289,3 +289,16 @@ const labels = computed(() => [{ label: t('nav.home'), to: '/' }])
 ### Static vs Reactive
 
 - Use `computed` for arrays or objects containing translated labels (like navigation links) to ensure they update automatically when the user changes their language preference.
+
+---
+
+## 16. Git & Pull Request Workflow
+
+### Branching Strategy & PR Target
+
+- **Default Base Branch**: All Pull Requests **MUST** be raised against the `develop` branch by default.
+- **Workflow**:
+  1. Feature, bugfix, and maintenance branches are created from `develop`.
+  2. Pull Requests are created targeting `develop` and merged into `develop`.
+  3. Releases and deployments occur when `develop` is merged into `master` (which triggers deployment pipelines).
+- **Branch Protection**: Direct pushes to `master` or `develop` are strictly prohibited without explicit PR review and developer approval.

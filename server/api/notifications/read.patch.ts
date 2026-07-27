@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { markAllNotificationsAsRead, markNotificationAsRead } from '../../utils/notifications'
 

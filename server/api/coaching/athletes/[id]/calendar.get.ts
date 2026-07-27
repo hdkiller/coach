@@ -1,3 +1,4 @@
+import { requireAuth } from '../../../../utils/auth-guard'
 import { z } from 'zod/v3'
 import { getCalendarDataForUser } from '../../../../utils/calendar-data'
 import { requireCoachAccessToAthlete } from '../../../../utils/coaching-auth'
@@ -10,6 +11,7 @@ const MAX_CALENDAR_RANGE_DAYS = 90
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
   const { id: athleteId } = await getValidatedRouterParams(event, paramsSchema.parse)
   await requireCoachAccessToAthlete(event, athleteId)
 

@@ -209,7 +209,7 @@ export async function buildTurnExecutionSkillConfig(input: {
   }
 }
 
-function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]) {
+export function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]) {
   const canonicalToolCallIds = new Set<string>()
 
   for (const message of messages) {
@@ -239,10 +239,19 @@ function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]
 
     return {
       ...message,
-      parts: message.parts.filter((part: any) => {
-        if (!part?.type?.startsWith('tool-')) return true
-        if (part?.state !== 'output-available') return true
-        return !canonicalToolCallIds.has(part.toolCallId)
+      parts: message.parts.map((part: any) => {
+        if (!part?.type?.startsWith('tool-')) return part
+        if (part?.state !== 'output-available') return part
+        if (!canonicalToolCallIds.has(part.toolCallId)) return part
+
+        // Drop only the duplicated output, never the call itself. Downgrading to
+        // `input-available` makes convertToModelMessages emit the `tool-call` without a
+        // second `tool-result`, so the canonical tool message stays the single source of
+        // the result. Removing the whole part instead would leave that canonical result
+        // orphaned, and transformHistoryToCoreMessages would then drop it too, erasing
+        // the entire tool exchange from the model's view of the conversation.
+        const { output: _output, ...rest } = part
+        return { ...rest, state: 'input-available' }
       })
     }
   })

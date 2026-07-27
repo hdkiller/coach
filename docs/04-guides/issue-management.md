@@ -155,6 +155,7 @@ We use a specific set of labels to categorize issues. Please apply at least one 
 3.  **One Issue per Topic**: Do not combine multiple unrelated bugs or features into a single issue.
 4.  **Keep it Updated**: If you find new information, update the issue comments.
 5.  **Reference Code**: If you know where the issue might be in the codebase, link to the file or line number.
+6.  **PR Target Branch**: When opening Pull Requests to resolve issues, default to targeting the `develop` branch. PRs are merged into `develop`, and `develop` is subsequently merged into `master`.
 
 ---
 

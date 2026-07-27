@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { dispatchTask } from '../../utils/task-dispatcher'
 import { requireAuth } from '../../utils/auth-guard'
 import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRepository'

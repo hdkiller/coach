@@ -17,7 +17,13 @@ import {
   requestGarminBackfill,
   type GarminBackfillType
 } from '../garmin'
-import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
+import {
+  parseFitFile,
+  normalizeFitSession,
+  reconstructSessionFromRecords,
+  extractFitStreams,
+  extractFitExtrasMeta
+} from '../fit'
 import { triggerWorkoutDeduplicationIfEnabled } from '../trigger-workout-deduplication'
 import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { normalizeGarminActivityType } from '../activity-mapping'
@@ -621,11 +627,29 @@ export const GarminService = {
         })
 
         if (!existingStream || !existingFitFile) {
-          try {
-            const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
-            await this.ingestFitArtifactsForWorkout(userId, upserted.record.id, externalId, buffer)
-          } catch (e) {
-            console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+          // Direct /activityFile REST endpoint requires a valid download token parameter.
+          // Only attempt direct REST pull if pullToken is present; summary push notifications usually do not include it.
+          if (pullToken) {
+            try {
+              const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
+              await this.ingestFitArtifactsForWorkout(
+                userId,
+                upserted.record.id,
+                externalId,
+                buffer
+              )
+            } catch (e) {
+              const isTokenError =
+                e instanceof Error &&
+                /invalid (download|pull) token|invalidtokenexception/i.test(e.message)
+              if (isTokenError) {
+                console.log(
+                  `[GarminService] Stream download token not available in summary push for ${externalId}; awaiting activityFiles push...`
+                )
+              } else {
+                console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
+              }
+            }
           }
         }
       }
@@ -648,7 +672,7 @@ export const GarminService = {
       const candidateExternalIds = this.getActivityFileExternalIds(record)
       if (candidateExternalIds.length === 0) continue
 
-      const workout = await prisma.workout.findFirst({
+      let workout = await prisma.workout.findFirst({
         where: {
           userId,
           source: 'garmin',
@@ -658,10 +682,51 @@ export const GarminService = {
       })
 
       if (!workout) {
-        console.warn('[GarminService] No matching Garmin workout found for activity file', {
-          userId,
-          candidateExternalIds
-        })
+        // Out-of-order activityFiles push: callbackUrl has a time-sensitive download token.
+        // Download and parse FIT file immediately before token expires, creating the workout record.
+        try {
+          const buffer = await fetchGarminActivityFileByCallbackUrl(integration, callbackUrl)
+          const primaryExternalId = candidateExternalIds[0] || 'unknown'
+          const fitData = await parseFitFile(buffer)
+          let session = fitData.sessions[0]
+          if (!session && fitData.records && fitData.records.length > 0) {
+            session = reconstructSessionFromRecords(fitData.records)
+          }
+
+          const filename = `garmin_${primaryExternalId}.fit`
+          const workoutData = session
+            ? normalizeFitSession(session, userId, filename, undefined)
+            : {
+                userId,
+                externalId: primaryExternalId,
+                source: 'garmin',
+                date: new Date(),
+                title: 'Garmin Activity',
+                type: 'OTHER',
+                durationSec: 0
+              }
+          workoutData.source = 'garmin'
+          workoutData.externalId = primaryExternalId
+
+          const { record: createdWorkout } = await workoutRepository.upsert(
+            userId,
+            'garmin',
+            primaryExternalId,
+            workoutData,
+            workoutData
+          )
+          workout = createdWorkout
+
+          await this.ingestFitArtifactsForWorkout(userId, workout.id, primaryExternalId, buffer)
+          console.log(
+            `[GarminService] Created workout and ingested FIT file from out-of-order activityFiles push for ${primaryExternalId}`
+          )
+        } catch (e) {
+          console.error(
+            `[GarminService] Failed to ingest early activity file for candidate externalIds ${candidateExternalIds.join(', ')}`,
+            e
+          )
+        }
         continue
       }
 
@@ -913,6 +978,45 @@ export const GarminService = {
           firstFailure?.reason instanceof Error
             ? firstFailure.reason.message
             : String(firstFailure?.reason || 'All Garmin API requests failed')
+
+        const isPullTokenError = results.some(
+          (r) =>
+            r.status === 'rejected' &&
+            String(r.reason instanceof Error ? r.reason.message : r.reason || '').includes(
+              'InvalidPullTokenException'
+            )
+        )
+
+        if (isPullTokenError) {
+          console.log(
+            `[GarminService] Direct REST pull restricted by Garmin for user ${userId}. Initiating asynchronous backfill...`
+          )
+          await this.startBackfill(userId)
+
+          await prisma.integration.update({
+            where: { id: integration.id },
+            data: {
+              syncStatus: 'SUCCESS',
+              lastSyncAt: new Date(),
+              errorMessage:
+                'Direct pull restricted by Garmin Health API. Asynchronous backfill requested via webhooks.'
+            }
+          })
+
+          return {
+            success: true,
+            backfillTriggered: true,
+            counts: {
+              dailies: 0,
+              sleeps: 0,
+              hrv: 0,
+              bodyComps: 0,
+              userMetrics: 0,
+              activities: 0
+            }
+          }
+        }
+
         throw new Error(failureMessage)
       }
 

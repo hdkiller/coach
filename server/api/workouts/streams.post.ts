@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { workoutStreamRepository } from '../../utils/repositories/workoutStreamRepository'

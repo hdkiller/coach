@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 import fs from 'fs'
