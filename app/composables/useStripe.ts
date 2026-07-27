@@ -107,6 +107,17 @@ export function useStripe() {
         return false // Return false because it's not "finished" yet
       }
 
+      if (data.value?.status === 'payment_failed') {
+        toast.add({
+          title: 'Payment Declined',
+          description:
+            data.value.message ||
+            'Your bank declined the charge, so your plan is unchanged. Update your payment method and try again.',
+          color: 'error'
+        })
+        return false
+      }
+
       if (data.value?.status === 'checkout_required') {
         toast.add({
           title: 'Billing Profile Refreshed',
