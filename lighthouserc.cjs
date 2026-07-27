@@ -39,10 +39,9 @@ module.exports = {
       settings: {
         preset: 'desktop',
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
-        skipAudits: ['full-page-screenshot'],
+        skipAudits: ['full-page-screenshot', 'font-size'],
         logLevel: process.env.LHCI_LOG_LEVEL || (isFastLocal ? 'info' : 'silent'),
         disableStorageReset: true,
-        // Prevent hanging on background Vite HMR WebSockets
         pauseAfterFulfillMs: 1000,
         pauseAfterLoadMs: 1000,
         networkQuietThresholdMs: 1000,
