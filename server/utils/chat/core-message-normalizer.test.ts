@@ -80,7 +80,8 @@ describe('normalizeCoreMessagesForGemini', () => {
       {
         role: 'tool',
         content: [
-          { type: 'tool-result', toolCallId: 'call_1', toolName: 'lookup', result: { ok: true } }
+          { type: 'tool-result', toolCallId: 'call_1', toolName: 'lookup', result: { ok: true } },
+          { type: 'tool-result', toolCallId: 'call_2', toolName: 'lookup', result: { ok: true } }
         ]
       }
     ])
@@ -136,5 +137,74 @@ describe('normalizeCoreMessagesForGemini', () => {
     ])
 
     expect(result[1].content[0].toolName).toBe('log_meal')
+  })
+  it('drops assistant tool calls whose results did not survive normalization', () => {
+    const result = normalizeCoreMessagesForGemini([
+      { role: 'user', content: 'q' },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', toolCallId: 'call_1', toolName: 'lookup', input: {} },
+          { type: 'text', text: 'first' }
+        ]
+      },
+      { role: 'assistant', content: [{ type: 'text', text: 'second' }] },
+      {
+        role: 'tool',
+        content: [
+          { type: 'tool-result', toolCallId: 'call_1', toolName: 'lookup', result: { ok: true } }
+        ]
+      },
+      { role: 'user', content: 'next' }
+    ])
+
+    const orphanCalls = result
+      .filter((message: any) => message.role === 'assistant')
+      .flatMap((message: any) =>
+        Array.isArray(message.content)
+          ? message.content.filter((part: any) => part.type === 'tool-call')
+          : []
+      )
+
+    expect(orphanCalls).toHaveLength(0)
+    expect(result.map((message: any) => message.role)).toEqual([
+      'user',
+      'assistant',
+      'assistant',
+      'user'
+    ])
+  })
+
+  it('keeps a tool call whose result survived', () => {
+    const result = normalizeCoreMessagesForGemini([
+      { role: 'user', content: 'q' },
+      {
+        role: 'assistant',
+        content: [{ type: 'tool-call', toolCallId: 'call_1', toolName: 'lookup', input: {} }]
+      },
+      {
+        role: 'tool',
+        content: [
+          { type: 'tool-result', toolCallId: 'call_1', toolName: 'lookup', result: { ok: true } }
+        ]
+      },
+      { role: 'user', content: 'next' }
+    ])
+
+    expect(result[1].content[0]).toMatchObject({ type: 'tool-call', toolCallId: 'call_1' })
+    expect(result[2].role).toBe('tool')
+  })
+
+  it('replaces assistant content with a placeholder when every tool call is dropped', () => {
+    const result = normalizeCoreMessagesForGemini([
+      { role: 'user', content: 'q' },
+      {
+        role: 'assistant',
+        content: [{ type: 'tool-call', toolCallId: 'call_1', toolName: 'lookup', input: {} }]
+      },
+      { role: 'user', content: 'next' }
+    ])
+
+    expect(result[1].content).toEqual([{ type: 'text', text: ' ' }])
   })
 })
