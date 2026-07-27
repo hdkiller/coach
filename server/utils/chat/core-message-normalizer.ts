@@ -54,6 +54,44 @@ function dedupeAssistantToolCalls(content: any[]) {
   return deduped
 }
 
+/**
+ * The adjacency rules above can drop a tool message (for example when another assistant
+ * turn was persisted between the call and its canonical result) while the assistant's
+ * `tool-call` part survives. The AI SDK rejects that prompt outright with
+ * `AI_MissingToolResultsError` before any request is sent, which fails the whole turn.
+ *
+ * A tool call is only meaningful to the model alongside its result, so drop any call whose
+ * result did not survive normalization.
+ */
+function dropUnresolvedAssistantToolCalls(messages: any[]) {
+  const resolvedToolCallIds = new Set<string>()
+
+  for (const msg of messages) {
+    if (msg?.role !== 'tool') continue
+    for (const part of asParts(msg.content)) {
+      if (part?.type === 'tool-result' && part.toolCallId) {
+        resolvedToolCallIds.add(part.toolCallId)
+      }
+    }
+  }
+
+  return messages.map((msg) => {
+    if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) return msg
+    if (!msg.content.some((part: any) => part?.type === 'tool-call')) return msg
+
+    const content = msg.content.filter(
+      (part: any) => part?.type !== 'tool-call' || resolvedToolCallIds.has(part.toolCallId)
+    )
+
+    if (content.length === msg.content.length) return msg
+
+    return {
+      ...msg,
+      content: content.length > 0 ? content : [{ type: 'text', text: ' ' }]
+    }
+  })
+}
+
 export function normalizeCoreMessagesForGemini(coreMessages: any[]) {
   const merged: any[] = []
 
@@ -159,5 +197,5 @@ export function normalizeCoreMessagesForGemini(coreMessages: any[]) {
     pendingToolCalls = null
   }
 
-  return final
+  return dropUnresolvedAssistantToolCalls(final)
 }

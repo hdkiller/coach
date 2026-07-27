@@ -31,6 +31,41 @@ beforeEach(() => {
   dispatchTaskMock.mockResolvedValue({ id: 'run_123' })
 })
 
+describe('findApprovedToolContinuation signature passthrough', () => {
+  it('carries the raw tool call so the thought signature survives the continuation', () => {
+    const continuation = findApprovedToolContinuation([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-log_meal',
+            toolCallId: 'call_1',
+            state: 'approval-requested',
+            input: { meal: 'oats' },
+            approval: { id: 'call_1' },
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call_1',
+              toolName: 'log_meal',
+              input: { meal: 'oats' },
+              providerMetadata: { google: { thoughtSignature: 'signed-part' } }
+            }
+          }
+        ]
+      },
+      {
+        id: 'tool-1',
+        role: 'tool',
+        parts: [{ type: 'tool-approval-response', toolCallId: 'call_1', approved: true }]
+      }
+    ])
+
+    expect(continuation).toMatchObject({ toolCallId: 'call_1', toolName: 'log_meal' })
+    expect(continuation!.rawToolCall.providerMetadata.google.thoughtSignature).toBe('signed-part')
+  })
+})
+
 describe('stripAssistantToolOutputsWhenCanonicalToolMessagesExist', () => {
   const assistantWithOutput = () => [
     {
