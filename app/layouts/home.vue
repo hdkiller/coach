@@ -82,7 +82,12 @@
           </template>
 
           <UPopover class="lg:hidden">
-            <UButton icon="i-heroicons-bars-3" color="neutral" variant="ghost" />
+            <UButton
+              icon="i-heroicons-bars-3"
+              color="neutral"
+              variant="ghost"
+              aria-label="Open menu"
+            />
             <template #content>
               <div class="flex w-48 flex-col gap-4 p-4">
                 <NuxtLink
