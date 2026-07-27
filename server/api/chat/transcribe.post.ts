@@ -33,7 +33,8 @@ export default defineEventHandler(async (event) => {
   await assertQuotaAllowed(
     userId,
     'chat',
-    'Chat quota exceeded. Voice transcription is unavailable until your limit resets.'
+    'Chat quota exceeded. Voice transcription is unavailable until your limit resets.',
+    event
   )
 
   const formData = await readMultipartFormData(event)

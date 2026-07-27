@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   // 0. Quota Check
-  await assertQuotaAllowed(userId, 'unified_report_generation')
+  await assertQuotaAllowed(userId, 'unified_report_generation', undefined, event)
 
   const body = await readBody(event)
   const reportType = body.type || 'WEEKLY_ANALYSIS'

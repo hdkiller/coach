@@ -7,7 +7,7 @@ import { assertQuotaAllowed } from '../../../utils/quotas/http'
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['health:write'])
   const userId = user.id
-  await assertQuotaAllowed(userId, 'wellness_analysis')
+  await assertQuotaAllowed(userId, 'wellness_analysis', undefined, event)
 
   const param = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
 
