@@ -41,9 +41,20 @@ troubleshootWorkoutsCommand
         console.log(chalk.green(`Extracted Workout ID/Token: ${workoutId}`))
       }
 
-      if (url.includes('coachwatts.com')) {
-        isProd = true
-        console.log(chalk.yellow('Detected coachwatts.com URL. Forcing --prod mode.'))
+      try {
+        const parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`)
+        if (
+          parsedUrl.hostname === 'coachwatts.com' ||
+          parsedUrl.hostname.endsWith('.coachwatts.com')
+        ) {
+          isProd = true
+          console.log(chalk.yellow('Detected coachwatts.com URL. Forcing --prod mode.'))
+        }
+      } catch {
+        if (/^https?:\/\/(?:[a-z0-9-]+\.)*coachwatts\.com(?::\d+)?(?:\/|$)/i.test(url)) {
+          isProd = true
+          console.log(chalk.yellow('Detected coachwatts.com URL. Forcing --prod mode.'))
+        }
       }
     }
 

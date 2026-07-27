@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import chalk from 'chalk'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -34,9 +34,13 @@ backupCommand
     const [, dbUser, dbPassword, dbHost, dbPort, dbName] = dbUrlMatch
 
     try {
-      execSync(`docker ps --format '{{.Names}}' | grep -q "^${options.container}$"`, {
-        stdio: 'inherit'
+      const psOutput = execFileSync('docker', ['ps', '--format', '{{.Names}}'], {
+        encoding: 'utf-8'
       })
+      const runningContainers = psOutput.split('\n').map((name) => name.trim())
+      if (!runningContainers.includes(options.container)) {
+        throw new Error(`Container ${options.container} not running`)
+      }
     } catch (error) {
       console.error(chalk.red(`Error: Docker container '${options.container}' is not running`))
       process.exit(1)
@@ -62,10 +66,24 @@ backupCommand
     console.log(chalk.yellow('Starting backup...'))
 
     try {
-      execSync(
-        `docker exec -e PGPASSWORD=${dbPassword} ${options.container} pg_dump -U ${dbUser} -h localhost ${formatFlag} ${dbName} > ${backupFile}`,
-        { stdio: 'inherit' }
+      const dumpOutput = execFileSync(
+        'docker',
+        [
+          'exec',
+          '-e',
+          `PGPASSWORD=${dbPassword}`,
+          options.container,
+          'pg_dump',
+          '-U',
+          dbUser,
+          '-h',
+          'localhost',
+          formatFlag,
+          dbName
+        ],
+        { maxBuffer: 1024 * 1024 * 500 }
       )
+      fs.writeFileSync(backupFile, dumpOutput)
 
       const stats = fs.statSync(backupFile)
       console.log(chalk.green('✓ Backup completed successfully'))

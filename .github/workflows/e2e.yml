@@ -32,6 +32,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   e2e:
     name: Playwright E2E
@@ -134,4 +137,4 @@ jobs:
 
       - name: Tear down e2e stack
         if: always()
-        run: pnpm e2e:down
+        run: command -v pnpm >/dev/null 2>&1 && pnpm e2e:down || true

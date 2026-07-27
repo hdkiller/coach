@@ -50,9 +50,8 @@ export default defineEventHandler(async (event) => {
 
   if (!result.success) {
     console.warn('[PATCH /api/profile] Validation failed:', {
-      user: user.email,
-      errors: result.error.issues,
-      body: body
+      userId: user.id,
+      errors: result.error.issues
     })
     throw createError({
       statusCode: 400,
@@ -231,9 +230,8 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     console.error('[PATCH /api/profile] Update failed:', {
-      user: user.email,
-      error: error,
-      payload: data
+      userId: user.id,
+      error
     })
     throw createError({
       statusCode: 500,

@@ -9,3 +9,6 @@ allowBuilds:
   prisma: true
   unrs-resolver: true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - '@tiptap/extension-placeholder@3.29.1'
+  - '@tiptap/extensions@3.29.1'
