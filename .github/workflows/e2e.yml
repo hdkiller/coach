@@ -1,9 +1,9 @@
 name: E2E
 
 # Runs on:
-# 1. Manual trigger (workflow_dispatch)
-# 2. Pull Requests targeting `master`
-# 3. Pull Requests labeled with `run-e2e`
+# 1. Manual trigger (workflow_dispatch) with options for ref, with_lighthouse, or lighthouse_only
+# 2. Pull Requests targeting `master` (runs E2E + Lighthouse)
+# 3. Pull Requests labeled with `run-e2e` or `run-lighthouse`
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +12,16 @@ on:
         required: true
         default: develop
         type: string
+      with_lighthouse:
+        description: Run Lighthouse CI performance audits alongside Playwright
+        required: false
+        default: false
+        type: boolean
+      lighthouse_only:
+        description: Skip Playwright E2E tests and run ONLY Lighthouse CI
+        required: false
+        default: false
+        type: boolean
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
@@ -30,7 +40,8 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.base_ref == 'master' ||
-      contains(github.event.pull_request.labels.*.name, 'run-e2e')
+      contains(github.event.pull_request.labels.*.name, 'run-e2e') ||
+      contains(github.event.pull_request.labels.*.name, 'run-lighthouse')
 
     env:
       DOCKER_BUILDKIT: '1'
@@ -82,18 +93,39 @@ jobs:
         run: pnpm exec playwright install chromium
 
       - name: Run Playwright
+        if: ${{ !inputs.lighthouse_only }}
         run: pnpm test:e2e
         env:
           CI: true
 
+      - name: Run Lighthouse CI
+        if: |
+          github.base_ref == 'master' ||
+          inputs.with_lighthouse == true ||
+          inputs.lighthouse_only == true ||
+          contains(github.event.pull_request.labels.*.name, 'run-lighthouse')
+        run: pnpm e2e:lighthouse
+        env:
+          CI: true
+          E2E_BASE_URL: 'http://localhost:3199'
+
       - name: Upload Playwright report
-        if: always()
+        if: always() && !inputs.lighthouse_only
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Lighthouse report
+        if: always() && (github.base_ref == 'master' || inputs.with_lighthouse == true || inputs.lighthouse_only == true || contains(github.event.pull_request.labels.*.name, 'run-lighthouse'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouserc-report-${{ github.run_id }}
+          path: .lighthouseci/
           if-no-files-found: ignore
           retention-days: 14
 
