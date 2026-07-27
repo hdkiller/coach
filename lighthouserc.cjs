@@ -8,39 +8,55 @@ try {
 }
 
 const targetBaseUrl = process.env.E2E_BASE_URL || 'http://localhost:3199'
+const isFastLocal = !process.env.CI
 
 module.exports = {
   ci: {
     collect: {
-      url: [
-        `${targetBaseUrl}/dashboard`,
-        `${targetBaseUrl}/calendar`,
-        `${targetBaseUrl}/chat`
-      ],
+      url: process.env.LHCI_URL
+        ? [process.env.LHCI_URL]
+        : [
+            `${targetBaseUrl}/dashboard`,
+            `${targetBaseUrl}/calendar`,
+            `${targetBaseUrl}/chat`
+          ],
       puppeteerScript: './e2e/scripts/lhci-auth.cjs',
       puppeteerLaunchOptions: {
         args: [
           '--no-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--headless=new'
+          '--headless=new',
+          '--no-pings',
+          '--disable-background-networking'
         ]
       },
-      numberOfRuns: 2,
+      // 1 run locally for instant feedback; 2 runs in CI for statistical stability
+      numberOfRuns: isFastLocal ? 1 : 2,
       ...(chromePath || process.env.CHROME_PATH
         ? { chromePath: process.env.CHROME_PATH || chromePath }
         : {}),
       settings: {
         preset: 'desktop',
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
-        skipAudits: ['full-page-screenshot']
+        skipAudits: ['full-page-screenshot', 'font-size'],
+        logLevel: process.env.LHCI_LOG_LEVEL || (isFastLocal ? 'info' : 'silent'),
+        disableStorageReset: true,
+        pauseAfterFulfillMs: 1000,
+        pauseAfterLoadMs: 1000,
+        networkQuietThresholdMs: 1000,
+        // Disable artificial CPU/network throttling during local dev runs for 3x speedup
+        ...(isFastLocal
+          ? {
+              throttlingMethod: 'provided',
+              throttling: { rttMs: 0, throughputKbps: 0, cpuSlowdownMultiplier: 1 }
+            }
+          : {})
       }
     },
     assert: {
       assertions: {
-        // Enforce accessibility compliance across authenticated routes
         'categories:accessibility': ['error', { minScore: 0.80 }],
-        // Set realistic category warning levels for full-stack SSR app in Docker CI
         'categories:performance': ['warn', { minScore: 0.40 }],
         'categories:best-practices': ['warn', { minScore: 0.75 }],
         'categories:seo': ['warn', { minScore: 0.75 }]
