@@ -5,6 +5,10 @@
       <img
         :src="rule.logoLight"
         :alt="`Data from ${provider}`"
+        width="176"
+        height="60"
+        loading="lazy"
+        decoding="async"
         :class="[
           rule.logoHeightClass,
           rule.logoWidthClass,
@@ -14,6 +18,10 @@
       <img
         :src="rule.logoDark"
         :alt="`Data from ${provider}`"
+        width="176"
+        height="60"
+        loading="lazy"
+        decoding="async"
         :class="[
           rule.logoHeightClass,
           rule.logoWidthClass,

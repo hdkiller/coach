@@ -5,7 +5,7 @@
     <div class="mb-6 p-4 rounded-full bg-primary-50 dark:bg-primary-900/20">
       <UIcon name="i-heroicons-sparkles" class="w-10 h-10 text-primary-500" />
     </div>
-    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ t('welcome_title') }}</h3>
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ t('welcome_title') }}</h2>
     <p class="max-w-sm mb-8 text-sm">
       {{ t('welcome_description') }}
     </p>
