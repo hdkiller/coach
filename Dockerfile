@@ -3,6 +3,8 @@ FROM node:24-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV PNPM_CONFIG_IGNORE_SCRIPTS="false"
+ENV PNPM_CONFIG_ONLY_BUILT_DEPENDENCIES=""
 RUN corepack enable
 
 # Install system dependencies needed for native module builds
