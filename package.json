@@ -128,7 +128,7 @@
     "prettier": "^3.9.4",
     "react": "^18",
     "react-dom": "^18",
-    "release-it": "^19.2.2",
+    "release-it": "^21.0.0",
     "release-it-pnpm": "^4.6.6",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.9.3",
