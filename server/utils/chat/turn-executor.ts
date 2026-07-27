@@ -305,7 +305,10 @@ export function findApprovedToolContinuation(messages: any[]) {
       toolName:
         matchingPart.toolName ||
         (typeof matchingPart.type === 'string' ? matchingPart.type.replace('tool-', '') : null),
-      args: matchingPart.input || matchingPart.args || {}
+      args: matchingPart.input || matchingPart.args || {},
+      // Carried so the re-persisted call keeps its google thoughtSignature instead of
+      // falling back to the skip-validation sentinel on later replays.
+      rawToolCall: matchingPart.toolCall
     }
   }
 
@@ -1092,16 +1095,21 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         approvedContinuation?.toolName &&
         typeof tools[approvedContinuation.toolName]?.execute === 'function'
       ) {
-        historyToolCalls.set(approvedContinuation.toolCallId, {
+        const continuationCall = {
+          type: 'tool-call',
           toolCallId: approvedContinuation.toolCallId,
           toolName: approvedContinuation.toolName,
-          args: approvedContinuation.args
-        })
-        currentTurnToolCalls.set(approvedContinuation.toolCallId, {
-          toolCallId: approvedContinuation.toolCallId,
-          toolName: approvedContinuation.toolName,
-          args: approvedContinuation.args
-        })
+          input: approvedContinuation.args,
+          args: approvedContinuation.args,
+          ...(approvedContinuation.rawToolCall?.providerMetadata
+            ? { providerMetadata: approvedContinuation.rawToolCall.providerMetadata }
+            : {}),
+          ...(approvedContinuation.rawToolCall?.providerOptions
+            ? { providerOptions: approvedContinuation.rawToolCall.providerOptions }
+            : {})
+        }
+        historyToolCalls.set(approvedContinuation.toolCallId, continuationCall)
+        currentTurnToolCalls.set(approvedContinuation.toolCallId, continuationCall)
 
         const directResult = await tools[approvedContinuation.toolName].execute(
           approvedContinuation.args,
