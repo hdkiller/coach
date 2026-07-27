@@ -52,7 +52,7 @@ describe('sendEmailTask', () => {
     userId: 'user-123',
     templateKey: 'Welcome',
     eventKey: 'SIGNUP',
-    audience: 'ENGAGEMENT' as const,
+    audience: 'TRANSACTIONAL' as const,
     subject: 'Welcome!'
   }
 
@@ -63,12 +63,16 @@ describe('sendEmailTask', () => {
     emailStatus: 'VALID'
   }
 
-  it('should skip if email is suppressed', async () => {
+  it('should skip if email is suppressed for ENGAGEMENT audience', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue({ id: 'sup-1' } as any)
 
-    const result = await EmailDeliveryService.runSendEmail(mockPayload)
+    const result = await EmailDeliveryService.runSendEmail({
+      ...mockPayload,
+      templateKey: 'WorkoutAnalysisReady',
+      audience: 'ENGAGEMENT'
+    })
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
@@ -141,7 +145,7 @@ describe('sendEmailTask', () => {
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
   })
 
-  it('should skip if user email status is BOUNCED', async () => {
+  it('should skip if user email status is BOUNCED for ENGAGEMENT audience', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       ...mockUser,
       emailStatus: 'BOUNCED'
@@ -149,9 +153,33 @@ describe('sendEmailTask', () => {
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
 
-    const result = await EmailDeliveryService.runSendEmail(mockPayload)
+    const result = await EmailDeliveryService.runSendEmail({
+      ...mockPayload,
+      templateKey: 'WorkoutAnalysisReady',
+      audience: 'ENGAGEMENT'
+    })
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
+  })
+
+  it('should deliver Welcome TRANSACTIONAL email even if globalUnsubscribe is true', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      ...mockUser,
+      emailPreferences: [{ channel: 'EMAIL', globalUnsubscribe: true }]
+    } as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.emailDelivery.create).mockResolvedValue({ id: 'delivery-welcome' } as any)
+    vi.spyOn(EmailDeliveryService, 'dispatch').mockResolvedValue({
+      id: 'delivery-welcome',
+      status: 'SENT'
+    } as any)
+
+    const result = await EmailDeliveryService.runSendEmail(mockPayload)
+
+    expect(result.success).toBe(true)
+    expect(result.deliveryId).toBe('delivery-welcome')
+    expect(prisma.emailDelivery.create).toHaveBeenCalled()
   })
 })

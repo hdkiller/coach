@@ -27,11 +27,11 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   Welcome: {
     templateKey: 'Welcome',
     defaultSubject: 'Welcome to Coach Watts!',
-    audience: 'ENGAGEMENT',
-    preferenceKey: 'onboarding',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
     requiredProps: [],
     utmCampaign: 'welcome_onboarding',
-    utmMedium: 'lifecycle'
+    utmMedium: 'transactional'
   },
   WorkoutReceived: {
     templateKey: 'WorkoutReceived',

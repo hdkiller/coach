@@ -27,9 +27,9 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 
 ## Campaigns & Automated Flows
 
-### 1. Onboarding (Transactional/Engagement)
+### 1. Onboarding (Transactional)
 
-- **Welcome**: Sent immediately upon signup.
+- **Welcome**: Sent immediately upon signup as a required TRANSACTIONAL account creation notice (`preferenceKey: null`).
 - **Drip (Planned)**: Day 2 (Integration Check) and Day 7 (Trial Review) sequence using Trigger.dev delays.
 
 ### 2. Training Guidance (Engagement)
