@@ -114,11 +114,15 @@ Deep debugging and analysis of nutrition data and metabolic calculations.
 - `check env`: Validates the local `.env` setup.
 - `monitor [--prod]`: Checks the `/api/health` and Trigger.dev status endpoints.
 
-#### 7. Integrations (`oura`, `polar`, `oauth`)
+#### 7. Integrations (`oura`, `polar`, `oauth`, `garmin`)
 
 - `oura`: Manage Oura integration settings and data sync.
 - `polar`: Manage Polar integration settings and data sync.
 - `oauth`: Manage OAuth 2.0 Provider and client registrations.
+- `debug garmin-test <userEmailOrId> [--prod]`: Run comprehensive Garmin OAuth PKCE, Token Refresh, Health API, and Push Ingestion diagnostic test suite.
+- `debug garmin-ingest <userEmailOrId> [--prod] [--days N] [--backfill]`: Test direct pull data sync or trigger Garmin Health API backfill for a user.
+- `debug webhook garmin [--prod] [--external-user <id>] [--type activities|dailies|sleeps|hrv]`: Send simulated Garmin push webhook events.
+- `debug garmin-training-inspect <userEmailOrId> [--prod]`: Inspect stored Garmin workouts, streams, and raw FIT files.
 
 #### 8. Translations (`translations`)
 
