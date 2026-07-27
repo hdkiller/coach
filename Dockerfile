@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Stage 1: Install dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
