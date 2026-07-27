@@ -12,6 +12,9 @@ const { prismaMock } = vi.hoisted(() => ({
     integration: {
       findUnique: vi.fn(),
       update: vi.fn()
+    },
+    user: {
+      findUnique: vi.fn()
     }
   }
 }))
@@ -299,6 +302,108 @@ describe('GarminService.runIngestGarmin', () => {
           errorMessage: expect.stringContaining('Direct pull restricted by Garmin Health API')
         })
       })
+    )
+
+    vi.restoreAllMocks()
+  })
+})
+
+describe('GarminService activity push stream & file ingestion', () => {
+  it('does not attempt direct REST file download during processActivities when pullToken is absent', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.fitFile = { findUnique: vi.fn().mockResolvedValue(null) } as any
+
+    const garminModule = await import('../../../../../server/utils/garmin')
+    const fetchFileSpy = vi
+      .spyOn(garminModule, 'fetchGarminActivityFile')
+      .mockResolvedValue(Buffer.from('fake'))
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    const upsertSpy = vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-100' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    await GarminService.processActivities(
+      'user-1',
+      [{ summaryId: 'activity-100', startTimeInSeconds: 1700000000, activityType: 'RUNNING' }],
+      { id: 'int-1' }
+    )
+
+    expect(fetchFileSpy).not.toHaveBeenCalled()
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      'garmin',
+      'activity-100',
+      expect.objectContaining({ externalId: 'activity-100', source: 'garmin' }),
+      expect.objectContaining({ externalId: 'activity-100', source: 'garmin' })
+    )
+    vi.restoreAllMocks()
+  })
+
+  it('downloads FIT file directly and creates workout when activityFiles push arrives out-of-order', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.workout = { findFirst: vi.fn().mockResolvedValue(null) } as any
+    prismaMock.fitFile = {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockResolvedValue({})
+    } as any
+
+    const garminModule = await import('../../../../../server/utils/garmin')
+    const fetchByCallbackSpy = vi
+      .spyOn(garminModule, 'fetchGarminActivityFileByCallbackUrl')
+      .mockResolvedValue(Buffer.from('fake-fit-bytes'))
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    const upsertSpy = vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-early-1', externalId: '23703759997' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'upsert').mockResolvedValue({} as any)
+
+    const fitModule = await import('../../../../../server/utils/fit')
+    vi.spyOn(fitModule, 'parseFitFile').mockResolvedValue({
+      sessions: [
+        {
+          start_time: new Date(),
+          total_timer_time: 1800,
+          sport: 'running'
+        }
+      ],
+      records: []
+    } as any)
+
+    await GarminService.processActivityFiles(
+      'user-1',
+      [
+        {
+          activityId: 23703759997,
+          callbackURL:
+            'https://apis.garmin.com/wellness-api/rest/activityFile?id=23703759997&token=abc123token'
+        }
+      ],
+      { id: 'int-1' }
+    )
+
+    expect(fetchByCallbackSpy).toHaveBeenCalledWith(
+      { id: 'int-1' },
+      'https://apis.garmin.com/wellness-api/rest/activityFile?id=23703759997&token=abc123token'
+    )
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      'garmin',
+      '23703759997',
+      expect.objectContaining({ externalId: '23703759997', source: 'garmin' }),
+      expect.objectContaining({ externalId: '23703759997', source: 'garmin' })
     )
 
     vi.restoreAllMocks()

@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig()
   const clientId = process.env.GARMIN_CLIENT_ID
-  const redirectUri = `${config.public.siteUrl}/api/integrations/garmin/callback`
+  const siteUrl = (config.public.siteUrl || 'http://localhost:3000').replace(/\/+$/, '')
+  const redirectUri = `${siteUrl}/api/integrations/garmin/callback`
 
   if (!clientId) {
     throw createError({
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
   setCookie(event, 'garmin_code_verifier', verifier, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     maxAge: 600,
     path: '/'
   })
