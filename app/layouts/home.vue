@@ -11,6 +11,10 @@
           <img
             src="/media/coach_watts_text_cropped.webp"
             alt="Coach Watts"
+            width="702"
+            height="135"
+            loading="eager"
+            decoding="async"
             class="h-10 w-auto object-contain sm:h-12"
           />
         </NuxtLink>

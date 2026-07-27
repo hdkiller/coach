@@ -8,6 +8,10 @@
             <img
               src="/media/coach_watts_text_cropped.webp"
               alt="Coach Watts"
+              width="702"
+              height="135"
+              loading="lazy"
+              decoding="async"
               class="h-12 w-auto object-contain"
             />
           </NuxtLink>
@@ -60,7 +64,7 @@
         </nav>
       </div>
 
-      <p class="mt-10 text-sm text-gray-500">
+      <p class="mt-10 text-sm text-gray-400">
         {{ t('footer.copyright') }}
       </p>
     </UContainer>
