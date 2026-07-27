@@ -18,11 +18,18 @@ module.exports = {
         : [
             `${targetBaseUrl}/`,
             `${targetBaseUrl}/login`,
+            `${targetBaseUrl}/join`,
+            `${targetBaseUrl}/pricing`,
             `${targetBaseUrl}/dashboard`,
             `${targetBaseUrl}/calendar`,
             `${targetBaseUrl}/chat`,
             `${targetBaseUrl}/activities`,
+            `${targetBaseUrl}/nutrition`,
+            `${targetBaseUrl}/performance`,
+            `${targetBaseUrl}/reports`,
+            `${targetBaseUrl}/data`,
             `${targetBaseUrl}/settings`,
+            `${targetBaseUrl}/profile/settings`,
             `${targetBaseUrl}/admin`,
             `${targetBaseUrl}/admin/stats/llm`,
             `${targetBaseUrl}/admin/system-messages`
