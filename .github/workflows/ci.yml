@@ -2,6 +2,11 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
   # Called by deploy.yml so master pushes gate the Docker build on lint/typecheck/tests
   # instead of racing it. Do not add a `push` trigger back — that would double-run CI.
   workflow_call:
@@ -16,8 +21,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  typecheck:
-    name: Typecheck
+  quality-gates:
+    name: Quality Gates (Typecheck, Lint, Unit Tests)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -35,58 +40,23 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Prepare Nuxt
+        run: pnpm exec nuxt prepare
+
+      - name: Cache ESLint
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: eslint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            eslint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Run ESLint
+        run: pnpm lint --cache --cache-location .eslintcache
 
       - name: Run Nuxt typecheck
         run: pnpm typecheck
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Prepare Nuxt
-        run: pnpm exec nuxt prepare
-
-      - name: Run ESLint
-        run: pnpm lint
-
-  unit-tests:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Prepare Nuxt
-        run: pnpm exec nuxt prepare
 
       - name: Run unit tests
         run: pnpm test:unit
