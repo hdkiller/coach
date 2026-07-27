@@ -31,8 +31,6 @@ module.exports = {
       },
       // 1 run locally for instant feedback; 2 runs in CI for statistical stability
       numberOfRuns: isFastLocal ? 1 : 2,
-      // Fail fast: Set 10-second max wait timeout for page load fulfillment
-      maxWaitForLoad: 10000,
       ...(chromePath || process.env.CHROME_PATH
         ? { chromePath: process.env.CHROME_PATH || chromePath }
         : {}),
@@ -41,8 +39,7 @@ module.exports = {
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
         skipAudits: ['full-page-screenshot'],
         logLevel: process.env.LHCI_LOG_LEVEL || (isFastLocal ? 'info' : 'silent'),
-        maxWaitForFulfill: 10000,
-        maxWaitForLoad: 10000,
+        disableStorageReset: true,
         // Disable artificial CPU/network throttling during local dev runs for 3x speedup
         ...(isFastLocal
           ? {
