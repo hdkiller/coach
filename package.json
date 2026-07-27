@@ -151,6 +151,7 @@
     "test:e2e:report": "playwright show-report",
     "test:lighthouse": "lhci autorun",
     "e2e:lighthouse": "lhci autorun",
+    "e2e:lighthouse:dev": "E2E_BASE_URL=http://localhost:3000 lhci autorun",
     "e2e:up": "docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml up -d --wait",
     "e2e:up:infra": "docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml up -d --wait postgres-e2e redis-e2e",
     "e2e:down": "docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml down",
