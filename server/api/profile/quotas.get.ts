@@ -1,6 +1,10 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { getQuotaSummary } from '../../utils/quotas/engine'
-import { getNextTier, resolveUpgradeForOperation } from '../../utils/quotas/registry'
+import {
+  getNextTier,
+  quotaFeatureCode,
+  resolveUpgradeForOperation
+} from '../../utils/quotas/registry'
 import type { SubscriptionTier } from '@prisma/client'
 import type { QuotaStatus } from '~~/app/types/quotas'
 
@@ -24,6 +28,8 @@ function enrichQuotasWithNextTier(
     const upgrade = resolveUpgradeForOperation(quota.operation, effectiveTier)
     return {
       ...quota,
+      // Same feature codes the 429 payload uses, so clients keep one mapping.
+      feature: quotaFeatureCode(quota.operation),
       nextTier: upgrade?.nextTier ?? nextTier,
       nextTierLimit: upgrade?.nextTierLimit ?? null
     }
@@ -72,16 +78,11 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = (session.user as any).id
+  // Session-only auth kept this endpoint unreachable from the mobile app, which
+  // authenticates with an OAuth bearer token — so the app had no way to warn an
+  // athlete before an allowance ran out.
+  const authUser = await requireAuth(event, ['profile:read'])
+  const userId = authUser.id
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
