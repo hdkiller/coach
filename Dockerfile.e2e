@@ -12,7 +12,7 @@ RUN apt-get update -y && apt-get install -y python3 make g++ openssl ca-certific
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml .npmrc* ./
+COPY package.json pnpm-lock.yaml .npmrc* pnpm-workspace.yaml* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 RUN --mount=type=cache,id=pnpm-v3,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild better-sqlite3 bcrypt && pnpm prisma generate
