@@ -45,8 +45,8 @@ on:
 jobs:
   deploy:
     name: Deploy Trigger.dev Tasks
-    # Keep Trigger deploys on the Linux `shadow` runner; do not share with `e2e`.
-    runs-on: [self-hosted, shadow]
+    # Keep Trigger deploys on the Linux self-hosted runner pool.
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 30
     environment: ${{ inputs.environment }}
     # Job-level (not workflow-level) so the group stays distinct from the caller's

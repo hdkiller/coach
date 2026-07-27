@@ -23,9 +23,9 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     needs: ci
-    # Pin to the Linux deploy runner. Bare `self-hosted` can also match
-    # `mac-mini-e2e`, which fails GHCR push with anonymous-token 403.
-    runs-on: [self-hosted, shadow]
+    # Pin to Linux self-hosted runner pool. Bare `self-hosted` can also match
+    # `mac-mini`, which fails GHCR push with anonymous-token 403.
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 60
     environment: preview
     permissions:
