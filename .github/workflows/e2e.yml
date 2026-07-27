@@ -55,7 +55,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.ref || github.ref_name }}
+          ref: ${{ inputs.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -137,4 +137,4 @@ jobs:
 
       - name: Tear down e2e stack
         if: always()
-        run: pnpm e2e:down
+        run: command -v pnpm >/dev/null 2>&1 && pnpm e2e:down || true
