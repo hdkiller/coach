@@ -19,14 +19,21 @@ module.exports = {
       ],
       puppeteerScript: './e2e/scripts/lhci-auth.cjs',
       puppeteerLaunchOptions: {
-        args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--headless=new']
+        args: [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--headless=new'
+        ]
       },
       numberOfRuns: 2,
       ...(chromePath || process.env.CHROME_PATH
         ? { chromePath: process.env.CHROME_PATH || chromePath }
         : {}),
       settings: {
-        preset: 'desktop'
+        preset: 'desktop',
+        onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
+        skipAudits: ['full-page-screenshot']
       }
     },
     assert: {
