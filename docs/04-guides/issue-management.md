@@ -165,10 +165,10 @@ Each agent runs as its **own Linear member with its own API key**, so `assignee`
 
 ## 8. Execution loop
 
-**Plan → Act → Verify → Publish PR → Log & Transition**
+**Plan → Act → Verify → Push & Open PR → Log & Transition**
 
 1. **Plan** — confirm file locations; restate the approach on the ticket.
 2. **Act** — implement in the ticket's worktree, touching only `Owned Paths`, without breaking existing API contracts.
 3. **Verify** — run the Verification Command (`pnpm test`, `pnpm typecheck`, build). **Never mark complete without clean output.**
-4. **Publish PR** — push the worktree branch (`git push origin <branch>`) and open a GitHub Pull Request (`gh pr create --title "..." --body "Fixes <ISSUE-ID>"`).
-5. **Log & Transition** — post verification results, PR link, and diff summary to the Linear ticket, transitioning state to `In Review` (`ai:needs-review`). Set to `Done` once PR is merged.
+4. **Push & Open PR** — push the feature/bugfix branch to remote (`git push origin <branch>`) and open a GitHub Pull Request targeting `develop` (`gh pr create --base develop --title "..." --body "Fixes <ISSUE-ID>"`).
+5. **Log & Transition** — post verification results, PR URL, and diff summary to the Linear ticket, transitioning state to `In Review` (`ai:needs-review`). Set to `Done` once PR is merged and verified.

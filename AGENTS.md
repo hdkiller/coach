@@ -27,7 +27,7 @@ Task state lives in Linear, never in git-tracked markdown. Files under `docs/iss
 
 ## Execution loop
 
-**Plan → Act → Verify → Log.** Confirm file locations and restate the approach on the ticket; implement inside the worktree; run the verification command; post results and a diff summary to Linear.
+**Plan → Act → Verify → Push & Open PR → Log & Transition.** Confirm file locations and restate the approach on the ticket; implement inside the worktree; run the verification command; push branch (`git push origin <branch>`) and open Pull Request (`gh pr create --target develop --body "Fixes CW-XYZ"`); post results, PR link, and diff summary to Linear.
 
 ## Commands
 
