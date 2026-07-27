@@ -3,6 +3,8 @@ FROM node:24-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV PNPM_CONFIG_IGNORE_SCRIPTS="false"
+ENV PNPM_CONFIG_ONLY_BUILT_DEPENDENCIES=""
 RUN corepack enable
 
 # Install system dependencies needed for native module builds
@@ -12,10 +14,10 @@ WORKDIR /app
 
 # Stage 1: Install dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-v3,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild better-sqlite3 bcrypt && pnpm prisma generate
 
 # Stage 2: Build the application
 FROM base AS builder

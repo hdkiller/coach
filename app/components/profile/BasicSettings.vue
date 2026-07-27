@@ -34,6 +34,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField :label="t('basic_form_name')" name="name">
           <UInput
+            id="profile-name-input"
             v-model="localProfile.name"
             :placeholder="t('basic_form_name_placeholder')"
             class="w-full"
@@ -41,7 +42,12 @@
         </UFormField>
 
         <UFormField :label="t('basic_form_email')" name="email" :help="t('basic_form_email_help')">
-          <UInput :model-value="email" disabled class="w-full bg-gray-50 dark:bg-gray-800" />
+          <UInput
+            id="profile-email-input"
+            :model-value="email"
+            disabled
+            class="w-full bg-gray-50 dark:bg-gray-800"
+          />
         </UFormField>
 
         <UFormField :label="t('basic_form_sex')" name="sex">
@@ -55,6 +61,7 @@
 
         <UFormField :label="t('basic_form_dob')" name="dob">
           <UInput
+            id="profile-dob-input"
             v-model="dobValue"
             type="date"
             class="w-full"
@@ -100,7 +107,13 @@
         <div class="space-y-4">
           <div class="grid grid-cols-3 gap-4">
             <UFormField :label="t('basic_body_metrics_weight')" name="weight" class="col-span-2">
-              <UInput v-model.number="localProfile.weight" type="number" step="0.1" class="w-full">
+              <UInput
+                id="profile-weight-input"
+                v-model.number="localProfile.weight"
+                type="number"
+                step="0.1"
+                class="w-full"
+              >
                 <template #trailing>
                   <span class="text-gray-500 dark:text-gray-400 text-xs">{{
                     localProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'
@@ -130,6 +143,7 @@
           <UFormField :label="t('basic_body_metrics_height')" name="height" class="col-span-2">
             <div v-if="localProfile.heightUnits === 'ft/in'" class="flex gap-2">
               <UInput
+                id="profile-height-ft-input"
                 v-model.number="heightFt"
                 type="number"
                 placeholder="ft"
@@ -141,6 +155,7 @@
                 </template>
               </UInput>
               <UInput
+                id="profile-height-in-input"
                 v-model.number="heightIn"
                 type="number"
                 placeholder="in"
@@ -152,7 +167,13 @@
                 </template>
               </UInput>
             </div>
-            <UInput v-else v-model.number="localProfile.height" type="number" class="w-full">
+            <UInput
+              v-else
+              id="profile-height-cm-input"
+              v-model.number="localProfile.height"
+              type="number"
+              class="w-full"
+            >
               <template #trailing>
                 <span class="text-gray-500 dark:text-gray-400 text-xs">cm</span>
               </template>
