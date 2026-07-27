@@ -7,7 +7,7 @@ pnpm e2e:up:infra
 pnpm e2e:db:prepare
 
 # Compute hash of app source files that impact the app-e2e docker image
-APP_HASH=$(git log -1 --format="%h" -- app server prisma package.json pnpm-lock.yaml Dockerfile.e2e docker-compose.e2e.yml 2>/dev/null || echo "latest")
+APP_HASH=$(git log -1 --format="%h" -- app server prisma package.json pnpm-lock.yaml .npmrc Dockerfile.e2e docker-compose.e2e.yml 2>/dev/null || echo "latest")
 IMAGE_TAG="coach-e2e-app:${APP_HASH}"
 
 if docker image inspect "$IMAGE_TAG" >/dev/null 2>&1; then
