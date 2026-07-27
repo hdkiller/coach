@@ -34,12 +34,16 @@
   "headline": "Pläne für jeden Athleten",
   "label": "PREISE",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "Änderung bestätigen",
     "description": "Änderungen an Ihrem Abonnement überprüfen",
     "keep_plan": "Meinen aktuellen Plan behalten",
     "stripe_note": "Stripe berechnet automatisch alle Gutschriften für Ihren nicht genutzten Zeitraum und verrechnet diese mit Ihren zukünftigen Rechnungen.",
     "switch_to": "Zu {name} wechseln?",
     "title": "Downgrade bestätigen",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "Sie wechseln in einen niedrigeren Tarif. Einige Funktionen (wie Deep AI Analysis) werden eingeschränkt, sobald die Änderung verarbeitet wurde."
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "Zuverlässige Trendverfolgung und wöchentliche Zusammenfassungen",
       "name": "Supporter"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

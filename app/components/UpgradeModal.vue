@@ -1,7 +1,7 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    :title="title || 'Upgrade Your Plan'"
+    :title="title || tp('upgrade_modal.default_title')"
     :ui="{
       content: 'sm:max-w-xl z-[9999]',
       overlay: 'z-[9998]'
@@ -15,8 +15,8 @@
             icon="i-heroicons-information-circle"
             color="info"
             variant="soft"
-            title="Subscriptions Temporarily Unavailable"
-            description="We are currently performing maintenance on our subscription system. Please check back later!"
+            :title="tp('upgrade_modal.maintenance_title')"
+            :description="tp('upgrade_modal.maintenance_body')"
           />
         </div>
 
@@ -61,7 +61,7 @@
         <div v-if="recommendedTier && subscriptionsEnabled">
           <div class="flex items-center gap-2 mb-4">
             <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400"
-              >Elite Performance Solution</span
+              >{{ tp('upgrade_modal.eyebrow') }}</span
             >
             <div class="h-px bg-gray-100 dark:bg-gray-800 flex-1" />
           </div>
@@ -85,7 +85,9 @@
                 "
               >
                 {{ interval }}
-                <span v-if="interval === 'annual'" class="ml-1 text-green-500">(-33%)</span>
+                <span v-if="interval === 'annual' && toggleSavings" class="ml-1 text-green-500">
+                -{{ toggleSavings }}%
+              </span>
               </button>
             </div>
 
@@ -119,7 +121,7 @@
             @select="handlePlanSelect"
           />
           <p class="mt-3 text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-            Unlock instant access. Cancel or downgrade anytime.
+            {{ tp('upgrade_modal.reassurance') }}
           </p>
         </div>
       </div>
@@ -136,7 +138,9 @@
             }
           "
         >
-          {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
+          {{
+            subscriptionsEnabled ? tp('upgrade_modal.maybe_later') : tp('upgrade_modal.close')
+          }}
         </UButton>
         <div class="flex items-center gap-3">
           <UButton
@@ -150,7 +154,7 @@
               }
             "
           >
-            Compare all plans
+            {{ tp('upgrade_modal.compare_plans') }}
             <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
           </UButton>
           <UButton
@@ -163,7 +167,7 @@
               }
             "
           >
-            Billing details
+            {{ tp('upgrade_modal.billing_details') }}
           </UButton>
         </div>
       </div>
@@ -172,6 +176,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import {
     PRICING_PLANS,
     getStripePriceId,
@@ -189,8 +194,13 @@
     quotaResetLabel?: string
   }
 
+  const { t: tPricing } = useTranslate('pricing')
+  function tp(key: string): string {
+    return (tPricing.value as (key: string) => string)(key)
+  }
+
   const props = withDefaults(defineProps<Props>(), {
-    title: 'Upgrade Your Plan',
+    title: undefined,
     featureTitle: 'Elite Feature',
     featureDescription: 'This feature requires a premium subscription.',
     recommendedTier: undefined,
@@ -201,6 +211,9 @@
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
   const { currency, setCurrency } = useCurrency()
+  const { bestAnnualSavings } = useLivePricing()
+  // Real saving across paid plans; the badge used to assert a flat -33%.
+  const toggleSavings = computed(() => bestAnnualSavings(PRICING_PLANS, currency.value))
   const { createCheckoutSession, openCustomerPortal } = useStripe()
   const config = useRuntimeConfig()
   const {

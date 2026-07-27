@@ -34,12 +34,16 @@
   "headline": "Plannen voor elke atleet",
   "label": "PRIJZEN",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "Wijziging bevestigen",
     "description": "Bekijk de wijzigingen in uw abonnement",
     "keep_plan": "Mijn huidige abonnement behouden",
     "stripe_note": "Stripe berekent automatisch eventuele tegoeden voor je ongebruikte tijd en past deze toe op je toekomstige facturen.",
     "switch_to": "Overstappen naar {name}?",
     "title": "Downgrade bevestigen",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "Je stapt over naar een lager niveau. Sommige functies (zoals Deep AI-analyse) worden beperkt zodra de wijziging is verwerkt."
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "Betrouwbare trendtracking en wekelijkse samenvattingen",
       "name": "Supporter"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

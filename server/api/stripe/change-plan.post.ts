@@ -3,6 +3,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { isLifetimeSubscriber, stripeBillingResetData } from '../../utils/lifetime-subscription'
+import { assertNoActiveStoreSubscription } from '../../utils/provider-subscriptions'
 
 const changePlanSchema = z.object({
   priceId: z.string(),
@@ -48,6 +49,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  await assertNoActiveStoreSubscription(userId)
+
   if (!user.stripeSubscriptionId) {
     throw createError({
       statusCode: 400,
@@ -88,6 +91,11 @@ export default defineEventHandler(async (event) => {
   // 2. Update the subscription in Stripe
   // For upgrades, we use 'always_invoice' to charge the difference now.
   // For downgrades, we use 'create_prorations' (default) to credit the difference to the next bill.
+  //
+  // `latest_invoice.payment_intent` no longer exists on the Invoice object from
+  // API version 2025-03-31.basil onwards — the client secret now lives on
+  // `confirmation_secret`. Expanding the old path made every authentication and
+  // decline look like a success.
   const updatedSubscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
     items: [
       {
@@ -97,28 +105,43 @@ export default defineEventHandler(async (event) => {
     ],
     proration_behavior: direction === 'upgrade' ? 'always_invoice' : 'create_prorations',
     payment_behavior: 'default_incomplete',
-    expand: ['latest_invoice.payment_intent']
+    expand: ['latest_invoice.confirmation_secret']
   })
 
-  // 3. Handle payment confirmation if needed (SCA)
-  const latestInvoice = updatedSubscription.latest_invoice as any
-  const paymentIntent = latestInvoice?.payment_intent
+  // 3. Decide the outcome from what Stripe actually reports.
+  const latestInvoice =
+    typeof updatedSubscription.latest_invoice === 'string'
+      ? null
+      : (updatedSubscription.latest_invoice ?? null)
+  const clientSecret = latestInvoice?.confirmation_secret?.client_secret ?? null
 
-  if (paymentIntent && paymentIntent.status === 'requires_action') {
-    // If SCA is required, we still need to redirect or handle it on the frontend.
-    // However, since we want "one-click", if it fails we might need to fallback to portal.
+  // With `default_incomplete`, a price change that cannot be paid immediately is
+  // parked in `pending_update` — the athlete keeps the old plan until it clears.
+  const changeIsPending = Boolean(updatedSubscription.pending_update)
+  const invoiceUnpaid = Boolean(
+    latestInvoice && latestInvoice.status !== 'paid' && latestInvoice.status !== 'void'
+  )
+
+  if (changeIsPending || invoiceUnpaid) {
+    if (clientSecret) {
+      return {
+        status: 'requires_action',
+        clientSecret,
+        subscriptionId: updatedSubscription.id
+      }
+    }
+
+    // No client secret to confirm against: the charge failed outright.
     return {
-      status: 'requires_action',
-      clientSecret: paymentIntent.client_secret,
-      subscriptionId: updatedSubscription.id
+      status: 'payment_failed',
+      subscriptionId: updatedSubscription.id,
+      message:
+        'Your bank declined the charge for this plan change, so your current plan is unchanged. Update your payment method and try again.'
     }
   }
 
-  // 4. Update the user in our DB immediately (optional, as webhook will also do it)
-  // But doing it here makes the UI feel faster
-  // Note: We don't know the tier yet just from priceId easily without a lookup,
-  // but we can trust the webhook for the source of truth or do a quick lookup here if we wanted.
-
+  // 4. The webhook remains the source of truth for tier changes; returning here
+  // just lets the UI react immediately.
   return {
     status: 'success',
     subscriptionId: updatedSubscription.id

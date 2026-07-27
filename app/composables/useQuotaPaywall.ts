@@ -135,6 +135,7 @@ export function useQuotaPaywall() {
     return quota.remaining <= 0 || !quota.allowed
   }
 
+  /** The usage meter is a FREE-tier affordance; limits themselves are not. */
   function shouldShowQuotaMeterForUser() {
     return userStore.user?.subscriptionTier === 'FREE'
   }
@@ -144,11 +145,8 @@ export function useQuotaPaywall() {
     featureTitle: string
     onAllowed: () => void | Promise<void>
   }) {
-    if (!shouldShowQuotaMeterForUser()) {
-      await params.onAllowed()
-      return
-    }
-
+    // Paid tiers have limits too — skipping the check here sent Supporter and
+    // Pro athletes into a raw server error instead of the paywall.
     await ensureQuotasLoaded()
     const quota = getQuotaForOperation(params.operation)
     if (isQuotaExhausted(quota)) {
@@ -166,10 +164,7 @@ export function useQuotaPaywall() {
 
   function useOperationLockState(operation: QuotaPaywallOperation) {
     const now = useNow({ interval: 30_000 })
-    const locked = computed(() => {
-      if (!shouldShowQuotaMeterForUser()) return false
-      return isQuotaExhausted(getQuotaForOperation(operation), now.value)
-    })
+    const locked = computed(() => isQuotaExhausted(getQuotaForOperation(operation), now.value))
 
     const lockedTierLabel = computed(() => {
       const quota = getQuotaForOperation(operation)

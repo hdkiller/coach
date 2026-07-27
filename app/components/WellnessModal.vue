@@ -1060,6 +1060,16 @@
     } catch (e: any) {
       console.error('Error triggering wellness analysis:', e)
       analyzingWellness.value = false
+
+      if (e.statusCode === 429 || e.status === 429) {
+        const { showQuotaPaywall } = useQuotaPaywall()
+        await showQuotaPaywall({
+          operation: 'wellness_analysis',
+          featureTitle: 'Wellness analysis'
+        })
+        return
+      }
+
       toast.add({
         title: 'Analysis Failed',
         description: e.data?.message || 'Failed to start analysis',

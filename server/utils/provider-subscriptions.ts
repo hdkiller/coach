@@ -266,3 +266,37 @@ export async function ensureLegacyStripeSubscription(userId: string) {
   })
   await expireSupersededStripeProviderRows(userId, user.stripeSubscriptionId)
 }
+
+/**
+ * Store subscriptions the athlete currently holds through Apple or Google.
+ * Stripe rows are excluded on purpose: they are what the web checkout manages.
+ */
+export async function getActiveStoreSubscriptions(userId: string) {
+  const subscriptions = await prisma.providerSubscription.findMany({ where: { userId } })
+  return projectProviderSubscriptions(subscriptions).valid.filter(
+    (item) => item.provider === 'APPLE' || item.provider === 'GOOGLE'
+  )
+}
+
+/**
+ * Refuse a Stripe purchase while an App Store or Play subscription is live —
+ * the athlete would pay twice for the same entitlement and Stripe cannot cancel
+ * a store subscription on their behalf.
+ */
+export async function assertNoActiveStoreSubscription(userId: string) {
+  const storeSubscriptions = await getActiveStoreSubscriptions(userId)
+  if (storeSubscriptions.length === 0) return
+
+  const provider = storeSubscriptions[0]!.provider
+  throw createError({
+    statusCode: 409,
+    message:
+      provider === 'APPLE'
+        ? 'Your subscription is billed through the App Store. Manage or cancel it in your Apple ID subscription settings before subscribing on the web, so you are not charged twice.'
+        : 'Your subscription is billed through Google Play. Manage or cancel it in your Play Store subscription settings before subscribing on the web, so you are not charged twice.',
+    data: {
+      code: 'STORE_SUBSCRIPTION_ACTIVE',
+      provider
+    }
+  })
+}
