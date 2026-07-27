@@ -10,8 +10,8 @@ module.exports = async (browser, context) => {
 
   const page = context?.page || (await browser.newPage())
 
-  // 1. Navigate to target origin so cookie domain is aligned
-  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' })
+  // 1. Fast navigation to target origin with commit strategy to prevent waiting on HMR/WebSocket connections
+  await page.goto(targetUrl, { waitUntil: 'commit', timeout: 15000 }).catch(() => {})
 
   // 2. Try fast E2E bypass endpoint first (/api/__e2e/login)
   const e2eLoginResult = await page.evaluate(
@@ -31,9 +31,9 @@ module.exports = async (browser, context) => {
   )
 
   if (!e2eLoginResult.ok) {
-    // Fallback: If /api/__e2e/login is disabled (e.g. standard dev mode without E2E_MODE=true), perform UI login via /login page
+    // Fallback: Perform UI login via /login page if E2E_MODE is disabled
     console.log('[LHCI Auth] E2E bypass endpoint unavailable, performing UI login fallback on /login...')
-    await page.goto(`${targetUrl}/login`, { waitUntil: 'networkidle0' })
+    await page.goto(`${targetUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {})
 
     const emailInput = await page.$('input[type="email"], input[name="email"]')
     if (emailInput) {
@@ -45,14 +45,14 @@ module.exports = async (browser, context) => {
       const submitBtn = await page.$('button[type="submit"]')
       if (submitBtn) {
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {}),
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {}),
           submitBtn.click()
         ])
       }
     }
   }
 
-  // 3. Verify session is active
+  // 3. Verify active session
   const session = await page.evaluate(async (targetUrl) => {
     try {
       const res = await fetch(`${targetUrl}/api/auth/session`)
