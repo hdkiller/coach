@@ -1,5 +1,7 @@
 import { vi } from 'vitest'
 
+process.env.TASK_QUEUE_DRIVER = 'inline'
+
 class MockPool {
   query = vi.fn().mockResolvedValue({ rows: [] })
   connect = vi.fn().mockResolvedValue({ release: vi.fn() })

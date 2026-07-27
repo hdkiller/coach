@@ -2,6 +2,11 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
   # Called by deploy.yml so master pushes gate the Docker build on lint/typecheck/tests
   # instead of racing it. Do not add a `push` trigger back — that would double-run CI.
   workflow_call:

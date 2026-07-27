@@ -22,12 +22,189 @@ const {
   shouldScheduleChatRoomSummary,
   shouldUseReadRepairPrompt,
   shouldUseWriteRepairPrompt,
-  shouldRetryEmptyToolResponse
+  shouldRetryEmptyToolResponse,
+  stripAssistantToolOutputsWhenCanonicalToolMessagesExist
 } = await import('./turn-executor')
 
 beforeEach(() => {
   dispatchTaskMock.mockReset()
   dispatchTaskMock.mockResolvedValue({ id: 'run_123' })
+})
+
+describe('stripAssistantToolOutputsWhenCanonicalToolMessagesExist', () => {
+  const assistantWithOutput = () => [
+    {
+      id: 'assistant-1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-get_recent_workouts',
+          toolCallId: 'call_1',
+          state: 'output-available',
+          input: { days: 7 },
+          output: { workouts: [] }
+        },
+        { type: 'text', text: 'Here you go' }
+      ]
+    },
+    {
+      id: 'tool-1',
+      role: 'tool',
+      parts: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'get_recent_workouts',
+          result: { workouts: [] }
+        }
+      ]
+    }
+  ]
+
+  it('keeps the tool call and drops only the duplicated output', () => {
+    const [assistant] =
+      stripAssistantToolOutputsWhenCanonicalToolMessagesExist(assistantWithOutput())
+    const toolPart = assistant.parts.find((part: any) => part.type.startsWith('tool-'))
+
+    expect(toolPart).toBeDefined()
+    expect(toolPart.toolCallId).toBe('call_1')
+    expect(toolPart.input).toEqual({ days: 7 })
+    expect(toolPart.state).toBe('input-available')
+    expect(toolPart).not.toHaveProperty('output')
+    expect(assistant.parts).toHaveLength(2)
+  })
+
+  it('leaves tool parts untouched when no canonical tool message covers them', () => {
+    const messages = assistantWithOutput()
+    messages.pop()
+
+    const [assistant] = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages)
+    const toolPart = assistant.parts.find((part: any) => part.type.startsWith('tool-'))
+
+    expect(toolPart.state).toBe('output-available')
+    expect(toolPart.output).toEqual({ workouts: [] })
+  })
+
+  it('leaves approval-requested tool parts untouched', () => {
+    const [assistant] = stripAssistantToolOutputsWhenCanonicalToolMessagesExist([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-log_meal',
+            toolCallId: 'call_1',
+            state: 'approval-requested',
+            input: { meal: 'oats' },
+            approval: { id: 'call_1' }
+          }
+        ]
+      },
+      {
+        id: 'tool-1',
+        role: 'tool',
+        parts: [{ type: 'tool-approval-response', toolCallId: 'call_1', approved: true }]
+      }
+    ])
+
+    expect(assistant.parts[0].state).toBe('approval-requested')
+  })
+
+  it('keeps prior tool calls and results in the model history', async () => {
+    const { expandStoredChatMessages } = await import('./history')
+    const { transformHistoryToCoreMessages } = await import('../ai-history')
+    const { normalizeCoreMessagesForGemini } = await import('./core-message-normalizer')
+
+    const createdAt = new Date('2026-07-27T07:00:00Z')
+    const stored = [
+      {
+        id: 'm1',
+        senderId: 'user-1',
+        content: 'how did I train?',
+        files: [],
+        metadata: {},
+        createdAt,
+        updatedAt: createdAt
+      },
+      {
+        id: 'm2',
+        senderId: 'ai_agent',
+        content: 'Here you go',
+        files: [],
+        createdAt,
+        updatedAt: createdAt,
+        turn: { id: 't2', status: 'COMPLETED', metadata: {} },
+        metadata: {
+          toolCalls: [
+            {
+              toolCallId: 'call_1',
+              name: 'get_recent_workouts',
+              args: { days: 7 },
+              response: { workouts: [{ type: 'Ride' }] }
+            }
+          ]
+        }
+      },
+      {
+        id: 'm3',
+        senderId: 'system_tool',
+        content: '',
+        files: [],
+        createdAt,
+        updatedAt: createdAt,
+        metadata: {
+          toolResponse: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'get_recent_workouts',
+              result: { workouts: [{ type: 'Ride' }] }
+            }
+          ]
+        }
+      },
+      {
+        id: 'm4',
+        senderId: 'user-1',
+        content: 'and my sleep?',
+        files: [],
+        metadata: {},
+        createdAt,
+        updatedAt: createdAt
+      }
+    ]
+
+    const stripped = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
+      normalizeMessagesForSdk(expandStoredChatMessages(stored))
+    )
+    const modelMessages = normalizeCoreMessagesForGemini(
+      await transformHistoryToCoreMessages(stripped)
+    )
+
+    expect(modelMessages.map((message: any) => message.role)).toEqual([
+      'user',
+      'assistant',
+      'tool',
+      'user'
+    ])
+
+    const toolCalls = modelMessages[1].content.filter((part: any) => part.type === 'tool-call')
+    expect(toolCalls).toHaveLength(1)
+    expect(toolCalls[0]).toMatchObject({
+      toolCallId: 'call_1',
+      toolName: 'get_recent_workouts',
+      input: { days: 7 }
+    })
+
+    expect(modelMessages[2].content).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'call_1',
+        toolName: 'get_recent_workouts',
+        output: { type: 'json', value: { workouts: [{ type: 'Ride' }] } }
+      }
+    ])
+  })
 })
 
 describe('normalizeMessagesForSdk', () => {

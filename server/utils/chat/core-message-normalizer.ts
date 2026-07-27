@@ -4,16 +4,54 @@ function asParts(content: any): any[] {
   return []
 }
 
-function extractAssistantToolCallIds(message: any): Set<string> {
-  const ids = new Set<string>()
+function extractAssistantToolCalls(message: any): Map<string, string> {
+  const toolNamesByCallId = new Map<string, string>()
 
   for (const part of asParts(message.content)) {
     if (part?.type === 'tool-call' && part.toolCallId) {
-      ids.add(part.toolCallId)
+      toolNamesByCallId.set(part.toolCallId, part.toolName)
     }
   }
 
-  return ids
+  return toolNamesByCallId
+}
+
+function hasThoughtSignature(part: any) {
+  return !!(
+    part?.providerOptions?.google?.thoughtSignature ||
+    part?.providerMetadata?.google?.thoughtSignature
+  )
+}
+
+/**
+ * Gemini rejects a `model` turn that contains two `functionCall` parts with the same id
+ * with a bare `400 INVALID_ARGUMENT: Request contains an invalid argument.` Collapse
+ * repeated tool calls to a single part, preferring the copy that still carries a
+ * thought signature so Gemini 3 does not fall back to the skip-validation sentinel.
+ */
+function dedupeAssistantToolCalls(content: any[]) {
+  const indexByToolCallId = new Map<string, number>()
+  const deduped: any[] = []
+
+  for (const part of content) {
+    if (part?.type !== 'tool-call' || !part.toolCallId) {
+      deduped.push(part)
+      continue
+    }
+
+    const existingIndex = indexByToolCallId.get(part.toolCallId)
+    if (existingIndex === undefined) {
+      indexByToolCallId.set(part.toolCallId, deduped.length)
+      deduped.push(part)
+      continue
+    }
+
+    if (!hasThoughtSignature(deduped[existingIndex]) && hasThoughtSignature(part)) {
+      deduped[existingIndex] = part
+    }
+  }
+
+  return deduped
 }
 
 export function normalizeCoreMessagesForGemini(coreMessages: any[]) {
@@ -44,6 +82,10 @@ export function normalizeCoreMessagesForGemini(coreMessages: any[]) {
   for (const msg of merged) {
     if (Array.isArray(msg.content)) {
       msg.content = msg.content.filter((part: any) => part.type !== 'text' || part.text?.trim())
+
+      if (msg.role === 'assistant') {
+        msg.content = dedupeAssistantToolCalls(msg.content)
+      }
 
       if (msg.role === 'user' || msg.role === 'system') {
         const textParts = msg.content.filter((part: any) => part.type === 'text')
@@ -76,37 +118,45 @@ export function normalizeCoreMessagesForGemini(coreMessages: any[]) {
   }
 
   const final: any[] = []
-  let pendingToolCallIds: Set<string> | null = null
+  let pendingToolCalls: Map<string, string> | null = null
 
   for (const msg of prevalidated) {
     if (msg.role === 'assistant') {
       final.push(msg)
-      const toolCallIds = extractAssistantToolCallIds(msg)
-      pendingToolCallIds = toolCallIds.size > 0 ? toolCallIds : null
+      const toolCalls = extractAssistantToolCalls(msg)
+      pendingToolCalls = toolCalls.size > 0 ? toolCalls : null
       continue
     }
 
     if (msg.role === 'tool') {
       const previous = final[final.length - 1]
-      if (previous?.role !== 'assistant' || !pendingToolCallIds) {
+      if (previous?.role !== 'assistant' || !pendingToolCalls) {
         continue
       }
 
-      const validContent = asParts(msg.content).filter(
-        (part: any) => part?.type === 'tool-result' && pendingToolCallIds?.has(part.toolCallId)
-      )
+      // The tool name must match the originating call: Gemini rejects a `functionResponse`
+      // naming an undeclared tool with a bare 400 INVALID_ARGUMENT.
+      const validContent = asParts(msg.content)
+        .filter(
+          (part: any) => part?.type === 'tool-result' && pendingToolCalls?.has(part.toolCallId)
+        )
+        .map((part: any) => {
+          const resolvedToolName = pendingToolCalls?.get(part.toolCallId)
+          if (!resolvedToolName || resolvedToolName === part.toolName) return part
+          return { ...part, toolName: resolvedToolName }
+        })
 
       if (validContent.length === 0) {
         continue
       }
 
       final.push({ ...msg, content: validContent })
-      pendingToolCallIds = null
+      pendingToolCalls = null
       continue
     }
 
     final.push(msg)
-    pendingToolCallIds = null
+    pendingToolCalls = null
   }
 
   return final

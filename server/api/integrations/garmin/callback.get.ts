@@ -20,16 +20,29 @@ export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.id) throw createError({ statusCode: 401, message: 'Unauthorized' })
 
-  const { code } = getQuery(event)
+  const { code, error: garminError } = getQuery(event)
   const verifier = getCookie(event, 'garmin_code_verifier')
 
-  if (!code || !verifier)
-    throw createError({ statusCode: 400, message: 'Missing code or verifier' })
+  if (garminError) {
+    console.error('[GarminCallback] Garmin returned authorization error:', garminError)
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=access-denied')
+  }
+
+  if (!code || !verifier) {
+    console.warn('[GarminCallback] Missing code or verifier cookie', {
+      hasCode: !!code,
+      hasVerifier: !!verifier
+    })
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=missing-verifier')
+  }
 
   const clientId = process.env.GARMIN_CLIENT_ID
   const clientSecret = process.env.GARMIN_CLIENT_SECRET
   const config = useRuntimeConfig()
-  const redirectUri = `${config.public.siteUrl}/api/integrations/garmin/callback`
+  const siteUrl = (config.public.siteUrl || 'http://localhost:3000').replace(/\/+$/, '')
+  const redirectUri = `${siteUrl}/api/integrations/garmin/callback`
 
   const response = await fetch('https://diauth.garmin.com/di-oauth2-service/oauth/token', {
     method: 'POST',
@@ -41,13 +54,14 @@ export default defineEventHandler(async (event) => {
       client_id: clientId!,
       client_secret: clientSecret!,
       code_verifier: verifier
-    })
+    }).toString()
   })
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     console.error('[GarminCallback] Token exchange failed', errorData)
-    throw createError({ statusCode: 400, message: 'Failed to exchange code for token' })
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=token-exchange-failed')
   }
 
   const tokenData = await response.json()
@@ -58,14 +72,20 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!userResponse.ok) {
-    throw createError({ statusCode: 400, message: 'Failed to fetch Garmin user profile' })
+    console.error('[GarminCallback] Failed to fetch Garmin user profile', {
+      status: userResponse.status
+    })
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=profile-fetch-failed')
   }
 
   const userData = await userResponse.json()
   const externalUserId = userData.userId as string | undefined
 
   if (!externalUserId) {
-    throw createError({ statusCode: 400, message: 'Failed to fetch Garmin user profile' })
+    console.error('[GarminCallback] Garmin user profile missing externalUserId')
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=profile-fetch-failed')
   }
 
   const existingOwner = await prisma.integration.findFirst({

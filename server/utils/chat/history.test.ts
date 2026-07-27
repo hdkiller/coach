@@ -63,6 +63,40 @@ describe('chat history helpers', () => {
     )
   })
 
+  it('emits a single tool part when legacy toolApprovals duplicate a stored tool call', () => {
+    const [expanded] = expandStoredChatMessages([
+      {
+        id: 'msg-legacy',
+        senderId: 'ai_agent',
+        content: '',
+        createdAt: new Date('2026-02-28T08:29:08.009Z'),
+        metadata: {
+          toolApprovals: [
+            { toolCallId: 'call-1', name: 'log_meal', args: { meal: 'oats' }, approvalId: 'call-1' }
+          ],
+          toolCalls: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'log_meal',
+              args: { meal: 'oats' },
+              response: { success: true }
+            }
+          ]
+        }
+      }
+    ])
+
+    const toolParts = (expanded!.parts as any[]).filter((part) => part.type.startsWith('tool-'))
+
+    expect(toolParts).toHaveLength(1)
+    expect(toolParts[0]).toMatchObject({
+      toolCallId: 'call-1',
+      state: 'output-available',
+      output: { success: true }
+    })
+  })
+
   it('merges tool calls and results into the persisted metadata shape', () => {
     const persisted = buildPersistedToolCalls(
       [
