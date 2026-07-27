@@ -62,6 +62,20 @@ Users can manage their experience in **Settings > Profile > Communication**:
 - **Plan Updates**: Notification of coaching adjustments.
 - **Global Unsubscribe**: Instantly opt-out of all optional communication.
 
+### Preference Key to Template Mapping
+
+| Preference Key     | Setting Channel               | Active Templates / Senders                                                         | Audience & Default Opt-In |
+| :----------------- | :---------------------------- | :--------------------------------------------------------------------------------- | :------------------------ |
+| `dailyCoach`       | Daily Training Recommendation | `DailyRecommendation`                                                              | ENGAGEMENT (Opt-in)       |
+| `workoutAnalysis`  | Workout Analysis              | `WorkoutAnalysisReady`, `WorkoutReceived`                                          | ENGAGEMENT (Opt-in)       |
+| `thresholdUpdates` | Threshold Updates             | `ThresholdUpdateDetected`                                                          | ENGAGEMENT (Opt-in)       |
+| `retentionNudges`  | Retention & Trial Nudges      | `TrialEndingSoon`                                                                  | ENGAGEMENT (Opt-in)       |
+| `onboarding`       | Onboarding Sequence           | `Welcome`, `OnboardingDripDay2`, `OnboardingDripDay7`                              | ENGAGEMENT (Opt-in)       |
+| `billing`          | Subscription & Billing        | `PaymentFailed`, `PaymentSucceeded`, `SubscriptionCanceled`, `SubscriptionStarted` | TRANSACTIONAL (Required)  |
+| `planUpdates`      | Plan Updates                  | _(Sender in development)_                                                          | ENGAGEMENT (Opt-in)       |
+| `productUpdates`   | Product Updates               | _(Sender in development)_                                                          | ENGAGEMENT (Opt-in)       |
+| `marketing`        | Marketing & News              | Broadcast emails (`/api/admin/email-deliveries/broadcast`)                         | ENGAGEMENT (Opt-out)      |
+
 ## Developer CLI Commands
 
 - `pnpm cw:cli email queue-welcome <userId>`: Test the welcome sequence.
