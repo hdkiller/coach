@@ -5,6 +5,7 @@ import { nutritionRepository } from '../../../../../server/utils/repositories/nu
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
 import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/settings'
+import { formatUserTime } from '../../../../../server/utils/date'
 import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
 import {
   calculateGlycogenState,
@@ -214,6 +215,68 @@ describe('metabolicService smoke coverage', () => {
           'UTC'
         )
       ).toBe('Intra-Workout Fueling')
+    })
+
+    it('labels a baseline window from its slot name, not the time of day', () => {
+      // 15:00 local. getMealSlotName treats 11:00-16:00 as lunch, so a slot the athlete named
+      // "Snack" would otherwise be labelled "Lunch" and collide with the real 12:00 lunch window -
+      // which is exactly what a production plan had stored.
+      vi.mocked(formatUserTime).mockReturnValue('15:00')
+
+      expect(
+        metabolicService.getMealSlotName(new Date('2026-07-27T13:00:00Z'), 'Europe/Budapest')
+      ).toBe('Lunch')
+
+      expect(
+        metabolicService.buildWindowLabel(
+          { type: 'DAILY_BASE', slotName: 'Snack', startTime: '2026-07-27T13:00:00Z' },
+          'Europe/Budapest'
+        )
+      ).toBe('Snack')
+    })
+
+    it('uses the time of day only when the window has no slot name', () => {
+      vi.mocked(formatUserTime).mockReturnValue('15:00')
+
+      expect(
+        metabolicService.buildWindowLabel(
+          { type: 'DAILY_BASE', startTime: '2026-07-27T13:00:00Z' },
+          'Europe/Budapest'
+        )
+      ).toBe('Lunch')
+    })
+
+    it('recomputes a stored label that disagrees with the slot name', () => {
+      // Production plans carry `slotName: "Snack"` next to `label: "Lunch"` on the same window.
+      // Trusting the stored label kept the wrong heading alive through every regeneration.
+      vi.mocked(formatUserTime).mockReturnValue('15:00')
+
+      expect(
+        metabolicService.resolveWindowDisplayLabel(
+          {
+            type: 'DAILY_BASE',
+            slotName: 'Snack',
+            label: 'Lunch',
+            startTime: '2026-07-27T13:00:00Z'
+          },
+          'Europe/Budapest'
+        )
+      ).toBe('Snack')
+    })
+
+    it('keeps a stored label when the window has no slot name to check it against', () => {
+      vi.mocked(formatUserTime).mockReturnValue('15:00')
+
+      expect(
+        metabolicService.resolveWindowDisplayLabel(
+          {
+            type: 'PRE_WORKOUT',
+            label: 'Pre-Workout Breakfast',
+            startTime: '2026-07-27T13:00:00Z'
+          },
+          'Europe/Budapest'
+        )
+      ).toBe('Pre-Workout Breakfast')
     })
   })
 })
