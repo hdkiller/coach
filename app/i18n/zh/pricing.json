@@ -34,12 +34,16 @@
   "headline": "为每位运动员制定的计划",
   "label": "定价",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "确认更改",
     "description": "查看您的订阅计划变更",
     "keep_plan": "维持我目前的计划",
     "stripe_note": "Stripe 会自动计算您未使用时间的积分，并将其应用于您未来的账单。",
     "switch_to": "切换到 {name}？",
     "title": "确认降级",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "您即将降级。部分功能（例如深度人工智能分析）将在变更完成后受到限制。"
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "可靠的趋势追踪和每周总结",
       "name": "支持者"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

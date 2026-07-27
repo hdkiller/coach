@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['health:write'])
   const userId = user.id
   // 0. Quota Check
-  await assertQuotaAllowed(userId, 'daily_checkin')
+  await assertQuotaAllowed(userId, 'daily_checkin', undefined, event)
 
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)

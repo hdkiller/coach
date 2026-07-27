@@ -3,6 +3,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
+import { assertNoActiveStoreSubscription } from '../../utils/provider-subscriptions'
 
 const checkoutSessionSchema = z.object({
   priceId: z.string(),
@@ -41,6 +42,9 @@ export default defineEventHandler(async (event) => {
       message: 'User not found'
     })
   }
+
+  // Never let web checkout stack on top of an App Store / Play subscription.
+  await assertNoActiveStoreSubscription(userId)
 
   const { customerId } = await ensureStripeCustomerForUser(user)
 

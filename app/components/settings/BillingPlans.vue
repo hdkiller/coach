@@ -34,10 +34,10 @@
         >
           {{ t('billing.annual') }}
           <span
-            v-if="billingInterval !== 'annual'"
+            v-if="billingInterval !== 'annual' && toggleSavings"
             class="text-[9px] bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20"
           >
-            {{ t('billing.save_pct', { pct: 33 }) }}
+            {{ t('billing.save_pct', { pct: toggleSavings }) }}
           </span>
         </button>
       </div>
@@ -115,14 +115,7 @@
 
           <div class="flex items-baseline gap-2 font-athletic italic mb-1.5">
             <span class="font-black text-white leading-none text-5xl xl:text-[3.75rem]">
-              {{
-                formatPrice(
-                  billingInterval === 'annual' && plan.annualPrice
-                    ? plan.annualPrice
-                    : plan.monthlyPrice,
-                  currency
-                )
-              }}
+              {{ formatPrice(priceFor(plan, billingInterval, currency), currency) }}
             </span>
             <span
               class="text-[10px] font-black text-gray-600 uppercase tracking-widest leading-none mb-1"
@@ -140,17 +133,18 @@
           <div class="min-h-[2rem]">
             <template v-if="billingInterval === 'annual' && plan.annualPrice">
               <div class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1">
-                {{ formatPrice(getEffectiveMonthly(plan), currency) }} /
+                {{ formatPrice(monthlyEquivalent(plan, currency), currency) }} /
                 {{ t('billing.per_month') }}
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-[10px] font-bold text-gray-600 line-through tracking-wider">
-                  {{ formatPrice(plan.monthlyPrice, currency) }}/mo
+                  {{ formatPrice(priceFor(plan, 'monthly', currency), currency) }}/mo
                 </span>
                 <span
+                  v-if="annualSavings(plan, currency)"
                   class="text-[9px] font-black text-emerald-500 uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/5 border border-emerald-500/20"
                 >
-                  {{ t('billing.save_pct', { pct: calculateAnnualSavings(plan) }) }}
+                  {{ t('billing.save_pct', { pct: annualSavings(plan, currency) }) }}
                 </span>
               </div>
             </template>
@@ -196,7 +190,7 @@
       </div>
     </div>
 
-    <UModal v-model:open="showDowngradeModal">
+    <UModal v-model:open="showConfirmModal">
       <template #content>
         <div
           class="floating-card-base grain-overlay rounded-[2.5rem] p-10 overflow-hidden relative"
@@ -207,10 +201,14 @@
 
           <div class="relative z-10">
             <h3 class="text-3xl font-black text-white font-athletic italic uppercase mb-6">
-              {{ t('modal.title') }}
+              {{ pendingIsUpgrade ? t('modal.upgrade_title') : t('modal.title') }}
             </h3>
             <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
-              {{ t('modal.warning') }}
+              {{
+                pendingIsUpgrade
+                  ? t('modal.upgrade_warning', { price: pendingPriceLabel })
+                  : t('modal.warning')
+              }}
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4">
@@ -221,11 +219,11 @@
                 class="flex-1 h-14 rounded-xl text-[11px] font-black uppercase tracking-widest"
                 @click="
                   () => {
-                    showDowngradeModal = false
+                    showConfirmModal = false
                   }
                 "
               >
-                {{ t('modal.keep_plan') }}
+                {{ pendingIsUpgrade ? t('modal.cancel') : t('modal.keep_plan') }}
               </UButton>
               <UButton
                 color="primary"
@@ -239,7 +237,7 @@
                   }
                 "
               >
-                {{ t('modal.confirm_change') }}
+                {{ pendingIsUpgrade ? t('modal.upgrade_confirm') : t('modal.confirm_change') }}
               </UButton>
             </div>
           </div>
@@ -253,7 +251,6 @@
   import { useTranslate } from '@tolgee/vue'
   import {
     PRICING_PLANS,
-    calculateAnnualSavings,
     formatPrice,
     getStripePriceId,
     type BillingInterval,
@@ -285,12 +282,30 @@
   const userStore = useUserStore()
   const { createCheckoutSession, openCustomerPortal, changePlan } = useStripe()
   const { currency, setCurrency } = useCurrency()
+  const { priceFor, monthlyEquivalent, annualSavings, bestAnnualSavings } = useLivePricing()
+  const { data: currentSubscription } = useAsyncData<{
+    priceId: string | null
+    interval: 'monthly' | 'annual' | null
+  }>('current-stripe-subscription', () => ($fetch as any)('/api/stripe/subscription'), {
+    lazy: true
+  })
+
+  // Best real saving across paid plans — the toggle used to promise a flat 33%
+  // while the cards below it showed the actual (different) figures.
+  const toggleSavings = computed(() => bestAnnualSavings(PRICING_PLANS, currency.value))
 
   const billingInterval = ref<BillingInterval>('monthly')
   const loading = ref(false)
   const selectedPlan = ref<string | null>(null)
-  const showDowngradeModal = ref(false)
+  const showConfirmModal = ref(false)
   const planToChangeTo = ref<PricingPlan | null>(null)
+  const pendingIsUpgrade = ref(false)
+
+  const pendingPriceLabel = computed(() =>
+    planToChangeTo.value
+      ? formatPrice(priceFor(planToChangeTo.value, billingInterval.value, currency.value), currency.value)
+      : ''
+  )
 
   const displayedPlans = computed(() => {
     const planByKey = new Map(PRICING_PLANS.map((plan) => [plan.key, plan]))
@@ -302,10 +317,25 @@
       .filter((plan): plan is PricingPlan => Boolean(plan))
   })
 
-  function isCurrentPlan(plan: PricingPlan): boolean {
+  function isCurrentTier(plan: PricingPlan): boolean {
     if (!userStore.user || status.value !== 'authenticated') return false
-    const currentTier = userStore.user.subscriptionTier?.toLowerCase()
-    return currentTier === plan.key
+    return userStore.user.subscriptionTier?.toLowerCase() === plan.key
+  }
+
+  /**
+   * Same tier *and* same billing interval. Comparing tier alone left monthly
+   * subscribers unable to switch to annual — the annual card was disabled as
+   * "current plan".
+   */
+  function isCurrentPlan(plan: PricingPlan): boolean {
+    if (!isCurrentTier(plan)) return false
+    if (plan.key === 'free') return true
+    const current = currentSubscription.value
+    // Without a known interval, fall back to tier-only matching rather than
+    // offering a "switch" that might be a no-op.
+    if (!current?.priceId) return true
+    if (current.interval) return current.interval === billingInterval.value
+    return current.priceId === getStripePriceId(plan, billingInterval.value, currency.value)
   }
 
   function isPrimaryPlan(plan: PricingPlan): boolean {
@@ -335,11 +365,6 @@
     return 'lg:order-3'
   }
 
-  function getEffectiveMonthly(plan: PricingPlan): number {
-    if (!plan.annualPrice) return plan.monthlyPrice
-    return plan.annualPrice / 12
-  }
-
   function getButtonLabel(plan: PricingPlan): string {
     if (isCurrentPlan(plan)) return translate('btn.current_plan')
     if (status.value !== 'authenticated') {
@@ -361,11 +386,15 @@
         ? translate('btn.downgrade_free')
         : translate('btn.switch_supporter')
     }
-    return translate('btn.current_plan')
+    // Same tier, different interval — a switch, not a no-op.
+    return billingInterval.value === 'annual'
+      ? translate('billing.annual')
+      : translate('billing.monthly')
   }
 
+  /** Every feature: truncating hid the differentiator that justifies Pro. */
   function getVisibleFeatures(plan: PricingPlan): string[] {
-    return plan.features.slice(0, 3)
+    return plan.features
   }
 
   async function executePlanChange(plan: PricingPlan) {
@@ -382,7 +411,7 @@
 
       const success = await changePlan(priceId, direction)
       if (success) {
-        showDowngradeModal.value = false
+        showConfirmModal.value = false
         emit('close')
         navigateTo('/settings/billing?success=true')
         return
@@ -390,7 +419,7 @@
     }
     loading.value = false
     selectedPlan.value = null
-    showDowngradeModal.value = false
+    showConfirmModal.value = false
   }
 
   async function handlePlanSelect(plan: PricingPlan) {
@@ -400,14 +429,19 @@
       const currentLevel = tiers.indexOf(currentTier)
       const planLevel = tiers.indexOf(plan.key.toUpperCase())
 
+      // Every paid change is confirmed first: the upgrade path invoices the
+      // prorated difference immediately, so it must never fire on one click.
       if (planLevel >= currentLevel) {
-        await executePlanChange(plan)
+        planToChangeTo.value = plan
+        pendingIsUpgrade.value = true
+        showConfirmModal.value = true
         return
       }
 
       if (plan.key !== 'free') {
         planToChangeTo.value = plan
-        showDowngradeModal.value = true
+        pendingIsUpgrade.value = false
+        showConfirmModal.value = true
         return
       }
 

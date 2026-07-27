@@ -55,7 +55,8 @@ export default defineEventHandler(async (event) => {
   await assertQuotaAllowed(
     user.id,
     'unified_report_generation',
-    'Recommendation update quota exceeded. Please wait or upgrade your plan.'
+    'Recommendation update quota exceeded. Please wait or upgrade your plan.',
+    event
   )
 
   try {

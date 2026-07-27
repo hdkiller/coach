@@ -34,12 +34,16 @@
   "headline": "すべてのアスリートのためのプラン",
   "label": "価格",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "変更を確認",
     "description": "サブスクリプションプランの変更を確認する",
     "keep_plan": "現在のプランを維持する",
     "stripe_note": "Stripe は未使用時間のクレジットを自動的に計算し、将来の請求に適用します。",
     "switch_to": "{name} に切り替えますか?",
     "title": "ダウングレードの確認",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "下位プランへの移行となります。変更処理が完了すると、一部の機能（ディープAI分析など）が制限されます。"
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "信頼性の高いトレンド追跡と週次サマリー",
       "name": "サポーター"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

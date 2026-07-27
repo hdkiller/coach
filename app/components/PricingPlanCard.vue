@@ -27,12 +27,7 @@
       <h3 :class="compact ? 'text-lg' : 'text-xl'" class="font-bold">{{ plan.name }}</h3>
       <div :class="compact ? 'mt-2' : 'mt-4'" class="flex items-baseline gap-1">
         <span :class="compact ? 'text-2xl' : 'text-4xl'" class="font-extrabold">
-          {{
-            formatPrice(
-              interval === 'annual' && plan.annualPrice ? plan.annualPrice : plan.monthlyPrice,
-              currency
-            )
-          }}
+          {{ formatPrice(priceFor(plan, interval, currency), currency) }}
         </span>
         <span class="text-sm text-gray-500 dark:text-gray-400">
           / {{ interval === 'annual' ? 'year' : 'month' }}
@@ -91,6 +86,9 @@
     type SupportedCurrency,
     type BillingInterval
   } from '~/utils/pricing'
+
+  // Prices come from Stripe so the card cannot disagree with the invoice.
+  const { priceFor } = useLivePricing()
 
   interface Props {
     plan: PricingPlan

@@ -34,10 +34,10 @@
         >
           {{ t('billing.annual') }}
           <span
-            v-if="billingInterval !== 'annual'"
+            v-if="billingInterval !== 'annual' && toggleSavings"
             class="text-xs bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20"
           >
-            {{ t('billing.save_pct', { pct: 33 }) }}
+            {{ t('billing.save_pct', { pct: toggleSavings }) }}
           </span>
         </button>
       </div>
@@ -109,14 +109,7 @@
 
           <div class="flex items-baseline gap-2 mb-2 font-athletic">
             <span class="text-6xl font-black text-white leading-none">
-              {{
-                formatPrice(
-                  billingInterval === 'annual' && plan.annualPrice
-                    ? plan.annualPrice
-                    : plan.monthlyPrice,
-                  currency
-                )
-              }}
+              {{ formatPrice(priceFor(plan, billingInterval, currency), currency) }}
             </span>
             <span
               class="text-xs font-black text-gray-600 uppercase tracking-widest leading-none mb-1"
@@ -134,17 +127,18 @@
           <div class="min-h-[2.5rem]">
             <template v-if="billingInterval === 'annual' && plan.annualPrice">
               <div class="text-xs font-black text-primary-500 uppercase tracking-widest mb-1">
-                {{ formatPrice(getEffectiveMonthly(plan), currency) }} /
+                {{ formatPrice(monthlyEquivalent(plan, currency), currency) }} /
                 {{ t('billing.per_month') }}
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-xs font-bold text-gray-600 line-through tracking-wider">
-                  {{ formatPrice(plan.monthlyPrice, currency) }}/mo
+                  {{ formatPrice(priceFor(plan, 'monthly', currency), currency) }}/mo
                 </span>
                 <span
+                  v-if="annualSavings(plan, currency)"
                   class="text-xs font-black text-emerald-500 uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/5 border border-emerald-500/20"
                 >
-                  {{ t('billing.save_pct', { pct: calculateAnnualSavings(plan) }) }}
+                  {{ t('billing.save_pct', { pct: annualSavings(plan, currency) }) }}
                 </span>
               </div>
             </template>
@@ -250,7 +244,6 @@
   import { useTranslate } from '@tolgee/vue'
   import {
     PRICING_PLANS,
-    calculateAnnualSavings,
     formatPrice,
     getStripePriceId,
     type BillingInterval,
@@ -282,6 +275,11 @@
   const userStore = useUserStore()
   const { createCheckoutSession, openCustomerPortal, changePlan } = useStripe()
   const { currency, setCurrency } = useCurrency()
+  const { priceFor, monthlyEquivalent, annualSavings, bestAnnualSavings } = useLivePricing()
+
+  // Best real saving across paid plans — the toggle used to promise a flat 33%
+  // while the cards below it showed the actual (different) figures.
+  const toggleSavings = computed(() => bestAnnualSavings(PRICING_PLANS, currency.value))
 
   const billingInterval = ref<BillingInterval>('monthly')
   const loading = ref(false)
@@ -333,11 +331,6 @@
     if (plan.key === 'supporter') return 'lg:order-1'
     if (plan.key === 'pro') return 'lg:order-2'
     return 'lg:order-3'
-  }
-
-  function getEffectiveMonthly(plan: PricingPlan): number {
-    if (!plan.annualPrice) return plan.monthlyPrice
-    return plan.annualPrice / 12
   }
 
   function getButtonLabel(plan: PricingPlan): string {
