@@ -77,7 +77,7 @@
           >Coach Watts</a
         >
       </p>
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-500 mt-2">
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mt-2">
         Adaptive Endurance Intelligence
       </p>
     </footer>

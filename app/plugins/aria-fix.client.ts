@@ -8,6 +8,20 @@ export default defineNuxtPlugin(() => {
       if (!el.hasAttribute('role')) {
         el.setAttribute('role', 'button')
       }
+      if (
+        el.getAttribute('role') === 'button' &&
+        !el.getAttribute('aria-label') &&
+        !el.textContent?.trim()
+      ) {
+        const labelText =
+          el
+            .closest('li, a, button, nav')
+            ?.querySelector('span:not([aria-expanded])')
+            ?.textContent?.trim() ||
+          el.parentElement?.textContent?.trim() ||
+          'Toggle section'
+        el.setAttribute('aria-label', labelText)
+      }
     })
   }
 
