@@ -124,7 +124,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "magicast": "^0.3.5",
-    "playwright": "^1.58.2",
+    "playwright": "^1.62.0",
     "prettier": "^3.9.4",
     "react": "^18",
     "react-dom": "^18",
