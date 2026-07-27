@@ -15,7 +15,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm config set ignore-scripts false && pnpm install --frozen-lockfile
 
 # Stage 2: Build the application
 FROM base AS builder
