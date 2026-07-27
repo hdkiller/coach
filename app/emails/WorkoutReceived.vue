@@ -57,6 +57,7 @@
       streamInsightBullets?: string[]
       streamInsightWhatItMeans?: string
       streamInsightNextSuggestion?: string
+      workoutUrl?: string
       siteUrl?: string
       logoUrl?: string
       unsubscribeUrl?: string
