@@ -14,7 +14,7 @@ WORKDIR /app
 
 # Stage 1: Install dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml .npmrc* ./
+COPY package.json pnpm-lock.yaml .npmrc* pnpm-workspace.yaml* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 RUN --mount=type=cache,id=pnpm-v3,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild better-sqlite3 bcrypt && pnpm prisma generate
