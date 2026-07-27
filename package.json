@@ -101,7 +101,7 @@
     "@nuxt/eslint": "^1.16.0",
     "@nuxt/icon": "^2.3.1",
     "@nuxt/test-utils": "^4.0.3",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.62.0",
     "@release-it/conventional-changelog": "^10.0.4",
     "@tiptap/core": "^3.27.3",
     "@tiptap/pm": "^3.27.3",
