@@ -28,7 +28,8 @@ test.describe('Category E: Timezone Resilience & Calendar Date Preservation', ()
     expect(athlete).toBeTruthy()
 
     const targetTitle = `Timezone Test Ride ${Date.now()}`
-    const dateUtc = new Date('2026-07-26T00:00:00.000Z')
+    const targetDateKey = new Date().toISOString().slice(0, 10)
+    const dateUtc = new Date(`${targetDateKey}T00:00:00.000Z`)
 
     // 1. Create planned workout for target date
     const plannedWorkout = await prisma.plannedWorkout.create({
@@ -57,7 +58,9 @@ test.describe('Category E: Timezone Resilience & Calendar Date Preservation', ()
       await expect(authedPage).toHaveURL(/\/calendar/)
 
       // Query API for planned workouts under America/Los_Angeles
-      const laRes = await authedPage.request.get('/api/planned-workouts')
+      const laRes = await authedPage.request.get(
+        `/api/planned-workouts?startDate=${targetDateKey}T00:00:00.000Z`
+      )
       expect(laRes.ok()).toBeTruthy()
       const laData = await laRes.json()
       const laWorkoutList = Array.isArray(laData) ? laData : laData.workouts || []
@@ -75,7 +78,9 @@ test.describe('Category E: Timezone Resilience & Calendar Date Preservation', ()
       await calendar.goto()
 
       // Query API for planned workouts under Asia/Tokyo
-      const tokyoRes = await authedPage.request.get('/api/planned-workouts')
+      const tokyoRes = await authedPage.request.get(
+        `/api/planned-workouts?startDate=${targetDateKey}T00:00:00.000Z`
+      )
       expect(tokyoRes.ok()).toBeTruthy()
       const tokyoData = await tokyoRes.json()
       const tokyoWorkoutList = Array.isArray(tokyoData) ? tokyoData : tokyoData.workouts || []
@@ -87,8 +92,8 @@ test.describe('Category E: Timezone Resilience & Calendar Date Preservation', ()
       // 4. Assert both timezone views retain identical calendar date string representation
       const laDateString = new Date(laWorkout.date).toISOString().split('T')[0]
       const tokyoDateString = new Date(tokyoWorkout.date).toISOString().split('T')[0]
-      expect(laDateString).toBe('2026-07-26')
-      expect(tokyoDateString).toBe('2026-07-26')
+      expect(laDateString).toBe(targetDateKey)
+      expect(tokyoDateString).toBe(targetDateKey)
     } finally {
       // Reset athlete timezone & cleanup workout
       await prisma.user.update({
