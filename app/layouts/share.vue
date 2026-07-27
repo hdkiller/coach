@@ -29,7 +29,12 @@
             </div>
             <ColorModeButton />
             <UPopover class="sm:hidden">
-              <UButton icon="i-lucide-menu" color="neutral" variant="ghost" />
+              <UButton
+                icon="i-lucide-menu"
+                color="neutral"
+                variant="ghost"
+                aria-label="Open menu"
+              />
               <template #content>
                 <div class="p-3 w-44 flex flex-col gap-2">
                   <UButton

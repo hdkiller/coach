@@ -46,6 +46,7 @@
             icon="i-heroicons-arrow-right"
             trailing
             title="Open Journal"
+            aria-label="Open Journal"
           />
           <UButton
             v-if="!loading"
@@ -55,6 +56,7 @@
             size="xs"
             icon="i-heroicons-sparkles"
             title="Regenerate Plan"
+            aria-label="Regenerate Plan"
             @click="
               () => {
                 void handleGenerate()
