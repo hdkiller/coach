@@ -38,6 +38,7 @@ module.exports = {
         preset: 'desktop',
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
         skipAudits: ['full-page-screenshot'],
+        logLevel: process.env.LHCI_LOG_LEVEL || (isFastLocal ? 'info' : 'silent'),
         // Disable artificial CPU/network throttling during local dev runs for 3x speedup
         ...(isFastLocal
           ? {
