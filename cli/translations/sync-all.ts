@@ -180,9 +180,11 @@ const syncAllCommand = new Command('sync-all')
 
     // 5. Pull translations
     console.log(chalk.bold('\n📥 Pulling translations from platform...\n'))
-    const { execSync } = await import('child_process')
+    const { execFileSync } = await import('child_process')
     try {
-      execSync(`npx tolgee pull --api-url "${apiUrl}" --api-key "${apiKey}"`, { stdio: 'inherit' })
+      execFileSync('npx', ['tolgee', 'pull', '--api-url', apiUrl, '--api-key', apiKey], {
+        stdio: 'inherit'
+      })
     } catch {
       console.error(chalk.red('Pull failed — run `pnpm i18n:pull` manually'))
       process.exit(1)

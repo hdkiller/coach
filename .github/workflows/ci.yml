@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 concurrency:
   # PR runs supersede each other; workflow_call runs are keyed per-commit so they
   # never queue behind (or deadlock with) the calling deploy workflow's group.
