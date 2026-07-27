@@ -52,22 +52,25 @@ Using Trigger.dev v3, we can handle both immediate notifications and delayed dri
      ```
    - **Option B (Dedicated Campaign Task):** For complex logic (e.g., "Don't send Day 2 email if they already connected Strava"), we can create a dedicated `onboarding-campaign` task that uses `wait.for({ days: 2 })` between sending emails. This allows for conditional logic to be evaluated at the exact time the email is supposed to be sent.
 
-## Current State (Today)
+## Current State (Status as of July 2026)
 
-- Shared sender utility exists at `server/utils/email.ts` (Resend-based).
-- Support flow uses it via `server/api/support/send.post.ts`.
-- Unified notification taxonomy, user email preference center, and delivery analytics model implemented.
+- **Automated Dispatch (Default)**: Outbound email delivery via Resend is active by default using `EmailDeliveryService`.
+- **Optional Admin Approval Gate**: Setting `DISABLE_EMAILS=true` holds rendered emails in `QUEUED` status for manual review at `/admin/emails`.
+- **Template Registry & Orchestrator**: Centralized registry (`server/utils/email-template-registry.ts`), internal render API (`/api/internal/render-email`), and automatic UTM injection.
+- **User Preference Center**: Fully integrated in `/settings/profile` under `Communication`.
+- **Cryptographic Unsubscribe**: HMAC-signed unsubscribe token generation and suppression handling.
+- **Shipped Templates**: `Welcome`, `DailyRecommendation`, `WorkoutAnalysisReady`, `WorkoutReceived`, `ThresholdUpdateDetected`, `TrialEndingSoon`, `AccountDeletionScheduled`, `PaymentFailed`, `PaymentSucceeded`, `SubscriptionCanceled`, `CoachInvite`, `TeamInvite`.
 
 ## Target Architecture
 
 1. **Domain Action:** `Email Event` emitted by domain flows (signup, subscription updates, analysis ready).
-2. **Task Triggering:** Nuxt API triggers a Trigger.dev task (`trigger.trigger('send-email', { payload, idempotencyKey })`).
+2. **Task Triggering:** Nuxt API or service triggers `send-email` or `EmailDeliveryService.runSendEmail`.
 3. **Trigger.dev Task Orchestrator:**
-   - Fetches User `EmailPreference`.
+   - Resolves user/recipient preferences.
    - Checks suppression list and exits early if unsubscribed/suppressed.
-   - Renders the Vue-based email template to HTML via an internal rendering API.
-   - Saves payload to `EmailDelivery` table as `QUEUED`.
-4. **Manual Review (Phase 2-4):** Admins review generated HTML in `/admin/emails` and click "Send Now" (server-enforced admin auth + atomic send lock).
+   - Renders the Vue-based email template to HTML via internal rendering API.
+   - Saves payload to `EmailDelivery` table.
+4. **Automated Dispatch (Default):** Dispatches via Resend API and records `providerMessageId`. If `DISABLE_EMAILS=true`, holds in `QUEUED` for manual review in `/admin/emails`.
 5. **Provider Adapter:** Sends via Resend.
 6. **Webhook Ingestion:** Dedicated endpoint (`server/api/webhooks/resend.post.ts`) listens for Resend webhooks, verifies signatures with `svix`, and enqueues a job into the internal `webhookQueue` (BullMQ). The `ResendService` processes this job in the `cw:worker` and updates the `EmailDelivery` table (`DELIVERED`, `OPENED`, `CLICKED`, `BOUNCED`).
 7. **Internal Rendering Security:** `server/api/internal/render-email.post.ts` requires an internal token (`INTERNAL_API_TOKEN`) and rejects unauthenticated render requests.
@@ -235,16 +238,17 @@ Add relations on `User`:
 1. **[x] Foundation (Plumbing):** Prisma schema, Resend webhook worker, and Trigger.dev `emailQueue`.
 2. **[x] Templating & Admin Override:** Branded templates, orchestrator, and `/admin/emails` review dashboard.
 3. **[x] User Controls:** Integrated **Communication** tab in profile settings.
-4. **[x] First Campaigns:** Signup follow-up, subscription started, workout analysis ready.
+4. **[x] First Campaigns:** Signup follow-up, subscription lifecycle, workout analysis ready, threshold updates, team/coach invites.
 5. **[x] Secure Unsubscribe:** Implemented secure HMAC-signed unsubscribe tokens and a public 1-click unsubscribe landing page.
-6. **[ ] Optimization & Full Automation:** Remove manual admin approval for trusted templates and automate dispatch.
+6. **[x] Optimization & Full Automation:** Automated dispatch via Resend is active by default; optional `DISABLE_EMAILS=true` admin review gate available.
 
 ## Review & Pending Improvements
 
-The system now supports secure, unauthenticated unsubscribes. Remaining refinements:
+Linear issues tracking open improvements:
 
-1. **[x] Granular Preference Mapping:** `trigger/send-email.ts` now enforces template-level preference mapping using a centralized registry.
-2. **[ ] Admin UI Enhancements:** Add status filters and user search to the `/admin/emails` dashboard to support scaling.
-3. **[ ] Drip Campaigns:** Implement Day 2 and Day 7 onboarding logic as part of the `USER_SIGNED_UP_FOLLOWUP` flow.
-4. **[ ] Automatic Dispatch:** Enable auto-sending for low-risk templates after a period of stable manual oversight.
-5. **[x] Idempotency Handling:** The `send-email` task now handles Prisma `UniqueConstraintViolation` errors gracefully for the `idempotencyKey`.
+1. **[x] Granular Preference Mapping:** Enforced via centralized template registry (`CW-112`).
+2. **[x] Billing Lifecycle Templates:** `PaymentFailed`, `PaymentSucceeded`, `SubscriptionCanceled` templates & webhook dispatches (`CW-110`).
+3. **[x] Coach & Team Invites:** Routed through `EmailDeliveryService` orchestrator (`CW-108`).
+4. **[ ] Drip Campaigns (CW-109):** Implement Day 2 and Day 7 onboarding logic.
+5. **[ ] Template Localization (CW-111):** Support `uiLanguage` resolution for templates and default subjects.
+6. **[ ] Marketing Broadcast Path (CW-116):** Opt-in marketing send path and broadcast API/CLI.
