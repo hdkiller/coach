@@ -30,7 +30,9 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 ### 1. Onboarding (Transactional)
 
 - **Welcome**: Sent immediately upon signup as a required TRANSACTIONAL account creation notice (`preferenceKey: null`).
-- **Drip (Planned)**: Day 2 (Integration Check) and Day 7 (Trial Review) sequence using Trigger.dev delays.
+- **Onboarding Drip Sequence**: Managed via `schedule-onboarding-drip` Trigger.dev task:
+  - **Day 2 Integration Check**: Evaluates user integration state; sent only if no training platforms are connected.
+  - **Day 7 First Week Review**: Check-in on trial progress and fitness dashboard trends.
 
 ### 2. Training Guidance (Engagement)
 
