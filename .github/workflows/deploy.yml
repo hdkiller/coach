@@ -27,7 +27,7 @@ jobs:
     # `mac-mini`, which fails GHCR push with anonymous-token 403.
     runs-on: [self-hosted, Linux]
     timeout-minutes: 60
-    environment: preview
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -124,8 +124,8 @@ jobs:
     needs: build-and-deploy
     uses: ./.github/workflows/reusable-trigger-deploy.yml
     with:
-      environment: preview
-      trigger-env: preview
+      environment: production
+      trigger-env: production
       trigger-version: '4.5.4'
       preview-branch: false
     secrets: inherit
