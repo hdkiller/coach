@@ -4,6 +4,7 @@ import { registerTaskHandler } from '../task-registry'
 import { generateUnsubscribeToken } from '../unsubscribe-token'
 import { EMAIL_TEMPLATE_REGISTRY, getEmailTemplateDefinition } from '../email-template-registry'
 import { getInternalApiToken } from '../internal-api-token'
+import { resolveEmailSubject } from '../email-i18n'
 import type { EmailAudience, EmailDeliveryStatus } from '@prisma/client'
 
 export const EmailDeliveryService = {
@@ -188,6 +189,8 @@ export const EmailDeliveryService = {
     const unsubscribeUrl = unsubToken
       ? `${baseUrl}/unsubscribe?token=${unsubToken}`
       : `${baseUrl}/profile/settings?tab=communication`
+    const userLang = user?.uiLanguage || 'en'
+    const finalSubject = resolveEmailSubject(templateKey, userLang, subject)
 
     let utmQuery = ''
     if (template) {
@@ -202,6 +205,7 @@ export const EmailDeliveryService = {
     const finalProps: Record<string, any> = {
       siteUrl: baseUrl,
       logoUrl: `${baseUrl}/icon.png`,
+      lang: userLang,
       ...props,
       unsubscribeUrl,
       utmQuery
@@ -245,7 +249,7 @@ export const EmailDeliveryService = {
           templateKey,
           eventKey,
           audience,
-          subject,
+          subject: finalSubject,
           htmlBody,
           textBody,
           status: 'QUEUED',
