@@ -130,6 +130,24 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: [],
     utmCampaign: 'subscription_canceled',
     utmMedium: 'transactional'
+  },
+  CoachInvite: {
+    templateKey: 'CoachInvite',
+    defaultSubject: 'You have been invited to Coach Watts',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
+    requiredProps: ['coachName', 'joinUrl', 'code'],
+    utmCampaign: 'coach_invite',
+    utmMedium: 'transactional'
+  },
+  TeamInvite: {
+    templateKey: 'TeamInvite',
+    defaultSubject: 'You have been invited to join a team on Coach Watts',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
+    requiredProps: ['teamName', 'joinUrl', 'code'],
+    utmCampaign: 'team_invite',
+    utmMedium: 'transactional'
   }
 }
 

@@ -95,7 +95,8 @@ export const EmailDeliveryService = {
   },
 
   async runSendEmail(payload: {
-    userId: string
+    userId?: string
+    toEmail?: string
     templateKey: string
     eventKey: string
     audience: EmailAudience
@@ -103,7 +104,16 @@ export const EmailDeliveryService = {
     props?: Record<string, any>
     idempotencyKey?: string
   }) {
-    const { userId, templateKey, eventKey, audience, subject, props = {}, idempotencyKey } = payload
+    const {
+      userId,
+      toEmail,
+      templateKey,
+      eventKey,
+      audience,
+      subject,
+      props = {},
+      idempotencyKey
+    } = payload
 
     const template = getEmailTemplateDefinition(templateKey)
 
@@ -111,61 +121,73 @@ export const EmailDeliveryService = {
       return
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { emailPreferences: true }
-    })
+    const user = userId
+      ? await prisma.user.findUnique({
+          where: { id: userId },
+          include: { emailPreferences: true }
+        })
+      : toEmail
+        ? await prisma.user.findUnique({
+            where: { email: toEmail },
+            include: { emailPreferences: true }
+          })
+        : null
 
-    if (!user) return
+    const recipientEmail = toEmail || user?.email
+    if (!recipientEmail) return
 
-    if (user.emailStatus !== 'VALID' && audience !== 'TRANSACTIONAL') return
+    if (user && user.emailStatus !== 'VALID' && audience !== 'TRANSACTIONAL') return
 
-    const preference = user.emailPreferences.find((p) => p.channel === 'EMAIL')
-    const globalUnsub = Boolean(preference?.globalUnsubscribe)
-    if (globalUnsub && audience !== 'TRANSACTIONAL') return
+    if (user) {
+      const preference = user.emailPreferences.find((p) => p.channel === 'EMAIL')
+      const globalUnsub = Boolean(preference?.globalUnsubscribe)
+      if (globalUnsub && audience !== 'TRANSACTIONAL') return
 
-    if (template?.preferenceKey && audience !== 'TRANSACTIONAL') {
-      const isEnabled = preference ? Boolean((preference as any)[template.preferenceKey]) : true
-      if (!isEnabled) return
-    }
+      if (template?.preferenceKey && audience !== 'TRANSACTIONAL') {
+        const isEnabled = preference ? Boolean((preference as any)[template.preferenceKey]) : true
+        if (!isEnabled) return
+      }
 
-    if (template?.cooldownHours && template.cooldownHours > 0) {
-      const throttleKeys = Object.values(EMAIL_TEMPLATE_REGISTRY)
-        .filter((entry) => entry.throttleGroup && entry.throttleGroup === template.throttleGroup)
-        .map((entry) => entry.templateKey)
-      const throttleTemplateKeys = throttleKeys.length > 0 ? throttleKeys : [templateKey]
-      const lookbackFrom = new Date(Date.now() - template.cooldownHours * 60 * 60 * 1000)
-      const activeStatuses: EmailDeliveryStatus[] = [
-        'QUEUED',
-        'SENDING',
-        'SENT',
-        'DELIVERED',
-        'OPENED',
-        'CLICKED'
-      ]
+      if (template?.cooldownHours && template.cooldownHours > 0) {
+        const throttleKeys = Object.values(EMAIL_TEMPLATE_REGISTRY)
+          .filter((entry) => entry.throttleGroup && entry.throttleGroup === template.throttleGroup)
+          .map((entry) => entry.templateKey)
+        const throttleTemplateKeys = throttleKeys.length > 0 ? throttleKeys : [templateKey]
+        const lookbackFrom = new Date(Date.now() - template.cooldownHours * 60 * 60 * 1000)
+        const activeStatuses: EmailDeliveryStatus[] = [
+          'QUEUED',
+          'SENDING',
+          'SENT',
+          'DELIVERED',
+          'OPENED',
+          'CLICKED'
+        ]
 
-      const recentDelivery = await prisma.emailDelivery.findFirst({
-        where: {
-          userId,
-          templateKey: { in: throttleTemplateKeys },
-          createdAt: { gte: lookbackFrom },
-          status: { in: activeStatuses }
-        },
-        orderBy: { createdAt: 'desc' }
-      })
+        const recentDelivery = await prisma.emailDelivery.findFirst({
+          where: {
+            userId: user.id,
+            templateKey: { in: throttleTemplateKeys },
+            createdAt: { gte: lookbackFrom },
+            status: { in: activeStatuses }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
 
-      if (recentDelivery) return
+        if (recentDelivery) return
+      }
     }
 
     const isSuppressed = await prisma.emailSuppression.findFirst({
-      where: { email: user.email, active: true }
+      where: { email: recipientEmail, active: true }
     })
 
     if (isSuppressed && audience !== 'TRANSACTIONAL') return
 
     const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
-    const unsubToken = generateUnsubscribeToken(userId)
-    const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${unsubToken}`
+    const unsubToken = user ? generateUnsubscribeToken(user.id) : ''
+    const unsubscribeUrl = unsubToken
+      ? `${baseUrl}/unsubscribe?token=${unsubToken}`
+      : `${baseUrl}/profile/settings?tab=communication`
 
     let utmQuery = ''
     if (template) {
@@ -218,8 +240,8 @@ export const EmailDeliveryService = {
     try {
       delivery = await prisma.emailDelivery.create({
         data: {
-          userId: user.id,
-          toEmail: user.email,
+          userId: user?.id || null,
+          toEmail: recipientEmail,
           templateKey,
           eventKey,
           audience,
