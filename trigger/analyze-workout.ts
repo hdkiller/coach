@@ -1624,7 +1624,10 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
         if (s.distance) {
           if (metricAdded) prompt += `, `
-          prompt += `${s.distance}m`
+          // Strength-exercise set distances (sled push, farmer's carry, etc.) are short
+          // distances, so use the same meters<->feet conversion as elevation rather than
+          // km/mi (which would round to an unreadable "0.02 mi").
+          prompt += formatPromptElevation(s.distance, userProfile?.distanceUnits)
           metricAdded = true
         }
 

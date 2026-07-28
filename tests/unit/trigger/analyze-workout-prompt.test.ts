@@ -80,4 +80,56 @@ describe('buildWorkoutAnalysisPrompt', () => {
     expect(prompt).toContain('Decoupling Guardrail:')
     expect(prompt).not.toContain('- Decoupling: -91.8%')
   })
+
+  it('formats strength-exercise set distance using the athlete distanceUnits preference', () => {
+    const workoutData = {
+      date: new Date('2026-03-15T10:00:00Z'),
+      title: 'Full Body Strength',
+      type: 'Strength',
+      duration_m: 45,
+      duration_s: 2700,
+      exercises: [
+        {
+          name: 'Sled Push',
+          muscle_group: 'Legs',
+          sets: [{ type: 'NORMAL', reps: 1, distance: 20 }]
+        }
+      ]
+    }
+
+    const milesPrompt = buildWorkoutAnalysisPrompt(
+      workoutData,
+      'Europe/Budapest',
+      'Supportive',
+      undefined,
+      {
+        age: 35,
+        sex: 'male',
+        weight: null,
+        language: 'English',
+        distanceUnits: 'Miles'
+      }
+    )
+
+    // 20 meters -> ~66 feet
+    expect(milesPrompt).toContain('66 ft')
+    expect(milesPrompt).not.toContain('20m')
+
+    const metricPrompt = buildWorkoutAnalysisPrompt(
+      workoutData,
+      'Europe/Budapest',
+      'Supportive',
+      undefined,
+      {
+        age: 35,
+        sex: 'male',
+        weight: null,
+        language: 'English',
+        distanceUnits: 'Kilometers'
+      }
+    )
+
+    expect(metricPrompt).toContain('20 m')
+    expect(metricPrompt).not.toContain('20m')
+  })
 })
