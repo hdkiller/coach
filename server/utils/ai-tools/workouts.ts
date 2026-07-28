@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod/v3'
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
+import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import { attachStreamToWorkout } from '../repositories/workoutStreamRepository'
 import {
   getStartOfDaysAgoUTC,
@@ -353,30 +354,55 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
     }),
     needsApproval: async () => true,
     execute: async ({ workout_id, notes, mode = 'APPEND' }) => {
-      const workout = await workoutRepository.getById(workout_id, userId)
-      if (!workout) return { error: 'Workout not found' }
-
       try {
         const incomingNotes = notes.trim()
-        const existingNotes = (workout.notes || '').trim()
-        const nextNotes =
-          mode === 'REPLACE'
-            ? incomingNotes
-            : existingNotes
-              ? `${existingNotes}\n\n${incomingNotes}`
-              : incomingNotes
+        const workout = await workoutRepository.getById(workout_id, userId)
 
-        await workoutRepository.update(workout_id, {
-          notes: nextNotes,
-          notesUpdatedAt: new Date()
-        })
-        return {
-          success: true,
-          message:
+        if (workout) {
+          const existingNotes = (workout.notes || '').trim()
+          const nextNotes =
             mode === 'REPLACE'
-              ? 'Workout notes update prepared (REPLACE).'
-              : 'Workout notes update prepared (APPEND).'
+              ? incomingNotes
+              : existingNotes
+                ? `${existingNotes}\n\n${incomingNotes}`
+                : incomingNotes
+
+          await workoutRepository.update(workout_id, {
+            notes: nextNotes,
+            notesUpdatedAt: new Date()
+          })
+          return {
+            success: true,
+            message:
+              mode === 'REPLACE'
+                ? 'Workout notes update prepared (REPLACE).'
+                : 'Workout notes update prepared (APPEND).'
+          }
         }
+
+        const plannedWorkout = await plannedWorkoutRepository.getById(workout_id, userId)
+        if (plannedWorkout) {
+          const existingNotes = (plannedWorkout.description || '').trim()
+          const nextNotes =
+            mode === 'REPLACE'
+              ? incomingNotes
+              : existingNotes
+                ? `${existingNotes}\n\n${incomingNotes}`
+                : incomingNotes
+
+          await plannedWorkoutRepository.update(workout_id, userId, {
+            description: nextNotes
+          })
+          return {
+            success: true,
+            message:
+              mode === 'REPLACE'
+                ? 'Workout notes update prepared (REPLACE).'
+                : 'Workout notes update prepared (APPEND).'
+          }
+        }
+
+        return { error: 'Workout not found' }
       } catch (e: any) {
         return { error: `Failed to update notes: ${e.message}` }
       }
