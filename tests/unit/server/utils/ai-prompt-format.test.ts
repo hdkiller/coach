@@ -9,6 +9,13 @@ describe('formatPromptHeight', () => {
     expect(result).toBe(`5'11"`)
   })
 
+  it('carries inches into feet when rounding lands on 12"', () => {
+    // 181.61 cm => 71.5 total inches => rounds to 5'12" without the carry fix
+    const result = formatPromptHeight(181.61, 'ft/in')
+
+    expect(result).toBe(`6'0"`)
+  })
+
   it('returns a cm string when heightUnits is cm', () => {
     const result = formatPromptHeight(180, 'cm')
 
