@@ -188,7 +188,7 @@ describe('analysisTools', () => {
           isDuplicate: false,
           date: {
             gte: new Date('2026-03-01T00:00:00Z'),
-            lte: new Date('2026-03-03T00:00:00Z')
+            lte: new Date('2026-03-03T23:59:59.999Z')
           }
         },
         select: {
@@ -241,7 +241,7 @@ describe('analysisTools', () => {
           isDuplicate: false,
           date: {
             gte: new Date('2026-03-01T08:00:00.000Z'),
-            lte: new Date('2026-03-03T08:00:00.000Z')
+            lte: new Date('2026-03-04T07:59:59.999Z')
           }
         },
         select: {
@@ -252,6 +252,74 @@ describe('analysisTools', () => {
         },
         orderBy: { date: 'asc' }
       })
+    })
+
+    it('should include a same-day workout logged after local midnight in the historical query window', async () => {
+      // Regression test for the day-boundary bug: historicalQueryEnd was
+      // computed with getStartOfLocalDateUTC instead of getEndOfLocalDateUTC,
+      // so a workout completed later in the local day (after local midnight,
+      // i.e. later than the raw UTC start-of-day anchor) was excluded from
+      // the `lte` bound and silently dropped from the forecast's historical
+      // training-load calculation.
+      //
+      // America/Los_Angeles is UTC-8 (PST) in early March 2026. An athlete
+      // completes a workout at 09:00 local on 2026-03-03 (17:00 UTC) and
+      // requests a same-day forecast. The historical query's `lte` bound
+      // must extend through end-of-day local time (2026-03-04T07:59:59.999Z)
+      // so the workout is included, not truncated at start-of-day
+      // (2026-03-03T08:00:00.000Z).
+      const workoutAfterLocalMidnight = {
+        date: new Date('2026-03-03T17:00:00.000Z'),
+        tss: 65,
+        durationSec: 3600,
+        type: 'Ride'
+      }
+
+      vi.mocked(getInitialPMCValues).mockResolvedValue({ ctl: 10, atl: 12 })
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([workoutAfterLocalMidnight] as any)
+      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([] as any)
+      vi.mocked(calculateProjectedPMC).mockReturnValue([
+        { date: new Date('2026-03-01T00:00:00Z'), ctl: 10, atl: 12, tsb: -2, tss: 0 },
+        { date: new Date('2026-03-03T00:00:00Z'), ctl: 10, atl: 12, tsb: -2, tss: 65 }
+      ] as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ ftp: null } as any)
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue(null as any)
+
+      const laTools = analysisTools(userId, 'America/Los_Angeles', mockSettings)
+
+      await laTools.forecast_training_load.execute(
+        {
+          start_date: '2026-03-01',
+          end_date: '2026-03-03'
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      // The query window must reach end-of-local-day so the 17:00Z workout
+      // (09:00 local) falls within the `lte` bound.
+      expect(prisma.workout.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            date: {
+              gte: new Date('2026-03-01T08:00:00.000Z'),
+              lte: new Date('2026-03-04T07:59:59.999Z')
+            }
+          })
+        })
+      )
+      expect(workoutAfterLocalMidnight.date.getTime()).toBeLessThanOrEqual(
+        new Date('2026-03-04T07:59:59.999Z').getTime()
+      )
+
+      expect(calculateProjectedPMC).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        10,
+        12,
+        expect.arrayContaining([
+          expect.objectContaining({ date: workoutAfterLocalMidnight.date, tss: 65 })
+        ])
+      )
     })
 
     it('should reject invalid date ranges', async () => {

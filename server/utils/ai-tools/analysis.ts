@@ -164,7 +164,7 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       // athlete's local-day boundaries rather than the raw UTC-midnight anchors
       // used for calendar-day bookkeeping (startDate/endDate/historicalEndDate).
       const historicalQueryStart = getStartOfLocalDateUTC(timezone, start_date)
-      const historicalQueryEnd = getStartOfLocalDateUTC(timezone, formatDateUTC(historicalEndDate))
+      const historicalQueryEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(historicalEndDate))
 
       const completedWorkloads = hasHistoricalWindow
         ? (
