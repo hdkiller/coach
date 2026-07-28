@@ -1,6 +1,6 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
-import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../../utils/date'
+import { getUserTimezone, getStartOfLocalDateUTC, getEndOfLocalDateUTC } from '../../utils/date'
 
 defineRouteMeta({
   openAPI: {
@@ -60,11 +60,9 @@ export default defineEventHandler(async (event) => {
     const userId = user.id
     const timezone = await getUserTimezone(userId)
 
-    // Parse the date parameter (YYYY-MM-DD)
-    const targetDate = new Date(date)
-    // Convert this "face value" date into the correct UTC range for the user's timezone
-    const startOfDay = getStartOfDayUTC(timezone, targetDate)
-    const endOfDay = getEndOfDayUTC(timezone, targetDate)
+    // Convert the requested calendar date directly into the user's UTC query range.
+    const startOfDay = getStartOfLocalDateUTC(timezone, date)
+    const endOfDay = getEndOfLocalDateUTC(timezone, date)
 
     // Fetch workouts for that day that are not duplicates
     const workouts = await workoutRepository.getForUser(userId, {
