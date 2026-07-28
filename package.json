@@ -63,7 +63,7 @@
     "leaflet": "^1.9.4",
     "marked": "^17.0.1",
     "motion-v": "^2.3.0",
-    "next-auth": "4.21.1",
+    "next-auth": "4.24.15",
     "nuxt": "^4.5.0",
     "nuxt-api-shield": "^1.0.0",
     "nuxt-gtag": "^4.1.0",
