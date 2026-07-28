@@ -91,3 +91,78 @@ describe('analyzeWellness quota enforcement', () => {
     expect(result).toEqual({ success: false, reason: 'QUOTA_EXCEEDED' })
   })
 })
+
+describe('analyzeWellness skin temperature formatting', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    checkQuotaMock.mockResolvedValue({
+      operation: 'wellness_analysis',
+      allowed: true,
+      used: 0,
+      limit: Infinity,
+      remaining: Infinity,
+      window: 'none',
+      resetsAt: null,
+      enforcement: 'MEASURE'
+    })
+    prismaWellnessFindUnique.mockResolvedValue({
+      id: 'wellness-1',
+      date: new Date('2026-03-09T00:00:00.000Z'),
+      hrv: 55,
+      restingHr: 50,
+      sleepHours: 7.5,
+      recoveryScore: 80,
+      readiness: 8,
+      rawJson: { skinTemp: 33.5 }
+    })
+  })
+
+  it('formats skin temperature in Fahrenheit for a Fahrenheit-preference athlete', async () => {
+    prismaUserFindUnique.mockResolvedValue({
+      language: 'English',
+      temperatureUnits: 'Fahrenheit'
+    })
+
+    const { generateStructuredAnalysis } = await import('../../../../../server/utils/gemini')
+    const { analyzeWellness } =
+      await import('../../../../../server/utils/services/wellness-analysis')
+
+    ;(generateStructuredAnalysis as any).mockResolvedValue({
+      executive_summary: 'ok',
+      status: 'READY',
+      sections: [],
+      recommendations: []
+    })
+
+    await analyzeWellness('wellness-1', 'user-1')
+
+    expect(generateStructuredAnalysis).toHaveBeenCalled()
+    const prompt = (generateStructuredAnalysis as any).mock.calls[0][0] as string
+    // 33.5C -> 92.3F
+    expect(prompt).toContain('Skin Temp: 92.3°F')
+    expect(prompt).not.toContain('Skin Temp: 33.5°C')
+  })
+
+  it('formats skin temperature in Celsius for a metric-preference athlete (unaffected)', async () => {
+    prismaUserFindUnique.mockResolvedValue({
+      language: 'English',
+      temperatureUnits: 'Celsius'
+    })
+
+    const { generateStructuredAnalysis } = await import('../../../../../server/utils/gemini')
+    const { analyzeWellness } =
+      await import('../../../../../server/utils/services/wellness-analysis')
+
+    ;(generateStructuredAnalysis as any).mockResolvedValue({
+      executive_summary: 'ok',
+      status: 'READY',
+      sections: [],
+      recommendations: []
+    })
+
+    await analyzeWellness('wellness-1', 'user-1')
+
+    const prompt = (generateStructuredAnalysis as any).mock.calls[0][0] as string
+    expect(prompt).toContain('Skin Temp: 33.5°C')
+  })
+})
