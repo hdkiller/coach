@@ -802,7 +802,7 @@ Push inventory/policy from watts-marketing `knowledge/push/`. Device register +
 | [365](./365-expo-push-ignores-preferences.md)       | Expo push send ignores preference gates           | High     | Gap / Privacy          | Fixed  |
 | [366](./366-expo-high-value-event-types-unwired.md) | High-value Expo types unused (analysis, coaching) | Medium   | Feature / Gap          | Open   |
 | [367](./367-sync-completed-push-no-policy.md)       | SYNC_COMPLETED Expo type has no send policy       | Low      | Product decision / Gap | Open   |
-| [368](./368-expo-push-reliability-observability.md) | Expo push reliability and observability gaps      | Low      | Tech debt / Ops        | Open   |
+| [368](./368-expo-push-reliability-observability.md) | Expo push reliability and observability gaps      | Low      | Tech debt / Ops        | Fixed  |
 
 ### Suggested fix order (364–368)
 

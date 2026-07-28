@@ -114,6 +114,7 @@ Instructional documents for developers.
 
 - [**Implementation Guide**](./04-guides/implementation-guide.md) - Step-by-step build instructions.
 - [**Deployment Guide**](./04-guides/deployment.md) - Environment setup and deployment checklist.
+- [**Expo Push**](./04-guides/expo-push.md) - Mobile companion push ops config, ticket logging, and deferred receipt strategy.
 - [**Issue Management**](./04-guides/issue-management.md) - Guidelines for creating and managing GitHub issues.
 - [**Localization**](./04-guides/localization.md) - Guide to internationalization (i18n) using Tolgee and Nuxt UI.
 - [**Analytics Tracking**](./04-guides/analytics-tracking.md) - Documentation for GA4/GTM events and implementation.
