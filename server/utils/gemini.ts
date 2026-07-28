@@ -14,6 +14,7 @@ import {
   getInjuryLabel,
   normalizeStressScore
 } from './wellness'
+import { formatPromptDistance } from './ai-prompt-format'
 
 import type { GeminiModel } from './ai-config'
 import { MODEL_NAMES, calculateLlmCost, resolveModelId } from './ai-config'
@@ -652,7 +653,11 @@ export async function generateStructuredAnalysis<T>(
   }
 }
 
-export function buildWorkoutSummary(workouts: any[], timezone?: string): string {
+export function buildWorkoutSummary(
+  workouts: any[],
+  timezone?: string,
+  distanceUnits?: string | null
+): string {
   return workouts
     .map((w, idx) => {
       const dateStr = timezone
@@ -688,7 +693,8 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
       if (w.kilojoules) lines.push(`- **Energy**: ${w.kilojoules} kJ`)
 
       // Distance & elevation
-      if (w.distanceMeters) lines.push(`- **Distance**: ${(w.distanceMeters / 1000).toFixed(1)} km`)
+      if (w.distanceMeters)
+        lines.push(`- **Distance**: ${formatPromptDistance(w.distanceMeters, distanceUnits)}`)
       if (w.elevationGain) lines.push(`- **Elevation**: ${w.elevationGain}m`)
       if (w.averageSpeed) lines.push(`- **Avg Speed**: ${(w.averageSpeed * 3.6).toFixed(1)} km/h`)
 
@@ -941,13 +947,15 @@ export function buildMetricsSummary(metrics: any[], timezone?: string): string {
  * @param workouts Array of workout objects
  * @param includeRawJson Whether to include the complete rawJson field (default: false)
  * @param timezone Optional timezone for date formatting
+ * @param distanceUnits Optional athlete distance unit preference ('Miles' or 'Kilometers')
  */
 export function buildComprehensiveWorkoutSummary(
   workouts: any[],
   includeRawJson = false,
-  timezone?: string
+  timezone?: string,
+  distanceUnits?: string | null
 ): string {
-  const summary = buildWorkoutSummary(workouts, timezone)
+  const summary = buildWorkoutSummary(workouts, timezone, distanceUnits)
 
   if (!includeRawJson) {
     return summary

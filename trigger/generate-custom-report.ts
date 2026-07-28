@@ -228,7 +228,7 @@ USER PROFILE:
 
   if (config.dataType === 'workouts' || config.dataType === 'both') {
     prompt += `\nWORKOUTS${config.workoutTypes?.length > 0 ? ` (${config.workoutTypes.join(', ')})` : ''}:\n`
-    prompt += buildWorkoutSummary(workouts) + '\n'
+    prompt += buildWorkoutSummary(workouts, undefined, user?.distanceUnits) + '\n'
   }
 
   if (config.dataType === 'nutrition' || config.dataType === 'both') {
@@ -292,7 +292,8 @@ export const generateCustomReportTask = task({
           height: true,
           heightUnits: true,
           maxHr: true,
-          language: true
+          language: true,
+          distanceUnits: true
         }
       })
 

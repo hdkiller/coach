@@ -90,7 +90,11 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
           }
 
           context[key] = data
-          context[`${key}_summary`] = buildWorkoutSummary(data, timezone)
+          context[`${key}_summary`] = buildWorkoutSummary(
+            data,
+            timezone,
+            context.user?.distanceUnits
+          )
           break
 
         case 'wellness':

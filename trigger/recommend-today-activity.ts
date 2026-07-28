@@ -199,7 +199,8 @@ export async function runRecommendTodayActivity(payload: {
         sex: true,
         language: true,
         nutritionTrackingEnabled: true,
-        aiAutoAnalyzeReadiness: true
+        aiAutoAnalyzeReadiness: true,
+        distanceUnits: true
       }
     })
 
@@ -890,10 +891,10 @@ ${mealTargetContextText}
 ${checkinsSummary}
 
 TODAY'S COMPLETED TRAINING:
-${todaysWorkouts.length > 0 ? buildWorkoutSummary(todaysWorkouts, userTimezone) : 'None so far'}
+${todaysWorkouts.length > 0 ? buildWorkoutSummary(todaysWorkouts, userTimezone, user?.distanceUnits) : 'None so far'}
 
 RECENT TRAINING (Last 7 days):
-${pastWorkouts.length > 0 ? buildWorkoutSummary(pastWorkouts, userTimezone) : 'No recent workouts'}
+${pastWorkouts.length > 0 ? buildWorkoutSummary(pastWorkouts, userTimezone, user?.distanceUnits) : 'No recent workouts'}
 
 ${
   userFeedback

@@ -144,7 +144,7 @@ USER PROFILE:
 
   prompt += `
 RECENT WORKOUTS (Last 3 Cycling Sessions):
-${buildWorkoutSummary(workouts, timezone)}
+${buildWorkoutSummary(workouts, timezone, user?.distanceUnits)}
 
 ANALYSIS FOCUS:
 1. **Training Progression**: Are they building fitness effectively? Getting stronger or showing fatigue?
@@ -297,7 +297,8 @@ export const analyzeLast3WorkoutsTask = task({
           maxHr: true,
           dob: true,
           sex: true,
-          language: true
+          language: true,
+          distanceUnits: true
         }
       })
 

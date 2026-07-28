@@ -76,6 +76,7 @@ export async function runGenerateRecommendations(payload: GenerateRecommendation
     select: {
       name: true,
       language: true,
+      distanceUnits: true,
       goals: {
         where: { status: 'ACTIVE' },
         select: {
@@ -242,7 +243,7 @@ ${trends
 
 RECENT DAILY INSIGHTS (Last 7 Days):
 Workouts:
-${buildWorkoutSummary(recentWorkouts)}
+${buildWorkoutSummary(recentWorkouts, undefined, user?.distanceUnits)}
 
 Nutrition:
 ${recentNutrition.map((n) => `- ${n.date.toISOString().split('T')[0]}: Score: ${n.overallScore}`).join('\n')}
