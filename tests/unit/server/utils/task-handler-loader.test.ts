@@ -30,7 +30,7 @@ describe('Redis task parity', () => {
       .sort()
     const manifestIds = taskManifest.map((definition) => definition.id).sort()
 
-    expect(sourceIds).toHaveLength(65)
+    expect(sourceIds).toHaveLength(66)
     expect(new Set(sourceIds).size).toBe(sourceIds.length)
     expect(loadedIds).toEqual(sourceIds)
     expect(manifestIds).toEqual(sourceIds)

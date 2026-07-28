@@ -78,6 +78,7 @@ https://your-domain.com/api/integrations/whoop/callback
 - [ ] Google OAuth Console - Callback URLs updated
 - [ ] Strava API Settings - Callback domain updated (if applicable)
 - [ ] WHOOP Developer Portal - Callback URL updated (if applicable)
+- [ ] `EXPO_ACCESS_TOKEN` - Optional; recommended for production companion push (see [Expo Push](./expo-push.md))
 
 ### Testing Authentication
 

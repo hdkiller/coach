@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../../../../utils/session'
+import { requireAdmin } from '../../../../../../utils/auth-guard'
 import { issuesRepository } from '../../../../../../utils/repositories/issuesRepository'
 import { z } from 'zod/v3'
 
@@ -7,7 +7,7 @@ const reactionSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const session = await requireAdmin(event)
   if (!session?.user?.id) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
