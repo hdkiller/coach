@@ -431,9 +431,6 @@ export function resolveWorkoutTargeting(
     mergedTargetPolicy,
     override?.loadPreference || sportSettings?.loadPreference
   )
-  console.log(
-    `[Targeting] Resolved TargetPolicy: strict=${targetPolicy.strictPrimary} primary=${targetPolicy.primaryMetric} fallback=${JSON.stringify(targetPolicy.fallbackOrder)}`
-  )
   const targetFormatPolicy = normalizeTargetFormatPolicy(mergedTargetFormatPolicy)
 
   // Keep explicit single-value targeting authoritative across save/regenerate flows.
@@ -890,10 +887,6 @@ export function applyTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
   let selectedMetric = targetPolicy.strictPrimary
     ? policyPrimary
     : orderedMetrics.find((metric) => hasMetricTarget(step, metric))
-
-  console.log(
-    `[Targeting] Step '${step.name || 'step'}': selected=${selectedMetric} ordered=${orderedMetrics.join(',')} hasPace=${hasMetricTarget(step, 'pace')}`
-  )
 
   if (!selectedMetric) {
     // Fallback if nothing found: use policy primary or first candidate
