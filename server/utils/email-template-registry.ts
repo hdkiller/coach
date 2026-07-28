@@ -103,6 +103,33 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: ['trialEndsAt', 'pricingUrl'],
     utmCampaign: 'trial_ending_soon',
     utmMedium: 'lifecycle'
+  },
+  PaymentFailed: {
+    templateKey: 'PaymentFailed',
+    defaultSubject: 'Action Required: Payment failed for your Coach Watts subscription',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'payment_failed',
+    utmMedium: 'transactional'
+  },
+  PaymentSucceeded: {
+    templateKey: 'PaymentSucceeded',
+    defaultSubject: 'Receipt for your Coach Watts subscription payment',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'payment_succeeded',
+    utmMedium: 'transactional'
+  },
+  SubscriptionCanceled: {
+    templateKey: 'SubscriptionCanceled',
+    defaultSubject: 'Your Coach Watts subscription has been canceled',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'subscription_canceled',
+    utmMedium: 'transactional'
   }
 }
 
