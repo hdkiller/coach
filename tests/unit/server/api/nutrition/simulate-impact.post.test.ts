@@ -94,6 +94,18 @@ describe('POST /api/nutrition/simulate-impact', () => {
     })
   })
 
+  it('throws 400 when date is a calendar-invalid date', async () => {
+    body = { carbs: 50, date: '2026-02-30' }
+    const handler = (await import('../../../../../server/api/nutrition/simulate-impact.post'))
+      .default
+    await expect(handler({ context: {} } as any)).rejects.toMatchObject({
+      statusCode: 400,
+      data: expect.arrayContaining([
+        expect.objectContaining({ message: 'Invalid calendar date (YYYY-MM-DD)' })
+      ])
+    })
+  })
+
   it('throws 400 when time is invalid ISO datetime', async () => {
     body = { carbs: 50, time: 'invalid-iso-string' }
     const handler = (await import('../../../../../server/api/nutrition/simulate-impact.post'))
