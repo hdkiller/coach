@@ -75,6 +75,29 @@ describe('analysisTools', () => {
         metrics: expect.any(String)
       })
     })
+
+    it('should use the athlete local-day boundaries (not raw UTC) when timezone is behind UTC', async () => {
+      // America/Los_Angeles is UTC-7 in late July (PDT). A workout at
+      // 2025-07-30T02:00:00Z is 2025-07-29T19:00 local (still "the 29th" in
+      // LA), so the query window for start/end_date=2025-07-29 must extend
+      // into 2025-07-30 in UTC to capture it. Raw UTC boundaries would stop
+      // at 2025-07-29T23:59:59.999Z and miss it.
+      const laTools = analysisTools(userId, 'America/Los_Angeles', mockSettings)
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([])
+
+      await laTools.analyze_training_load.execute(
+        { start_date: '2025-07-29', end_date: '2025-07-29' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(workoutRepository.getForUser).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          startDate: new Date('2025-07-29T07:00:00.000Z'),
+          endDate: new Date('2025-07-30T06:59:59.999Z')
+        })
+      )
+    })
   })
 
   describe('generate_report', () => {
@@ -186,6 +209,49 @@ describe('analysisTools', () => {
           { date: new Date('2026-03-03T00:00:00Z'), tss: 50 }
         ]
       )
+    })
+
+    it('should use athlete local-day boundaries (not raw UTC) for the historical workout query', async () => {
+      // America/Los_Angeles is UTC-8 (PST) in early March 2026. Fixing this
+      // bug means the historical Workout query boundaries must reflect the
+      // LA calendar day rather than raw UTC midnight of the date strings.
+      vi.mocked(getInitialPMCValues).mockResolvedValue({ ctl: 10, atl: 12 })
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([] as any)
+      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([] as any)
+      vi.mocked(calculateProjectedPMC).mockReturnValue([
+        { date: new Date('2026-03-01T00:00:00Z'), ctl: 10, atl: 12, tsb: -2, tss: 0 },
+        { date: new Date('2026-03-03T00:00:00Z'), ctl: 10, atl: 12, tsb: -2, tss: 0 }
+      ] as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ ftp: null } as any)
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue(null as any)
+
+      const laTools = analysisTools(userId, 'America/Los_Angeles', mockSettings)
+
+      await laTools.forecast_training_load.execute(
+        {
+          start_date: '2026-03-01',
+          end_date: '2026-03-03'
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(prisma.workout.findMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          isDuplicate: false,
+          date: {
+            gte: new Date('2026-03-01T08:00:00.000Z'),
+            lte: new Date('2026-03-03T08:00:00.000Z')
+          }
+        },
+        select: {
+          date: true,
+          tss: true,
+          durationSec: true,
+          type: true
+        },
+        orderBy: { date: 'asc' }
+      })
     })
 
     it('should reject invalid date ranges', async () => {
