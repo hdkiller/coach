@@ -615,29 +615,74 @@ function latestUserLooksLikeMissingReplyComplaint(messages: any[]) {
 }
 
 const DIRECT_TIME_QUESTION_PATTERNS = [
+  // English
   /\bwhat(?:'s| is|s) (?:the )?(?:current )?time\b/i,
   /\bwhat time (?:is it|do you have)\b/i,
   /\bcurrent time\b/i,
   /\btell me the time\b/i,
   /\bdo you know what time it is\b/i,
-  /\bhány óra van\b/i
+  // Hungarian
+  /\bhány óra van\b/i,
+  // German
+  /\bwie spät ist es\b/i,
+  /\bwie viel uhr ist es\b/i,
+  /\bwieviel uhr ist es\b/i,
+  // Spanish
+  /\bqué hora es\b/i,
+  /\bque hora es\b/i,
+  // French
+  /\bquelle heure est[- ]il\b/i,
+  /\bquelle heure il est\b/i
 ]
 
 const NON_TIME_DOMAIN_PATTERN =
   /\b(workout|activity|ride|run|swim|session|training|plan|planned|schedule|nutrition|meal|hydration|wellness|recovery|goal|ticket|bug|recommend)\b/i
 
 /**
+ * Splits a message into clause-sized candidates on sentence-ending
+ * punctuation, or on comma/dash conjunction boundaries that plausibly join
+ * two independent clauses (e.g. "What time is it, and should I ride now?"
+ * or "What time is it - should I ride now?"). A compound message must be
+ * evaluated clause-by-clause: the NON_TIME_DOMAIN_PATTERN exclusion is only
+ * meaningful scoped to the clause it actually describes, otherwise an
+ * unrelated clause's domain word (e.g. "ride") suppresses a genuine,
+ * independent time question elsewhere in the same message.
+ *
+ * The comma branch only fires when the comma is followed by whitespace, so
+ * a thousands separator like "1,000" (no space after the comma) is left
+ * intact. The dash branch only fires when the dash/en dash/em dash is
+ * surrounded by whitespace on both sides, so a mid-word hyphen like
+ * "trail-run" is never treated as a clause break.
+ */
+function splitIntoClauses(text: string) {
+  return text
+    .split(/[.?!]+|,\s+(?:(?:and|but|then)\s+)?|\s+[-–—]\s+(?:(?:and|but|then)\s+)?/i)
+    .map((clause) => clause.trim())
+    .filter(Boolean)
+}
+
+/**
  * A direct "what time is it?" question must not silently fall back to a
  * tool-less general_chat turn: get_current_time is the only source of the
  * athlete's actual configured timezone, and the model will otherwise guess
  * (often UTC).
+ *
+ * The router this guard supports must work across languages (see
+ * buildRouterPrompt), so this deterministic pre-check covers common direct
+ * time-question phrasings in English, Hungarian, German, Spanish, and
+ * French, in addition to per-clause evaluation for compound messages.
  */
 export function looksLikeDirectTimeQuestion(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return false
-  if (NON_TIME_DOMAIN_PATTERN.test(trimmed)) return false
 
-  return DIRECT_TIME_QUESTION_PATTERNS.some((pattern) => pattern.test(trimmed))
+  const clauses = splitIntoClauses(trimmed)
+  const candidates = clauses.length ? clauses : [trimmed]
+
+  return candidates.some((clause) => {
+    if (NON_TIME_DOMAIN_PATTERN.test(clause)) return false
+    return DIRECT_TIME_QUESTION_PATTERNS.some((pattern) => pattern.test(clause))
+  })
 }
 
 export function getDirectTimeQuestionSkillSelection(messages: any[]): ChatSkillSelection | null {
