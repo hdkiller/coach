@@ -640,15 +640,23 @@ const NON_TIME_DOMAIN_PATTERN =
 
 /**
  * Splits a message into clause-sized candidates on sentence-ending
- * punctuation. A compound message like "What time is it? Should I ride
- * now?" must be evaluated clause-by-clause: the NON_TIME_DOMAIN_PATTERN
- * exclusion is only meaningful scoped to the clause it actually describes,
- * otherwise an unrelated clause's domain word (e.g. "ride") suppresses a
- * genuine, independent time question elsewhere in the same message.
+ * punctuation, or on comma/dash conjunction boundaries that plausibly join
+ * two independent clauses (e.g. "What time is it, and should I ride now?"
+ * or "What time is it - should I ride now?"). A compound message must be
+ * evaluated clause-by-clause: the NON_TIME_DOMAIN_PATTERN exclusion is only
+ * meaningful scoped to the clause it actually describes, otherwise an
+ * unrelated clause's domain word (e.g. "ride") suppresses a genuine,
+ * independent time question elsewhere in the same message.
+ *
+ * The comma branch only fires when the comma is followed by whitespace, so
+ * a thousands separator like "1,000" (no space after the comma) is left
+ * intact. The dash branch only fires when the dash/en dash/em dash is
+ * surrounded by whitespace on both sides, so a mid-word hyphen like
+ * "trail-run" is never treated as a clause break.
  */
 function splitIntoClauses(text: string) {
   return text
-    .split(/[.?!]+/)
+    .split(/[.?!]+|,\s+(?:(?:and|but|then)\s+)?|\s+[-–—]\s+(?:(?:and|but|then)\s+)?/i)
     .map((clause) => clause.trim())
     .filter(Boolean)
 }

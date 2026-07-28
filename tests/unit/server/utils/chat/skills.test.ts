@@ -90,6 +90,18 @@ describe('CW-193: direct time questions must not silently drop to a tool-less re
       expect(looksLikeDirectTimeQuestion('What time is it for my ride?')).toBe(false)
     })
 
+    it('detects a direct time question when the compound clauses are joined by a comma instead of a full stop', () => {
+      expect(looksLikeDirectTimeQuestion('What time is it, and should I ride now?')).toBe(true)
+    })
+
+    it('detects a direct time question when the compound clauses are joined by a dash instead of a full stop', () => {
+      expect(looksLikeDirectTimeQuestion('What time is it - should I ride now?')).toBe(true)
+    })
+
+    it('does not treat a mid-word hyphen as a clause break', () => {
+      expect(looksLikeDirectTimeQuestion('I did a 5k trail-run today')).toBe(false)
+    })
+
     it('forces the tool-enabled selection for the compound time question via getDirectTimeQuestionSkillSelection', () => {
       const selection = getDirectTimeQuestionSkillSelection([
         { role: 'user', content: 'What time is it? Should I ride now?' }
