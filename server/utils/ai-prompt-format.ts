@@ -25,7 +25,7 @@ export function formatPromptHeight(
 ): string {
   if (heightCm === null || heightCm === undefined) return 'Unknown'
 
-  if (heightUnits === 'Feet') {
+  if (heightUnits === 'ft/in') {
     const totalInches = heightCm / 2.54
     const feet = Math.floor(totalInches / 12)
     const inches = Math.round(totalInches % 12)
