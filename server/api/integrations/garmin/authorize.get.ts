@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto'
 import { getServerSession } from '../../../utils/session'
 import { generateCodeVerifier, generateCodeChallenge } from '../../../utils/pkce'
 
@@ -18,9 +19,18 @@ export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.email) throw createError({ statusCode: 401, message: 'Unauthorized' })
 
-  const config = useRuntimeConfig()
+  let config: any
+  try {
+    config = useRuntimeConfig()
+  } catch {
+    config = {}
+  }
   const clientId = process.env.GARMIN_CLIENT_ID
-  const siteUrl = (config.public.siteUrl || 'http://localhost:3000').replace(/\/+$/, '')
+  const siteUrl = (
+    config?.public?.siteUrl ||
+    process.env.NUXT_PUBLIC_SITE_URL ||
+    'http://localhost:3000'
+  ).replace(/\/+$/, '')
   const redirectUri = `${siteUrl}/api/integrations/garmin/callback`
 
   if (!clientId) {
@@ -32,15 +42,19 @@ export default defineEventHandler(async (event) => {
 
   const verifier = generateCodeVerifier()
   const challenge = generateCodeChallenge(verifier)
+  const state = randomBytes(32).toString('hex')
 
-  // Store verifier in a cookie to retrieve in callback
-  setCookie(event, 'garmin_code_verifier', verifier, {
+  // Store verifier and state in cookies to retrieve and validate in callback
+  const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 600,
     path: '/'
-  })
+  }
+
+  setCookie(event, 'garmin_code_verifier', verifier, cookieOpts)
+  setCookie(event, 'garmin_oauth_state', state, cookieOpts)
 
   const authUrl = new URL('https://connect.garmin.com/oauth2Confirm')
   authUrl.searchParams.set('client_id', clientId)
@@ -48,6 +62,7 @@ export default defineEventHandler(async (event) => {
   authUrl.searchParams.set('response_type', 'code')
   authUrl.searchParams.set('code_challenge', challenge)
   authUrl.searchParams.set('code_challenge_method', 'S256')
+  authUrl.searchParams.set('state', state)
 
   return sendRedirect(event, authUrl.toString())
 })
