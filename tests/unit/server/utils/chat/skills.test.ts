@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   classifyChatSkills,
   composeSkillInstructions,
+  expandSkillSelectionForRequest,
   getDirectTimeQuestionSkillSelection,
   looksLikeDirectTimeQuestion,
   selectToolsForSkills
@@ -133,5 +134,85 @@ describe('CW-193: direct time questions must not silently drop to a tool-less re
 
       expect(instructions).not.toContain('Time Tool Usage')
     })
+  })
+
+  /**
+   * Testing classify/select/compose in isolation is not enough: turn-executor.ts
+   * pipes the router result through expandSkillSelectionForRequest before tools
+   * are selected, and that step used to strip general_chat and empty the
+   * selection, silently reducing this fix to a no-op. These tests run the full
+   * chain in the same order as server/utils/chat/turn-executor.ts.
+   */
+  describe('full turn-executor chain (classify -> expand -> select -> compose)', () => {
+    const runChain = async (content: string) => {
+      const routed = await classifyChatSkills({
+        userId: 'user-1',
+        turnId: 'turn-chain',
+        messages: [{ role: 'user', content }]
+      })
+      const selection = expandSkillSelectionForRequest(routed, content)
+      const tools = selectToolsForSkills(
+        {
+          get_current_time: { name: 'get_current_time' },
+          ticket_create: { name: 'ticket_create' }
+        },
+        selection.skillIds,
+        { useTools: selection.useTools }
+      )
+      const instructions = composeSkillInstructions('Base instruction.', selection.skillIds, {
+        useTools: selection.useTools
+      })
+
+      return { selection, tools, instructions }
+    }
+
+    it('still exposes get_current_time and the time instruction after expansion', async () => {
+      const { selection, tools, instructions } = await runChain('What time is it for me?')
+
+      expect(selection.skillIds).toEqual(['general_chat'])
+      expect(selection.useTools).toBe(true)
+      expect(Object.keys(tools)).toContain('get_current_time')
+      expect(instructions).toContain('Time Tool Usage')
+      expect(instructions).toContain('local_formatted')
+    })
+
+    it('does not leave the selection empty, which would hand the model zero tools', async () => {
+      const { selection, tools } = await runChain('What time is it?')
+
+      expect(selection.skillIds.length).toBeGreaterThan(0)
+      expect(Object.keys(tools).length).toBeGreaterThan(0)
+    })
+  })
+})
+
+describe('expandSkillSelectionForRequest', () => {
+  it('preserves a deliberate tool-enabled general_chat selection', () => {
+    const selection = expandSkillSelectionForRequest(
+      {
+        skillIds: ['general_chat'],
+        confidence: 1,
+        useTools: true,
+        extractMemories: false
+      },
+      'What time is it?'
+    )
+
+    expect(selection.skillIds).toEqual(['general_chat'])
+    expect(selection.useTools).toBe(true)
+  })
+
+  it('still adds read-only companion domains for a mixed-intent write request', () => {
+    const selection = expandSkillSelectionForRequest(
+      {
+        skillIds: ['workout_update'],
+        confidence: 0.9,
+        useTools: true,
+        extractMemories: false
+      },
+      'Update the notes on my ride from yesterday'
+    )
+
+    expect(selection.skillIds).toContain('workout_update')
+    expect(selection.skillIds).toContain('workout_read')
   })
 })

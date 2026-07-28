@@ -100,6 +100,14 @@ export function expandSkillSelectionForRequest(
   }
 
   const skillIds = sortSkillIds(uniq(expanded)).filter((skillId) => skillId !== 'general_chat')
+
+  // Stripping general_chat can empty the selection outright when the caller
+  // deliberately chose a tool-enabled general_chat turn (see
+  // getDirectTimeQuestionSkillSelection). Expansion may only ADD companion
+  // domains, so an empty result means there was nothing to expand — keep the
+  // original selection rather than silently handing the model zero tools.
+  if (!skillIds.length) return selection
+
   if (
     skillIds.length === selection.skillIds.length &&
     skillIds.every((id) => selection.skillIds.includes(id))
