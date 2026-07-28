@@ -1,6 +1,7 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
+import { formatPromptHeight } from '../server/utils/ai-prompt-format'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import {
@@ -336,7 +337,7 @@ CURRENT CONTEXT:
 ATHLETE PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - FTP: ${user?.ftp || 'Unknown'} W
 - Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
 - Coach Persona: ${aiSettings.aiPersona}

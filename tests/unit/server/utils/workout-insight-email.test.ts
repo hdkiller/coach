@@ -3,7 +3,8 @@ import {
   buildWorkoutReceivedActivityFingerprint,
   buildInterestingCopy,
   evaluateWorkoutReceivedEligibility,
-  normalizeSubjectSpacing
+  normalizeSubjectSpacing,
+  formatEmailDistance
 } from '../../../../server/utils/workout-insight-email'
 
 describe('workout insight email subject formatting', () => {
@@ -88,6 +89,37 @@ describe('workout received dedupe fingerprint', () => {
     })
 
     expect(first).toBe(second)
+  })
+})
+
+describe('workout received email distance formatting', () => {
+  it('formats distance in kilometers when the athlete prefers Kilometers', () => {
+    expect(formatEmailDistance(10040, 'Kilometers')).toEqual({
+      value: 10,
+      unitLabel: 'km',
+      label: '10.0 km'
+    })
+  })
+
+  it('formats distance in kilometers when distanceUnits is not provided', () => {
+    expect(formatEmailDistance(10040)).toEqual({
+      value: 10,
+      unitLabel: 'km',
+      label: '10.0 km'
+    })
+  })
+
+  it('formats distance in miles when the athlete prefers Miles', () => {
+    expect(formatEmailDistance(10040, 'Miles')).toEqual({
+      value: 6.2,
+      unitLabel: 'mi',
+      label: '6.2 mi'
+    })
+  })
+
+  it('returns null when there is no distance to display', () => {
+    expect(formatEmailDistance(undefined, 'Miles')).toBeNull()
+    expect(formatEmailDistance(0, 'Kilometers')).toBeNull()
   })
 })
 

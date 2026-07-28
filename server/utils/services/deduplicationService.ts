@@ -70,6 +70,53 @@ export const deduplicationService = {
   },
 
   /**
+   * Helper to check if two activity types are similar across integrations and localized strings.
+   */
+  areTypesSimilar(t1?: string | null, t2?: string | null): boolean {
+    if (!t1 || !t2) return true
+
+    const type1 = t1.toLowerCase().trim()
+    const type2 = t2.toLowerCase().trim()
+
+    if (type1 === type2) return true
+    if (type1.includes(type2) || type2.includes(type1)) return true
+
+    const genericTypes = ['other', 'workout', 'uncategorized', 'activity', 'fitness']
+    if (genericTypes.includes(type1) || genericTypes.includes(type2)) return true
+
+    const isCategory = (type: string, keywords: string[]) => keywords.some((k) => type.includes(k))
+
+    const cyclingKeywords = ['ride', 'bike', 'cycling', 'cycl', 'velo', 'вело']
+    const runningKeywords = ['run', 'running', 'treadmill', 'бег']
+    const walkingKeywords = ['walk', 'walking', 'hike', 'hiking', 'ходьба']
+    const gymKeywords = [
+      'gym',
+      'weight',
+      'strength',
+      'fitness',
+      'calisthenic',
+      'crossfit',
+      'bodyweight',
+      'workout',
+      'силовая',
+      'зал'
+    ]
+    const swimmingKeywords = ['swim', 'swimming', 'pool', 'плавание']
+    const rowingKeywords = ['row', 'rowing', 'kayak', 'canoe', 'paddle', 'гребля']
+    const skiingKeywords = ['ski', 'snowboard', 'лыжи']
+
+    if (isCategory(type1, cyclingKeywords) && isCategory(type2, cyclingKeywords)) return true
+    if (isCategory(type1, runningKeywords) && isCategory(type2, runningKeywords)) return true
+    if (isCategory(type1, walkingKeywords) && isCategory(type2, walkingKeywords)) return true
+    if (isCategory(type1, gymKeywords) && isCategory(type2, gymKeywords)) return true
+    if (isCategory(type1, swimmingKeywords) && isCategory(type2, swimmingKeywords)) return true
+    if (isCategory(type1, rowingKeywords) && isCategory(type2, rowingKeywords)) return true
+    if (isCategory(type1, skiingKeywords) && isCategory(type2, skiingKeywords)) return true
+
+    return false
+  },
+
+  /**
    * Comparison logic to determine if two workouts are duplicates.
    */
   areDuplicates(w1: any, w2: any): boolean {
@@ -179,20 +226,12 @@ export const deduplicationService = {
     const strictDurationMatch =
       durationDiff <= Math.max(3 * 60, Math.max(w1.durationSec, w2.durationSec) * 0.05)
 
-    const typeSimilar =
-      w1.type &&
-      w2.type &&
-      (w1.type.toLowerCase() === w2.type.toLowerCase() ||
-        (w1.type.toLowerCase().includes('ride') && w2.type.toLowerCase().includes('ride')) ||
-        (w1.type.toLowerCase().includes('run') && w2.type.toLowerCase().includes('run')) ||
-        // Gym / Weight training mapping (Strava "Gym" vs Withings "WeightTraining")
-        (w1.type.toLowerCase() === 'gym' && w2.type.toLowerCase().includes('weight')) ||
-        (w1.type.toLowerCase().includes('weight') && w2.type.toLowerCase() === 'gym'))
+    const typeSimilar = this.areTypesSimilar(w1.type, w2.type)
 
     // For timezone-shift candidates, require stronger evidence than type alone.
     const isDuplicate = isTimezoneShiftCandidate
-      ? Boolean(titleSimilar || strictDurationMatch)
-      : Boolean(titleSimilar || typeSimilar)
+      ? Boolean(titleSimilar || (typeSimilar && strictDurationMatch))
+      : Boolean(titleSimilar || typeSimilar || strictDurationMatch)
 
     if (isDuplicate && isDebugPair) {
       logger.log(`Detected duplicate workouts:`, {
@@ -236,12 +275,18 @@ export const deduplicationService = {
     }
 
     const isCycling =
-      workout.type?.toLowerCase().includes('ride') || workout.type?.toLowerCase().includes('bike')
+      workout.type?.toLowerCase().includes('ride') ||
+      workout.type?.toLowerCase().includes('bike') ||
+      workout.type?.toLowerCase().includes('cycl') ||
+      workout.type?.toLowerCase().includes('вело')
     const isGym =
       workout.type?.toLowerCase().includes('gym') ||
       workout.type?.toLowerCase().includes('strength') ||
-      workout.type?.toLowerCase().includes('weight')
-    const isSwim = workout.type?.toLowerCase().includes('swim')
+      workout.type?.toLowerCase().includes('weight') ||
+      workout.type?.toLowerCase().includes('fitness') ||
+      workout.type?.toLowerCase().includes('силов')
+    const isSwim =
+      workout.type?.toLowerCase().includes('swim') || workout.type?.toLowerCase().includes('плав')
 
     if (isCycling) {
       if (workout.averageWatts && workout.averageWatts > 0) {
@@ -260,14 +305,13 @@ export const deduplicationService = {
     if (workout.averageHr && workout.averageHr > 0) score += 20
     if (workout.maxHr && workout.maxHr > 0) score += 5
 
-    if (workout.distance && workout.distance > 0) score += 5
+    const dist = workout.distanceMeters ?? workout.distance
+    if (dist && dist > 0) score += 5
 
     if (workout.elevationGain && workout.elevationGain > 0) score += 5
 
     // High value for having streams (time-series data)
-    if (workout.streams) {
-      // Check stream quality if possible (length of data points)
-      // We can't easily check length here without casting, but existence is a strong signal
+    if (workout.streams && (Array.isArray(workout.streams) ? workout.streams.length > 0 : true)) {
       score += 50
     }
 
@@ -281,7 +325,12 @@ export const deduplicationService = {
     if (workout.averageCadence && workout.averageCadence > 0) score += 5
 
     // Description might contain user notes
-    if (workout.description && workout.description.length > 5) score += 5
+    if (
+      (workout.description && workout.description.length > 5) ||
+      (workout.notes && workout.notes.length > 5)
+    ) {
+      score += 5
+    }
 
     return score
   },

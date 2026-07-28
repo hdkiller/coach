@@ -235,7 +235,8 @@ export const generateWeeklyReportTask = task({
             height: true,
             heightUnits: true,
             maxHr: true,
-            language: true
+            language: true,
+            distanceUnits: true
           }
         }),
         prisma.goal.findMany({
@@ -322,7 +323,7 @@ USER PROFILE:
 - W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 
 WORKOUTS (Last 7 days):
-${buildWorkoutSummary(workouts)}
+${buildWorkoutSummary(workouts, undefined, user?.distanceUnits)}
 
 DAILY METRICS (Recovery & Sleep):
 ${metrics.length > 0 ? buildMetricsSummary(metrics) : 'No recovery data available'}

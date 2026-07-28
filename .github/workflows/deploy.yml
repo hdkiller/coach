@@ -27,7 +27,12 @@ jobs:
     # `mac-mini`, which fails GHCR push with anonymous-token 403.
     runs-on: [self-hosted, Linux]
     timeout-minutes: 60
-    environment: preview
+    # NOTE (CW-129): this must be the environment that actually has
+    # DOKPLOY_WEBHOOK_URL configured (Settings > Environments). Environment
+    # secrets do not fall back to another environment by name, so renaming this
+    # from `preview` requires provisioning the secret on the new environment
+    # before merge, or this job fails at the "Trigger Dokploy Deployment" step.
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -81,9 +86,15 @@ jobs:
           DOKPLOY_WEBHOOK: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
         run: |
           set -uo pipefail
+          # This used to warn and exit 0 when the secret was missing, which let a
+          # misconfigured environment "succeed" while silently deploying nothing
+          # (CW-129). GitHub environment secrets do not fall back to another
+          # environment, so pointing this job at a different `environment:` (see
+          # above) requires DOKPLOY_WEBHOOK_URL to be provisioned there too — fail
+          # loudly instead of masking that as a no-op.
           if [ -z "${DOKPLOY_WEBHOOK:-}" ]; then
-            echo "::warning::DOKPLOY_WEBHOOK_URL is not set. Skipping webhook trigger."
-            exit 0
+            echo "::error::DOKPLOY_WEBHOOK_URL is not set for this job's GitHub environment. Environment secrets are not provisioned — add DOKPLOY_WEBHOOK_URL under Settings > Environments before this workflow can deploy."
+            exit 1
           fi
 
           RESPONSE_BODY=$(mktemp)
@@ -123,9 +134,13 @@ jobs:
     name: Deploy Trigger.dev
     needs: build-and-deploy
     uses: ./.github/workflows/reusable-trigger-deploy.yml
+    # NOTE (CW-129): `environment` selects which GitHub environment's secrets
+    # (TRIGGER_ACCESS_TOKEN, TRIGGER_PROJECT_REF, TRIGGER_API_URL) are used —
+    # verify they're provisioned there before merge; the reusable workflow's
+    # "Deploy to Trigger.dev" step now fails fast if they're missing.
     with:
-      environment: preview
-      trigger-env: preview
+      environment: production
+      trigger-env: production
       trigger-version: '4.5.4'
       preview-branch: false
     secrets: inherit

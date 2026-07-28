@@ -6,6 +6,7 @@ import { auditLogRepository } from '../repositories/auditLogRepository'
 import { getUserLocalDate, getUserTimezone } from '../date'
 import { triggerDailyCheckinIfNeeded } from './checkin-service'
 import { checkQuota } from '../quotas/engine'
+import { formatPromptTemperature } from '../ai-prompt-format'
 import {
   getMoodLabel,
   getStressLabel,
@@ -140,7 +141,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
     const [user, aiSettings, wellnessEvents] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { language: true }
+        select: { language: true, temperatureUnits: true }
       }),
       getUserAiSettings(userId),
       getWellnessEventOverlaysForUser(userId, {
@@ -257,7 +258,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
     // Check both recovery.score and nested structure just in case
     const skinTemp = rawData?.recovery?.score?.skin_temp_celsius ?? rawData?.skinTemp
     if (skinTemp) {
-      advancedContext += `- Skin Temp: ${skinTemp.toFixed(1)}°C\n`
+      advancedContext += `- Skin Temp: ${formatPromptTemperature(skinTemp, user?.temperatureUnits)}\n`
     }
 
     const prompt = `

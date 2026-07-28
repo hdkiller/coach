@@ -4,6 +4,7 @@ import { getAccessibleWorkout } from '../../../utils/analyticsScope'
 import { lttb } from '../../../utils/analytics/lttb'
 import { calculateVirtualStream, type VirtualField } from '../../../utils/analytics/virtual-streams'
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
+import { formatAlignmentLabel } from '../../../utils/analytics/format-alignment-label'
 
 const schema = z.object({
   analysis: z.object({
@@ -48,24 +49,6 @@ function toNumberArray(stream: unknown): number[] {
     const numeric = Number(value)
     return Number.isNaN(numeric) ? 0 : numeric
   })
-}
-
-function formatAlignmentLabel(
-  value: number,
-  alignment: 'elapsed_time' | 'distance' | 'percent_complete'
-) {
-  if (alignment === 'elapsed_time') {
-    if (value >= 3600) return `${(value / 3600).toFixed(1)}h`
-    if (value >= 60) return `${Math.round(value / 60)}m`
-    return `${Math.round(value)}s`
-  }
-
-  if (alignment === 'distance') {
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}km`
-    return `${Math.round(value)}m`
-  }
-
-  return `${Math.round(value)}%`
 }
 
 function formatFieldLabel(field: string) {
@@ -419,7 +402,9 @@ export default defineEventHandler(async (event) => {
   )
 
   return {
-    labels: sampledPrimaryPoints.map((p) => formatAlignmentLabel(p.x, analysis.alignment)),
+    labels: sampledPrimaryPoints.map((p) =>
+      formatAlignmentLabel(p.x, analysis.alignment, user.distanceUnits)
+    ),
     datasets,
     annotations,
     lapAnnotations,

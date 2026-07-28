@@ -47,7 +47,8 @@ defineRouteMeta({
         }
       },
       400: { description: 'Invalid input' },
-      401: { description: 'Unauthorized' }
+      401: { description: 'Unauthorized' },
+      404: { description: 'Planned workout not found' }
     }
   }
 })
@@ -64,6 +65,25 @@ export default defineEventHandler(async (event) => {
       statusCode: 400,
       message: 'Title, date, and duration are required'
     })
+  }
+
+  // Authorize the optional link before creating anything. The centralized session
+  // resolves coach "act as" requests to the athlete, so userId is the effective owner.
+  if (body.plannedWorkoutId) {
+    const plannedWorkout = await prisma.plannedWorkout.findFirst({
+      where: {
+        id: body.plannedWorkoutId,
+        userId
+      },
+      select: { id: true }
+    })
+
+    if (!plannedWorkout) {
+      throw createError({
+        statusCode: 404,
+        message: 'Planned workout not found'
+      })
+    }
   }
 
   try {
@@ -96,7 +116,10 @@ export default defineEventHandler(async (event) => {
     // If linked to a planned workout, mark it as completed
     if (body.plannedWorkoutId) {
       await prisma.plannedWorkout.update({
-        where: { id: body.plannedWorkoutId },
+        where: {
+          id: body.plannedWorkoutId,
+          userId
+        },
         data: {
           completed: true,
           completionStatus: 'COMPLETED'

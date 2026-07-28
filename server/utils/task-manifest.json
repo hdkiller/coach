@@ -1,14 +1,120 @@
 [
   {
-    "id": "adapt-training-plan",
+    "id": "adjust-fueling-post-workout"
+  },
+  {
+    "id": "finalize-daily-nutrition"
+  },
+  {
+    "id": "finalize-daily-nutrition-cron",
+    "schedule": {
+      "cron": "10 2 * * *",
+      "timezone": "UTC"
+    }
+  },
+  {
+    "id": "garmin-backfill",
+    "maxDuration": 900,
+    "queue": {
+      "name": "user-ingestion",
+      "concurrencyLimit": 5
+    }
+  },
+  {
+    "id": "generate-fueling-plan"
+  },
+  {
+    "id": "ingest-garmin",
     "maxDuration": 600,
+    "queue": {
+      "name": "user-ingestion",
+      "concurrencyLimit": 5
+    }
+  },
+  {
+    "id": "nutrition-last-call"
+  },
+  {
+    "id": "poll-ultrahuman",
+    "schedule": {
+      "cron": "5 * * * *",
+      "timezone": "UTC"
+    }
+  },
+  {
+    "id": "process-resend-webhook",
+    "retry": {
+      "maxAttempts": 5,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 30000,
+      "randomize": true
+    }
+  },
+  {
+    "id": "recommend-nutrition-meal",
     "queue": {
       "name": "user-reports",
       "concurrencyLimit": 5
     }
   },
   {
-    "id": "adjust-fueling-post-workout"
+    "id": "schedule-onboarding-drip",
+    "maxDuration": 900,
+    "retry": {
+      "maxAttempts": 3,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 10000,
+      "randomize": true
+    },
+    "queue": {
+      "name": "email-queue",
+      "concurrencyLimit": 10
+    }
+  },
+  {
+    "id": "send-email",
+    "maxDuration": 300,
+    "retry": {
+      "maxAttempts": 3,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 10000,
+      "randomize": true
+    },
+    "queue": {
+      "name": "email-queue",
+      "concurrencyLimit": 10
+    }
+  },
+  {
+    "id": "sentry-error-test",
+    "retry": {
+      "maxAttempts": 1,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 60000,
+      "randomize": true
+    }
+  },
+  {
+    "id": "summarize-chat"
+  },
+  {
+    "id": "trial-ending-reminder-cron",
+    "schedule": {
+      "cron": "0 9 * * *",
+      "timezone": "UTC"
+    }
+  },
+  {
+    "id": "adapt-training-plan",
+    "maxDuration": 600,
+    "queue": {
+      "name": "user-reports",
+      "concurrencyLimit": 5
+    }
   },
   {
     "id": "adjust-structured-workout",
@@ -83,6 +189,14 @@
     }
   },
   {
+    "id": "generate-daily-checkin",
+    "maxDuration": 300,
+    "queue": {
+      "name": "user-reports",
+      "concurrencyLimit": 5
+    }
+  },
+  {
     "id": "daily-coach",
     "maxDuration": 300,
     "queue": {
@@ -115,24 +229,6 @@
     }
   },
   {
-    "id": "finalize-daily-nutrition"
-  },
-  {
-    "id": "finalize-daily-nutrition-cron",
-    "schedule": {
-      "cron": "10 2 * * *",
-      "timezone": "UTC"
-    }
-  },
-  {
-    "id": "garmin-backfill",
-    "maxDuration": 900,
-    "queue": {
-      "name": "user-ingestion",
-      "concurrencyLimit": 5
-    }
-  },
-  {
     "id": "generate-ad-hoc-workout",
     "maxDuration": 300
   },
@@ -151,17 +247,6 @@
       "name": "user-reports",
       "concurrencyLimit": 5
     }
-  },
-  {
-    "id": "generate-daily-checkin",
-    "maxDuration": 300,
-    "queue": {
-      "name": "user-reports",
-      "concurrencyLimit": 5
-    }
-  },
-  {
-    "id": "generate-fueling-plan"
   },
   {
     "id": "generate-implementation-guide",
@@ -262,15 +347,15 @@
     }
   },
   {
-    "id": "ingest-garmin",
-    "maxDuration": 600,
+    "id": "ingest-hevy",
+    "maxDuration": 900,
     "queue": {
       "name": "user-ingestion",
       "concurrencyLimit": 5
     }
   },
   {
-    "id": "ingest-hevy",
+    "id": "ingest-intervals-streams",
     "maxDuration": 900,
     "queue": {
       "name": "user-ingestion",
@@ -280,14 +365,6 @@
   {
     "id": "ingest-intervals",
     "maxDuration": 14400,
-    "queue": {
-      "name": "user-ingestion",
-      "concurrencyLimit": 5
-    }
-  },
-  {
-    "id": "ingest-intervals-streams",
-    "maxDuration": 900,
     "queue": {
       "name": "user-ingestion",
       "concurrencyLimit": 5
@@ -318,14 +395,6 @@
     }
   },
   {
-    "id": "ingest-rouvy",
-    "maxDuration": 900,
-    "queue": {
-      "name": "user-ingestion",
-      "concurrencyLimit": 5
-    }
-  },
-  {
     "id": "ingest-rouvy-fit",
     "maxDuration": 600,
     "queue": {
@@ -334,8 +403,8 @@
     }
   },
   {
-    "id": "ingest-strava",
-    "maxDuration": 1800,
+    "id": "ingest-rouvy",
+    "maxDuration": 900,
     "queue": {
       "name": "user-ingestion",
       "concurrencyLimit": 5
@@ -352,6 +421,14 @@
   {
     "id": "ingest-strava-streams",
     "maxDuration": 900,
+    "queue": {
+      "name": "user-ingestion",
+      "concurrencyLimit": 5
+    }
+  },
+  {
+    "id": "ingest-strava",
+    "maxDuration": 1800,
     "queue": {
       "name": "user-ingestion",
       "concurrencyLimit": 5
@@ -398,35 +475,8 @@
     }
   },
   {
-    "id": "nutrition-last-call"
-  },
-  {
-    "id": "poll-ultrahuman",
-    "schedule": {
-      "cron": "5 * * * *",
-      "timezone": "UTC"
-    }
-  },
-  {
-    "id": "process-resend-webhook",
-    "retry": {
-      "maxAttempts": 5,
-      "factor": 2,
-      "minTimeoutInMs": 1000,
-      "maxTimeoutInMs": 30000,
-      "randomize": true
-    }
-  },
-  {
     "id": "process-sync-queue",
     "maxDuration": 300
-  },
-  {
-    "id": "recommend-nutrition-meal",
-    "queue": {
-      "name": "user-reports",
-      "concurrencyLimit": 5
-    }
   },
   {
     "id": "recommend-today-activity",
@@ -445,61 +495,11 @@
     }
   },
   {
-    "id": "schedule-onboarding-drip",
-    "maxDuration": 900,
-    "queue": {
-      "name": "email-queue",
-      "concurrencyLimit": 10
-    },
-    "retry": {
-      "maxAttempts": 3,
-      "factor": 2,
-      "minTimeoutInMs": 1000,
-      "maxTimeoutInMs": 10000,
-      "randomize": true
-    }
-  },
-  {
-    "id": "send-email",
-    "maxDuration": 300,
-    "retry": {
-      "maxAttempts": 3,
-      "factor": 2,
-      "minTimeoutInMs": 1000,
-      "maxTimeoutInMs": 10000,
-      "randomize": true
-    },
-    "queue": {
-      "name": "email-queue",
-      "concurrencyLimit": 10
-    }
-  },
-  {
-    "id": "sentry-error-test",
-    "retry": {
-      "maxAttempts": 1,
-      "factor": 2,
-      "minTimeoutInMs": 1000,
-      "maxTimeoutInMs": 60000,
-      "randomize": true
-    }
-  },
-  {
     "id": "suggest-goals",
     "maxDuration": 300,
     "queue": {
       "name": "user-reports",
       "concurrencyLimit": 5
-    }
-  },
-  {
-    "id": "summarize-chat"
-  },
-  {
-    "id": "trial-ending-reminder-cron",
-    "schedule": {
-      "cron": "0 9 * * *",
-      "timezone": "UTC"
     }
   }
 ]

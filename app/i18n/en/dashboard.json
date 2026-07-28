@@ -239,8 +239,10 @@
   "trigger_monitor_stop_task": "Stop task",
   "trigger_monitor_unknown_error": "Unknown error",
   "upcoming_workouts_empty": "No upcoming workouts scheduled.",
+  "upcoming_workouts_error": "Failed to load upcoming workouts",
   "upcoming_workouts_header": "Upcoming Workouts",
   "upcoming_workouts_plan_part_of": "Part of plan: {name}",
+  "upcoming_workouts_retry": "Retry",
   "upcoming_workouts_view_plans": "View Plans",
   "weekly_training_load": "Weekly Training Load",
 

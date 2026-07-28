@@ -22,6 +22,7 @@ import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import { getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { evaluateFitbitRecoveryAlert } from '../server/utils/wellness'
 import { dispatchTask } from '../server/utils/task-dispatcher'
+import { formatPromptHeight } from '../server/utils/ai-prompt-format'
 
 const suggestionSchema = {
   type: 'object',
@@ -204,7 +205,7 @@ Current Focus: ${profile.planning_context?.current_focus || 'General training'}
 USER INFO:
 - FTP: ${user?.ftp || 'Unknown'} watts
 - Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 `
     }

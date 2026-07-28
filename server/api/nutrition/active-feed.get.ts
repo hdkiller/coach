@@ -88,7 +88,8 @@ export default defineEventHandler(async (event) => {
               carbs: toNumber(item.carbs),
               calories: toNumber(item.calories),
               loggedAt,
-              mealType: meal
+              mealType: meal,
+              absorptionType: item.absorptionType
             })
           }
         })
@@ -100,7 +101,7 @@ export default defineEventHandler(async (event) => {
       .sort((a, b) => b.loggedAt.getTime() - a.loggedAt.getTime())
       .slice(0, 3)
       .map((item) => {
-        const profile = getProfileForItem(item.name)
+        const profile = getProfileForItem(item.name, item.absorptionType)
         const minsSince = Math.max(0, (now.getTime() - item.loggedAt.getTime()) / 60000)
 
         // Calculate absorption percentage

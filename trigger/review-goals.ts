@@ -14,6 +14,7 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import { formatPromptHeight } from '../server/utils/ai-prompt-format'
 import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 import { checkQuota } from '../server/utils/quotas/engine'
 
@@ -461,7 +462,7 @@ USER PROFILE:
             : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
-- Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
+- Height: ${formatPromptHeight(user.height, user.heightUnits)}
 - W/kg: ${user.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 

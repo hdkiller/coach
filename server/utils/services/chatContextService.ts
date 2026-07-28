@@ -8,6 +8,7 @@ import { generateTrainingContext, formatTrainingContextForPrompt } from '../trai
 import { getInjuryLabel } from '../../utils/wellness'
 import { filterGoalsForContext } from '../goal-context'
 import { getUserAiSettings } from '../ai-user-settings'
+import { formatPromptDistance, formatPromptHeight } from '../ai-prompt-format'
 
 type BuildAthleteContextOptions = {
   includeDomainToolInstructions?: boolean
@@ -320,8 +321,7 @@ export async function buildAthleteContext(
       metrics.push(`Weight: ${userProfile.weight.toFixed(2)}${weightUnit}`)
     }
     if (userProfile.height) {
-      const heightUnit = userProfile.heightUnits === 'ft/in' ? 'ft/in' : 'cm'
-      metrics.push(`Height: ${userProfile.height}${heightUnit}`)
+      metrics.push(`Height: ${formatPromptHeight(userProfile.height, userProfile.heightUnits)}`)
     }
     if (userProfile.dob) {
       const age = Math.floor(
@@ -501,7 +501,7 @@ export async function buildAthleteContext(
       athleteContext += `  - **ID**: ${workout.id} (use this ID to get detailed analysis)\n`
       athleteContext += `  - Duration: ${Math.round(workout.durationSec / 60)} min`
       if (workout.distanceMeters)
-        athleteContext += ` | Distance: ${(workout.distanceMeters / 1000).toFixed(1)} km`
+        athleteContext += ` | Distance: ${formatPromptDistance(workout.distanceMeters, userProfile?.distanceUnits)}`
       if (workout.averageWatts) athleteContext += ` | Avg Power: ${workout.averageWatts}W`
       if (workout.tss) athleteContext += ` | TSS: ${Math.round(workout.tss)}`
       if (workout.overallScore) athleteContext += ` | Score: ${workout.overallScore}/10`
@@ -809,6 +809,17 @@ You can create inline charts using the \`create_chart\` tool.
 For richer charts, include dataset styling (\`backgroundColor\`, \`borderColor\`, \`borderWidth\`) and \`options\` (axes, legend, stacked bars, dual-axis).`
     : ''
 
+  const distanceUnitLabel = userProfile?.distanceUnits === 'Miles' ? 'Miles' : 'Kilometers'
+  const temperatureUnitLabel =
+    userProfile?.temperatureUnits === 'Fahrenheit' ? 'Fahrenheit' : 'Celsius'
+
+  const unitsInstruction = `## Unit & Format Preferences (CRITICAL)
+
+The athlete's configured units are **${distanceUnitLabel}** for distance/pace/elevation and **${temperatureUnitLabel}** for temperature.
+- Always report distances, pace, elevation, and temperatures in these units unless the user explicitly asks for a different unit in their current message.
+- Never default to metric (km, meters, °C) for an athlete configured for imperial units, or to imperial (mi, ft, °F) for an athlete configured for metric units.
+- If a tool result or raw data returns metric values (meters, Celsius), convert them to the athlete's preferred units before presenting them in your reply.`
+
   const trainingPlanInstruction = includeDomainToolInstructions
     ? `## Training Plan Management (CRITICAL)
 
@@ -908,6 +919,8 @@ ${contextBullets}
 ${chartVisualizationInstruction}
 
 ${trainingPlanInstruction}
+
+${unitsInstruction}
 
 ## Response Requirement
 **CRITICAL: ALWAYS provide a text response after using a tool.**

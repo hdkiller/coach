@@ -105,7 +105,10 @@ export async function runGenerateReport(payload: {
     )
 
     // 5. Convert structured JSON to Markdown for backward compatibility/fallback
-    const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis)
+    const markdownAnalysis = convertStructuredToMarkdown(
+      structuredAnalysis,
+      context.user?.distanceUnits
+    )
 
     logger.log('Analysis generated successfully, saving to database')
 
