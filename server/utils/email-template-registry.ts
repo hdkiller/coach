@@ -148,6 +148,15 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: ['teamName', 'joinUrl', 'code'],
     utmCampaign: 'team_invite',
     utmMedium: 'transactional'
+  },
+  MarketingBroadcast: {
+    templateKey: 'MarketingBroadcast',
+    defaultSubject: 'Coach Watts Update',
+    audience: 'MARKETING',
+    preferenceKey: 'marketing',
+    requiredProps: ['headline', 'bodyContent'],
+    utmCampaign: 'product_announcement',
+    utmMedium: 'marketing'
   }
 }
 

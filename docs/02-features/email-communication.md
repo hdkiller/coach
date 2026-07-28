@@ -44,6 +44,10 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 - **Payment Succeeded**: Renewal receipt when a recurring subscription payment succeeds.
 - **Subscription Canceled**: Notice when a subscription is canceled or entitlement expires.
 
+### 4. Marketing & Announcements (Marketing)
+
+- **Marketing Broadcasts**: Sent via `POST /api/admin/email-deliveries/broadcast`. Enforces opt-in verification (`marketing: true`, `globalUnsubscribe: false`), suppression check, and includes standard HMAC unsubscribe footers. Uses `MarketingBroadcast` template.
+
 ## Compliance & Security
 
 ### Cryptographic Unsubscribe Tokens
