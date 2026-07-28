@@ -50,6 +50,50 @@ describe('CW-193: direct time questions must not silently drop to a tool-less re
     })
   })
 
+  describe('CW-199: multilingual direct time questions', () => {
+    it.each([
+      ['German', 'Wie spät ist es?'],
+      ['Spanish', '¿Qué hora es?'],
+      ['French', 'Quelle heure est-il?'],
+      ['Hungarian', 'Hány óra van?']
+    ])('detects the %s phrasing "%s" as a direct time question', (_language, text) => {
+      expect(looksLikeDirectTimeQuestion(text)).toBe(true)
+    })
+
+    it.each(['what time is my next session?', 'what time should I ride tomorrow?'])(
+      'still does not treat the planning-flavored question "%s" as a direct time question',
+      (text) => {
+        expect(looksLikeDirectTimeQuestion(text)).toBe(false)
+      }
+    )
+  })
+
+  describe('CW-199: compound messages with an independent time-question clause', () => {
+    it('detects a direct time question even when followed by a workout-domain clause', () => {
+      expect(looksLikeDirectTimeQuestion('What time is it? Should I ride now?')).toBe(true)
+    })
+
+    it('detects a direct time question even when preceded by a workout-domain clause', () => {
+      expect(looksLikeDirectTimeQuestion('Should I ride now? What time is it?')).toBe(true)
+    })
+
+    it('still excludes a single clause that mixes a time word with a domain word', () => {
+      expect(looksLikeDirectTimeQuestion('What time should I ride tomorrow?')).toBe(false)
+    })
+
+    it('forces the tool-enabled selection for the compound time question via getDirectTimeQuestionSkillSelection', () => {
+      const selection = getDirectTimeQuestionSkillSelection([
+        { role: 'user', content: 'What time is it? Should I ride now?' }
+      ])
+
+      expect(selection).toMatchObject({
+        skillIds: ['general_chat'],
+        useTools: true,
+        usedFallback: false
+      })
+    })
+  })
+
   describe('getDirectTimeQuestionSkillSelection', () => {
     it('forces tool-enabled general_chat for a direct time question', () => {
       const selection = getDirectTimeQuestionSkillSelection([
