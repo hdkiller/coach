@@ -330,7 +330,7 @@ export default NuxtAuthHandler({
           userId: user.id,
           templateKey: 'Welcome',
           eventKey: 'USER_SIGNED_UP_FOLLOWUP',
-          audience: 'ENGAGEMENT',
+          audience: 'TRANSACTIONAL',
           subject: 'Welcome to Coach Watts!',
           props: {
             name: user.name || 'Athlete',
