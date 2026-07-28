@@ -1,7 +1,14 @@
 import { tool } from 'ai'
 import { z } from 'zod/v3'
 import { journeyService } from '../services/journeyService'
-import { getUserTimezone } from '../date'
+import { prisma } from '../db'
+import {
+  getUserTimezone,
+  getUserLocalDate,
+  buildZonedDateTimeFromUtcDate,
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC
+} from '../date'
 import { JourneyEventType, JourneyEventCategory } from '@prisma/client'
 
 export const journeyTools = (userId: string, timezone: string) => ({
@@ -34,13 +41,9 @@ export const journeyTools = (userId: string, timezone: string) => ({
         if (timestamp.includes('T')) {
           eventTime = new Date(timestamp)
         } else if (/^\d{1,2}:\d{2}/.test(timestamp)) {
-          // Handle HH:mm
-          const parts = timestamp.split(':').map(Number)
-          const h = parts[0]
-          const m = parts[1]
-          if (h !== undefined && m !== undefined) {
-            eventTime.setHours(h, m, 0, 0)
-          }
+          // Handle HH:mm anchored to the athlete's local "today", not the
+          // server process's local/UTC time.
+          eventTime = buildZonedDateTimeFromUtcDate(getUserLocalDate(timezone), timestamp, timezone)
         }
       }
 
@@ -82,8 +85,8 @@ export const journeyTools = (userId: string, timezone: string) => ({
         .describe('Filter by specific category')
     }),
     execute: async ({ start_date, end_date, category }) => {
-      const start = new Date(`${start_date}T00:00:00Z`)
-      const end = end_date ? new Date(`${end_date}T23:59:59Z`) : new Date(`${start_date}T23:59:59Z`)
+      const start = getStartOfLocalDateUTC(timezone, start_date)
+      const end = getEndOfLocalDateUTC(timezone, end_date || start_date)
 
       const events = await prisma.athleteJourneyEvent.findMany({
         where: {
@@ -140,13 +143,13 @@ export const journeyTools = (userId: string, timezone: string) => ({
         if (timestamp.includes('T')) {
           eventTime = new Date(timestamp)
         } else if (/^\d{1,2}:\d{2}/.test(timestamp)) {
-          const parts = timestamp.split(':').map(Number)
-          const h = parts[0]
-          const m = parts[1]
-          if (h !== undefined && m !== undefined) {
-            eventTime = new Date(existing.timestamp)
-            eventTime.setHours(h, m, 0, 0)
-          }
+          // Handle HH:mm, preserving the existing event's local calendar day
+          // (in the athlete's timezone) while updating the time-of-day.
+          eventTime = buildZonedDateTimeFromUtcDate(
+            getUserLocalDate(timezone, existing.timestamp),
+            timestamp,
+            timezone
+          )
         }
       }
 

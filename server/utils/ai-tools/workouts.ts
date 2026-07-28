@@ -8,8 +8,8 @@ import {
   getStartOfDaysAgoUTC,
   formatUserDate,
   formatDateUTC,
-  getStartOfDayUTC,
-  getEndOfDayUTC
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC
 } from '../../utils/date'
 import type { AiSettings } from '../ai-user-settings'
 import { hasProtectedIntervalsTags, mergeWorkoutTags } from '../workout-tags'
@@ -83,8 +83,8 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       if (title_search) where.title = { contains: title_search, mode: 'insensitive' }
       if (type) where.type = { contains: type, mode: 'insensitive' }
       if (date) {
-        const start = new Date(`${date}T00:00:00.000Z`)
-        const end = new Date(`${date}T23:59:59.999Z`)
+        const start = getStartOfLocalDateUTC(timezone, date)
+        const end = getEndOfLocalDateUTC(timezone, date)
 
         if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
           where.date = {

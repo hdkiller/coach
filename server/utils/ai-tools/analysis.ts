@@ -7,7 +7,9 @@ import {
   getStartOfDaysAgoUTC,
   formatDateUTC,
   formatUserDate,
-  getUserLocalDate
+  getUserLocalDate,
+  getStartOfLocalDateUTC,
+  getEndOfLocalDateUTC
 } from '../../utils/date'
 import { calculateProjectedPMC, getInitialPMCValues } from '../../utils/training-stress'
 import type { AiSettings } from '../ai-user-settings'
@@ -87,8 +89,8 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       end_date: z.string().optional().describe('End date (YYYY-MM-DD)')
     }),
     execute: async ({ start_date, end_date }) => {
-      const start = new Date(start_date)
-      const end = end_date ? new Date(end_date) : new Date()
+      const start = getStartOfLocalDateUTC(timezone, start_date)
+      const end = end_date ? getEndOfLocalDateUTC(timezone, end_date) : new Date()
 
       const workouts = await workoutRepository.getForUser(userId, {
         startDate: start,
@@ -157,13 +159,20 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       const historicalEndDate = endDate < todayDate ? endDate : todayDate
       const hasHistoricalWindow = startDate <= historicalEndDate
 
+      // Workout.date is a genuine DateTime timestamp (unlike PlannedWorkout.date's
+      // @db.Date calendar column below), so the historical query must use the
+      // athlete's local-day boundaries rather than the raw UTC-midnight anchors
+      // used for calendar-day bookkeeping (startDate/endDate/historicalEndDate).
+      const historicalQueryStart = getStartOfLocalDateUTC(timezone, start_date)
+      const historicalQueryEnd = getEndOfLocalDateUTC(timezone, formatDateUTC(historicalEndDate))
+
       const completedWorkloads = hasHistoricalWindow
         ? (
             await prisma.workout.findMany({
               where: {
                 userId,
                 isDuplicate: false,
-                date: { gte: startDate, lte: historicalEndDate }
+                date: { gte: historicalQueryStart, lte: historicalQueryEnd }
               },
               select: {
                 date: true,
