@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { sendEmail } from '../../utils/email'
 import { prisma } from '../../utils/db'
+import { escapeHtml } from '../../utils/html'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -52,12 +53,12 @@ export default defineEventHandler(async (event) => {
 
   const htmlContent = `
     <h2>New Support Message</h2>
-    <p><strong>From:</strong> ${userName} (${userEmail})</p>
-    <p><strong>User ID:</strong> ${userId || 'Guest'}</p>
-    <p><strong>Subject:</strong> ${subject}</p>
+    <p><strong>From:</strong> ${escapeHtml(userName)} (${escapeHtml(userEmail)})</p>
+    <p><strong>User ID:</strong> ${escapeHtml(userId || 'Guest')}</p>
+    <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
     <hr />
     <h3>Message:</h3>
-    <div style="white-space: pre-wrap;">${message}</div>
+    <div style="white-space: pre-wrap;">${escapeHtml(message)}</div>
   `
 
   let emailResponse
