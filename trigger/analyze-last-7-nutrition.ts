@@ -10,6 +10,7 @@ import {
   formatDateUTC,
   getStartOfDaysAgoUTC
 } from '../server/utils/date'
+import { formatPromptWeight } from '../server/utils/ai-prompt-format'
 
 // Analysis schema for nutrition reports
 const nutritionAnalysisSchema = {
@@ -122,7 +123,7 @@ function buildNutritionSummary(nutritionDays: any[], timezone: string) {
     .join('\n\n')
 }
 
-function buildAnalysisPrompt(nutritionDays: any[], user: any, timezone: string) {
+export function buildAnalysisPrompt(nutritionDays: any[], user: any, timezone: string) {
   const dateRange =
     nutritionDays.length > 0
       ? `${formatDateUTC(nutritionDays[nutritionDays.length - 1].date)} - ${formatDateUTC(nutritionDays[0].date)}`
@@ -133,7 +134,7 @@ Preferred Language: ${user?.language || 'English'} (ALL analysis and text respon
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${formatPromptWeight(user?.weight, user?.weightUnits)}
 - Cycling athlete - endurance training focus
 
 WEEKLY NUTRITION DATA (Last ${nutritionDays.length} Days):
@@ -271,7 +272,7 @@ export const analyzeLast7NutritionTask = task({
       // Fetch user profile for context
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true, language: true }
+        select: { ftp: true, weight: true, weightUnits: true, maxHr: true, language: true }
       })
 
       // Build the analysis prompt

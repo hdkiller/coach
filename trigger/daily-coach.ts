@@ -22,7 +22,10 @@ import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import { getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { evaluateFitbitRecoveryAlert } from '../server/utils/wellness'
 import { dispatchTask } from '../server/utils/task-dispatcher'
-import { formatPromptHeight } from '../server/utils/ai-prompt-format'
+import {
+  formatPromptHeight,
+  formatPromptWeight
+} from '../server/utils/ai-prompt-format'
 
 const suggestionSchema = {
   type: 'object',
@@ -46,6 +49,25 @@ const suggestionSchema = {
     }
   },
   required: ['action', 'reason', 'confidence']
+}
+
+export function buildDailyCoachUserInfo(
+  user: {
+    ftp?: number | null
+    weight?: number | null
+    weightUnits?: string | null
+    height?: number | null
+    heightUnits?: string | null
+    maxHr?: number | null
+  } | null
+) {
+  return `
+USER INFO:
+- FTP: ${user?.ftp || 'Unknown'} watts
+- Weight: ${formatPromptWeight(user?.weight, user?.weightUnits)}
+- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
+- Max HR: ${user?.maxHr || 'Unknown'} bpm
+`
 }
 
 export const dailyCoachTask = task({
@@ -201,13 +223,7 @@ Recent Performance: ${profile.recent_performance?.trend || 'Unknown'}
 Current Focus: ${profile.planning_context?.current_focus || 'General training'}
 `
     } else {
-      athleteContext = `
-USER INFO:
-- FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- Height: ${formatPromptHeight(user?.height, user?.heightUnits)}
-- Max HR: ${user?.maxHr || 'Unknown'} bpm
-`
+      athleteContext = buildDailyCoachUserInfo(user)
     }
 
     // Add goals context
