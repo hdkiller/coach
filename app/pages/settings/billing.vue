@@ -55,7 +55,8 @@
 
   const loadingPortal = ref(false)
   const syncing = ref(false)
-  const showSuccessMessage = ref(route.query.success === 'true')
+  const showSuccessMessage = ref(false)
+  const showPendingActivationMessage = ref(false)
   const showRefreshMessage = ref(route.query.refresh === 'true')
   const showCanceledMessage = ref(route.query.canceled === 'true')
   const showPlansModal = ref(false)
@@ -108,12 +109,20 @@
       window.addEventListener('focus', handleFocus)
     }
 
-    if (showSuccessMessage.value || showRefreshMessage.value) {
+    const hasSuccessQuery = route.query.success === 'true'
+    if (hasSuccessQuery || showRefreshMessage.value) {
       await pollSubscription()
-      if (userStore.user?.subscriptionStatus === 'ACTIVE') {
+      if (
+        userStore.user?.subscriptionStatus === 'ACTIVE' &&
+        userStore.user?.subscriptionTier !== 'FREE'
+      ) {
         triggerCelebration()
         showSuccessMessage.value = true
+        showPendingActivationMessage.value = false
         maybeTrackPurchase()
+      } else {
+        showSuccessMessage.value = false
+        showPendingActivationMessage.value = true
       }
     } else {
       try {
@@ -414,6 +423,18 @@
       await $fetch<any, string & {}>('/api/stripe/sync', { method: 'POST' })
       await userStore.fetchUser(true)
 
+      if (
+        userStore.user?.subscriptionStatus === 'ACTIVE' &&
+        userStore.user?.subscriptionTier !== 'FREE'
+      ) {
+        showPendingActivationMessage.value = false
+        if (!showSuccessMessage.value) {
+          showSuccessMessage.value = true
+          triggerCelebration()
+          maybeTrackPurchase()
+        }
+      }
+
       if (!silent) {
         const toast = useToast()
         toast.add({
@@ -438,6 +459,7 @@
 
   function dismissSuccessMessage() {
     showSuccessMessage.value = false
+    showPendingActivationMessage.value = false
     confettiPieces.value = []
   }
 
@@ -659,6 +681,34 @@
       >
         <template #icon>
           <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
+        </template>
+      </UAlert>
+
+      <UAlert
+        v-if="showPendingActivationMessage && !isPremium && !polling"
+        :title="tr('billing_activation_pending_title', 'Subscription Activation Pending')"
+        icon="i-heroicons-clock"
+        color="warning"
+        variant="soft"
+        :close="{ color: 'warning', variant: 'link', label: t('billing_dismiss') }"
+        :description="
+          tr(
+            'billing_activation_pending_desc',
+            'Your checkout was received, but account activation is taking a moment. If your tier has not updated yet, click Sync to refresh status.'
+          )
+        "
+        @update:open="dismissSuccessMessage"
+      >
+        <template #actions>
+          <UButton
+            color="warning"
+            variant="solid"
+            size="sm"
+            :loading="syncing"
+            @click="() => handleSync(false)"
+          >
+            {{ t('billing_button_sync') }}
+          </UButton>
         </template>
       </UAlert>
 

@@ -161,6 +161,7 @@ async function loadTriggerModules() {
     import('../../trigger/recommend-nutrition-meal'),
     import('../../trigger/recommend-today-activity'),
     import('../../trigger/review-goals'),
+    import('../../trigger/schedule-onboarding-drip'),
     import('../../trigger/send-email'),
     import('../../trigger/sentry-error-test'),
     import('../../trigger/suggest-goals'),

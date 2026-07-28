@@ -268,9 +268,14 @@
               />
             </UFormField>
             <UFormField name="planUpdates">
+              <template #label>
+                <div class="flex items-center gap-2">
+                  <span>{{ t('comm_label_plan_updates') }}</span>
+                  <UBadge color="neutral" variant="subtle" size="xs">Coming Soon</UBadge>
+                </div>
+              </template>
               <UCheckbox
                 v-model="state.planUpdates"
-                :label="t('comm_label_plan_updates')"
                 :description="t('comm_desc_plan_updates')"
                 :disabled="state.globalUnsubscribe"
               />
@@ -299,9 +304,14 @@
 
           <div class="space-y-6">
             <UFormField name="productUpdates">
+              <template #label>
+                <div class="flex items-center gap-2">
+                  <span>{{ t('comm_label_product_updates') }}</span>
+                  <UBadge color="neutral" variant="subtle" size="xs">Coming Soon</UBadge>
+                </div>
+              </template>
               <UCheckbox
                 v-model="state.productUpdates"
-                :label="t('comm_label_product_updates')"
                 :description="t('comm_desc_product_updates')"
                 :disabled="state.globalUnsubscribe"
               />

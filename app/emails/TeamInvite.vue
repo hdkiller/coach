@@ -10,21 +10,24 @@
     EBody,
     ESection,
     EImg,
-    EHr,
     ELink,
     EFont
   } from 'vue-email'
 
   withDefaults(
     defineProps<{
-      name?: string
-      tier: string
+      teamName?: string
+      roleLabel?: string
+      joinUrl?: string
+      code?: string
       siteUrl?: string
       logoUrl?: string
       unsubscribeUrl?: string
       utmQuery?: string
     }>(),
     {
+      teamName: 'A team',
+      roleLabel: 'a member',
       siteUrl: 'https://coachwatts.com',
       logoUrl: 'https://coachwatts.com/icon.png'
     }
@@ -45,18 +48,11 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview>{{ `Your ${tier} plan is active. Advanced coaching is unlocked.` }}</EPreview>
+    <EPreview>You're invited to join {{ teamName }} on Coach Watts.</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
-        font-family:
-          'Public Sans',
-          Inter,
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          Roboto,
-          sans-serif;
+        font-family: 'Public Sans', Inter, sans-serif;
         padding: 40px 0;
       "
     >
@@ -73,7 +69,6 @@
             0 2px 4px -1px rgba(0, 0, 0, 0.06);
         "
       >
-        <!-- Top Gradient Accent -->
         <ESection
           style="
             background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
@@ -81,8 +76,6 @@
             width: 100%;
           "
         ></ESection>
-
-        <!-- Header -->
         <ESection style="padding: 32px 40px 0; text-align: center">
           <ELink :href="siteUrl + (utmQuery || '')">
             <EImg
@@ -94,76 +87,65 @@
             />
           </ELink>
         </ESection>
-
-        <!-- Main Content (Slot) -->
         <ESection style="padding: 32px 40px">
           <EHeading
             style="
-              font-size: 28px;
-              line-height: 1.3;
+              font-size: 24px;
               font-weight: 700;
               color: #09090b;
               margin-top: 0;
-              margin-bottom: 20px;
+              margin-bottom: 18px;
               letter-spacing: -0.025em;
             "
-            >{{ tier }} is active</EHeading
           >
-
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 14px"
-            >Hi {{ name || 'Athlete' }},</EText
-          >
-
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 18px">
-            Your upgraded plan is live. You now have access to deeper analysis and faster coaching
-            feedback loops.
+            Join {{ teamName }}
+          </EHeading>
+          <EText style="font-size: 15px; line-height: 1.6; color: #71717a; margin-bottom: 20px">
+            You've been invited to join <strong>{{ teamName }}</strong> as {{ roleLabel }} inside
+            Coach Watts.
           </EText>
-
-          <EContainer
+          <div
+            v-if="code"
             style="
               background-color: #fafafa;
-              border-left: 4px solid #00dc82;
-              padding: 20px;
+              border: 1px solid #e4e4e7;
+              border-radius: 12px;
+              padding: 16px;
               margin-bottom: 24px;
-              border-radius: 4px;
-              border-top: 1px solid #e4e4e7;
-              border-right: 1px solid #e4e4e7;
-              border-bottom: 1px solid #e4e4e7;
+              text-align: center;
             "
           >
             <EText
               style="
-                font-size: 16px;
-                font-weight: 600;
-                color: #09090b;
-                margin-top: 0;
-                margin-bottom: 12px;
-              "
-              >What changes now:</EText
-            >
-            <ul
-              style="
-                font-size: 15px;
-                line-height: 1.6;
+                font-size: 10px;
+                font-weight: 900;
                 color: #71717a;
-                margin: 0;
-                padding-left: 20px;
+                margin: 0 0 6px;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
               "
             >
-              <li style="margin-bottom: 6px">
-                More advanced AI reasoning for analysis and planning
-              </li>
-              <li style="margin-bottom: 6px">Richer workout and readiness insights</li>
-              <li>Priority access to new coaching capabilities</li>
-            </ul>
-          </EContainer>
-
-          <div style="text-align: center; margin-bottom: 18px">
+              Invite Code
+            </EText>
+            <EText
+              style="
+                font-size: 24px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-weight: 800;
+                color: #00c16a;
+                margin: 0;
+              "
+            >
+              {{ code.toUpperCase() }}
+            </EText>
+          </div>
+          <div style="text-align: center; margin-bottom: 24px">
             <EButton
               :href="
-                siteUrl + '/dashboard' + (utmQuery || '') + '&utm_content=cta_use_pro_features'
+                (joinUrl || siteUrl) + (utmQuery || '') + '&utm_content=cta_accept_team_invite'
               "
               style="
+                background-color: #00c16a;
                 background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
                 color: #ffffff;
                 padding: 14px 28px;
@@ -173,32 +155,18 @@
                 display: inline-block;
               "
             >
-              Start Using Pro Features
+              Accept Invitation
             </EButton>
           </div>
         </ESection>
-
-        <!-- Footer -->
         <ESection
           style="background-color: #fafafa; padding: 32px 40px; border-top: 1px solid #e4e4e7"
         >
           <EText style="font-size: 14px; font-weight: 600; color: #09090b; margin: 0 0 8px">
             Coach Watts
           </EText>
-          <EText style="font-size: 12px; color: #71717a; line-height: 1.6; margin: 0 0 16px">
+          <EText style="font-size: 12px; color: #71717a; line-height: 1.6; margin: 0">
             AI-powered endurance coaching that adapts to you.
-          </EText>
-          <EText style="font-size: 12px; color: #a1a1aa; line-height: 1.6; margin: 0">
-            You're receiving this because you registered at Coach Watts.
-            <br />
-            You can
-            <ELink
-              :href="unsubscribeUrl || siteUrl + '/profile/settings?tab=communication'"
-              style="color: #00c16a; text-decoration: underline"
-            >
-              manage your email preferences
-            </ELink>
-            at any time.
           </EText>
         </ESection>
       </EContainer>

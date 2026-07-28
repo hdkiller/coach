@@ -161,6 +161,22 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, even
         subscriptionPeriodEnd: null
       }
     })
+
+    try {
+      await dispatchTask('send-email', {
+        userId: user.id,
+        templateKey: 'SubscriptionCanceled',
+        eventKey: `SUBSCRIPTION_CANCELED_${user.id}`,
+        audience: 'TRANSACTIONAL',
+        subject: 'Your Coach Watts subscription has been canceled',
+        props: {
+          name: user.name || 'Athlete',
+          tier: user.subscriptionTier
+        }
+      })
+    } catch (emailErr) {
+      console.error('Failed to trigger subscription canceled email', emailErr)
+    }
   }
 
   console.log(`Subscription deleted for customer ${customerId}, downgraded to FREE`)
@@ -277,16 +293,66 @@ export default defineEventHandler(async (event) => {
         break
 
       case 'invoice.payment_failed': {
-        // Handle payment failure - could trigger email notification
         const failedInvoice = stripeEvent.data.object as Stripe.Invoice
         console.log(`Payment failed for customer ${failedInvoice.customer}`)
+        if (failedInvoice.customer) {
+          const user = await prisma.user.findUnique({
+            where: { stripeCustomerId: failedInvoice.customer as string }
+          })
+          if (user) {
+            const amountFormatted = failedInvoice.amount_due
+              ? `${(failedInvoice.amount_due / 100).toFixed(2)} ${failedInvoice.currency?.toUpperCase() || ''}`
+              : undefined
+            try {
+              await dispatchTask('send-email', {
+                userId: user.id,
+                templateKey: 'PaymentFailed',
+                eventKey: `INVOICE_PAYMENT_FAILED_${failedInvoice.id}`,
+                audience: 'TRANSACTIONAL',
+                subject: 'Action Required: Payment failed for your Coach Watts subscription',
+                props: {
+                  name: user.name || 'Athlete',
+                  tier: user.subscriptionTier,
+                  amount: amountFormatted
+                }
+              })
+            } catch (emailErr) {
+              console.error('Failed to send payment failed email', emailErr)
+            }
+          }
+        }
         break
       }
 
       case 'invoice.payment_succeeded': {
-        // Handle successful payment - renewal confirmation
         const successInvoice = stripeEvent.data.object as Stripe.Invoice
         console.log(`Payment succeeded for customer ${successInvoice.customer}`)
+        if (successInvoice.billing_reason === 'subscription_cycle' && successInvoice.customer) {
+          const user = await prisma.user.findUnique({
+            where: { stripeCustomerId: successInvoice.customer as string }
+          })
+          if (user) {
+            const amountFormatted = successInvoice.amount_paid
+              ? `${(successInvoice.amount_paid / 100).toFixed(2)} ${successInvoice.currency?.toUpperCase() || ''}`
+              : undefined
+            try {
+              await dispatchTask('send-email', {
+                userId: user.id,
+                templateKey: 'PaymentSucceeded',
+                eventKey: `INVOICE_PAYMENT_SUCCEEDED_${successInvoice.id}`,
+                audience: 'TRANSACTIONAL',
+                subject: 'Receipt for your Coach Watts subscription payment',
+                props: {
+                  name: user.name || 'Athlete',
+                  tier: user.subscriptionTier,
+                  amount: amountFormatted
+                }
+              })
+            } catch (emailErr) {
+              console.error('Failed to send payment succeeded email', emailErr)
+            }
+          }
+        }
         break
       }
 

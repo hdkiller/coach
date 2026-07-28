@@ -22,10 +22,33 @@ type ExpoPushTicket = {
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
 
+function buildExpoPushHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Encoding': 'gzip, deflate',
+    'Content-Type': 'application/json'
+  }
+
+  const accessToken = process.env.EXPO_ACCESS_TOKEN?.trim()
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`
+  }
+
+  return headers
+}
+
+function tokenSuffix(token: string | undefined): string | undefined {
+  if (!token || token.length < 8) return undefined
+  return token.slice(-8)
+}
+
 /**
  * Send an Expo push to all registered devices for a user.
  * Honors server push preferences (issue 365). Best-effort: never throws to
  * callers; logs skips / failures and prunes DeviceNotRegistered tokens.
+ *
+ * Optional `EXPO_ACCESS_TOKEN` is sent as `Authorization: Bearer …` when set.
+ * Receipt polling is intentionally deferred — see docs/04-guides/expo-push.md.
  */
 export async function sendExpoPushToUser(userId: string, payload: ExpoPushPayload): Promise<void> {
   try {
@@ -62,29 +85,61 @@ export async function sendExpoPushToUser(userId: string, payload: ExpoPushPayloa
 
     const response = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-        'Content-Type': 'application/json'
-      },
+      headers: buildExpoPushHeaders(),
       body: JSON.stringify(messages)
     })
 
     if (!response.ok) {
-      console.warn(`Expo push send failed for user ${userId}: HTTP ${response.status}`)
+      console.warn(`Expo push send failed for user ${userId}: HTTP ${response.status}`, {
+        userId,
+        type: payload.type,
+        notificationId: payload.notificationId,
+        deviceCount: devices.length,
+        httpStatus: response.status,
+        reason: 'http_error'
+      })
       return
     }
 
     const json = (await response.json()) as { data?: ExpoPushTicket[] }
     const tickets = json.data ?? []
     const staleTokens: string[] = []
+    let okCount = 0
+    let ticketErrorCount = 0
+    let receiptIdCount = 0
 
     for (let i = 0; i < tickets.length; i++) {
       const ticket = tickets[i]
-      if (ticket?.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
-        const token = devices[i]?.token
-        if (token) staleTokens.push(token)
+      const device = devices[i]
+      if (!ticket) continue
+
+      if (ticket.status === 'ok') {
+        okCount++
+        if (ticket.id) receiptIdCount++
+        continue
       }
+
+      ticketErrorCount++
+      const errorCode = ticket.details?.error
+
+      if (errorCode === 'DeviceNotRegistered') {
+        const token = device?.token
+        if (token) staleTokens.push(token)
+        continue
+      }
+
+      // MessageTooBig, MessageRateExceeded, InvalidCredentials, etc.
+      console.warn('Expo push ticket error', {
+        userId,
+        type: payload.type,
+        notificationId: payload.notificationId,
+        deviceId: device?.id,
+        tokenSuffix: tokenSuffix(device?.token),
+        ticketIndex: i,
+        error: errorCode ?? 'unknown',
+        message: ticket.message,
+        reason: 'ticket_error'
+      })
     }
 
     if (staleTokens.length > 0) {
@@ -92,6 +147,18 @@ export async function sendExpoPushToUser(userId: string, payload: ExpoPushPayloa
         where: { token: { in: staleTokens } }
       })
     }
+
+    console.info('Expo push send completed', {
+      userId,
+      type: payload.type,
+      notificationId: payload.notificationId,
+      deviceCount: devices.length,
+      ok: okCount,
+      ticketErrors: ticketErrorCount,
+      pruned: staleTokens.length,
+      receiptIdCount,
+      reason: 'send_completed'
+    })
   } catch (error) {
     console.warn(`Expo push send failed for user ${userId}:`, error)
   }
