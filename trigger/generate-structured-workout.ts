@@ -21,6 +21,7 @@ import {
   WORKOUT_STRUCTURE_AI_MAX_RETRIES,
   WORKOUT_STRUCTURE_AI_TIMEOUT_MS
 } from '../server/utils/workout-ai-timeouts'
+import { hasValidRepeatBlockRecovery } from '../server/utils/structured-workout-validation'
 import {
   adaptStructuredWorkout,
   createZoneProfileSnapshot,
@@ -172,7 +173,8 @@ const workoutStructureSchema = {
             type: 'integer',
             minimum: 1,
             maximum: 50,
-            description: 'Number of times to repeat these steps (for loops)'
+            description:
+              'Number of times to repeat these steps (for loops). Note: repeat blocks MUST contain non-zero recovery/rest steps between work steps.'
           },
           type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
           durationSeconds: { type: 'integer', minimum: 1 },
@@ -681,6 +683,12 @@ function validateStructuredCoverage(params: {
   preserveStructure?: boolean
 }) {
   const { plannedDurationSec, actualDurationSec, steps, workout, preserveStructure } = params
+
+  const repeatRecoveryCheck = hasValidRepeatBlockRecovery(steps)
+  if (!repeatRecoveryCheck.valid) {
+    return repeatRecoveryCheck
+  }
+
   if (plannedDurationSec <= 0) {
     return { valid: actualDurationSec > 0, reason: actualDurationSec > 0 ? null : 'zero_duration' }
   }

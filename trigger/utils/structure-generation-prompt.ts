@@ -256,12 +256,14 @@ export function buildLegacyStructureInstructions(params: {
   if (params.mode === 'adjust') {
     return `INSTRUCTIONS:
 - Create a NEW structure matching ${durationMinutes} minutes.
+- Repeat blocks (loops with reps > 1) MUST contain non-zero recovery/rest steps between active work intervals.
 - Respect feedback; preserve objective unless explicitly changed.
 - In-session steps only. coachInstructions: what changed and why.`
   }
 
   return `INSTRUCTIONS:
 - Create steps (Warmup, Intervals, Rest, Cooldown) matching ${durationMinutes} minutes.
+- Repeat blocks (loops with reps > 1) MUST contain non-zero recovery/rest steps (e.g. Rest step between Active work intervals) instead of continuous work blocks.
 - ${
     params.preserveExistingStructure
       ? 'Regenerate while preserving session identity unless title/description require change.'
@@ -291,6 +293,7 @@ export function buildSportSpecificInstructions(params: {
 - Use % FTP for power (0.95 = 95%), power.units="%".
 - Include cadence (RPM) on every step; vary cadence on focus steps.
 - Use power ramps (start/end) for warmup/cooldown when appropriate.
+- Repeat blocks (reps > 1) MUST contain non-zero recovery/rest steps between work intervals.
 - Avoid repeated identical 20+ minute blocks unless repeats are requested.`
   }
 
@@ -299,6 +302,7 @@ export function buildSportSpecificInstructions(params: {
 - Include distance (meters) on every step; estimate from pace when duration-based.
 - ${runPaceUnitInstruction}
 - ${params.steadyTargetStyleRule}
+- Repeat blocks (reps > 1) MUST contain non-zero recovery/rest steps between work sets.
 - In-session segments only; no static stretching as steps.
 - Respect quality spacing between hard efforts.`
   }
@@ -381,7 +385,7 @@ export function buildDraftOutputRules(params: { preserveExistingStructure: boole
 - Use \`target.units\` from: %, w, bpm, LTHR, Pace, /km.
 - Percentages use decimal fractions (0.80 LTHR, 0.95 FTP).
 - Use \`durationSeconds\` for timed steps; \`distanceMeters\` when distance is central.
-- Use nested \`steps\` plus \`reps\` for repeats.
+- Use nested \`steps\` plus \`reps\` for repeats. Interval repeat blocks (reps > 1) MUST contain non-zero recovery/rest steps between work steps (e.g. Rest steps or explicit restSeconds).
 - Every step needs a clear purpose and \`intent\`.
 - In-session steps only; no stretching/mobility as steps.
 - Put recovery guidance in \`coachInstructions\`, not \`steps\`.
