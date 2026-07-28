@@ -18,7 +18,7 @@ export const issuesRepository = {
   /**
    * Fetch a single issue by ID.
    */
-  async getById(id: string, userId?: string) {
+  async getById(id: string, userId?: string, isAdmin = false) {
     const report = await prisma.bugReport.findUnique({
       where: { id },
       include: {
@@ -44,7 +44,9 @@ export const issuesRepository = {
           }
         },
         comments: {
-          where: userId ? { type: 'MESSAGE' } : undefined, // Only show messages to regular users
+          // Internal notes require an explicit admin context. Omitting userId alone must
+          // not turn an otherwise unrestricted lookup into an internal-comment lookup.
+          where: isAdmin ? undefined : { type: 'MESSAGE' },
           include: {
             user: {
               select: {
@@ -342,7 +344,14 @@ export const issuesRepository = {
   /**
    * Acknowledge a comment.
    */
-  async acknowledgeComment(commentId: string, userId: string) {
+  async acknowledgeComment(issueId: string, commentId: string, userId: string) {
+    const comment = await prisma.bugReportComment.findFirst({
+      where: { id: commentId, bugReportId: issueId },
+      select: { id: true }
+    })
+
+    if (!comment) return null
+
     return prisma.bugReportComment.update({
       where: { id: commentId },
       data: {
@@ -365,7 +374,7 @@ export const issuesRepository = {
   /**
    * Toggle a reaction on a comment.
    */
-  async toggleReaction(commentId: string, userId: string, emoji: string) {
+  async toggleReaction(issueId: string, commentId: string, userId: string, emoji: string) {
     console.log(
       `[issuesRepository] toggleReaction START: commentId=${commentId}, userId=${userId}, emoji=${emoji}`
     )
@@ -374,8 +383,8 @@ export const issuesRepository = {
       return null
     }
 
-    const comment = await prisma.bugReportComment.findUnique({
-      where: { id: commentId },
+    const comment = await prisma.bugReportComment.findFirst({
+      where: { id: commentId, bugReportId: issueId },
       select: { reactions: true, userId: true, acknowledgedAt: true }
     })
 
