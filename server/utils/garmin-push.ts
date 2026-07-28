@@ -633,10 +633,10 @@ export function buildGarminCoursePayload(workout: any) {
   }
 }
 
-function mapCourseActivityToGarmin(type: string): string {
+export function mapCourseActivityToGarmin(type: string): string {
   const t = (type || '').toLowerCase()
-  if (t.includes('run')) return 'RUNNING'
   if (t.includes('trail')) return 'TRAIL_RUNNING'
+  if (t.includes('run')) return 'RUNNING'
   if (t.includes('hike')) return 'HIKING'
   if (t.includes('mountain')) return 'MOUNTAIN_BIKING'
   if (t.includes('gravel')) return 'GRAVEL_CYCLING'

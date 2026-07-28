@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildGarminCoursePayload,
   buildGarminTrainingPayload,
+  mapCourseActivityToGarmin,
   countGarminWorkoutSteps,
   countStepsInGarminWorkoutResponse,
   createGarminWorkout,
@@ -384,5 +386,35 @@ describe('garmin push helpers', () => {
         segments: payload.segments
       })
     ).toBe(4)
+  })
+  it('maps course activity types to Garmin course activity types correctly', () => {
+    expect(mapCourseActivityToGarmin('TrailRun')).toBe('TRAIL_RUNNING')
+    expect(mapCourseActivityToGarmin('trail_run')).toBe('TRAIL_RUNNING')
+    expect(mapCourseActivityToGarmin('Trail')).toBe('TRAIL_RUNNING')
+    expect(mapCourseActivityToGarmin('Run')).toBe('RUNNING')
+    expect(mapCourseActivityToGarmin('road_run')).toBe('RUNNING')
+    expect(mapCourseActivityToGarmin('Hike')).toBe('HIKING')
+    expect(mapCourseActivityToGarmin('MountainBike')).toBe('MOUNTAIN_BIKING')
+    expect(mapCourseActivityToGarmin('GravelRide')).toBe('GRAVEL_CYCLING')
+    expect(mapCourseActivityToGarmin('Ride')).toBe('ROAD_CYCLING')
+    expect(mapCourseActivityToGarmin('Unknown')).toBe('OTHER')
+  })
+
+  it('builds Garmin course payload with TRAIL_RUNNING activityType for trail run workouts', () => {
+    const payload = buildGarminCoursePayload({
+      title: 'Mountain Trail Run',
+      type: 'TrailRun',
+      distanceMeters: 10000,
+      elevationGain: 500,
+      elevationLoss: 480,
+      geoPoints: [
+        { lat: 45.0, lng: 6.0, elevation: 1000 },
+        { lat: 45.1, lng: 6.1, elevation: 1500 }
+      ]
+    })
+
+    expect(payload.activityType).toBe('TRAIL_RUNNING')
+    expect(payload.courseName).toBe('Mountain Trail Run')
+    expect(payload.distance).toBe(10000)
   })
 })
