@@ -1,4 +1,4 @@
-import { getServerSession } from '../../../../../../utils/session'
+import { requireAdmin } from '../../../../../../utils/auth-guard'
 import { issuesRepository } from '../../../../../../utils/repositories/issuesRepository'
 import { z } from 'zod/v3'
 
@@ -7,7 +7,7 @@ const reactionSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
+  const session = await requireAdmin(event)
   if (!session?.user?.id) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
@@ -25,11 +25,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid emoji' })
   }
 
+  const issue = await issuesRepository.getById(issueId, undefined, true)
+  if (!issue) {
+    throw createError({ statusCode: 404, statusMessage: 'Issue not found' })
+  }
+
+  const comment = issue.comments.find((comment) => comment.id === commentId)
+  if (!comment) {
+    throw createError({ statusCode: 404, statusMessage: 'Comment not found' })
+  }
+
   const updatedComment = await issuesRepository.toggleReaction(
+    issueId,
     commentId,
     session.user.id,
     result.data.emoji
   )
+
+  if (!updatedComment) {
+    throw createError({ statusCode: 404, statusMessage: 'Comment not found' })
+  }
 
   return updatedComment
 })

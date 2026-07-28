@@ -18,6 +18,8 @@
     initiatedBy: 'self' | 'admin'
     actorEmail?: string | null
     requestedAt: string
+    siteUrl?: string
+    logoUrl?: string
     unsubscribeUrl?: string
     utmQuery?: string
   }
@@ -25,12 +27,12 @@
   const props = withDefaults(defineProps<Props>(), {
     name: 'Athlete',
     actorEmail: null,
+    siteUrl: 'https://coachwatts.com',
+    logoUrl: 'https://coachwatts.com/icon.png',
     unsubscribeUrl: '',
     utmQuery: ''
   })
 
-  const siteUrl = 'https://coachwatts.com'
-  const logoUrl = 'https://coachwatts.com/icon.png'
   const supportEmail = 'hello@coachwatts.com'
   const formattedRequestedAt = new Date(props.requestedAt).toLocaleString('en-US', {
     dateStyle: 'medium',

@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "Остановить задачу",
   "trigger_monitor_unknown_error": "Неизвестная ошибка",
   "upcoming_workouts_empty": "В ближайшее время тренировок не запланировано.",
+  "upcoming_workouts_error": "Не удалось загрузить предстоящие тренировки",
   "upcoming_workouts_header": "Предстоящие тренировки",
   "upcoming_workouts_plan_part_of": "Часть плана: {name}",
+  "upcoming_workouts_retry": "Повторить",
   "upcoming_workouts_view_plans": "Посмотреть планы",
   "weekly_training_load": "Еженедельная тренировочная нагрузка"
 }

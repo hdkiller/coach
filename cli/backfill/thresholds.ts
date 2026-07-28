@@ -86,7 +86,8 @@ backfillThresholdsCommand
                 name: true,
                 lthr: true,
                 ftp: true,
-                maxHr: true
+                maxHr: true,
+                distanceUnits: true
               }
             }
           }

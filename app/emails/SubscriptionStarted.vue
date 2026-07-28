@@ -15,15 +15,20 @@
     EFont
   } from 'vue-email'
 
-  defineProps<{
-    name?: string
-    tier: string
-    unsubscribeUrl?: string
-    utmQuery?: string
-  }>()
-
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const siteUrl = 'https://coachwatts.com'
+  withDefaults(
+    defineProps<{
+      name?: string
+      tier: string
+      siteUrl?: string
+      logoUrl?: string
+      unsubscribeUrl?: string
+      utmQuery?: string
+    }>(),
+    {
+      siteUrl: 'https://coachwatts.com',
+      logoUrl: 'https://coachwatts.com/icon.png'
+    }
+  )
 </script>
 
 <template>

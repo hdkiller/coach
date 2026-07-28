@@ -13,13 +13,83 @@ import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webho
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue, streamsQueue, mainTaskQueue } from '../../server/utils/queue'
 import { executeRegisteredTask, getRegisteredTaskIds } from '../../server/utils/task-registry'
-import { ensureTaskHandlersRegistered, getLoadedTaskDefinitions } from './task-handler-loader'
+import {
+  ensureTaskHandlersRegistered,
+  getLoadedTaskDefinitions,
+  type LoadedTaskDefinition
+} from './task-handler-loader'
 import { getRedisRetryDelay, isRedisConnectionError } from '../../server/utils/redis-connection'
 import { formatErrorMessage } from '../../server/utils/log-format'
 import { dispatchTask, formatTaskRunId, getTaskDriver } from '../../server/utils/task-dispatcher'
 import { publishTaskRunUpdateEvent } from '../../server/utils/task-run-events'
 import { Command } from 'commander'
 import * as Sentry from '@sentry/node'
+
+export async function registerScheduledTasks(
+  queue: {
+    getJobSchedulers: (
+      start?: number,
+      end?: number,
+      asc?: boolean
+    ) => Promise<Array<{ key: string }>>
+    removeJobScheduler: (key: string) => Promise<unknown>
+    upsertJobScheduler: (
+      id: string,
+      scheduler: { pattern: string; tz?: string },
+      jobTemplate: {
+        name: string
+        data?: any
+        opts?: any
+      }
+    ) => Promise<unknown>
+  },
+  taskDefinitions: LoadedTaskDefinition[]
+): Promise<number> {
+  const scheduledTasks = taskDefinitions.filter((task) => task.schedule?.cron)
+  const desiredSchedulerIds = new Set(
+    scheduledTasks.map((definition) => `task-schedule:${definition.id}`)
+  )
+  const existingSchedulers = await queue.getJobSchedulers(0, -1, true)
+  await Promise.all(
+    existingSchedulers
+      .filter(
+        (scheduler) =>
+          scheduler.key.startsWith('task-schedule:') && !desiredSchedulerIds.has(scheduler.key)
+      )
+      .map((scheduler) => queue.removeJobScheduler(scheduler.key))
+  )
+  await Promise.all(
+    scheduledTasks.map((definition) =>
+      queue.upsertJobScheduler(
+        `task-schedule:${definition.id}`,
+        {
+          pattern: definition.schedule!.cron,
+          tz: definition.schedule?.timezone || 'UTC'
+        },
+        {
+          name: definition.id,
+          data: {
+            schedule: {
+              scheduleId: `task-schedule:${definition.id}`,
+              timezone: definition.schedule?.timezone || 'UTC'
+            },
+            options: {
+              queueName: definition.queue?.name,
+              concurrencyLimit: definition.queue?.concurrencyLimit,
+              maxDuration: definition.maxDuration,
+              tags: ['system:schedule']
+            }
+          },
+          opts: {
+            attempts: definition.retry?.maxAttempts || 3,
+            backoff: { type: 'exponential', delay: 1000 }
+          }
+        }
+      )
+    )
+  )
+  return scheduledTasks.length
+}
 
 export const startCommand = new Command('start')
   .description('Start the webhook worker')
@@ -55,50 +125,8 @@ export const startCommand = new Command('start')
     })
 
     if (getTaskDriver() === 'redis') {
-      const scheduledTasks = taskDefinitions.filter((task) => task.schedule?.cron)
-      const desiredSchedulerIds = new Set(
-        scheduledTasks.map((definition) => `task-schedule:${definition.id}`)
-      )
-      const existingSchedulers = await mainTaskQueue.getJobSchedulers(0, -1, true)
-      await Promise.all(
-        existingSchedulers
-          .filter(
-            (scheduler) =>
-              scheduler.key.startsWith('task-schedule:') && !desiredSchedulerIds.has(scheduler.key)
-          )
-          .map((scheduler) => mainTaskQueue.removeJobScheduler(scheduler.key))
-      )
-      await Promise.all(
-        scheduledTasks.map((definition) =>
-          mainTaskQueue.upsertJobScheduler(
-            `task-schedule:${definition.id}`,
-            {
-              pattern: definition.schedule!.cron,
-              tz: definition.schedule?.timezone || 'UTC'
-            },
-            {
-              name: definition.id,
-              data: {
-                schedule: {
-                  scheduleId: `task-schedule:${definition.id}`,
-                  timezone: definition.schedule?.timezone || 'UTC'
-                },
-                options: {
-                  queueName: definition.queue?.name,
-                  concurrencyLimit: definition.queue?.concurrencyLimit,
-                  maxDuration: definition.maxDuration,
-                  tags: ['system:schedule']
-                }
-              },
-              opts: {
-                attempts: definition.retry?.maxAttempts || 3,
-                backoff: { type: 'exponential', delay: 1000 }
-              }
-            }
-          )
-        )
-      )
-      console.log(chalk.green(`✔ Registered ${scheduledTasks.length} Redis task schedules`))
+      const registeredCount = await registerScheduledTasks(mainTaskQueue, taskDefinitions)
+      console.log(chalk.green(`✔ Registered ${registeredCount} Redis task schedules`))
     }
 
     const concurrency = parseInt(process.env.CW_WORKER_QUEUE_WEBHOOK_CONCURRENCY || '5')

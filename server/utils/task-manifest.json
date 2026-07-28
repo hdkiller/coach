@@ -32,11 +32,7 @@
     }
   },
   {
-    "id": "nutrition-last-call",
-    "schedule": {
-      "cron": "0,30 * * * *",
-      "timezone": "UTC"
-    }
+    "id": "nutrition-last-call"
   },
   {
     "id": "poll-ultrahuman",
@@ -60,6 +56,21 @@
     "queue": {
       "name": "user-reports",
       "concurrencyLimit": 5
+    }
+  },
+  {
+    "id": "schedule-onboarding-drip",
+    "maxDuration": 900,
+    "retry": {
+      "maxAttempts": 3,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 10000,
+      "randomize": true
+    },
+    "queue": {
+      "name": "email-queue",
+      "concurrencyLimit": 10
     }
   },
   {

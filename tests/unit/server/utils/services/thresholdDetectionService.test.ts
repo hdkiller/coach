@@ -135,4 +135,97 @@ describe('thresholdDetectionService', () => {
       })
     })
   })
+
+  it('formats the threshold pace recommendation in km when the athlete prefers Kilometers', async () => {
+    const workoutDate = new Date('2025-01-10T07:30:00Z')
+
+    vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
+      name: 'Running',
+      thresholdPace: 260
+    } as any)
+    vi.mocked(findPeakEfforts).mockReturnValue([{ duration: 2400, value: 4 } as any])
+
+    await thresholdDetectionService.detectThresholdIncreases({
+      id: 'workout-3',
+      userId: 'user-1',
+      type: 'Run',
+      title: 'Tempo Run',
+      durationSec: 3600,
+      date: workoutDate,
+      streams: {
+        velocity: [3.8, 4, 4.1],
+        time: [0, 1200, 2400]
+      },
+      user: { distanceUnits: 'Kilometers' }
+    })
+
+    expect(prisma.recommendation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metric: 'THRESHOLD_PACE',
+        description: expect.stringContaining('4:10/km')
+      })
+    })
+  })
+
+  it('formats the threshold pace recommendation in km when distanceUnits is not provided', async () => {
+    const workoutDate = new Date('2025-01-10T07:30:00Z')
+
+    vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
+      name: 'Running',
+      thresholdPace: 260
+    } as any)
+    vi.mocked(findPeakEfforts).mockReturnValue([{ duration: 2400, value: 4 } as any])
+
+    await thresholdDetectionService.detectThresholdIncreases({
+      id: 'workout-4',
+      userId: 'user-1',
+      type: 'Run',
+      title: 'Tempo Run',
+      durationSec: 3600,
+      date: workoutDate,
+      streams: {
+        velocity: [3.8, 4, 4.1],
+        time: [0, 1200, 2400]
+      },
+      user: {}
+    })
+
+    expect(prisma.recommendation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metric: 'THRESHOLD_PACE',
+        description: expect.stringContaining('4:10/km')
+      })
+    })
+  })
+
+  it('formats the threshold pace recommendation in miles when the athlete prefers Miles', async () => {
+    const workoutDate = new Date('2025-01-10T07:30:00Z')
+
+    vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
+      name: 'Running',
+      thresholdPace: 260
+    } as any)
+    vi.mocked(findPeakEfforts).mockReturnValue([{ duration: 2400, value: 4 } as any])
+
+    await thresholdDetectionService.detectThresholdIncreases({
+      id: 'workout-5',
+      userId: 'user-1',
+      type: 'Run',
+      title: 'Tempo Run',
+      durationSec: 3600,
+      date: workoutDate,
+      streams: {
+        velocity: [3.8, 4, 4.1],
+        time: [0, 1200, 2400]
+      },
+      user: { distanceUnits: 'Miles' }
+    })
+
+    expect(prisma.recommendation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metric: 'THRESHOLD_PACE',
+        description: expect.stringContaining('6:42/mi')
+      })
+    })
+  })
 })

@@ -5,6 +5,7 @@ import { createUserNotification } from '../notifications'
 import { queueThresholdUpdateEmail } from '../workout-insight-email'
 import { logger } from '@trigger.dev/sdk/v3'
 import { workoutStreamRepository } from '../repositories/workoutStreamRepository'
+import { formatPromptPace } from '../ai-prompt-format'
 
 export const thresholdDetectionService = {
   /**
@@ -30,7 +31,8 @@ export const thresholdDetectionService = {
               name: true,
               lthr: true,
               ftp: true,
-              maxHr: true
+              maxHr: true,
+              distanceUnits: true
             }
           }
         }
@@ -309,7 +311,8 @@ export const thresholdDetectionService = {
               sportName,
               workout.date,
               prisma,
-              noNotify
+              noNotify,
+              workout.user?.distanceUnits
             )
           }
         } else {
@@ -334,7 +337,8 @@ export const thresholdDetectionService = {
     sportName: string | null,
     workoutDate: Date,
     prismaOverride?: any,
-    noNotify: boolean = false
+    noNotify: boolean = false,
+    distanceUnits?: string | null
   ) {
     const prisma = prismaOverride || globalPrisma
     let title = `New ${metric} Threshold Detected`
@@ -360,9 +364,10 @@ export const thresholdDetectionService = {
       title = sportName
         ? `New Threshold Pace Detected (${sportName})`
         : 'New Threshold Pace Detected'
+      const formattedPace = formatPromptPace(newValue, distanceUnits)
       description = sportName
-        ? `Your ${sportName} threshold pace has improved to ${Math.floor(newValue / 60)}:${String(Math.floor(newValue % 60)).padStart(2, '0')}/km.`
-        : `Your threshold pace has improved to ${Math.floor(newValue / 60)}:${String(Math.floor(newValue % 60)).padStart(2, '0')}/km.`
+        ? `Your ${sportName} threshold pace has improved to ${formattedPace}.`
+        : `Your threshold pace has improved to ${formattedPace}.`
     }
 
     // Check if an active recommendation for this metric already exists to avoid spamming

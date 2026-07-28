@@ -3,6 +3,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { generateStructuredAnalysis } from '../../utils/gemini'
 import { getUserAiSettings } from '../../utils/ai-user-settings'
+import { formatPromptDistance } from '../../utils/ai-prompt-format'
 
 defineRouteMeta({
   openAPI: {
@@ -134,7 +135,9 @@ SUMMARY (Last ${days} days):
 RECENT WORKOUTS:
 ${workouts
   .map((w) => {
-    const distance = w.distanceMeters ? `${(w.distanceMeters / 1000).toFixed(1)}km` : ''
+    const distance = w.distanceMeters
+      ? formatPromptDistance(w.distanceMeters, user.distanceUnits)
+      : ''
     const duration = w.durationSec ? `${Math.round(w.durationSec / 60)}min` : ''
     return `- ${w.date.toISOString().split('T')[0]}: ${w.title || w.type} ${distance} ${duration}`.trim()
   })

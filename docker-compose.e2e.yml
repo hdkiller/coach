@@ -107,7 +107,10 @@ services:
   worker-e2e:
     image: coach-e2e-app:local
     container_name: coach-worker-e2e
-    command: ['pnpm', 'cw:worker', 'start']
+    # Bypass `pnpm run` — the runner image has node_modules but may omit lockfile/
+    # workspace metadata. pnpm 11 then tries to repair deps and aborts in non-TTY CI
+    # with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY before the worker starts.
+    command: ['./node_modules/.bin/tsx', 'cli/worker/index.ts', 'start']
     environment:
       DATABASE_URL: 'postgresql://watts:password@postgres-e2e:5432/coach_e2e?connection_limit=5&pool_timeout=10&connect_timeout=10'
       REDIS_URL: 'redis://:dragonfly@redis-e2e:6379/0'
@@ -116,6 +119,7 @@ services:
       MOCK_LLM_RESPONSES: 'true'
       DISABLE_EMAILS: 'true'
       NODE_ENV: production
+      CI: 'true'
       CW_WORKER_HEALTH_PORT: '8081'
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
       NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'

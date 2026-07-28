@@ -1,6 +1,7 @@
 import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { prisma } from '../../../../utils/db'
 import { workoutStreamRepository } from '../../../../utils/repositories/workoutStreamRepository'
+import { formatPromptPace } from '../../../../utils/ai-prompt-format'
 
 defineRouteMeta({
   openAPI: {
@@ -71,6 +72,13 @@ export default defineEventHandler(async (event) => {
   const workout = await (prisma as any).workout.findUnique({
     where: {
       id: shareToken.resourceId
+    },
+    include: {
+      user: {
+        select: {
+          distanceUnits: true
+        }
+      }
     }
   })
 
@@ -97,13 +105,10 @@ export default defineEventHandler(async (event) => {
       // Transform Strava splits into component-expected format
       const lapSplits = splits.map((split: any, index: number) => {
         const time = split.moving_time || split.elapsed_time
-        const paceMinPerKm = split.distance > 0 ? time / 60 / (split.distance / 1000) : 0
         const paceSeconds = split.distance > 0 ? time / (split.distance / 1000) : 0
 
-        // Format pace as "M:SS/km"
-        const paceMin = Math.floor(paceMinPerKm)
-        const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
-        const paceFormatted = `${paceMin}:${paceSec.toString().padStart(2, '0')}/km`
+        // Format pace respecting the workout owner's distance unit preference
+        const paceFormatted = formatPromptPace(paceSeconds, workout.user?.distanceUnits)
 
         return {
           lap: index + 1,

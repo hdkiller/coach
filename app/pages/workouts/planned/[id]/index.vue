@@ -1899,17 +1899,6 @@
       })
     }
 
-    // Mark Complete action
-    if (workout.value && !workout.value.completed) {
-      items.push({
-        label: 'Mark Complete',
-        icon: 'i-heroicons-check',
-        onSelect: () => {
-          markComplete()
-        }
-      })
-    }
-
     // Download action
     if (workout.value?.structuredWorkout) {
       items.push({
@@ -3171,15 +3160,6 @@
     }
   }
 
-  async function markComplete() {
-    // TODO: Implement mark complete functionality
-    toast.add({
-      title: 'Feature Coming Soon',
-      description: 'Manual workout completion is not yet implemented',
-      color: 'info'
-    })
-  }
-
   async function updateFuelingStrategy(strategy: string) {
     if (!workout.value?.id || !strategy || strategy === workout.value?.fuelingStrategy) return
 
@@ -3237,18 +3217,6 @@
       return `${hours}h ${mins}m`
     }
     return `${mins}m`
-  }
-
-  function formatPace(seconds: number, meters: number) {
-    if (!seconds || !meters) return '-'
-    const minutes = seconds / 60
-    const km = meters / 1000
-    const paceDec = minutes / km
-
-    const pMin = Math.floor(paceDec)
-    const pSec = Math.round((paceDec - pMin) * 60)
-
-    return `${pMin}:${pSec.toString().padStart(2, '0')}`
   }
 
   function getWorkoutComponent(type: string) {

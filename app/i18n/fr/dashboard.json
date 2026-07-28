@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "Arrêter la tâche",
   "trigger_monitor_unknown_error": "Erreur inconnue",
   "upcoming_workouts_empty": "Aucun entraînement à venir programmé.",
+  "upcoming_workouts_error": "Échec du chargement des entraînements à venir",
   "upcoming_workouts_header": "Entraînements à venir",
   "upcoming_workouts_plan_part_of": "Fait partie du programme : {name}",
+  "upcoming_workouts_retry": "Réessayer",
   "upcoming_workouts_view_plans": "Voir les plans",
   "weekly_training_load": "Charge d'entraînement hebdomadaire"
 }

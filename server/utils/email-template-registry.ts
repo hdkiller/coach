@@ -27,11 +27,11 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   Welcome: {
     templateKey: 'Welcome',
     defaultSubject: 'Welcome to Coach Watts!',
-    audience: 'ENGAGEMENT',
-    preferenceKey: 'onboarding',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
     requiredProps: [],
     utmCampaign: 'welcome_onboarding',
-    utmMedium: 'lifecycle'
+    utmMedium: 'transactional'
   },
   WorkoutReceived: {
     templateKey: 'WorkoutReceived',
@@ -102,6 +102,78 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     preferenceKey: 'retentionNudges',
     requiredProps: ['trialEndsAt', 'pricingUrl'],
     utmCampaign: 'trial_ending_soon',
+    utmMedium: 'lifecycle'
+  },
+  PaymentFailed: {
+    templateKey: 'PaymentFailed',
+    defaultSubject: 'Action Required: Payment failed for your Coach Watts subscription',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'payment_failed',
+    utmMedium: 'transactional'
+  },
+  PaymentSucceeded: {
+    templateKey: 'PaymentSucceeded',
+    defaultSubject: 'Receipt for your Coach Watts subscription payment',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'payment_succeeded',
+    utmMedium: 'transactional'
+  },
+  SubscriptionCanceled: {
+    templateKey: 'SubscriptionCanceled',
+    defaultSubject: 'Your Coach Watts subscription has been canceled',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: 'billing',
+    requiredProps: [],
+    utmCampaign: 'subscription_canceled',
+    utmMedium: 'transactional'
+  },
+  CoachInvite: {
+    templateKey: 'CoachInvite',
+    defaultSubject: 'You have been invited to Coach Watts',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
+    requiredProps: ['coachName', 'joinUrl', 'code'],
+    utmCampaign: 'coach_invite',
+    utmMedium: 'transactional'
+  },
+  TeamInvite: {
+    templateKey: 'TeamInvite',
+    defaultSubject: 'You have been invited to join a team on Coach Watts',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
+    requiredProps: ['teamName', 'joinUrl', 'code'],
+    utmCampaign: 'team_invite',
+    utmMedium: 'transactional'
+  },
+  MarketingBroadcast: {
+    templateKey: 'MarketingBroadcast',
+    defaultSubject: 'Coach Watts Update',
+    audience: 'MARKETING',
+    preferenceKey: 'marketing',
+    requiredProps: ['headline', 'bodyContent'],
+    utmCampaign: 'product_announcement',
+    utmMedium: 'marketing'
+  },
+  OnboardingDripDay2: {
+    templateKey: 'OnboardingDripDay2',
+    defaultSubject: 'Connect your training apps to unlock Coach Watts',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'onboarding',
+    requiredProps: [],
+    utmCampaign: 'onboarding_drip_day2',
+    utmMedium: 'lifecycle'
+  },
+  OnboardingDripDay7: {
+    templateKey: 'OnboardingDripDay7',
+    defaultSubject: 'How was your first week with Coach Watts?',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'onboarding',
+    requiredProps: [],
+    utmCampaign: 'onboarding_drip_day7',
     utmMedium: 'lifecycle'
   }
 }

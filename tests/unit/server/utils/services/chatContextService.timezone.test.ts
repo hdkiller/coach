@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { buildAthleteContext } from '../../../../../server/utils/services/chatContextService'
 import { prisma } from '../../../../../server/utils/db'
+import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 
 // Mock dependencies
 vi.mock('../../../../../server/utils/db', () => ({
@@ -131,5 +132,84 @@ describe('chatContextService Timezone Handling', () => {
     // Should NOT show Feb 14 (which would happen if we shifted Feb 15 00:00 UTC by -5h)
     expect(result.context).toContain('Target: 2026-02-15')
     expect(result.context).not.toContain('Target: 2026-02-14')
+  })
+})
+
+describe('CW-193: chat context honors distance/temperature unit preferences', () => {
+  const userId = 'user-123'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.setSystemTime(new Date('2026-02-11T02:20:00Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('renders recent workout distance in Miles for a Miles/Fahrenheit athlete, never hard-coded km', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: 'Billy Rusk',
+      timezone: 'America/New_York',
+      aiPersona: 'Supportive',
+      distanceUnits: 'Miles',
+      temperatureUnits: 'Fahrenheit'
+    } as any)
+
+    vi.mocked(prisma.goal.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.trainingAvailability.findMany).mockResolvedValue([])
+    vi.mocked(prisma.weeklyTrainingPlan.findFirst).mockResolvedValue(null)
+    vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+      {
+        id: 'workout-1',
+        date: new Date('2026-02-10T12:00:00Z'),
+        title: 'Morning Ride',
+        type: 'Ride',
+        durationSec: 3600,
+        distanceMeters: 40233.6 // 25 miles
+      }
+    ] as any)
+
+    const result = await buildAthleteContext(userId)
+
+    expect(result.context).toContain('25.00 mi')
+    expect(result.context).not.toContain('km')
+    expect(result.systemInstruction).toContain('**Miles** for distance/pace/elevation')
+    expect(result.systemInstruction).toContain('**Fahrenheit** for temperature')
+  })
+
+  it('renders recent workout distance in Kilometers for a metric-preference athlete', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: 'Metric Athlete',
+      timezone: 'Europe/Brussels',
+      aiPersona: 'Supportive',
+      distanceUnits: 'Kilometers',
+      temperatureUnits: 'Celsius'
+    } as any)
+
+    vi.mocked(prisma.goal.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.trainingAvailability.findMany).mockResolvedValue([])
+    vi.mocked(prisma.weeklyTrainingPlan.findFirst).mockResolvedValue(null)
+    vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+      {
+        id: 'workout-2',
+        date: new Date('2026-02-10T12:00:00Z'),
+        title: 'Morning Ride',
+        type: 'Ride',
+        durationSec: 3600,
+        distanceMeters: 40000 // 40 km
+      }
+    ] as any)
+
+    const result = await buildAthleteContext(userId)
+
+    expect(result.context).toContain('40.00 km')
+    expect(result.context).not.toMatch(/\d+\.\d+\s*mi\b/)
+    expect(result.systemInstruction).toContain('**Kilometers** for distance/pace/elevation')
+    expect(result.systemInstruction).toContain('**Celsius** for temperature')
   })
 })

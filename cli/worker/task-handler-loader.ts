@@ -1,5 +1,6 @@
 import { resourceCatalog } from '@trigger.dev/core/v3'
 import { registerCanonicalTaskHandler } from '../../server/utils/task-registry'
+import taskManifest from '../../server/utils/task-manifest.json' with { type: 'json' }
 
 export interface LoadedTaskDefinition {
   id: string
@@ -161,6 +162,7 @@ async function loadTriggerModules() {
     import('../../trigger/recommend-nutrition-meal'),
     import('../../trigger/recommend-today-activity'),
     import('../../trigger/review-goals'),
+    import('../../trigger/schedule-onboarding-drip'),
     import('../../trigger/send-email'),
     import('../../trigger/sentry-error-test'),
     import('../../trigger/suggest-goals'),
@@ -196,14 +198,27 @@ export function ensureTaskHandlersRegistered(): Promise<void> {
   return loadPromise
 }
 
+const manifestMap = new Map((taskManifest as LoadedTaskDefinition[]).map((item) => [item.id, item]))
+
 export function getLoadedTaskDefinitions(): LoadedTaskDefinition[] {
-  return resourceCatalog.listTaskManifests().map((manifest: any) => ({
-    id: manifest.id,
-    maxDuration: manifest.maxDuration,
-    retry: manifest.retry,
-    queue: manifest.queue,
-    schedule: manifest.schedule
-  }))
+  return resourceCatalog.listTaskManifests().map((manifest: any) => {
+    const jsonDef = manifestMap.get(manifest.id)
+    const schedule = manifest.schedule || jsonDef?.schedule
+    return {
+      id: manifest.id,
+      maxDuration: manifest.maxDuration ?? jsonDef?.maxDuration,
+      retry: manifest.retry ?? jsonDef?.retry,
+      queue: manifest.queue ?? jsonDef?.queue,
+      ...(schedule
+        ? {
+            schedule: {
+              cron: schedule.cron,
+              timezone: schedule.timezone || 'UTC'
+            }
+          }
+        : {})
+    }
+  })
 }
 
 export function getLoadedTaskDefinition(taskId: string): LoadedTaskDefinition | undefined {

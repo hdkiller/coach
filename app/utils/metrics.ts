@@ -2,6 +2,7 @@ export const KG_TO_LBS = 2.20462262185
 export const LBS_TO_KG = 0.45359237
 const MPS_TO_KPH = 3.6
 const MPS_TO_MPH = 2.2369362921
+const KM_TO_MILE_PACE_FACTOR = 1.609344
 
 export interface MetricDefinition {
   label: string
@@ -271,4 +272,44 @@ export function formatVelocity(
 
   const converted = convertVelocity(metersPerSecond, units)
   return `${converted.toFixed(decimals)} ${getVelocityUnitLabel(units)}`
+}
+
+/**
+ * Format a run/swim pace (given in seconds per kilometer) for display based on
+ * the athlete's distance unit preference, converting to seconds-per-mile when
+ * appropriate. Mirrors the conversion math in
+ * `server/utils/ai-prompt-format.ts`'s `formatPromptPace`.
+ *
+ * @param secondsPerKm - Pace expressed in seconds per kilometer.
+ * @param distanceUnits - 'Kilometers' | 'Miles' (defaults to Kilometers/'/km').
+ * @param decimals - Optional fractional-second precision (default 0, i.e. "M:SS").
+ */
+export function formatPace(
+  secondsPerKm: number | null | undefined,
+  distanceUnits: string | null | undefined,
+  decimals = 0
+): string {
+  if (
+    secondsPerKm === null ||
+    secondsPerKm === undefined ||
+    !Number.isFinite(secondsPerKm) ||
+    secondsPerKm <= 0
+  ) {
+    return 'N/A'
+  }
+
+  const imperial = usesImperialDistance(distanceUnits)
+  const effectiveSeconds = imperial ? secondsPerKm * KM_TO_MILE_PACE_FACTOR : secondsPerKm
+  const unitLabel = imperial ? '/mi' : '/km'
+
+  const scale = 10 ** decimals
+  const totalSeconds = Math.round(effectiveSeconds * scale) / scale
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds - minutes * 60
+  const secondsLabel =
+    decimals > 0
+      ? remainingSeconds.toFixed(decimals).padStart(3 + decimals, '0')
+      : Math.round(remainingSeconds).toString().padStart(2, '0')
+
+  return `${minutes}:${secondsLabel}${unitLabel}`
 }

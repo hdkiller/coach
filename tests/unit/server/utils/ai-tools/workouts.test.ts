@@ -184,7 +184,7 @@ describe('workoutTools', () => {
   })
 
   describe('search_workouts', () => {
-    it('should search across the full UTC day when a date is provided', async () => {
+    it('should search across the full local day (UTC timezone) when a date is provided', async () => {
       vi.mocked(workoutRepository.getForUser).mockResolvedValue([
         {
           id: 'blur-ride',
@@ -229,6 +229,35 @@ describe('workoutTools', () => {
           calories: 1200
         }
       ])
+    })
+
+    it('should use the athlete local-day boundaries (not raw UTC) when timezone is behind UTC', async () => {
+      // America/Los_Angeles is UTC-7 in late July (PDT). A late-evening
+      // workout on the LA calendar day 2025-07-29 lands on 2025-07-30 in UTC.
+      // Raw UTC day boundaries for "2025-07-29" would miss it entirely; the
+      // correct LA-local boundaries must span into 2025-07-30 UTC.
+      const laTools = workoutTools(userId, 'America/Los_Angeles', {
+        aiRequireToolApproval: false
+      } as any)
+
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([])
+
+      await laTools.search_workouts.execute(
+        { date: '2025-07-29' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(workoutRepository.getForUser).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            date: {
+              gte: new Date('2025-07-29T07:00:00.000Z'),
+              lte: new Date('2025-07-30T06:59:59.999Z')
+            }
+          })
+        })
+      )
     })
   })
 

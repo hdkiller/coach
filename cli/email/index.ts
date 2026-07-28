@@ -9,7 +9,7 @@ import pg from 'pg'
 import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 import { EMAIL_TEMPLATE_REGISTRY } from '../../server/utils/email-template-registry'
-import { buildInterestingCopy } from '../../server/utils/workout-insight-email'
+import { buildInterestingCopy, formatEmailDistance } from '../../server/utils/workout-insight-email'
 
 const emailCommand = new Command('email')
 
@@ -195,7 +195,8 @@ emailCommand
             calories: true,
             user: {
               select: {
-                name: true
+                name: true,
+                distanceUnits: true
               }
             }
           }
@@ -238,15 +239,16 @@ emailCommand
 
         const sportCategory = inferSportCategory(workout.type)
         const cadenceUnit = sportCategory === 'ride' ? 'rpm' : 'spm'
-        const distanceKm = workout.distanceMeters
-          ? Math.round((workout.distanceMeters / 1000) * 10) / 10
-          : null
+        const distanceDisplay = formatEmailDistance(
+          workout.distanceMeters,
+          workout.user?.distanceUnits
+        )
         const durationText = formatDurationShort(workout.durationSec)
         const dateText = formatWorkoutDate(workout.date)
         const athleteName = workout.user?.name || 'Athlete'
         const workoutUrl = `${options.siteUrl.replace(/\/$/, '')}/workouts/${workout.id}`
 
-        const distanceLabel = distanceKm ? `${distanceKm} km` : null
+        const distanceLabel = distanceDisplay?.label ?? null
         const { heroTitle, introLine, previewLine } = buildInterestingCopy({
           workoutId: workout.id,
           sportCategory,
@@ -270,7 +272,8 @@ emailCommand
             workoutDate: dateText,
             workoutType: workout.type || undefined,
             durationMinutes: workout.durationSec ? Math.round(workout.durationSec / 60) : undefined,
-            distanceKm: distanceKm || undefined,
+            distanceValue: distanceDisplay?.value,
+            distanceUnitLabel: distanceDisplay?.unitLabel,
             elevationGain: workout.elevationGain || undefined,
             averageCadence: workout.averageCadence || undefined,
             cadenceUnit,

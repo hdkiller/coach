@@ -316,6 +316,7 @@ export const analyzeWorkoutTask = task({
             heightUnits: true,
             language: true,
             temperatureUnits: true,
+            distanceUnits: true,
             aiAutoAnalyzeWorkouts: true
           }
         }),
@@ -463,7 +464,8 @@ export const analyzeWorkoutTask = task({
           height: user?.height || null,
           heightUnits: user?.heightUnits || null,
           language: user?.language || null,
-          temperatureUnits: user?.temperatureUnits || null
+          temperatureUnits: user?.temperatureUnits || null,
+          distanceUnits: user?.distanceUnits || null
         },
         aiSettings.aiContext,
         workout.plannedWorkout,
@@ -1624,7 +1626,10 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
         if (s.distance) {
           if (metricAdded) prompt += `, `
-          prompt += `${s.distance}m`
+          // Strength-exercise set distances (sled push, farmer's carry, etc.) are short
+          // distances, so use the same meters<->feet conversion as elevation rather than
+          // km/mi (which would round to an unreadable "0.02 mi").
+          prompt += formatPromptElevation(s.distance, userProfile?.distanceUnits)
           metricAdded = true
         }
 

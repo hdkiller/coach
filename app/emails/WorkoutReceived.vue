@@ -17,54 +17,60 @@
     EFont
   } from 'vue-email'
 
-  defineProps<{
-    name?: string
-    workoutId: string
-    workoutTitle: string
-    previewLine?: string
-    heroTitle?: string
-    introLine?: string
-    workoutDate?: string
-    workoutType?: string
-    durationMinutes?: number
-    distanceKm?: number
-    elevationGain?: number
-    averageCadence?: number
-    cadenceUnit?: string
-    averageHr?: number
-    maxHr?: number
-    averageWatts?: number
-    normalizedPower?: number
-    tss?: number
-    tss7d?: number
-    weeklyTssBaseline28d?: number
-    loadContextLabel?: string
-    loadContextBody?: string
-    loadDeltaPct?: number
-    sportLensLabel?: string
-    sportLensBody?: string
-    kilojoules?: number
-    calories?: number
-    workoutsLast7Days?: number
-    consistencyMessage?: string
-    quickTakeLabel?: string
-    quickTakeBody?: string
-    efficiencyMessage?: string
-    recoveryMessage?: string
-    ctaLabel?: string
-    nextStepMessage?: string
-    streamInsightBullets?: string[]
-    streamInsightWhatItMeans?: string
-    streamInsightNextSuggestion?: string
-    workoutUrl?: string
-    unsubscribeUrl?: string
-    shareUrl?: string
-    chatUrl?: string
-    utmQuery?: string
-  }>()
-
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const siteUrl = 'https://coachwatts.com'
+  withDefaults(
+    defineProps<{
+      name?: string
+      workoutId: string
+      workoutTitle: string
+      previewLine?: string
+      heroTitle?: string
+      introLine?: string
+      workoutDate?: string
+      workoutType?: string
+      durationMinutes?: number
+      distanceValue?: number
+      distanceUnitLabel?: string
+      elevationGain?: number
+      averageCadence?: number
+      cadenceUnit?: string
+      averageHr?: number
+      maxHr?: number
+      averageWatts?: number
+      normalizedPower?: number
+      tss?: number
+      tss7d?: number
+      weeklyTssBaseline28d?: number
+      loadContextLabel?: string
+      loadContextBody?: string
+      loadDeltaPct?: number
+      sportLensLabel?: string
+      sportLensBody?: string
+      kilojoules?: number
+      calories?: number
+      workoutsLast7Days?: number
+      consistencyMessage?: string
+      quickTakeLabel?: string
+      quickTakeBody?: string
+      efficiencyMessage?: string
+      recoveryMessage?: string
+      ctaLabel?: string
+      nextStepMessage?: string
+      streamInsightBullets?: string[]
+      streamInsightWhatItMeans?: string
+      streamInsightNextSuggestion?: string
+      workoutUrl?: string
+      siteUrl?: string
+      logoUrl?: string
+      unsubscribeUrl?: string
+      shareUrl?: string
+      chatUrl?: string
+      utmQuery?: string
+    }>(),
+    {
+      siteUrl: 'https://coachwatts.com',
+      logoUrl: 'https://coachwatts.com/icon.png'
+    }
+  )
 </script>
 
 <template>
@@ -286,9 +292,11 @@
                     {{ durationMinutes }}
                     <span style="font-size: 12px; font-weight: 500; color: #71717a">min</span>
                   </template>
-                  <template v-else-if="distanceKm">
-                    {{ distanceKm }}
-                    <span style="font-size: 12px; font-weight: 500; color: #71717a">km</span>
+                  <template v-else-if="distanceValue">
+                    {{ distanceValue }}
+                    <span style="font-size: 12px; font-weight: 500; color: #71717a">{{
+                      distanceUnitLabel || 'km'
+                    }}</span>
                   </template>
                   <template v-else>-</template>
                 </EText>

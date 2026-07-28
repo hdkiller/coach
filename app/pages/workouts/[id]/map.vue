@@ -692,6 +692,7 @@
 <script setup lang="ts">
   import { decode } from '@googlemaps/polyline-codec'
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
+  import { formatDistance as formatDist, formatPace as formatPaceShared } from '~/utils/metrics'
 
   import { ref, computed, watch, toRaw, nextTick } from 'vue'
   import draggable from 'vuedraggable'
@@ -1517,7 +1518,7 @@
   }
 
   function formatDistance(meters: number) {
-    return (meters / 1000).toFixed(2) + ' km'
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function formatNullableWatts(value: unknown) {
@@ -1531,9 +1532,7 @@
   function formatPace(metersPerSecond: number) {
     if (!metersPerSecond || metersPerSecond <= 0) return '-'
     const paceSeconds = 1000 / metersPerSecond
-    const mins = Math.floor(paceSeconds / 60)
-    const secs = Math.round(paceSeconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`
+    return formatPaceShared(paceSeconds, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function formatTime(seconds: number) {
