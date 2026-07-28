@@ -157,6 +157,24 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: ['headline', 'bodyContent'],
     utmCampaign: 'product_announcement',
     utmMedium: 'marketing'
+  },
+  OnboardingDripDay2: {
+    templateKey: 'OnboardingDripDay2',
+    defaultSubject: 'Connect your training apps to unlock Coach Watts',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'onboarding',
+    requiredProps: [],
+    utmCampaign: 'onboarding_drip_day2',
+    utmMedium: 'lifecycle'
+  },
+  OnboardingDripDay7: {
+    templateKey: 'OnboardingDripDay7',
+    defaultSubject: 'How was your first week with Coach Watts?',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'onboarding',
+    requiredProps: [],
+    utmCampaign: 'onboarding_drip_day7',
+    utmMedium: 'lifecycle'
   }
 }
 

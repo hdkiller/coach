@@ -325,7 +325,7 @@ export default NuxtAuthHandler({
 
         await tryAttributeReferralDuringAuth(user.id)
 
-        // Trigger Welcome Email
+        // Trigger Welcome Email & Onboarding Drip Sequence
         await dispatchTask('send-email', {
           userId: user.id,
           templateKey: 'Welcome',
@@ -336,6 +336,10 @@ export default NuxtAuthHandler({
             name: user.name || 'Athlete',
             unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
           }
+        })
+
+        await dispatchTask('schedule-onboarding-drip', {
+          userId: user.id
         })
       } catch (error) {
         console.error('[Auth] Failed to set user trial period or send welcome email:', error)
