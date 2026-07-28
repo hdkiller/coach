@@ -87,6 +87,13 @@ jobs:
       - name: Build and start Docker e2e stack
         run: pnpm e2e:setup
 
+      - name: Dump e2e container logs on setup failure
+        if: failure()
+        run: |
+          docker logs coach-worker-e2e 2>&1 || true
+          docker logs coach-app-e2e 2>&1 || true
+          docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml ps || true
+
       - name: Cache Playwright Chromium
         uses: actions/cache@v6
         with:
