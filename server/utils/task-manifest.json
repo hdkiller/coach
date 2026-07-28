@@ -63,6 +63,21 @@
     }
   },
   {
+    "id": "schedule-onboarding-drip",
+    "maxDuration": 900,
+    "retry": {
+      "maxAttempts": 3,
+      "factor": 2,
+      "minTimeoutInMs": 1000,
+      "maxTimeoutInMs": 10000,
+      "randomize": true
+    },
+    "queue": {
+      "name": "email-queue",
+      "concurrencyLimit": 10
+    }
+  },
+  {
     "id": "send-email",
     "maxDuration": 300,
     "retry": {

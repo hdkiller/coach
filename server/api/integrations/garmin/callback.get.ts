@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto'
 import { dispatchTask } from '../../../utils/task-dispatcher'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
@@ -16,17 +17,39 @@ defineRouteMeta({
   }
 })
 
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
+}
+
+function clearAuthCookies(event: any) {
+  deleteCookie(event, 'garmin_code_verifier')
+  deleteCookie(event, 'garmin_oauth_state')
+}
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.id) throw createError({ statusCode: 401, message: 'Unauthorized' })
 
-  const { code, error: garminError } = getQuery(event)
+  const { code, state, error: garminError } = getQuery(event)
   const verifier = getCookie(event, 'garmin_code_verifier')
+  const savedState = getCookie(event, 'garmin_oauth_state')
 
   if (garminError) {
     console.error('[GarminCallback] Garmin returned authorization error:', garminError)
-    deleteCookie(event, 'garmin_code_verifier')
+    clearAuthCookies(event)
     return sendRedirect(event, '/settings/apps?garmin_error=access-denied')
+  }
+
+  if (!state || !savedState || !safeCompare(state as string, savedState)) {
+    console.warn('[GarminCallback] OAuth state mismatch or missing', {
+      hasState: !!state,
+      hasSavedState: !!savedState
+    })
+    clearAuthCookies(event)
+    return sendRedirect(event, '/settings/apps?garmin_error=state-mismatch')
   }
 
   if (!code || !verifier) {
@@ -34,7 +57,7 @@ export default defineEventHandler(async (event) => {
       hasCode: !!code,
       hasVerifier: !!verifier
     })
-    deleteCookie(event, 'garmin_code_verifier')
+    clearAuthCookies(event)
     return sendRedirect(event, '/settings/apps?garmin_error=missing-verifier')
   }
 
@@ -61,6 +84,7 @@ export default defineEventHandler(async (event) => {
     const errorData = await response.json().catch(() => ({}))
     console.error('[GarminCallback] Token exchange failed', errorData)
     deleteCookie(event, 'garmin_code_verifier')
+    deleteCookie(event, 'garmin_oauth_state')
     return sendRedirect(event, '/settings/apps?garmin_error=token-exchange-failed')
   }
 
@@ -76,6 +100,7 @@ export default defineEventHandler(async (event) => {
       status: userResponse.status
     })
     deleteCookie(event, 'garmin_code_verifier')
+    deleteCookie(event, 'garmin_oauth_state')
     return sendRedirect(event, '/settings/apps?garmin_error=profile-fetch-failed')
   }
 
@@ -85,6 +110,7 @@ export default defineEventHandler(async (event) => {
   if (!externalUserId) {
     console.error('[GarminCallback] Garmin user profile missing externalUserId')
     deleteCookie(event, 'garmin_code_verifier')
+    deleteCookie(event, 'garmin_oauth_state')
     return sendRedirect(event, '/settings/apps?garmin_error=profile-fetch-failed')
   }
 
@@ -108,6 +134,7 @@ export default defineEventHandler(async (event) => {
       existingOwnerUserId: existingOwner.userId
     })
     deleteCookie(event, 'garmin_code_verifier')
+    deleteCookie(event, 'garmin_oauth_state')
     return sendRedirect(event, '/settings/apps?garmin_error=account-already-linked')
   }
 
