@@ -100,6 +100,14 @@ export function expandSkillSelectionForRequest(
   }
 
   const skillIds = sortSkillIds(uniq(expanded)).filter((skillId) => skillId !== 'general_chat')
+
+  // Stripping general_chat can empty the selection outright when the caller
+  // deliberately chose a tool-enabled general_chat turn (see
+  // getDirectTimeQuestionSkillSelection). Expansion may only ADD companion
+  // domains, so an empty result means there was nothing to expand — keep the
+  // original selection rather than silently handing the model zero tools.
+  if (!skillIds.length) return selection
+
   if (
     skillIds.length === selection.skillIds.length &&
     skillIds.every((id) => selection.skillIds.includes(id))
@@ -488,7 +496,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 
 - Answer directly when tools are not needed.
 - Do not invent tool outputs or claim actions that were not executed.`,
-    contextFlags: [],
+    contextFlags: ['time'],
     approvalToolNames: [],
     priority: 10
   }
@@ -604,6 +612,50 @@ function latestUserLooksLikeMissingReplyComplaint(messages: any[]) {
   ]
 
   return patterns.some((pattern) => latestUserText.includes(pattern))
+}
+
+const DIRECT_TIME_QUESTION_PATTERNS = [
+  /\bwhat(?:'s| is|s) (?:the )?(?:current )?time\b/i,
+  /\bwhat time (?:is it|do you have)\b/i,
+  /\bcurrent time\b/i,
+  /\btell me the time\b/i,
+  /\bdo you know what time it is\b/i,
+  /\bhány óra van\b/i
+]
+
+const NON_TIME_DOMAIN_PATTERN =
+  /\b(workout|activity|ride|run|swim|session|training|plan|planned|schedule|nutrition|meal|hydration|wellness|recovery|goal|ticket|bug|recommend)\b/i
+
+/**
+ * A direct "what time is it?" question must not silently fall back to a
+ * tool-less general_chat turn: get_current_time is the only source of the
+ * athlete's actual configured timezone, and the model will otherwise guess
+ * (often UTC).
+ */
+export function looksLikeDirectTimeQuestion(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed) return false
+  if (NON_TIME_DOMAIN_PATTERN.test(trimmed)) return false
+
+  return DIRECT_TIME_QUESTION_PATTERNS.some((pattern) => pattern.test(trimmed))
+}
+
+export function getDirectTimeQuestionSkillSelection(messages: any[]): ChatSkillSelection | null {
+  const latestUserText = getLatestUserText(messages)
+  if (!looksLikeDirectTimeQuestion(latestUserText)) {
+    return null
+  }
+
+  return {
+    skillIds: ['general_chat'],
+    confidence: 1,
+    useTools: true,
+    extractMemories: false,
+    reason:
+      "Direct question about the current time; force get_current_time so the reply uses the athlete's configured timezone instead of an inferred time.",
+    usedFallback: false,
+    source: 'fallback'
+  }
 }
 
 function getRecentAssistantReplyPresence(messages: any[]) {
@@ -1217,6 +1269,21 @@ export async function classifyChatSkills(
     return retryContinuation
   }
 
+  const directTimeQuestion = getDirectTimeQuestionSkillSelection(params.messages)
+  if (directTimeQuestion) {
+    await logRouterUsage({
+      userId: params.userId,
+      turnId: params.turnId,
+      provider: 'internal',
+      model: 'direct_time_question_guard',
+      success: true,
+      promptPreview: getLatestUserText(params.messages) || '(direct time question)',
+      responsePreview: JSON.stringify(directTimeQuestion),
+      durationMs: 0
+    })
+    return directTimeQuestion
+  }
+
   const prompt = buildRouterPrompt(params)
   const startedAt = Date.now()
   const google = createGoogle({
@@ -1353,7 +1420,18 @@ export function composeSkillInstructions(
   )
 
   if (!selectedSkills.length || selectedSkills.every((skillId) => skillId === 'general_chat')) {
-    return `${baseInstruction}\n\n${CHAT_SKILL_MANIFESTS.general_chat.instructionFragment}`
+    const contextFlags = uniq(
+      selectedSkills.flatMap((skillId) => CHAT_SKILL_MANIFESTS[skillId]?.contextFlags || [])
+    )
+    const timeToolInstruction =
+      context.useTools && contextFlags.includes('time')
+        ? `\n\n## Time Tool Usage (CRITICAL)
+
+- The athlete is asking about the current time or "now". Call \`get_current_time\` and answer using its returned \`local_formatted\` value and \`timezone\` field.
+- Do not infer, guess, or compute the time yourself, and never assume UTC. Always ground the answer in what the tool returns.`
+        : ''
+
+    return `${baseInstruction}\n\n${CHAT_SKILL_MANIFESTS.general_chat.instructionFragment}${timeToolInstruction}`
   }
 
   if (!context.useTools) {
