@@ -312,7 +312,7 @@
                             }
                           "
                         >
-                          Retry
+                          {{ t('upcoming_workouts_retry') }}
                         </UButton>
                       </div>
 
@@ -723,7 +723,7 @@
     } catch (error: any) {
       console.error('Failed to fetch upcoming workouts:', error)
       upcomingWorkoutsError.value =
-        error?.statusMessage || error?.message || 'Failed to load upcoming workouts'
+        error?.statusMessage || error?.message || t.value('upcoming_workouts_error')
     } finally {
       loadingUpcoming.value = false
     }

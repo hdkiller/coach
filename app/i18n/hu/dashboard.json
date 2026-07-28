@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "Feladat leállítása",
   "trigger_monitor_unknown_error": "Ismeretlen hiba",
   "upcoming_workouts_empty": "Nincsenek beütemezett közelgő edzések.",
+  "upcoming_workouts_error": "Nem sikerült betölteni a közelgő edzéseket",
   "upcoming_workouts_header": "Közelgő edzések",
   "upcoming_workouts_plan_part_of": "Terv része: {name}",
+  "upcoming_workouts_retry": "Újrapróbálkozás",
   "upcoming_workouts_view_plans": "Tervek megtekintése",
   "weekly_training_load": "Heti edzésterhelés"
 }
