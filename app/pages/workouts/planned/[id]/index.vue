@@ -3239,18 +3239,6 @@
     return `${mins}m`
   }
 
-  function formatPace(seconds: number, meters: number) {
-    if (!seconds || !meters) return '-'
-    const minutes = seconds / 60
-    const km = meters / 1000
-    const paceDec = minutes / km
-
-    const pMin = Math.floor(paceDec)
-    const pSec = Math.round((paceDec - pMin) * 60)
-
-    return `${pMin}:${pSec.toString().padStart(2, '0')}`
-  }
-
   function getWorkoutComponent(type: string) {
     switch (type) {
       case 'Ride':

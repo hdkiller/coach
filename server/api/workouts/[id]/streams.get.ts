@@ -9,6 +9,7 @@ import {
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 import { detectIntervals } from '../../../utils/interval-detection'
 import { detectClimbs } from '../../../utils/climb-detection'
+import { formatPromptPace } from '../../../utils/ai-prompt-format'
 
 defineRouteMeta({
   openAPI: {
@@ -74,7 +75,8 @@ export default defineEventHandler(async (event) => {
         user: {
           select: {
             ftp: true,
-            maxHr: true
+            maxHr: true,
+            distanceUnits: true
           }
         }
       }
@@ -443,13 +445,10 @@ export default defineEventHandler(async (event) => {
         // Transform Strava splits into component-expected format
         const lapSplits = splits.map((split: any, index: number) => {
           const time = split.moving_time || split.elapsed_time
-          const paceMinPerKm = split.distance > 0 ? time / 60 / (split.distance / 1000) : 0
           const paceSeconds = split.distance > 0 ? time / (split.distance / 1000) : 0
 
-          // Format pace as "M:SS/km"
-          const paceMin = Math.floor(paceMinPerKm)
-          const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
-          const paceFormatted = `${paceMin}:${paceSec.toString().padStart(2, '0')}/km`
+          // Format pace respecting the athlete's distance unit preference
+          const paceFormatted = formatPromptPace(paceSeconds, user.distanceUnits)
 
           return {
             lap: index + 1,

@@ -341,6 +341,7 @@
 <script setup lang="ts">
   import {
     convertVelocity,
+    formatPace as formatPaceShared,
     getVelocityUnitLabel,
     isRideWorkoutType,
     usesImperialDistance
@@ -431,16 +432,12 @@
 
   function formatPace(paceMinPerKm: number | null | undefined): string {
     if (!paceMinPerKm) return 'N/A'
-    const minutes = Math.floor(paceMinPerKm)
-    const seconds = Math.round((paceMinPerKm - minutes) * 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
+    return formatPaceShared(paceMinPerKm * 60, distanceUnits.value)
   }
 
   function formatPaceSeconds(paceSeconds: number | null | undefined): string {
     if (!paceSeconds) return 'N/A'
-    const minutes = Math.floor(paceSeconds / 60)
-    const seconds = Math.round(paceSeconds % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
+    return formatPaceShared(paceSeconds, distanceUnits.value)
   }
 
   function paceMinPerKmToMps(paceMinPerKm: number | null | undefined): number | null {

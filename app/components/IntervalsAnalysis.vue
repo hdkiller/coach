@@ -285,6 +285,7 @@
     Filler
   } from 'chart.js'
   import { ensureChartJsAnnotationDefaults } from '~/utils/chartjs-annotation'
+  import { formatPace as formatPaceShared } from '~/utils/metrics'
 
   ChartJS.register(
     CategoryScale,
@@ -309,6 +310,9 @@
     workoutId: string
     publicToken?: string
   }>()
+
+  const userStore = useUserStore()
+  const distanceUnits = computed(() => userStore.profile?.distanceUnits || 'Kilometers')
 
   const loading = ref(true)
   const error = ref<string | null>(null)
@@ -538,10 +542,7 @@
 
   function formatPace(mps: number): string {
     if (!mps) return '-'
-    const paceMinPerKm = 16.6667 / mps // convert m/s to min/km (1000m / 60s = 16.66)
-    const mins = Math.floor(paceMinPerKm)
-    const secs = Math.round((paceMinPerKm - mins) * 60)
-    return `${mins}:${secs.toString().padStart(2, '0')} /km`
+    return formatPaceShared(1000 / mps, distanceUnits.value)
   }
 
   onMounted(() => {
