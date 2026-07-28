@@ -1899,17 +1899,6 @@
       })
     }
 
-    // Mark Complete action
-    if (workout.value && !workout.value.completed) {
-      items.push({
-        label: 'Mark Complete',
-        icon: 'i-heroicons-check',
-        onSelect: () => {
-          markComplete()
-        }
-      })
-    }
-
     // Download action
     if (workout.value?.structuredWorkout) {
       items.push({
@@ -3169,15 +3158,6 @@
     } finally {
       savingToLibrary.value = false
     }
-  }
-
-  async function markComplete() {
-    // TODO: Implement mark complete functionality
-    toast.add({
-      title: 'Feature Coming Soon',
-      description: 'Manual workout completion is not yet implemented',
-      color: 'info'
-    })
   }
 
   async function updateFuelingStrategy(strategy: string) {
