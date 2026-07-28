@@ -124,14 +124,14 @@ describe('getRa', () => {
   })
 })
 
-describe("getProfileForItem", () => {
-  it("resolves stored absorptionType first", () => {
-    expect(getProfileForItem("Banana", "RAPID")).toBe(ABSORPTION_PROFILES.RAPID)
-    expect(getProfileForItem("Oats", "dense")).toBe(ABSORPTION_PROFILES.DENSE)
+describe('getProfileForItem', () => {
+  it('resolves stored absorptionType first', () => {
+    expect(getProfileForItem('Banana', 'RAPID')).toBe(ABSORPTION_PROFILES.RAPID)
+    expect(getProfileForItem('Oats', 'dense')).toBe(ABSORPTION_PROFILES.DENSE)
   })
 
-  it("falls back to BALANCED when absorptionType is missing or invalid", () => {
-    expect(getProfileForItem("Oats")).toBe(ABSORPTION_PROFILES.BALANCED)
-    expect(getProfileForItem("Oats", "INVALID_TYPE")).toBe(ABSORPTION_PROFILES.BALANCED)
+  it('falls back to BALANCED when absorptionType is missing or invalid', () => {
+    expect(getProfileForItem('Oats')).toBe(ABSORPTION_PROFILES.BALANCED)
+    expect(getProfileForItem('Oats', 'INVALID_TYPE')).toBe(ABSORPTION_PROFILES.BALANCED)
   })
 })

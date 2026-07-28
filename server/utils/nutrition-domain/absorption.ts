@@ -144,9 +144,9 @@ export function getAbsorbedInInterval(
  * Defaults to BALANCED (the middle value) when no specific type is known.
  */
 export function getProfileForItem(_itemName?: string, absorptionType?: string): AbsorptionProfile {
-  const type = String(absorptionType || "").toUpperCase();
+  const type = String(absorptionType || '').toUpperCase()
   if (type && type in ABSORPTION_PROFILES) {
-    return ABSORPTION_PROFILES[type as keyof typeof ABSORPTION_PROFILES];
+    return ABSORPTION_PROFILES[type as keyof typeof ABSORPTION_PROFILES]
   }
   // Default to BALANCED for generic meals.
   // We no longer rely on string keyword matching for absorption rates.
