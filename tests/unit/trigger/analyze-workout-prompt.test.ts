@@ -1,6 +1,78 @@
-import { describe, expect, it } from 'vitest'
-import { buildWorkoutAnalysisPrompt } from '../../../trigger/analyze-workout'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildWorkoutAnalysisFactsV2 } from '../../../server/utils/workout-analysis-facts'
+import { analyzeWorkoutTask, buildWorkoutAnalysisPrompt } from '../../../trigger/analyze-workout'
+
+const { generateStructuredAnalysis } = vi.hoisted(() => ({
+  generateStructuredAnalysis: vi.fn()
+}))
+
+vi.mock('../../../trigger/init', () => ({}))
+
+vi.mock('../../../server/utils/db', () => ({
+  prisma: {
+    workout: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
+    emailPreference: { findUnique: vi.fn() },
+    athleteJourneyEvent: { findMany: vi.fn() }
+  }
+}))
+
+vi.mock('../../../server/utils/repositories/workoutStreamRepository', () => ({
+  attachStreamToWorkout: vi.fn(async (workout: any) => ({ ...workout, streams: null }))
+}))
+
+vi.mock('../../../server/utils/repositories/workoutRepository', () => ({
+  workoutRepository: {
+    updateStatus: vi.fn(),
+    update: vi.fn()
+  }
+}))
+
+vi.mock('../../../server/utils/repositories/sportSettingsRepository', () => ({
+  sportSettingsRepository: {
+    getForActivityType: vi.fn().mockResolvedValue(null)
+  }
+}))
+
+vi.mock('../../../server/utils/date', () => ({
+  getUserTimezone: vi.fn().mockResolvedValue('Europe/Budapest'),
+  formatUserDate: vi.fn(() => '2026-03-15'),
+  getUserLocalDate: vi.fn(() => '2026-03-15'),
+  calculateAge: vi.fn(() => 35)
+}))
+
+vi.mock('../../../server/utils/ai-user-settings', () => ({
+  getUserAiSettings: vi.fn().mockResolvedValue({
+    aiPersona: 'Supportive',
+    aiModelPreference: 'gemini-2.0-flash-exp',
+    aiContext: null
+  })
+}))
+
+vi.mock('../../../server/utils/quotas/engine', () => ({
+  checkQuota: vi.fn().mockResolvedValue(undefined)
+}))
+
+vi.mock('../../../server/utils/gemini', () => ({
+  generateCoachAnalysis: vi.fn(),
+  generateStructuredAnalysis
+}))
+
+vi.mock('@trigger.dev/sdk/v3', async () => {
+  const actual = await vi.importActual('@trigger.dev/sdk/v3')
+  return {
+    ...actual,
+    logger: {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn()
+    },
+    task: vi.fn().mockImplementation((config: any) => ({
+      run: config.run,
+      id: config.id
+    }))
+  }
+})
 
 describe('buildWorkoutAnalysisPrompt', () => {
   it('adds stop-and-go and ski-specific guardrails to the workout analysis prompt', () => {
@@ -131,5 +203,88 @@ describe('buildWorkoutAnalysisPrompt', () => {
 
     expect(metricPrompt).toContain('20 m')
     expect(metricPrompt).not.toContain('20m')
+  })
+})
+
+// Regression coverage for CW-196: the two tests above exercise buildWorkoutAnalysisPrompt
+// directly with a hand-built userProfile, which would happily pass even if the real
+// analyzeWorkoutTask forgot to fetch/thread distanceUnits from the database. These tests
+// instead drive the actual trigger task's data-fetching path (mocking prisma.user.findUnique)
+// so a missing `distanceUnits: true` in the Prisma select, or a missing `distanceUnits` field
+// in the userProfile object built from `user`, is caught.
+describe('analyzeWorkoutTask (data-fetching path)', () => {
+  const baseWorkoutRecord = {
+    id: 'workout-1',
+    userId: 'user-1',
+    date: new Date('2026-03-15T10:00:00Z'),
+    title: 'Evening Run',
+    type: 'Run',
+    durationSec: 1800,
+    distanceMeters: 8046.72, // 5 miles
+    elevationGain: null,
+    averageWatts: null,
+    averageHr: null,
+    exercises: [],
+    plannedWorkout: null,
+    plannedWorkoutId: null
+  }
+
+  const baseUser = {
+    dob: new Date('1990-01-01'),
+    sex: 'male',
+    weight: 70,
+    weightUnits: 'Kilograms',
+    height: 180,
+    heightUnits: 'Centimeters',
+    language: 'English',
+    temperatureUnits: 'Celsius',
+    aiAutoAnalyzeWorkouts: true
+  }
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
+
+    const { prisma } = await import('../../../server/utils/db')
+    vi.mocked(prisma.workout.findUnique).mockResolvedValue(baseWorkoutRecord as any)
+    vi.mocked(prisma.emailPreference.findUnique).mockResolvedValue(null as any)
+    vi.mocked(prisma.athleteJourneyEvent.findMany).mockResolvedValue([] as any)
+
+    generateStructuredAnalysis.mockRejectedValue(new Error('stop after prompt build'))
+  })
+
+  it('threads the athlete distanceUnits preference from the DB into the generated prompt', async () => {
+    const { prisma } = await import('../../../server/utils/db')
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      ...baseUser,
+      distanceUnits: 'Miles'
+    } as any)
+
+    await expect(
+      analyzeWorkoutTask.run({ workoutId: 'workout-1', source: 'MANUAL' })
+    ).rejects.toThrow('stop after prompt build')
+
+    expect(generateStructuredAnalysis).toHaveBeenCalledTimes(1)
+    const [prompt] = generateStructuredAnalysis.mock.calls[0]
+
+    // 8046.72m -> 5.00 mi. If distanceUnits were dropped (as in the CW-196 regression this
+    // guards against), the prompt would silently fall back to metric ("8.05 km") instead.
+    expect(prompt).toContain('5.00 mi')
+    expect(prompt).not.toContain('8.05 km')
+  })
+
+  it('falls back to metric when the athlete has no distanceUnits preference set', async () => {
+    const { prisma } = await import('../../../server/utils/db')
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      ...baseUser,
+      distanceUnits: null
+    } as any)
+
+    await expect(
+      analyzeWorkoutTask.run({ workoutId: 'workout-1', source: 'MANUAL' })
+    ).rejects.toThrow('stop after prompt build')
+
+    const [prompt] = generateStructuredAnalysis.mock.calls[0]
+    expect(prompt).toContain('8.05 km')
+    expect(prompt).not.toContain('5.00 mi')
   })
 })

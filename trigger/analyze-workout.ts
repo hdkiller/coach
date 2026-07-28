@@ -316,6 +316,7 @@ export const analyzeWorkoutTask = task({
             heightUnits: true,
             language: true,
             temperatureUnits: true,
+            distanceUnits: true,
             aiAutoAnalyzeWorkouts: true
           }
         }),
@@ -463,7 +464,8 @@ export const analyzeWorkoutTask = task({
           height: user?.height || null,
           heightUnits: user?.heightUnits || null,
           language: user?.language || null,
-          temperatureUnits: user?.temperatureUnits || null
+          temperatureUnits: user?.temperatureUnits || null,
+          distanceUnits: user?.distanceUnits || null
         },
         aiSettings.aiContext,
         workout.plannedWorkout,
