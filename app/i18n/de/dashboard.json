@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "Aufgabe stoppen",
   "trigger_monitor_unknown_error": "Unbekannter Fehler",
   "upcoming_workouts_empty": "Keine anstehenden Workouts geplant.",
+  "upcoming_workouts_error": "Laden der anstehenden Workouts fehlgeschlagen",
   "upcoming_workouts_header": "Anstehende Workouts",
   "upcoming_workouts_plan_part_of": "Teil des Plans: {name}",
+  "upcoming_workouts_retry": "Erneut versuchen",
   "upcoming_workouts_view_plans": "Pläne anzeigen",
   "weekly_training_load": "Wöchentliche Trainingsbelastung"
 }

@@ -238,8 +238,10 @@
   "trigger_monitor_stop_task": "Taak stoppen",
   "trigger_monitor_unknown_error": "Onbekende fout",
   "upcoming_workouts_empty": "Geen komende workouts gepland.",
+  "upcoming_workouts_error": "Laden van komende workouts mislukt",
   "upcoming_workouts_header": "Komende workouts",
   "upcoming_workouts_plan_part_of": "Onderdeel van plan: {name}",
+  "upcoming_workouts_retry": "Opnieuw proberen",
   "upcoming_workouts_view_plans": "Bekijk schema's",
   "weekly_training_load": "Wekelijkse Trainingsbelasting"
 }

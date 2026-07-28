@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "停止任务",
   "trigger_monitor_unknown_error": "未知错误",
   "upcoming_workouts_empty": "近期没有安排任何训练。",
+  "upcoming_workouts_error": "加载即将到来的训练失败",
   "upcoming_workouts_header": "即将到来的训练",
   "upcoming_workouts_plan_part_of": "计划的一部分：{name}",
+  "upcoming_workouts_retry": "重试",
   "upcoming_workouts_view_plans": "查看平面图",
   "weekly_training_load": "每周训练负荷"
 }

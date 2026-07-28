@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "Interrompi attività",
   "trigger_monitor_unknown_error": "Errore sconosciuto",
   "upcoming_workouts_empty": "Nessun prossimo allenamento in programma.",
+  "upcoming_workouts_error": "Impossibile caricare i prossimi allenamenti",
   "upcoming_workouts_header": "Prossimi allenamenti",
   "upcoming_workouts_plan_part_of": "Parte del piano: {name}",
+  "upcoming_workouts_retry": "Riprova",
   "upcoming_workouts_view_plans": "Visualizza piani",
   "weekly_training_load": "Carico allenamento settimanale"
 }
