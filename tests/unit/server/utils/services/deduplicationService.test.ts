@@ -98,6 +98,86 @@ describe('deduplicationService.areDuplicates', () => {
 
     expect(deduplicationService.areDuplicates(rideA, rideB)).toBe(false)
   })
+
+  it('correctly matches localized russian titles and activity types across integrations', () => {
+    const intervalsWorkout = {
+      id: 'intervals-1',
+      source: 'intervals',
+      title: 'Зальный велоспорт',
+      type: 'VirtualRide',
+      date: new Date('2026-03-09T10:00:00Z'),
+      durationSec: 3600
+    }
+
+    const garminWorkout = {
+      id: 'garmin-1',
+      source: 'garmin',
+      title: 'Зальный велоспорт',
+      type: 'INDOOR_CYCLING',
+      date: new Date('2026-03-09T10:02:00Z'),
+      durationSec: 3580
+    }
+
+    expect(deduplicationService.areDuplicates(intervalsWorkout, garminWorkout)).toBe(true)
+  })
+
+  it('matches activities with strict duration match when start times are close even if titles differ', () => {
+    const intervalsWorkout = {
+      id: 'intervals-2',
+      source: 'intervals',
+      title: '20x3 (90%) и ускор',
+      type: 'Ride',
+      date: new Date('2026-03-10T14:30:00Z'),
+      durationSec: 5400
+    }
+
+    const stravaWorkout = {
+      id: 'strava-2',
+      source: 'strava',
+      title: 'Afternoon Ride',
+      type: 'Cycling',
+      date: new Date('2026-03-10T14:31:00Z'),
+      durationSec: 5410
+    }
+
+    expect(deduplicationService.areDuplicates(intervalsWorkout, stravaWorkout)).toBe(true)
+  })
+})
+
+describe('deduplicationService.areTypesSimilar', () => {
+  it('identifies cycling type variations as similar', () => {
+    expect(deduplicationService.areTypesSimilar('VirtualRide', 'INDOOR_CYCLING')).toBe(true)
+    expect(deduplicationService.areTypesSimilar('Ride', 'Cycling')).toBe(true)
+    expect(deduplicationService.areTypesSimilar('EBikeRide', 'Зальный велоспорт')).toBe(true)
+  })
+
+  it('identifies strength and gym variations as similar', () => {
+    expect(deduplicationService.areTypesSimilar('Gym', 'WeightTraining')).toBe(true)
+    expect(deduplicationService.areTypesSimilar('Strength', 'FITNESS_EQUIPMENT')).toBe(true)
+  })
+
+  it('does not match distinct activity types like Ride and Run', () => {
+    expect(deduplicationService.areTypesSimilar('Ride', 'Run')).toBe(false)
+  })
+})
+
+describe('deduplicationService.calculateCompletenessScore', () => {
+  it('correctly scores cycling workouts with power, streams, and distanceMeters', () => {
+    const workout = {
+      source: 'intervals',
+      type: 'Cycling',
+      averageWatts: 220,
+      normalizedPower: 240,
+      tss: 75,
+      averageHr: 150,
+      distanceMeters: 45000,
+      streams: [{ id: 's1' }],
+      description: 'Solid workout session'
+    }
+
+    const score = deduplicationService.calculateCompletenessScore(workout)
+    expect(score).toBeGreaterThan(150)
+  })
 })
 
 describe('deduplicationService.findProposedLink', () => {
