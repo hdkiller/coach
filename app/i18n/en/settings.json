@@ -43,6 +43,8 @@
   "automation_workouts_upgrade_desc": "Upgrade to Supporter to enable automatic workout analysis.",
   "banner_exit": "Exit",
   "billing_access_expires": "Access Expires",
+  "billing_activation_pending_desc": "Your checkout was received, but account activation is taking a moment. If your tier has not updated yet, click Sync to refresh status.",
+  "billing_activation_pending_title": "Subscription Activation Pending",
   "billing_active_subscription": "Active Subscription",
   "billing_amount": "Amount",
   "billing_button_change_plan": "Change Plan",
