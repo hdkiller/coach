@@ -27,10 +27,12 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 
 ## Campaigns & Automated Flows
 
-### 1. Onboarding (Transactional/Engagement)
+### 1. Onboarding (Transactional)
 
-- **Welcome**: Sent immediately upon signup.
-- **Drip (Planned)**: Day 2 (Integration Check) and Day 7 (Trial Review) sequence using Trigger.dev delays.
+- **Welcome**: Sent immediately upon signup as a required TRANSACTIONAL account creation notice (`preferenceKey: null`).
+- **Onboarding Drip Sequence**: Managed via `schedule-onboarding-drip` Trigger.dev task:
+  - **Day 2 Integration Check**: Evaluates user integration state; sent only if no training platforms are connected.
+  - **Day 7 First Week Review**: Check-in on trial progress and fitness dashboard trends.
 
 ### 2. Training Guidance (Engagement)
 
@@ -40,7 +42,13 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 ### 3. Subscription (Transactional)
 
 - **Subscription Started**: Confirmation of upgrade.
-- **Renewal/Billing (Planned)**: Critical account notifications.
+- **Payment Failed**: Critical account notice when a billing invoice payment fails.
+- **Payment Succeeded**: Renewal receipt when a recurring subscription payment succeeds.
+- **Subscription Canceled**: Notice when a subscription is canceled or entitlement expires.
+
+### 4. Marketing & Announcements (Marketing)
+
+- **Marketing Broadcasts**: Sent via `POST /api/admin/email-deliveries/broadcast`. Enforces opt-in verification (`marketing: true`, `globalUnsubscribe: false`), suppression check, and includes standard HMAC unsubscribe footers. Uses `MarketingBroadcast` template.
 
 ## Compliance & Security
 
@@ -61,6 +69,20 @@ Users can manage their experience in **Settings > Profile > Communication**:
 - **Workout Analysis**: Opt-in/out of individual session feedback.
 - **Plan Updates**: Notification of coaching adjustments.
 - **Global Unsubscribe**: Instantly opt-out of all optional communication.
+
+### Preference Key to Template Mapping
+
+| Preference Key     | Setting Channel               | Active Templates / Senders                                                         | Audience & Default Opt-In |
+| :----------------- | :---------------------------- | :--------------------------------------------------------------------------------- | :------------------------ |
+| `dailyCoach`       | Daily Training Recommendation | `DailyRecommendation`                                                              | ENGAGEMENT (Opt-in)       |
+| `workoutAnalysis`  | Workout Analysis              | `WorkoutAnalysisReady`, `WorkoutReceived`                                          | ENGAGEMENT (Opt-in)       |
+| `thresholdUpdates` | Threshold Updates             | `ThresholdUpdateDetected`                                                          | ENGAGEMENT (Opt-in)       |
+| `retentionNudges`  | Retention & Trial Nudges      | `TrialEndingSoon`                                                                  | ENGAGEMENT (Opt-in)       |
+| `onboarding`       | Onboarding Sequence           | `Welcome`, `OnboardingDripDay2`, `OnboardingDripDay7`                              | ENGAGEMENT (Opt-in)       |
+| `billing`          | Subscription & Billing        | `PaymentFailed`, `PaymentSucceeded`, `SubscriptionCanceled`, `SubscriptionStarted` | TRANSACTIONAL (Required)  |
+| `planUpdates`      | Plan Updates                  | _(Sender in development)_                                                          | ENGAGEMENT (Opt-in)       |
+| `productUpdates`   | Product Updates               | _(Sender in development)_                                                          | ENGAGEMENT (Opt-in)       |
+| `marketing`        | Marketing & News              | Broadcast emails (`/api/admin/email-deliveries/broadcast`)                         | ENGAGEMENT (Opt-out)      |
 
 ## Developer CLI Commands
 

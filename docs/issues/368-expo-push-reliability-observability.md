@@ -2,7 +2,7 @@
 
 **Priority:** Low  
 **Type:** Tech debt / Ops  
-**Status:** Open  
+**Status:** Resolved (CW-120)  
 **Area:** `mobile, notifications, push`
 
 ## Summary
@@ -26,6 +26,6 @@ best-effort semantics for domain callers unless product requires hard failure.
 
 ## Acceptance Criteria
 
-- [ ] Documented ops config for Expo push in production
-- [ ] At least ticket-level errors beyond DeviceNotRegistered are handled or logged clearly
-- [ ] Receipt or equivalent observability path decided (implement or explicitly defer)
+- [x] Documented ops config for Expo push in production — `docs/04-guides/expo-push.md`
+- [x] At least ticket-level errors beyond DeviceNotRegistered are handled or logged clearly — structured `ticket_error` / `send_completed` logs in `server/utils/expo-push.ts`
+- [x] Receipt or equivalent observability path decided (implement or explicitly defer) — deferred; rationale in expo-push guide
