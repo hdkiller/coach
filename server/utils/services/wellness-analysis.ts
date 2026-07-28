@@ -6,7 +6,7 @@ import { auditLogRepository } from '../repositories/auditLogRepository'
 import { getUserLocalDate, getUserTimezone } from '../date'
 import { triggerDailyCheckinIfNeeded } from './checkin-service'
 import { checkQuota } from '../quotas/engine'
-import { formatPromptTemperature } from '../ai-prompt-format'
+import { formatPromptTemperature, formatPromptWeight } from '../ai-prompt-format'
 import {
   getMoodLabel,
   getStressLabel,
@@ -141,7 +141,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
     const [user, aiSettings, wellnessEvents] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { language: true, temperatureUnits: true }
+        select: { language: true, temperatureUnits: true, weightUnits: true }
       }),
       getUserAiSettings(userId),
       getWellnessEventOverlaysForUser(userId, {
@@ -301,7 +301,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
 
                 * Injury: ${wellness.injury || 'None'} (${getInjuryLabel(wellness.injury)})
 
-              - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
+              - Vitals: SpO2 ${wellness.spO2}%, Weight ${formatPromptWeight(wellness.weight, user?.weightUnits)}
 
         ${sleepDetails}
 

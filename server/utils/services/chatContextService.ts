@@ -8,7 +8,11 @@ import { generateTrainingContext, formatTrainingContextForPrompt } from '../trai
 import { getInjuryLabel } from '../../utils/wellness'
 import { filterGoalsForContext } from '../goal-context'
 import { getUserAiSettings } from '../ai-user-settings'
-import { formatPromptDistance, formatPromptHeight } from '../ai-prompt-format'
+import {
+  formatPromptDistance,
+  formatPromptHeight,
+  formatPromptWeight
+} from '../ai-prompt-format'
 
 type BuildAthleteContextOptions = {
   includeDomainToolInstructions?: boolean
@@ -317,8 +321,7 @@ export async function buildAthleteContext(
     if (userProfile.maxHr) metrics.push(`Global Max HR: ${userProfile.maxHr} bpm`)
     if (userProfile.restingHr) metrics.push(`Global Resting HR: ${userProfile.restingHr} bpm`)
     if (userProfile.weight) {
-      const weightUnit = userProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'
-      metrics.push(`Weight: ${userProfile.weight.toFixed(2)}${weightUnit}`)
+      metrics.push(`Weight: ${formatPromptWeight(userProfile.weight, userProfile.weightUnits)}`)
     }
     if (userProfile.height) {
       metrics.push(`Height: ${formatPromptHeight(userProfile.height, userProfile.heightUnits)}`)
