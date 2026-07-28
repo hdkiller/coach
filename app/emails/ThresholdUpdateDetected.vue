@@ -14,24 +14,29 @@
     EFont
   } from 'vue-email'
 
-  defineProps<{
-    name?: string
-    workoutId?: string
-    workoutUrl?: string
-    workoutTitle: string
-    metricLabel: string // e.g. "Functional Threshold Power"
-    sportProfileName?: string
-    oldValue: number
-    newValue: number
-    unit: string // e.g. "W" or "bpm"
-    peakValue: number
-    percentIncrease?: number
-    unsubscribeUrl?: string
-    utmQuery?: string
-  }>()
-
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const siteUrl = 'https://coachwatts.com'
+  withDefaults(
+    defineProps<{
+      name?: string
+      workoutId?: string
+      workoutUrl?: string
+      workoutTitle: string
+      metricLabel: string // e.g. "Functional Threshold Power"
+      sportProfileName?: string
+      oldValue: number
+      newValue: number
+      unit: string // e.g. "W" or "bpm"
+      peakValue: number
+      percentIncrease?: number
+      siteUrl?: string
+      logoUrl?: string
+      unsubscribeUrl?: string
+      utmQuery?: string
+    }>(),
+    {
+      siteUrl: 'https://coachwatts.com',
+      logoUrl: 'https://coachwatts.com/icon.png'
+    }
+  )
 </script>
 
 <template>

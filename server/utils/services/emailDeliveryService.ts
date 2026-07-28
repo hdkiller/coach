@@ -178,6 +178,8 @@ export const EmailDeliveryService = {
     }
 
     const finalProps: Record<string, any> = {
+      siteUrl: baseUrl,
+      logoUrl: `${baseUrl}/icon.png`,
       ...props,
       unsubscribeUrl,
       utmQuery
