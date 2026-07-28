@@ -18,6 +18,8 @@ vi.mock('../../../../../server/utils/auth-guard', () => ({
 
 vi.mock('../../../../../server/utils/repositories/issuesRepository', () => ({
   issuesRepository: {
+    getById: vi.fn(),
+    acknowledgeComment: vi.fn(),
     toggleIssueReaction: vi.fn(),
     toggleReaction: vi.fn()
   }
@@ -31,6 +33,12 @@ const getIssueReactionHandler = async () => {
 const getCommentReactionHandler = async () => {
   const mod =
     await import('../../../../../server/api/admin/issues/[id]/comments/[commentId]/reaction.post')
+  return mod.default
+}
+
+const getCommentAcknowledgeHandler = async () => {
+  const mod =
+    await import('../../../../../server/api/admin/issues/[id]/comments/[commentId]/acknowledge.post')
   return mod.default
 }
 
@@ -98,6 +106,10 @@ describe('Admin Issue Reactions Auth Guard', () => {
         id: 'comment-1',
         reactions: {}
       } as any)
+      vi.mocked(issuesRepository.getById).mockResolvedValue({
+        id: 'issue-1',
+        comments: [{ id: 'comment-1', type: 'NOTE' }]
+      } as any)
 
       const handler = await getCommentReactionHandler()
       const result = await handler({
@@ -106,8 +118,78 @@ describe('Admin Issue Reactions Auth Guard', () => {
       } as any)
 
       expect(requireAdmin).toHaveBeenCalled()
-      expect(issuesRepository.toggleReaction).toHaveBeenCalledWith('comment-1', 'admin-1', '🎉')
+      expect(issuesRepository.getById).toHaveBeenCalledWith('issue-1', undefined, true)
+      expect(issuesRepository.toggleReaction).toHaveBeenCalledWith(
+        'issue-1',
+        'comment-1',
+        'admin-1',
+        '🎉'
+      )
       expect(result).toEqual({ id: 'comment-1', reactions: {} })
+    })
+
+    it('rejects a comment UUID that does not belong to the issue', async () => {
+      vi.mocked(requireAdmin).mockResolvedValue({
+        user: { id: 'admin-1', isAdmin: true }
+      } as any)
+      vi.mocked(issuesRepository.getById).mockResolvedValue({
+        id: 'issue-1',
+        comments: []
+      } as any)
+
+      const handler = await getCommentReactionHandler()
+
+      await expect(
+        handler({
+          context: { params: { id: 'issue-1', commentId: 'other-comment' } },
+          body: { emoji: '🎉' }
+        } as any)
+      ).rejects.toMatchObject({ statusCode: 404 })
+
+      expect(issuesRepository.toggleReaction).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('POST /api/admin/issues/[id]/comments/[commentId]/acknowledge', () => {
+    it('rejects non-admin users with 403 Forbidden', async () => {
+      vi.mocked(requireAdmin).mockRejectedValue(
+        Object.assign(new Error('Forbidden'), { statusCode: 403 })
+      )
+      const handler = await getCommentAcknowledgeHandler()
+
+      await expect(
+        handler({
+          context: { params: { id: 'issue-1', commentId: 'comment-1' } }
+        } as any)
+      ).rejects.toThrow('Forbidden')
+    })
+
+    it('allows admins to acknowledge a comment belonging to the issue', async () => {
+      vi.mocked(requireAdmin).mockResolvedValue({
+        user: { id: 'admin-1', isAdmin: true }
+      } as any)
+      vi.mocked(issuesRepository.getById).mockResolvedValue({
+        id: 'issue-1',
+        comments: [{ id: 'comment-1', type: 'NOTE' }]
+      } as any)
+      vi.mocked(issuesRepository.acknowledgeComment).mockResolvedValue({
+        id: 'comment-1',
+        acknowledgedBy: 'admin-1'
+      } as any)
+
+      const handler = await getCommentAcknowledgeHandler()
+      const result = await handler({
+        context: { params: { id: 'issue-1', commentId: 'comment-1' } }
+      } as any)
+
+      expect(requireAdmin).toHaveBeenCalled()
+      expect(issuesRepository.getById).toHaveBeenCalledWith('issue-1', undefined, true)
+      expect(issuesRepository.acknowledgeComment).toHaveBeenCalledWith(
+        'issue-1',
+        'comment-1',
+        'admin-1'
+      )
+      expect(result).toEqual({ id: 'comment-1', acknowledgedBy: 'admin-1' })
     })
   })
 })
