@@ -293,6 +293,29 @@
                         </div>
                       </div>
 
+                      <div v-else-if="upcomingWorkoutsError" class="text-center py-8">
+                        <UIcon
+                          name="i-heroicons-exclamation-triangle"
+                          class="w-8 h-8 text-amber-500 mx-auto mb-2"
+                        />
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          {{ upcomingWorkoutsError }}
+                        </p>
+                        <UButton
+                          variant="soft"
+                          color="neutral"
+                          size="xs"
+                          icon="i-heroicons-arrow-path"
+                          @click="
+                            () => {
+                              void fetchUpcomingWorkouts()
+                            }
+                          "
+                        >
+                          Retry
+                        </UButton>
+                      </div>
+
                       <div v-else-if="upcomingWorkouts.length === 0" class="text-center py-8">
                         <UIcon
                           name="i-heroicons-calendar"
@@ -613,6 +636,7 @@
   const showWelcome = useLocalStorage('dashboard-welcome-banner', true)
 
   const upcomingWorkouts = ref<any[]>([])
+  const upcomingWorkoutsError = ref<string | null>(null)
   const todayWorkouts = ref<any[]>([])
   const loadingUpcoming = ref(false)
   const isLoading = ref(true)
@@ -688,6 +712,7 @@
 
   async function fetchUpcomingWorkouts() {
     loadingUpcoming.value = true
+    upcomingWorkoutsError.value = null
     try {
       const { workouts } = (await ($fetch as any)('/api/workouts/planned/upcoming')) as {
         workouts: any[]
@@ -695,8 +720,10 @@
       if (workouts) {
         upcomingWorkouts.value = workouts
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch upcoming workouts:', error)
+      upcomingWorkoutsError.value =
+        error?.statusMessage || error?.message || 'Failed to load upcoming workouts'
     } finally {
       loadingUpcoming.value = false
     }
