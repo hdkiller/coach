@@ -96,5 +96,30 @@ describe('profileTools', () => {
 
       expect(userRepository.update).toHaveBeenCalledWith(userId, { sex: 'Female' })
     })
+
+    it('should convert height to cm when the athlete prefers ft/in', async () => {
+      vi.mocked(userRepository.getById).mockResolvedValue({
+        id: userId,
+        heightUnits: 'ft/in'
+      } as any)
+      vi.mocked(userRepository.update).mockResolvedValue({ id: userId, height: 182.88 } as any)
+
+      // "set my height to 6 feet" -> tool receives 6 (interpreted in user's preferred units)
+      await tools.update_user_profile.execute({ height: 6 }, { toolCallId: '4', messages: [] })
+
+      expect(userRepository.update).toHaveBeenCalledWith(userId, { height: 6 * 2.54 })
+    })
+
+    it('should leave height unconverted when the athlete prefers cm (regression guard)', async () => {
+      vi.mocked(userRepository.getById).mockResolvedValue({
+        id: userId,
+        heightUnits: 'cm'
+      } as any)
+      vi.mocked(userRepository.update).mockResolvedValue({ id: userId, height: 180 } as any)
+
+      await tools.update_user_profile.execute({ height: 180 }, { toolCallId: '5', messages: [] })
+
+      expect(userRepository.update).toHaveBeenCalledWith(userId, { height: 180 })
+    })
   })
 })
