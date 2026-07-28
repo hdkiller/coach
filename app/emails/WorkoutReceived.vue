@@ -28,7 +28,8 @@
       workoutDate?: string
       workoutType?: string
       durationMinutes?: number
-      distanceKm?: number
+      distanceValue?: number
+      distanceUnitLabel?: string
       elevationGain?: number
       averageCadence?: number
       cadenceUnit?: string
@@ -291,9 +292,11 @@
                     {{ durationMinutes }}
                     <span style="font-size: 12px; font-weight: 500; color: #71717a">min</span>
                   </template>
-                  <template v-else-if="distanceKm">
-                    {{ distanceKm }}
-                    <span style="font-size: 12px; font-weight: 500; color: #71717a">km</span>
+                  <template v-else-if="distanceValue">
+                    {{ distanceValue }}
+                    <span style="font-size: 12px; font-weight: 500; color: #71717a">{{
+                      distanceUnitLabel || 'km'
+                    }}</span>
                   </template>
                   <template v-else>-</template>
                 </EText>

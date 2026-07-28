@@ -18,7 +18,8 @@ describe('Gemini Utility & Prompt Formatters', () => {
         averageHr: 145,
         maxHr: 168,
         averagePower: 210,
-        maxPower: 350
+        maxPower: 350,
+        distanceMeters: 40000
       }
     ]
 
@@ -29,6 +30,25 @@ describe('Gemini Utility & Prompt Formatters', () => {
     expect(summary).toContain('- **Duration**: 60 minutes')
     expect(summary).toContain('- **TSS**: 65')
     expect(summary).toContain('- **Average HR**: 145 bpm')
+    expect(summary).toContain('- **Distance**: 40.00 km')
+  })
+
+  it('formats workout distance in miles when the athlete prefers Miles', () => {
+    const mockWorkouts = [
+      {
+        id: 'w2',
+        title: 'Long Run',
+        type: 'Run',
+        date: new Date('2026-03-10T10:00:00Z'),
+        durationSec: 3600,
+        distanceMeters: 16093.44
+      }
+    ]
+
+    const summary = buildWorkoutSummary(mockWorkouts, 'UTC', 'Miles')
+
+    expect(summary).toContain('- **Distance**: 10.00 mi')
+    expect(summary).not.toContain('km')
   })
 
   it('builds concise workout summaries for AI prompts', () => {

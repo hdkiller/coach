@@ -94,7 +94,7 @@ export async function runGenerateAdHocWorkout(payload: GenerateAdHocWorkoutPaylo
       }),
       prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true, aiPersona: true }
+        select: { ftp: true, weight: true, maxHr: true, aiPersona: true, distanceUnits: true }
       }),
       prisma.report.findFirst({
         where: { userId, type: 'ATHLETE_PROFILE', status: 'COMPLETED' },
@@ -126,7 +126,7 @@ export async function runGenerateAdHocWorkout(payload: GenerateAdHocWorkoutPaylo
   if (todayMetric) {
     context += `\nRecovery: ${todayMetric.recoveryScore || 'Unknown'}%. Sleep: ${todayMetric.sleepHours || 0}h.`
   }
-  context += `\nRecent Workouts: ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts) : 'None'}.`
+  context += `\nRecent Workouts: ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts, undefined, user?.distanceUnits) : 'None'}.`
 
   if (sportSettings) {
     context += `\n\nDEFINED ZONES (Use these for intensity):`

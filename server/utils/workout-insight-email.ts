@@ -206,9 +206,21 @@ function buildQuickTake(options: {
   return { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage, cadenceUnit }
 }
 
-function formatDistanceLabel(distanceKm?: number) {
-  if (!distanceKm || distanceKm <= 0) return null
-  return `${distanceKm.toFixed(1)} km`
+const METERS_PER_MILE = 1609.344
+
+export function formatEmailDistance(
+  distanceMeters?: number | null,
+  distanceUnits?: string | null
+): { value: number; unitLabel: string; label: string } | null {
+  if (!distanceMeters || distanceMeters <= 0) return null
+
+  const isMiles = distanceUnits === 'Miles'
+  const value = isMiles
+    ? Math.round((distanceMeters / METERS_PER_MILE) * 10) / 10
+    : Math.round((distanceMeters / 1000) * 10) / 10
+  const unitLabel = isMiles ? 'mi' : 'km'
+
+  return { value, unitLabel, label: `${value.toFixed(1)} ${unitLabel}` }
 }
 
 function getFirstName(name?: string | null) {
@@ -722,7 +734,13 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   const [user, pref] = await Promise.all([
     prisma.user.findUnique({
       where: { id: workout.userId },
-      select: { id: true, name: true, timezone: true, aiAutoAnalyzeWorkouts: true }
+      select: {
+        id: true,
+        name: true,
+        timezone: true,
+        aiAutoAnalyzeWorkouts: true,
+        distanceUnits: true
+      }
     }),
     prisma.emailPreference.findUnique({
       where: {
@@ -880,7 +898,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
         }
       : undefined
   })
-  const distanceLabel = formatDistanceLabel(distanceKm)
+  const distanceDisplay = formatEmailDistance(workout.distanceMeters, user.distanceUnits)
+  const distanceLabel = distanceDisplay?.label ?? null
   const firstName = getFirstName(user.name)
   const recentVariantIds = parseRecentCopyVariantIds(recentDeliveries)
   const { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine, copyVariantIds } =
@@ -903,7 +922,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     workoutDate: formatUserDate(workout.date, timezone, 'EEEE, MMM d'),
     workoutType: workout.type || undefined,
     durationMinutes: workout.durationSec ? Math.round(workout.durationSec / 60) : undefined,
-    distanceKm,
+    distanceValue: distanceDisplay?.value,
+    distanceUnitLabel: distanceDisplay?.unitLabel,
     elevationGain: workout.elevationGain || undefined,
     averageCadence: workout.averageCadence || undefined,
     averageHr: workout.averageHr || undefined,

@@ -431,7 +431,8 @@ export async function runGenerateAthleteProfile(payload: { userId: string; repor
           dob: true,
           lthr: true,
           sex: true,
-          language: true
+          language: true,
+          distanceUnits: true
         }
       }),
       workoutRepository.getForUser(userId, {
@@ -752,7 +753,7 @@ WORKOUT INSIGHTS (from AI analysis):
 ${workoutInsights || 'No detailed workout analysis available'}
 
 RECENT TRAINING DETAILS (Last 20 sessions):
-${buildWorkoutSummary(recentWorkouts, timezone)}
+${buildWorkoutSummary(recentWorkouts, timezone, user?.distanceUnits)}
 
 RECOVERY METRICS:
 ${wellnessSummary}${wellnessAnalysisSummary}
