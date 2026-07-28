@@ -54,7 +54,6 @@ describe('Redis task parity', () => {
       )
     ).toEqual({
       'finalize-daily-nutrition-cron': '10 2 * * *',
-      'nutrition-last-call': '0,30 * * * *',
       'poll-ultrahuman': '5 * * * *',
       'trial-ending-reminder-cron': '0 9 * * *'
     })

@@ -32,11 +32,7 @@
     }
   },
   {
-    "id": "nutrition-last-call",
-    "schedule": {
-      "cron": "0,30 * * * *",
-      "timezone": "UTC"
-    }
+    "id": "nutrition-last-call"
   },
   {
     "id": "poll-ultrahuman",
