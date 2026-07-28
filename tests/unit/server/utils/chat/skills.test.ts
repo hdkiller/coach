@@ -81,6 +81,15 @@ describe('CW-193: direct time questions must not silently drop to a tool-less re
       expect(looksLikeDirectTimeQuestion('What time should I ride tomorrow?')).toBe(false)
     })
 
+    it('excludes a single clause that literally matches a time pattern but also names a domain word', () => {
+      // Unlike the two cases above (which never match DIRECT_TIME_QUESTION_PATTERNS regardless
+      // of the domain exclusion), this clause DOES match "what time is it" verbatim, so it only
+      // gets excluded if NON_TIME_DOMAIN_PATTERN is still being checked per-clause after the
+      // clause-splitting change. This is the case the split-by-clause fix could most plausibly
+      // have broken by widening the exclusion's scope in the wrong direction.
+      expect(looksLikeDirectTimeQuestion('What time is it for my ride?')).toBe(false)
+    })
+
     it('forces the tool-enabled selection for the compound time question via getDirectTimeQuestionSkillSelection', () => {
       const selection = getDirectTimeQuestionSkillSelection([
         { role: 'user', content: 'What time is it? Should I ride now?' }
