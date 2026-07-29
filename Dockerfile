@@ -23,8 +23,14 @@ RUN --mount=type=cache,id=pnpm-v3,target=/pnpm/store pnpm install --frozen-lockf
 FROM base AS builder
 ARG COMMIT_SHA
 ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV SENTRY_ORG=${SENTRY_ORG}
+ENV SENTRY_PROJECT=${SENTRY_PROJECT}
+# Nuxt evaluates its Sentry module configuration during `pnpm build`.
+ENV NODE_ENV=production
 ENV CHAT_TURN_RUNNER_ENABLED=false
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

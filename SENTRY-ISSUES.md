@@ -1,26 +1,22 @@
 # Sentry Issue Tracking
 
-Live tracker for **this repo** ([Sentry dashboard](https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved)). Last synced from Sentry: **2026-07-24**.
+## Current web project (agents — read this first)
 
-## Which Sentry project (agents — read this first)
+| Field                 | Value                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Organization**      | `watt-mind` (EU)                                                                                                           |
+| **Project**           | `coach-watts-web`                                                                                                          |
+| **Dashboard**         | https://watt-mind.sentry.io/issues/?project=4511817881157712                                                               |
+| **Env vars**          | `SENTRY_ORG=watt-mind`, `SENTRY_PROJECT=coach-watts-web` (see `.env`)                                                      |
+| **Linear automation** | Native Sentry → Linear alert configuration, filtered to event environment `production` and targeting the Coach Watts team. |
 
-| Field            | Value                                                                          |
-| ---------------- | ------------------------------------------------------------------------------ |
-| **Organization** | `newpush-y4`                                                                   |
-| **Project**      | `coach-watts`                                                                  |
-| **Region URL**   | `https://de.sentry.io`                                                         |
-| **Dashboard**    | https://newpush-y4.sentry.io/issues/?project=coach-watts&query=is%3Aunresolved |
-| **Env vars**     | `SENTRY_ORG=newpush-y4`, `SENTRY_PROJECT=coach-watts` (see `.env`)             |
+Use `watt-mind` / `coach-watts-web` for new investigation and issue capture. **Do not use** `coach-watts-app` for this repository: it is the mobile companion application with its own DSN and issue stream.
 
-When using the Sentry MCP (`search_issues`, `search_events`, `get_sentry_resource`, `update_issue`), **always** pass:
+## Legacy Newpush archive
 
-- `organizationSlug: "newpush-y4"`
-- `regionUrl: "https://de.sentry.io"`
-- `projectSlug: "coach-watts"` (or filter with `project:coach-watts`)
+The sections below are an historical record of the former `newpush-y4` / `coach-watts` project, last synchronized on **2026-07-24**. Keep their links and issue IDs intact; they do not describe the active web deployment after the Watt Mind migration.
 
-**Do not use** `watt-mind` / `coach-watts-app` — that is the **mobile companion app** (separate codebase). Issue IDs there look like `COACH-WATTS-APP-*`. This web/backend app uses `COACH-WATTS-*` (no `-APP`).
-
-Also out of scope for this tracker: `newpush-y4` / `platform` (e.g. [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA)).
+For the archive only, use `organizationSlug: "newpush-y4"`, `regionUrl: "https://de.sentry.io"`, and `projectSlug: "coach-watts"`. The `newpush-y4` / `platform` project (for example [PLATFORM-CA](https://newpush-y4.sentry.io/issues/PLATFORM-CA)) remains out of scope.
 
 Related docs:
 
@@ -29,7 +25,7 @@ Related docs:
 - [docs/issues/196-sentry-no-cefsharp-scanner-filter.md](./docs/issues/196-sentry-no-cefsharp-scanner-filter.md) — COACH-WATTS-117 noise filter
 - [docs/issues/323-sentry-chunk-load-deploy-noise.md](./docs/issues/323-sentry-chunk-load-deploy-noise.md) — chunk-load cluster (C / 9 / 1ER)
 
-## Active — Unresolved in Sentry
+## Legacy — Unresolved in Sentry
 
 Sorted by recency. These still need a fix, deploy verification, or ongoing monitoring.
 

@@ -70,24 +70,18 @@ test.describe('PR #255 & Smoke Test 1: Workout Analysis & Enqueue', () => {
     await authedPage.goto('/chat')
     await expect(authedPage).toHaveURL(/\/chat/)
 
-    const input = authedPage.getByPlaceholder(/message/i).or(authedPage.getByRole('textbox'))
-    if (await input.isVisible()) {
-      await input.fill('How did I do on my last workout?')
-      const sendButton = authedPage
-        .getByRole('button', { name: /send/i })
-        .or(authedPage.locator('button[type="submit"]'))
-      if (await sendButton.isVisible()) {
-        await sendButton.click()
-      } else {
-        await input.press('Enter')
-      }
+    const input = authedPage.getByPlaceholder(
+      'Ask Coach Watts, add a meal photo, or dictate a note...'
+    )
+    await expect(input).toBeVisible()
+    await input.fill('How did I do on my last workout?')
+    await input.press('Enter')
 
-      // Assert chat response bubble appears and contains readable text
-      const chatBubbles = authedPage.locator(
-        '[class*="chat"], [class*="message"], [data-testid*="message"]'
-      )
-      await expect(chatBubbles.first()).toBeVisible({ timeout: 15000 })
-    }
+    // Assert chat response bubble appears and contains readable text
+    const chatBubbles = authedPage.locator(
+      '[class*="chat"], [class*="message"], [data-testid*="message"]'
+    )
+    await expect(chatBubbles.first()).toBeVisible({ timeout: 15000 })
   })
 
   test('Submitting analysis request twice quickly queues only one analysis run', async ({
