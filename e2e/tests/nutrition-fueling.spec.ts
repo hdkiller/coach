@@ -31,9 +31,11 @@ test.describe('Nutrition fueling plan', () => {
   const dayOffset = (offset: number) => new Date(getWeekStart().getTime() + offset * 86400000)
   const dateKey = (date: Date) => date.toISOString().slice(0, 10)
 
-  const STACKED_DAY = () => dayOffset(1) // two sessions back to back
-  const SPLIT_DAY = () => dayOffset(2) // morning and evening sessions
-  const REST_DAY = () => dayOffset(3) // no training at all
+  // Keep this suite away from the current and next day. Other parallel E2E specs create
+  // workouts there, which would otherwise change the number of generated fueling windows.
+  const STACKED_DAY = () => dayOffset(4) // two sessions back to back
+  const SPLIT_DAY = () => dayOffset(5) // morning and evening sessions
+  const REST_DAY = () => dayOffset(6) // no training at all
 
   async function clearDay(date: Date) {
     const key = dateKey(date)
