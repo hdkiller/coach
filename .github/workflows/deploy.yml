@@ -132,17 +132,6 @@ jobs:
             **Commit:** [${{ github.sha }}](${{ github.event.head_commit.url }})
           color: ${{ job.status == 'success' && '0x28a745' || '0xdc3545' }}
 
-  deploy-trigger:
-    name: Deploy Trigger.dev
-    needs: build-and-deploy
-    uses: ./.github/workflows/reusable-trigger-deploy.yml
-    # NOTE (CW-129): `environment` selects which GitHub environment's secrets
-    # (TRIGGER_ACCESS_TOKEN, TRIGGER_PROJECT_REF, TRIGGER_API_URL) are used —
-    # verify they're provisioned there before merge; the reusable workflow's
-    # "Deploy to Trigger.dev" step now fails fast if they're missing.
-    with:
-      environment: production
-      trigger-env: production
-      trigger-version: '4.5.4'
-      preview-branch: false
-    secrets: inherit
+  # Trigger.dev deploy disabled — migrating off Trigger.dev.
+  # Reusable workflow retained at .github/workflows/reusable-trigger-deploy.yml
+  # until the migration is complete; do not re-enable without intent.
