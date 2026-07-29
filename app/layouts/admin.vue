@@ -307,10 +307,15 @@
           <img
             v-if="!collapsed"
             src="/media/coach_watts_text_cropped.webp"
-            alt="Coach Watts"
+            alt="Journey Endurance Coaching"
             class="h-8 lg:h-10 w-auto object-contain"
           />
-          <img v-else src="/media/logo.webp" alt="Coach Watts" class="size-12 object-contain" />
+          <img
+            v-else
+            src="/media/logo.webp"
+            alt="Journey Endurance Coaching"
+            class="size-12 object-contain"
+          />
         </NuxtLink>
       </template>
 

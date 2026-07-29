@@ -52,7 +52,7 @@
   <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
     <div class="max-w-md w-full text-center">
       <div class="mb-8">
-        <img src="/media/logo.webp" alt="Coach Watts" class="h-16 mx-auto" />
+        <img src="/media/logo.webp" alt="Journey Endurance Coaching" class="h-16 mx-auto" />
       </div>
 
       <UCard>
@@ -105,7 +105,7 @@
         </div>
       </UCard>
 
-      <p class="mt-8 text-xs text-gray-400">Coach Watts AI Powered Endurance Coaching</p>
+      <p class="mt-8 text-xs text-gray-400">Journey Endurance Coaching</p>
     </div>
   </div>
 </template>

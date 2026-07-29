@@ -233,7 +233,7 @@
                 <label
                   class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-300"
                 >
-                  Tell Coach Watts more
+                  Tell Journey more
                 </label>
                 <UTextarea
                   v-model="journeyForm.description"
@@ -477,7 +477,7 @@
     {
       id: 'note',
       title: 'General recovery note',
-      subtitle: 'Anything unusual you want Coach Watts to remember or correlate.',
+      subtitle: 'Anything unusual you want Journey to remember or correlate.',
       icon: 'i-lucide-notebook-pen',
       category: 'FATIGUE',
       eventType: 'RECOVERY_NOTE'

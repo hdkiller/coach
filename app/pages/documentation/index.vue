@@ -5,7 +5,7 @@
 
   useSeoMeta({
     title: 'Documentation Hub',
-    description: 'Welcome to the Coach Watts documentation center.'
+    description: 'Welcome to the Journey Endurance Coaching documentation center.'
   })
 </script>
 
@@ -13,7 +13,7 @@
   <div class="max-w-4xl mx-auto">
     <header class="mb-12">
       <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
-        Coach Watts Documentation
+        Journey Endurance Coaching Documentation
       </h1>
       <p class="text-xl text-gray-500 dark:text-gray-400">
         Welcome to our documentation center. We have organized our resources into four main sections

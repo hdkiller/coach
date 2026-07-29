@@ -331,7 +331,7 @@ export default NuxtAuthHandler({
           templateKey: 'Welcome',
           eventKey: 'USER_SIGNED_UP_FOLLOWUP',
           audience: 'ENGAGEMENT',
-          subject: 'Welcome to Coach Watts!',
+          subject: 'Welcome to Journey Endurance Coaching!',
           props: {
             name: user.name || 'Athlete',
             unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`

@@ -1,13 +1,13 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'green',
-      gray: 'neutral',
-      neutral: 'zinc',
-      success: 'green',
+      primary: 'sky',
+      gray: 'slate',
+      neutral: 'slate',
+      success: 'cyan',
       warning: 'amber',
       error: 'red',
-      info: 'blue'
+      info: 'cyan'
     },
     // Custom design tokens overrides
     card: {
@@ -40,13 +40,19 @@ export default defineAppConfig({
       base: 'size-11 min-h-11 min-w-11'
     }
   },
+  // Central brand identity — use useAppConfig().brand.name in components
+  brand: {
+    name: 'Journey Endurance Coaching',
+    shortName: 'Journey',
+    tagline: 'AI-powered endurance coaching that adapts to you.'
+  },
   // Custom design tokens for consistent usage
   theme: {
     colors: {
-      success: 'green',
+      success: 'cyan',
       warning: 'amber',
       error: 'red',
-      info: 'blue'
+      info: 'cyan'
     }
   }
 })

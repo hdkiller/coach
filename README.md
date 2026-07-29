@@ -1,4 +1,4 @@
-# Coach Watts
+# Journey Endurance Coaching
 
 <div align="center">
   <p align="center">
@@ -27,12 +27,12 @@
 
 ## 🚀 Overview
 
-**Coach Watts** is a comprehensive, self-hosted endurance coaching platform designed for cyclists, runners, and triathletes. It acts as your "Digital Twin," aggregating data from your favorite fitness platforms and using **Google Gemini AI** to provide professional-level analysis, personalized training plans, and daily recommendations.
+**Journey Endurance Coaching** is a comprehensive, self-hosted endurance coaching platform designed for cyclists, runners, and triathletes. It acts as your "Digital Twin," aggregating data from your favorite fitness platforms and using **Google Gemini AI** to provide professional-level analysis, personalized training plans, and daily recommendations.
 
-Unlike static dashboards, Coach Watts understands context—analyzing not just your power numbers, but your recovery, sleep, nutrition, and life stress to guide you toward peak performance.
+Unlike static dashboards, Journey understands context—analyzing not just your power numbers, but your recovery, sleep, nutrition, and life stress to guide you toward peak performance.
 
 <p align="center">
-  <img src="docs/assets/images/dashboard_full.png" alt="Coach Watts Dashboard" width="100%">
+  <img src="docs/assets/images/dashboard_full.png" alt="Journey Endurance Coaching Dashboard" width="100%">
 </p>
 
 ## ✨ Key Features
@@ -64,7 +64,7 @@ Unlike static dashboards, Coach Watts understands context—analyzing not just y
 
 ## 🔌 Integrations
 
-Coach Watts connects with your favorite endurance and wellness platforms:
+Journey Endurance Coaching connects with your favorite endurance and wellness platforms:
 
 | Platform          | Features Synced                                    |
 | ----------------- | -------------------------------------------------- |
@@ -85,13 +85,13 @@ Coach Watts connects with your favorite endurance and wellness platforms:
 
 ## 🌍 Localization
 
-Coach Watts is built for the global endurance community. We currently support:
+Journey Endurance Coaching is built for the global endurance community. We currently support:
 
 - **English** (en), **German** (de), **Spanish** (es), **French** (fr)
 - **Hungarian** (hu), **Italian** (it), **Japanese** (ja), **Dutch** (nl)
 - **Russian** (ru), **Chinese** (zh)
 
-We use **Tolgee** for managing translations. If you'd like to help translate Coach Watts into your language, please join our [Discord](https://discord.gg/dPYkzg49T9)!
+We use **Tolgee** for managing translations. If you'd like to help translate Journey Endurance Coaching into your language, please join our [Discord](https://discord.gg/dPYkzg49T9)!
 
 ## ⚡ Quick Start
 
@@ -146,7 +146,7 @@ Visit `http://localhost:3099` and log in!
 
 ### 🛠️ CLI Tools
 
-Coach Watts includes a powerful CLI for administrative tasks:
+Journey Endurance Coaching includes a powerful CLI for administrative tasks:
 
 ```bash
 # General help
@@ -190,9 +190,9 @@ We welcome contributions! Whether it's fixing bugs, improving documentation, or 
 
 Distributed under the Apache License 2.0. See [`LICENSE`](./LICENSE) for more information. Acknowledgements of third-party assets and contributors can be found in [`ACKNOWLEDGEMENTS.md`](./ACKNOWLEDGEMENTS.md).
 
-### Is Coach Watts open source?
+### Is Journey Endurance Coaching open source?
 
-Yes. Coach Watts is open source using the Apache 2.0 license. We are committed to open source software and working with our community to build a great product.
+Yes. Journey Endurance Coaching is open source using the Apache 2.0 license. We are committed to open source software and working with our community to build a great product.
 
 ## ❤️ Community & Support
 

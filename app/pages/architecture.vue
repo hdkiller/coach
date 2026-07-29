@@ -9,7 +9,7 @@
             The Intelligence Architecture
           </p>
           <p class="mt-6 text-lg leading-8 text-gray-300">
-            We don't just count steps. Coach Watts uses a multi-layered AI pipeline to construct a
+            We don't just count steps. Journey uses a multi-layered AI pipeline to construct a
             "Digital Twin" of your physiology, allowing for coaching decisions that understand the
             full context of your training life.
           </p>
@@ -28,8 +28,8 @@
               Context is King.
             </p>
             <p class="mt-6 text-lg leading-8 text-gray-300">
-              Most platforms analyze a workout in isolation. Coach Watts analyzes it in the context
-              of your entire history, your nutrition, and your recovery.
+              Most platforms analyze a workout in isolation. Journey analyzes it in the context of
+              your entire history, your nutrition, and your recovery.
             </p>
             <dl class="mt-10 max-w-xl space-y-8 text-base leading-7 text-gray-300 lg:max-w-none">
               <div class="relative pl-9">
@@ -188,7 +188,9 @@
     <footer class="bg-gray-900 py-12 border-t border-gray-800">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <p class="text-sm text-gray-400">&copy; 2026 Coach Watts. All rights reserved.</p>
+          <p class="text-sm text-gray-400">
+            &copy; 2026 Journey Endurance Coaching. All rights reserved.
+          </p>
           <div class="flex gap-6">
             <a
               href="https://github.com/coach-wattz/coach-wattz"
@@ -216,7 +218,7 @@
       {
         name: 'description',
         content:
-          'Explore the multi-layered AI pipeline that powers Coach Watts, from data ingestion to holistic coaching insights.'
+          'Explore the multi-layered AI pipeline that powers Journey Endurance Coaching, from data ingestion to holistic coaching insights.'
       }
     ]
   })

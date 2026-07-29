@@ -12,7 +12,7 @@
   })
 
   useHead({
-    title: 'Workout Comparison | Coach Watts',
+    title: 'Workout Comparison | Journey Endurance Coaching',
     meta: [
       {
         name: 'description',

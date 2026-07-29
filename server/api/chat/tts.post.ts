@@ -8,7 +8,7 @@ const MODEL_NAME = 'gemini-2.5-flash-preview-tts'
 const SAMPLE_RATE = 24000
 const CHANNELS = 1
 const BITS_PER_SAMPLE = 16
-const BASE_TTS_INSTRUCTION = `You are the voice of Coach Watts.
+const BASE_TTS_INSTRUCTION = `You are the voice of Journey.
 
 Read the message aloud naturally for a fitness and nutrition coaching app.
 Keep the wording and meaning intact. Do not summarize, explain, rewrite, or add extra words.

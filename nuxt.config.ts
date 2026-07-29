@@ -111,18 +111,19 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      titleTemplate: '%s - Coach Watts',
-      title: 'Coach Watts',
+      titleTemplate: '%s - Journey Endurance Coaching',
+      title: 'Journey Endurance Coaching',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         {
           name: 'description',
-          content: 'AI-powered endurance coaching platform that adapts to your training.'
+          content:
+            'AI-powered endurance and multisport coaching platform — personalized training, nutrition, and recovery.'
         },
-        { name: 'apple-mobile-web-app-title', content: 'Coach Watts' },
-        { name: 'application-name', content: 'Coach Watts' },
-        { property: 'og:site_name', content: 'Coach Watts' },
+        { name: 'apple-mobile-web-app-title', content: 'Journey Endurance Coaching' },
+        { name: 'application-name', content: 'Journey Endurance Coaching' },
+        { property: 'og:site_name', content: 'Journey Endurance Coaching' },
         { property: 'og:type', content: 'website' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:site', content: '@coachwatts' },
@@ -227,8 +228,8 @@ export default defineNuxtConfig({
             production: 'runtime',
             route: '/_openapi.json',
             meta: {
-              title: 'Coach Watts API',
-              description: 'AI-powered endurance coaching platform API',
+              title: 'Journey Endurance Coaching API',
+              description: 'AI-powered endurance and multisport coaching platform API',
               version: pkg.version
             },
             ui: {
@@ -260,7 +261,10 @@ export default defineNuxtConfig({
     imports: {
       imports: [
         {
-          from: fileURLToPath(new URL('./server/utils/define-route-meta', import.meta.url)),
+          from: fileURLToPath(new URL('./server/utils/define-route-meta', import.meta.url)).replace(
+            /\\/g,
+            '/'
+          ),
           name: 'defineRouteMeta',
           priority: 100
         }

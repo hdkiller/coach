@@ -8,7 +8,10 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-[oklch(12%_0.015_155)] text-gray-100" :style="{ '--header-height': headerHeight }">
+  <div
+    class="min-h-screen bg-[oklch(12%_0.015_155)] text-gray-100"
+    :style="{ '--header-height': headerHeight }"
+  >
     <!-- Header -->
     <header
       class="sticky top-0 z-50 w-full border-b border-white/8 bg-[oklch(12%_0.015_155)]/90 backdrop-blur-md"
@@ -28,8 +31,8 @@
           />
 
           <NuxtLink to="/" class="flex items-center gap-2 shrink-0">
-            <img src="/media/logo.webp" alt="Coach Watts" class="h-8 w-8" />
-            <span class="font-bold text-xl hidden sm:inline-block">Coach Watts</span>
+            <img src="/media/logo.webp" alt="Journey Endurance Coaching" class="h-8 w-8" />
+            <span class="font-bold text-xl hidden sm:inline-block">Journey Endurance Coaching</span>
             <span class="text-gray-400 dark:text-gray-600 hidden sm:inline-block">/</span>
             <span class="font-medium text-gray-600 dark:text-gray-400">Documentation</span>
           </NuxtLink>

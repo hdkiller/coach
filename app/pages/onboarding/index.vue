@@ -159,7 +159,7 @@
       return translated === key ? fallback : translated
     })
 
-  const consentLogoAlt = translateOrFallback('consent.logo_alt', 'Coach Watts Logo')
+  const consentLogoAlt = translateOrFallback('consent.logo_alt', 'Journey Endurance Coaching Logo')
   const consentTitle = translateOrFallback('consent.title', 'Welcome to the Future of Training')
   const consentSubtitle = translateOrFallback(
     'consent.subtitle',
@@ -176,7 +176,7 @@
   )
   const consentHealthHelp = translateOrFallback(
     'consent.health_help',
-    'I explicitly consent to the processing of my health and biometric data (HR, power, location) so Coach Watts can generate personalized AI coaching.'
+    'I explicitly consent to the processing of my health and biometric data (HR, power, location) so Journey Endurance Coaching can generate personalized AI coaching.'
   )
   const consentValidationHint = translateOrFallback(
     'consent.validation_hint',

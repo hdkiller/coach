@@ -10,7 +10,9 @@
           class="relative hidden flex-col justify-between border-r border-white/8 p-10 lg:col-span-5 lg:flex lg:p-12"
         >
           <div>
-            <p class="text-xs font-bold uppercase tracking-widest text-primary-400">Coach Watts</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-primary-400">
+              Journey Endurance Coaching
+            </p>
             <h2
               class="font-athletic mt-6 text-3xl font-bold uppercase leading-[0.95] tracking-tight text-white"
             >
@@ -211,7 +213,7 @@
   const joinFormSubtitle = translateOrFallback(
     'join.form_subtitle',
     'Start free with a 14-day full-access trial. No credit card required.',
-    ['Create your Coach Watts account. No credit card required.']
+    ['Create your Journey Endurance Coaching account. No credit card required.']
   )
   const joinErrorTitle = translateOrFallback('join.error_title', 'Signup failed')
   const joinErrorApple = translateOrFallback(

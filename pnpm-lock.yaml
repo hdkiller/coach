@@ -21,6 +21,9 @@ importers:
       '@auth/core':
         specifier: ^0.34.3
         version: 0.34.3
+      '@flow-js/garmin-connect':
+        specifier: ^1.6.17
+        version: 1.6.17
       '@google-cloud/storage':
         specifier: ^7.18.0
         version: 7.18.0
@@ -50,7 +53,7 @@ importers:
         version: 3.15.0(@electric-sql/pglite@0.4.1)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@5.9.3)))(better-sqlite3@12.11.1)(esbuild@0.28.1)(magicast@0.3.5)(mysql2@3.15.3)(rolldown@1.2.0)(rollup@4.62.2)(valibot@1.4.2(typescript@5.9.3))(vite@8.1.5(@types/node@24.10.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
       '@nuxt/ui':
         specifier: ^4.9.0
-        version: 4.9.0(ht4eqoarhd6nhodxkl3yegblxe)
+        version: 4.9.0(c72e2d2hg3sfhp2hv4esml4d54)
       '@nuxtjs/mdc':
         specifier: ^0.22.1
         version: 0.22.1(magicast@0.3.5)
@@ -352,6 +355,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       esbuild-plugin-copy:
         specifier: ^2.1.1
         version: 2.1.1(esbuild@0.28.1)
@@ -1070,6 +1076,12 @@ packages:
     resolution:
       {
         integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==
+      }
+
+  '@epic-web/invariant@1.0.0':
+    resolution:
+      {
+        integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==
       }
 
   '@es-joy/jsdoccomment@0.88.0':
@@ -2385,6 +2397,12 @@ packages:
     resolution:
       {
         integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==
+      }
+
+  '@flow-js/garmin-connect@1.6.17':
+    resolution:
+      {
+        integrity: sha512-P+MrffO/xjlt0Gtw5Y6Ttk3Dev7iF9WaOy3Zm5HuAMAo/PhEKsBP1zCxGIhEWSZe4IESEj/fwsG2by6Mng59LQ==
       }
 
   '@formatjs/ecma402-abstract@2.3.6':
@@ -8308,6 +8326,13 @@ packages:
       }
     engines: { node: '>= 8' }
 
+  app-root-path@3.1.0:
+    resolution:
+      {
+        integrity: sha512-biN3PwB2gUtjaYy/isrU3aNWI5w+fAfvHkSvCKeQGxhmYpwKFUxudR3Yya+KqVRHBmEDYh+/lTozYCFbmzX4nA==
+      }
+    engines: { node: '>= 6.0.0' }
+
   archiver-utils@5.0.2:
     resolution:
       {
@@ -8493,6 +8518,12 @@ packages:
         integrity: sha512-s7iGf5GaVMxEG0ENN9x+xTr7GFZCb1ZP/1uATUpCEK2X78nDB3RwbtFCo9pGAf9ru+VwoQ464DkaLEeRM08wJA==
       }
     engines: { node: '>=4' }
+
+  axios@1.18.1:
+    resolution:
+      {
+        integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==
+      }
 
   b4a@1.7.3:
     resolution:
@@ -9752,6 +9783,14 @@ packages:
       }
     hasBin: true
 
+  cross-env@10.1.0:
+    resolution:
+      {
+        integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==
+      }
+    engines: { node: '>=20' }
+    hasBin: true
+
   cross-spawn@7.0.6:
     resolution:
       {
@@ -9793,6 +9832,13 @@ packages:
         integrity: sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==
       }
     engines: { node: '>=8' }
+
+  crypto@1.0.1:
+    resolution:
+      {
+        integrity: sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig==
+      }
+    deprecated: This package is no longer supported. It's now a built-in Node module. If you've depended on crypto, you should switch to the one that's built-in.
 
   csp_evaluator@1.1.5:
     resolution:
@@ -11415,6 +11461,18 @@ packages:
       debug:
         optional: true
 
+  follow-redirects@1.16.0:
+    resolution:
+      {
+        integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==
+      }
+    engines: { node: '>=4.0' }
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+
   fontaine@0.8.0:
     resolution:
       {
@@ -11461,6 +11519,13 @@ packages:
         integrity: sha512-jqdObeR2rxZZbPSGL+3VckHMYtu+f9//KXBsVny6JSX/pa38Fy+bGjuG8eW/H6USNQWhLi8Num++cU2yOCNz4A==
       }
     engines: { node: '>= 0.12' }
+
+  form-data@4.0.6:
+    resolution:
+      {
+        integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==
+      }
+    engines: { node: '>= 6' }
 
   forwarded@0.2.0:
     resolution:
@@ -11967,6 +12032,13 @@ packages:
     resolution:
       {
         integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==
+      }
+    engines: { node: '>= 0.4' }
+
+  hasown@2.0.4:
+    resolution:
+      {
+        integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==
       }
     engines: { node: '>= 0.4' }
 
@@ -14678,6 +14750,12 @@ packages:
     engines: { node: '>=18' }
     hasBin: true
 
+  oauth-1.0a@2.2.6:
+    resolution:
+      {
+        integrity: sha512-6bkxv3N4Gu5lty4viIcIAnq5GbxECviMBeKR3WX/q87SPQ8E8aursPZUtsXDnxCs787af09WPRBLqYrf/lwoYQ==
+      }
+
   oauth4webapi@2.17.0:
     resolution:
       {
@@ -16121,6 +16199,13 @@ packages:
       {
         integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==
       }
+
+  proxy-from-env@2.1.0:
+    resolution:
+      {
+        integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==
+      }
+    engines: { node: '>=10' }
 
   pump@3.0.3:
     resolution:
@@ -20320,6 +20405,8 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@epic-web/invariant@1.0.0': {}
+
   '@es-joy/jsdoccomment@0.88.0':
     dependencies:
       '@types/estree': 1.0.9
@@ -20824,6 +20911,20 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@flow-js/garmin-connect@1.6.17':
+    dependencies:
+      app-root-path: 3.1.0
+      axios: 1.18.1
+      crypto: 1.0.1
+      form-data: 4.0.6
+      lodash: 4.17.21
+      luxon: 3.7.2
+      oauth-1.0a: 2.2.6
+      qs: 6.15.3
+    transitivePeerDependencies:
+      - debug
+      - supports-color
 
   '@formatjs/ecma402-abstract@2.3.6':
     dependencies:
@@ -22220,7 +22321,7 @@ snapshots:
       - vite
       - webpack
 
-  '@nuxt/ui@4.9.0(ht4eqoarhd6nhodxkl3yegblxe)':
+  '@nuxt/ui@4.9.0(c72e2d2hg3sfhp2hv4esml4d54)':
     dependencies:
       '@floating-ui/dom': 1.7.6
       '@iconify/vue': 5.0.1(vue@3.5.39(typescript@5.9.3))
@@ -22253,7 +22354,7 @@ snapshots:
       '@tiptap/vue-3': 3.27.3(@floating-ui/dom@1.7.6)(@tiptap/core@3.27.3(@tiptap/pm@3.27.3))(@tiptap/pm@3.27.3)(vue@3.5.39(typescript@5.9.3))
       '@unhead/vue': 2.1.15(vue@3.5.39(typescript@5.9.3))
       '@vueuse/core': 14.3.0(vue@3.5.39(typescript@5.9.3))
-      '@vueuse/integrations': 14.3.0(change-case@5.4.4)(fuse.js@7.4.2)(qrcode@1.5.4)(sortablejs@1.14.0)(vue@3.5.39(typescript@5.9.3))
+      '@vueuse/integrations': 14.3.0(axios@1.18.1)(change-case@5.4.4)(fuse.js@7.4.2)(qrcode@1.5.4)(sortablejs@1.14.0)(vue@3.5.39(typescript@5.9.3))
       '@vueuse/shared': 14.3.0(vue@3.5.39(typescript@5.9.3))
       colortranslator: 5.0.0
       consola: 3.4.2
@@ -25249,12 +25350,13 @@ snapshots:
       '@vueuse/shared': 14.3.0(vue@3.5.39(typescript@5.9.3))
       vue: 3.5.39(typescript@5.9.3)
 
-  '@vueuse/integrations@14.3.0(change-case@5.4.4)(fuse.js@7.4.2)(qrcode@1.5.4)(sortablejs@1.14.0)(vue@3.5.39(typescript@5.9.3))':
+  '@vueuse/integrations@14.3.0(axios@1.18.1)(change-case@5.4.4)(fuse.js@7.4.2)(qrcode@1.5.4)(sortablejs@1.14.0)(vue@3.5.39(typescript@5.9.3))':
     dependencies:
       '@vueuse/core': 14.3.0(vue@3.5.39(typescript@5.9.3))
       '@vueuse/shared': 14.3.0(vue@3.5.39(typescript@5.9.3))
       vue: 3.5.39(typescript@5.9.3)
     optionalDependencies:
+      axios: 1.18.1
       change-case: 5.4.4
       fuse.js: 7.4.2
       qrcode: 1.5.4
@@ -25369,6 +25471,8 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.2
 
+  app-root-path@3.1.0: {}
+
   archiver-utils@5.0.2:
     dependencies:
       glob: 10.5.0
@@ -25473,6 +25577,16 @@ snapshots:
   aws-ssl-profiles@1.1.2: {}
 
   axe-core@4.12.1: {}
+
+  axios@1.18.1:
+    dependencies:
+      follow-redirects: 1.16.0
+      form-data: 4.0.6
+      https-proxy-agent: 5.0.1
+      proxy-from-env: 2.1.0
+    transitivePeerDependencies:
+      - debug
+      - supports-color
 
   b4a@1.7.3: {}
 
@@ -26261,6 +26375,11 @@ snapshots:
 
   cronstrue@2.59.0: {}
 
+  cross-env@10.1.0:
+    dependencies:
+      '@epic-web/invariant': 1.0.0
+      cross-spawn: 7.0.6
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -26280,6 +26399,8 @@ snapshots:
       srvx: 0.11.22
 
   crypto-random-string@2.0.0: {}
+
+  crypto@1.0.1: {}
 
   csp_evaluator@1.1.5: {}
 
@@ -26774,7 +26895,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   esbuild-plugin-copy@2.1.1(esbuild@0.28.1):
     dependencies:
@@ -27426,6 +27547,8 @@ snapshots:
 
   follow-redirects@1.15.11: {}
 
+  follow-redirects@1.16.0: {}
+
   fontaine@0.8.0:
     dependencies:
       '@capsizecss/unpack': 4.0.1
@@ -27495,6 +27618,14 @@ snapshots:
       hasown: 2.0.2
       mime-types: 2.1.35
       safe-buffer: 5.2.1
+
+  form-data@4.0.6:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      es-set-tostringtag: 2.1.0
+      hasown: 2.0.4
+      mime-types: 2.1.35
 
   forwarded@0.2.0: {}
 
@@ -27589,7 +27720,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       math-intrinsics: 1.1.0
 
   get-port-please@3.2.0: {}
@@ -27852,6 +27983,10 @@ snapshots:
       has-symbols: 1.1.0
 
   hasown@2.0.2:
+    dependencies:
+      function-bind: 1.1.2
+
+  hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
 
@@ -30023,6 +30158,8 @@ snapshots:
       pathe: 2.0.3
       tinyexec: 1.2.4
 
+  oauth-1.0a@2.2.6: {}
+
   oauth4webapi@2.17.0: {}
 
   oauth@0.9.15: {}
@@ -30910,6 +31047,8 @@ snapshots:
       - supports-color
 
   proxy-from-env@1.1.0: {}
+
+  proxy-from-env@2.1.0: {}
 
   pump@3.0.3:
     dependencies:

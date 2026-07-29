@@ -304,8 +304,8 @@
         The Case is Empty
       </h3>
       <p class="text-base text-gray-500 max-w-sm mx-auto mt-3 font-medium leading-relaxed">
-        Your peak performances are waiting. Go out, push your limits, and Coach Watts will celebrate
-        you here.
+        Your peak performances are waiting. Go out, push your limits, and Journey will celebrate you
+        here.
       </p>
       <UButton
         color="primary"

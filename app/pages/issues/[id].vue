@@ -489,7 +489,7 @@
                         <span
                           class="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white"
                         >
-                          {{ comment.isAdmin ? 'Coach Watts Team' : 'You' }}
+                          {{ comment.isAdmin ? 'Journey Team' : 'You' }}
                         </span>
                         <span class="text-[10px] text-gray-500">
                           {{ formatDate(comment.createdAt, 'MMM d, HH:mm') }}

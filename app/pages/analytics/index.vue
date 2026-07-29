@@ -9,7 +9,7 @@
   })
 
   useHead({
-    title: 'Analytics | Coach Watts',
+    title: 'Analytics | Journey Endurance Coaching',
     meta: [
       {
         name: 'description',

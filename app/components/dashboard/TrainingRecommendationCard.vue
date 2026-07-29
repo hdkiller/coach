@@ -207,7 +207,7 @@
                 Active Recovery Context
               </p>
               <p class="text-xs text-gray-500 dark:text-gray-400">
-                Coach Watts will use this when generating today’s guidance.
+                Journey will use this when generating today's guidance.
               </p>
             </div>
           </div>

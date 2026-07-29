@@ -1,11 +1,11 @@
 {
   "coach_output": "Based on your profile, you respond best to rest when HRV drops below 40ms. Let's take today off.",
-  "context_desc": "Most platforms analyze a workout in isolation. Coach Watts analyzes it in the context of your entire history, your nutrition, and your recovery.",
+  "context_desc": "Most platforms analyze a workout in isolation. Journey Endurance Coaching analyzes it in the context of your entire history, your nutrition, and your recovery.",
   "context_title": "Context is King.",
   "data_nutrition": "Nutrition",
   "data_wellness": "Wellness",
   "data_workouts": "Workouts",
-  "description": "We don't just count steps. Coach Watts uses a multi-layered AI pipeline to construct a \"Digital Twin\" of your physiology.",
+  "description": "We don't just count steps. Journey Endurance Coaching uses a multi-layered AI pipeline to construct a \"Digital Twin\" of your physiology.",
   "engine": "DATA ENGINE",
   "engine_sub": "Unification & Security",
   "feat1_desc": "We unite data from all your connected sources into a single, comprehensive view. This solves the \"fragmented data\" problem.",

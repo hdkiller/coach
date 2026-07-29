@@ -334,13 +334,13 @@ export function buildDefaultCoachPublicProfile(): CoachPublicProfile {
           id: 'coach-start-step-account',
           title: 'Create your account or log in',
           description:
-            'Finish with a Coach Watts account so your request and future coaching context live in one place.'
+            'Finish with a Journey Endurance Coaching account so your request and future coaching context live in one place.'
         },
         {
           id: 'coach-start-step-review',
           title: 'Wait for coach approval',
           description:
-            'The coach reviews your request and can then start working with you inside Coach Watts.'
+            'The coach reviews your request and can then start working with you inside Journey Endurance Coaching.'
         }
       ],
       faq: [],
@@ -412,7 +412,7 @@ export function buildDefaultCoachPublicProfile(): CoachPublicProfile {
           id: 'coach-join-step-account',
           title: 'Create your account',
           description:
-            'Start with a Coach Watts account so your training, messaging, and progress all live in one place.'
+            'Start with a Journey Endurance Coaching account so your training, messaging, and progress all live in one place.'
         },
         {
           id: 'coach-join-step-connect',

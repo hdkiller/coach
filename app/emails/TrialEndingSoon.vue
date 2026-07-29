@@ -86,7 +86,7 @@
               :src="logoUrl"
               width="64"
               height="64"
-              alt="Coach Watts"
+              alt="Journey Endurance Coaching"
               style="margin: 0 auto; border-radius: 12px; display: block"
             />
           </ELink>

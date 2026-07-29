@@ -1,14 +1,15 @@
-# Coach Watts Brand Identity & Style Guide
+# Journey Endurance Coaching Brand Identity & Style Guide
 
-This document serves as the official branding reference for **Coach Watts**, an AI-powered endurance coaching platform. Use these guidelines when generating content, designing assets, or configuring third-party services to ensure a consistent brand experience.
+This document serves as the official branding reference for **Journey Endurance Coaching**, an AI-powered endurance and multisport coaching platform. Use these guidelines when generating content, designing assets, or configuring third-party services to ensure a consistent brand experience.
 
 ---
 
 ## 1. Core Identity
 
-- **Brand Name:** Coach Watts
+- **Brand Name:** Journey Endurance Coaching
+- **Short Name:** Journey
 - **Slogan:** AI-powered endurance coaching that adapts to you.
-- **Mission:** To provide professional-grade, data-driven cycling coaching through accessible AI technology.
+- **Mission:** To provide professional-grade, data-driven endurance and multisport coaching through accessible AI technology.
 - **Tone of Voice:** Professional, encouraging, scientific, and precise. Avoid overly aggressive "drill sergeant" tropes; focus on sustainable growth and data-backed insights.
 
 ---
@@ -17,7 +18,7 @@ This document serves as the official branding reference for **Coach Watts**, an 
 
 ### Primary Brand Colors
 
-The "Coach Watts Green" is the primary identifier.
+The "Journey Green" is the primary identifier.
 
 | Color                     | Hex Code  | Tailwind / Nuxt UI | Usage                           |
 | :------------------------ | :-------- | :----------------- | :------------------------------ |
@@ -79,7 +80,7 @@ To maintain a scientific and premium aesthetic:
 
 ## 6. Content & AI Guidelines (for LLMs)
 
-When generating content for Coach Watts (reports, chat responses, or emails), adhere to these formatting rules:
+When generating content for Journey Endurance Coaching (reports, chat responses, or emails), adhere to these formatting rules:
 
 ### Structure
 

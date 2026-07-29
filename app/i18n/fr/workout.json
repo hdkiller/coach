@@ -55,7 +55,7 @@
   "level_up_new": "Nouveau",
   "level_up_old": "Ancien",
   "level_up_peak_effort": "Effort de pointe sur 20 minutes : {value}{unit}",
-  "level_up_sync_note": "Les mises à jour se synchronisent avec Coach Watts et Intervals.icu. N'oubliez pas de mettre à jour manuellement Garmin Connect pour aligner les zones de votre montre.",
+  "level_up_sync_note": "Les mises à jour se synchronisent avec Journey Endurance Coaching et Intervals.icu. N'oubliez pas de mettre à jour manuellement Garmin Connect pour aligner les zones de votre montre.",
   "level_up_update_now": "METTRE À JOUR MAINTENANT",
   "map_analysis": "Analyse de la carte",
   "metrics_ai_analyzed": "Analysé par l'IA",

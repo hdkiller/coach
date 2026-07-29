@@ -26,7 +26,7 @@ export interface EmailTemplateDefinition {
 export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = {
   Welcome: {
     templateKey: 'Welcome',
-    defaultSubject: 'Welcome to Coach Watts!',
+    defaultSubject: 'Welcome to Journey Endurance Coaching!',
     audience: 'ENGAGEMENT',
     preferenceKey: 'onboarding',
     requiredProps: [],
@@ -79,7 +79,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   },
   SubscriptionStarted: {
     templateKey: 'SubscriptionStarted',
-    defaultSubject: 'Welcome to Coach Watts Pro!',
+    defaultSubject: 'Welcome to Journey Endurance Coaching Pro!',
     audience: 'TRANSACTIONAL',
     preferenceKey: null,
     requiredProps: ['tier'],
@@ -88,7 +88,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   },
   AccountDeletionScheduled: {
     templateKey: 'AccountDeletionScheduled',
-    defaultSubject: 'Your Coach Watts account deletion has been scheduled',
+    defaultSubject: 'Your Journey Endurance Coaching account deletion has been scheduled',
     audience: 'TRANSACTIONAL',
     preferenceKey: null,
     requiredProps: ['initiatedBy', 'requestedAt'],
@@ -97,7 +97,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   },
   TrialEndingSoon: {
     templateKey: 'TrialEndingSoon',
-    defaultSubject: 'Your Coach Watts performance trial ends soon',
+    defaultSubject: 'Your Journey Endurance Coaching performance trial ends soon',
     audience: 'ENGAGEMENT',
     preferenceKey: 'retentionNudges',
     requiredProps: ['trialEndsAt', 'pricingUrl'],

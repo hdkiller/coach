@@ -223,14 +223,14 @@
   })
 
   useHead({
-    title: () => translate('meta_title', 'Support | Coach Watts'),
+    title: () => translate('meta_title', 'Support | Journey Endurance Coaching'),
     meta: [
       {
         name: 'description',
         content: () =>
           translate(
             'meta_description',
-            'Get help with Coach Watts. Join our Discord community or contact our support team.'
+            'Get help with Journey Endurance Coaching. Join our Discord community or contact our support team.'
           )
       }
     ]

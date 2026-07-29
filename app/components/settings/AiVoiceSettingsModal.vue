@@ -76,7 +76,7 @@
     { key: 'fast', label: 'Faster', description: 'More compact delivery.' }
   ] as const
   const previewText =
-    'Coach Watts here. This is a preview of your current voice settings for training guidance, nutrition feedback, and recovery advice.'
+    'Journey here. This is a preview of your current voice settings for training guidance, nutrition feedback, and recovery advice.'
   const isPreviewLoading = ref(false)
   const isPreviewPlaying = ref(false)
   let previewAudio: HTMLAudioElement | null = null

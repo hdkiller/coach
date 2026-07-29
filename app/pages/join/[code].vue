@@ -220,7 +220,7 @@
               {{ session ? 'Accept Invitation' : 'Login to Join' }}
             </UButton>
             <p v-if="!session" class="text-[10px] text-center text-neutral-400 uppercase font-bold">
-              You must have a Coach Watts account to join
+              You must have a Journey Endurance Coaching account to join
             </p>
             <UButton
               v-if="session"

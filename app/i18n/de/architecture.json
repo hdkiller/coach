@@ -1,11 +1,11 @@
 {
   "coach_output": "Basierend auf deinem Profil reagierst du am besten auf Erholung, wenn deine HFV unter 40 ms sinkt. Gönn dir heute eine Pause.",
-  "context_desc": "Die meisten Plattformen analysieren ein Training isoliert. Coach Watts analysiert es im Kontext deiner gesamten Historie, deiner Ernährung und deiner Erholung.",
+  "context_desc": "Die meisten Plattformen analysieren ein Training isoliert. Journey Endurance Coaching analysiert es im Kontext deiner gesamten Historie, deiner Ernährung und deiner Erholung.",
   "context_title": "Kontext ist König.",
   "data_nutrition": "Nährwerte",
   "data_wellness": "Wellness",
   "data_workouts": "Workouts",
-  "description": "Wir zählen nicht nur Schritte. Coach Watts nutzt eine mehrschichtige KI-Pipeline, um einen \"digitalen Zwilling\" Ihrer Physiologie zu erstellen.",
+  "description": "Wir zählen nicht nur Schritte. Journey Endurance Coaching nutzt eine mehrschichtige KI-Pipeline, um einen \"digitalen Zwilling\" Ihrer Physiologie zu erstellen.",
   "engine": "DATEN-ENGINE",
   "engine_sub": "Vereinheitlichung & Sicherheit",
   "feat1_desc": "Wir führen Daten aus all Ihren verbundenen Quellen in einer einzigen, umfassenden Ansicht zusammen. Dies löst das Problem der \"fragmentierten Daten\".",

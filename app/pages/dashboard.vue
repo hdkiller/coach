@@ -444,7 +444,7 @@
   <!-- Daily Check-in Modal -->
   <DashboardDailyCheckinModal v-model:open="showCheckinModal" />
 
-  <!-- Share Coach Watts Modal -->
+  <!-- Share Journey Modal -->
   <DashboardShareCoachWattsModal v-model:open="showShareCoachWattsModal" />
 
   <DashboardTrialEndedModal />
@@ -840,7 +840,7 @@
     { immediate: true }
   )
 
-  // Share Coach Watts modal
+  // Share Journey Modal
   const showShareCoachWattsModal = ref(false)
   const { openReleaseModal } = useReleaseNotes()
   const { toggle: toggleTriggerMonitor } = useTriggerMonitor()
@@ -896,7 +896,7 @@
         content:
           'Your training overview, recovery status, and personalized AI coaching recommendations.'
       },
-      { property: 'og:title', content: 'Dashboard | Coach Watts' },
+      { property: 'og:title', content: 'Dashboard | Journey Endurance Coaching' },
       {
         property: 'og:description',
         content:

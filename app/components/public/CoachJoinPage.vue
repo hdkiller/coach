@@ -253,7 +253,7 @@
                 {{
                   session
                     ? 'You are signed in. Finish the connection when you are ready.'
-                    : 'Create your Coach Watts account or log back in, then come right back here to finish joining.'
+                    : 'Create your Journey Endurance Coaching account or log back in, then come right back here to finish joining.'
                 }}
               </p>
               <div class="mt-5 flex flex-col gap-3">

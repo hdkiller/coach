@@ -25,7 +25,7 @@
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Your OAuth Applications</h1>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-            Build integrations that access Coach Watts user data securely.
+            Build integrations that access Journey Endurance Coaching user data securely.
           </p>
         </div>
 
@@ -105,7 +105,7 @@
   <UModal
     v-model:open="isCreateModalOpen"
     title="Create New Application"
-    description="Provide the details for your new OAuth application to integrate with Coach Watts."
+    description="Provide the details for your new OAuth application to integrate with Journey Endurance Coaching."
   >
     <template #body>
       <UForm
@@ -259,7 +259,8 @@
     meta: [
       {
         name: 'description',
-        content: 'Manage your OAuth applications and build integrations with Coach Watts.'
+        content:
+          'Manage your OAuth applications and build integrations with Journey Endurance Coaching.'
       }
     ]
   })

@@ -35,7 +35,7 @@
   "connect_whoop_button": "Connect WHOOP",
   "connect_whoop_failed_desc": "Failed to initiate WHOOP connection",
   "connect_whoop_disabled_title": "WHOOP integration is temporarily unavailable",
-  "connect_whoop_disabled_desc": "WHOOP connections are currently disabled on coachwatts.com.",
+  "connect_whoop_disabled_desc": "WHOOP connections are currently disabled on Journey.com.",
   "connect_whoop_unavailable_button": "Temporarily unavailable",
   "connect_oura_title": "Connect Oura",
   "connect_oura_subtitle": "Connect your Oura account to sync readiness, sleep, and activity data.",

@@ -55,7 +55,7 @@
   "level_up_new": "新的",
   "level_up_old": "老的",
   "level_up_peak_effort": "20分钟峰值努力值：{value}{unit}",
-  "level_up_sync_note": "更新会同步到 Coach Watts 和 Intervals.icu。请记得手动更新 Garmin Connect 以校准您的手表区间。",
+  "level_up_sync_note": "更新会同步到 Journey Endurance Coaching 和 Intervals.icu。请记得手动更新 Garmin Connect 以校准您的手表区间。",
   "level_up_update_now": "立即更新",
   "map_analysis": "地图分析",
   "metrics_ai_analyzed": "人工智能分析",

@@ -1090,7 +1090,7 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
     if (source === 'AUTOMATIC') {
       const decisionLabel = analysis.recommendation.toUpperCase().replace('_', ' ')
       const pushTitle = "Today's recommendation is ready"
-      const pushBody = `Coach Watts suggests: ${decisionLabel}`
+      const pushBody = `Journey suggests: ${decisionLabel}`
       try {
         const notification = await createUserNotification(userId, {
           title: pushTitle,

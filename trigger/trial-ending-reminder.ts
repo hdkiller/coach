@@ -92,7 +92,7 @@ export const trialEndingReminderCron = schedules.task({
         eventKey: `TRIAL_ENDING_${trialEndKey}`,
         idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
         audience: 'ENGAGEMENT',
-        subject: 'Your Coach Watts performance trial ends soon',
+        subject: 'Your Journey Endurance Coaching performance trial ends soon',
         props: {
           name: user.name || 'Athlete',
           trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),

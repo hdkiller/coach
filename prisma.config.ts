@@ -3,7 +3,10 @@
 import 'dotenv/config'
 import { defineConfig } from 'prisma/config'
 
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy'
+const databaseUrl =
+  process.env.DIRECT_URL ||
+  process.env.DATABASE_URL ||
+  'postgresql://dummy:dummy@localhost:5432/dummy'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',

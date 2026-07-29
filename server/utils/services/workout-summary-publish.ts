@@ -1,7 +1,7 @@
 import { prisma } from '../db'
 import { updateIntervalsActivityDescription } from '../intervals'
 
-export const SUMMARY_BLOCK_HEADER = 'CoachWatts Workout Analysis'
+export const SUMMARY_BLOCK_HEADER = 'Journey Workout Analysis'
 export const SUMMARY_ATTRIBUTION_URL = '🔗 https://CoachWatts.com - AI Endurance Coaching'
 
 const PREVIOUS_SUMMARY_BLOCK_PATTERNS = [

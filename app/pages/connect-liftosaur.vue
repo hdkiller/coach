@@ -51,7 +51,7 @@
               <h3 class="font-medium mb-2">Create an API key</h3>
               <ol class="text-sm text-muted space-y-2">
                 <li>1. Open Liftosaur and go to Settings.</li>
-                <li>2. Open API Keys and create a key for Coach Watts.</li>
+                <li>2. Open API Keys and create a key for Journey Endurance Coaching.</li>
                 <li>3. Copy the key beginning with <code>lftsk_</code> and paste it below.</li>
               </ol>
               <UButton

@@ -128,10 +128,10 @@
 <template>
   <div class="min-h-screen bg-[#09090B] text-zinc-400 selection:bg-primary-500/30">
     <Head>
-      <Title>Design System | Coach Watts</Title>
+      <Title>Design System | Journey Endurance Coaching</Title>
       <Meta
         name="description"
-        content="Coach Watts Design System - Guidelines, assets, and technical specifications."
+        content="Journey Endurance Coaching Design System - Guidelines, assets, and technical specifications."
       />
     </Head>
 
@@ -145,11 +145,15 @@
             <div
               class="p-1 rounded-lg bg-primary-400/10 group-hover:bg-primary-400/20 transition-all duration-300"
             >
-              <img src="/media/logo.webp" alt="Coach Watts" class="h-8 w-8 object-contain" />
+              <img
+                src="/media/logo.webp"
+                alt="Journey Endurance Coaching"
+                class="h-8 w-8 object-contain"
+              />
             </div>
             <div class="flex flex-col">
               <span class="text-white text-lg font-black uppercase tracking-tight leading-none"
-                >Coach Watts</span
+                >Journey Endurance Coaching</span
               >
               <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-500"
                 >Design System</span
@@ -245,8 +249,8 @@
               01. Identity
             </h2>
             <p class="text-lg text-zinc-400 max-w-2xl leading-relaxed">
-              The Coach Watts identity represents precision, power, and human potential. It should
-              be used consistently to maintain professional integrity.
+              The Journey Endurance Coaching identity represents precision, power, and human
+              potential. It should be used consistently to maintain professional integrity.
             </p>
           </div>
 
@@ -548,8 +552,8 @@
                   </div>
                 </div>
                 <div class="text-lg text-zinc-300 leading-relaxed max-w-2xl">
-                  Coach Watts uses advanced biometric data to craft the perfect training block for
-                  your specific physiological profile.
+                  Journey uses advanced biometric data to craft the perfect training block for your
+                  specific physiological profile.
                 </div>
               </div>
 
@@ -605,11 +609,11 @@
                   >
                 </div>
                 <h4 class="text-2xl font-black text-white uppercase mb-6 font-athletic italic">
-                  Coach Watts
+                  Journey Endurance Coaching
                 </h4>
                 <p class="text-sm text-zinc-400 leading-relaxed max-w-sm">
-                  Always use two words. Capitalize both "Coach" and "Watts". Maintain a professional
-                  tone.
+                  Always use the full brand name "Journey Endurance Coaching". Maintain a
+                  professional tone.
                 </p>
               </div>
             </div>

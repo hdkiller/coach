@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs'
+import { promises as fs } from 'node:fs'
 import path from 'path'
 
 defineRouteMeta({
@@ -30,7 +30,6 @@ export default defineEventHandler(async () => {
     const content = await fs.readFile(changelogPath, 'utf-8')
     return { content }
   } catch (error) {
-    // If file doesn't exist yet, return empty content
     return { content: '# Changelog\n\nNo releases yet.' }
   }
 })

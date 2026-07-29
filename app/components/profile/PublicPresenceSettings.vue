@@ -215,7 +215,7 @@
           <UFormField label="Join headline">
             <UInput
               :model-value="coachJoinPage.headline ?? undefined"
-              placeholder="Join Coach Jane inside Coach Watts"
+              placeholder="Join Coach Jane inside Journey Endurance Coaching"
               class="w-full"
               @update:model-value="coachJoinPage.headline = $event ?? null"
             />
@@ -270,7 +270,7 @@
                 :model-value="coachJoinPage.trustNote ?? undefined"
                 :rows="3"
                 class="w-full"
-                placeholder="Clarify what joining under this coach means inside Coach Watts."
+                placeholder="Clarify what joining under this coach means inside Journey Endurance Coaching."
                 @update:model-value="coachJoinPage.trustNote = $event ?? null"
               />
             </UFormField>

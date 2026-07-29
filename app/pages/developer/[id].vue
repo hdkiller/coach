@@ -270,8 +270,8 @@
 
           <div class="space-y-6">
             <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
-              You can push data to Coach Watts using our generic webhook endpoint. We capture the
-              raw request body and associate it with your application.
+              You can push data to Journey Endurance Coaching using our generic webhook endpoint. We
+              capture the raw request body and associate it with your application.
             </p>
 
             <UFormField label="Webhook URL" help="Your unique endpoint for pushing data.">

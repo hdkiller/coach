@@ -53,7 +53,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview>Your Coach Watts account deletion has been scheduled.</EPreview>
+    <EPreview>Your Journey Endurance Coaching account deletion has been scheduled.</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
@@ -95,7 +95,7 @@
               :src="logoUrl"
               width="64"
               height="64"
-              alt="Coach Watts"
+              alt="Journey Endurance Coaching"
               style="margin: 0 auto; border-radius: 12px; display: block"
             />
           </ELink>
@@ -120,8 +120,8 @@
           </EText>
 
           <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 18px">
-            Your Coach Watts account deletion has been scheduled and all active sessions were
-            invalidated.
+            Your Journey Endurance Coaching account deletion has been scheduled and all active
+            sessions were invalidated.
           </EText>
 
           <EContainer
@@ -138,7 +138,7 @@
             </EText>
             <EText style="font-size: 14px; color: #52525b; margin: 0 0 8px">
               <strong style="color: #09090b">Initiated by:</strong>
-              {{ props.initiatedBy === 'admin' ? 'Coach Watts support/admin staff' : 'You' }}
+              {{ props.initiatedBy === 'admin' ? 'Journey support/admin staff' : 'You' }}
             </EText>
             <EText
               v-if="props.initiatedBy === 'admin' && props.actorEmail"
@@ -164,7 +164,7 @@
           style="background-color: #fafafa; padding: 32px 40px; border-top: 1px solid #e4e4e7"
         >
           <EText style="font-size: 14px; font-weight: 600; color: #09090b; margin: 0 0 8px">
-            Coach Watts
+            Journey Endurance Coaching
           </EText>
           <EText style="font-size: 12px; color: #71717a; line-height: 1.6; margin: 0 0 16px">
             Transactional account notice.

@@ -36,7 +36,7 @@ export async function sendTeamInviteEmail(options: {
   const roleLabel = formatRoleLabel(options.role)
   const safeRoleLabel = escapeHtml(roleLabel)
 
-  const subject = `You're invited to join ${teamName} on Coach Watts`
+  const subject = `You're invited to join ${teamName} on Journey Endurance Coaching`
   const html = `
     <div style="font-family: Inter, Arial, sans-serif; color: #111827; line-height: 1.6; max-width: 560px; margin: 0 auto; padding: 24px;">
       <p style="font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #2563eb; margin: 0 0 12px;">
@@ -44,7 +44,7 @@ export async function sendTeamInviteEmail(options: {
       </p>
       <h1 style="font-size: 28px; line-height: 1.1; margin: 0 0 16px;">Join ${safeTeamName}</h1>
       <p style="margin: 0 0 24px; color: #4b5563;">
-        You've been invited to join <strong>${safeTeamName}</strong> as ${safeRoleLabel} inside Coach Watts.
+        You've been invited to join <strong>${safeTeamName}</strong> as ${safeRoleLabel} inside Journey Endurance Coaching.
       </p>
       <p style="margin: 0 0 24px;">
         <a href="${safeJoinUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 700;">
@@ -66,7 +66,7 @@ export async function sendTeamInviteEmail(options: {
     </div>
   `
 
-  const text = `You've been invited to join ${teamName} as ${roleLabel} on Coach Watts.\n\nAccept the invitation: ${options.joinUrl}\n\nInvite code: ${options.code.toUpperCase()}`
+  const text = `You've been invited to join ${teamName} as ${roleLabel} on Journey Endurance Coaching.\n\nAccept the invitation: ${options.joinUrl}\n\nInvite code: ${options.code.toUpperCase()}`
 
   return await sendEmail({
     to: options.to,

@@ -70,7 +70,9 @@
   const requestUrl = useRequestURL()
 
   const seoTitle = computed(() =>
-    event.value ? `${event.value.title} | Coach Watts` : t.value('public_event_label')
+    event.value
+      ? `${event.value.title} | Journey Endurance Coaching`
+      : t.value('public_event_label')
   )
   const seoDescription = computed(() => {
     if (!event.value) return t.value('directory_events_meta_description')

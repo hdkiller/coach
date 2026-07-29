@@ -98,7 +98,7 @@
     meta: [
       {
         name: 'description',
-        content: 'Explore the latest features and improvements in Coach Watts.'
+        content: 'Explore the latest features and improvements in Journey Endurance Coaching.'
       }
     ]
   })

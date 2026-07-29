@@ -394,7 +394,7 @@ export async function runGenerateDailyCheckin(payload: GenerateDailyCheckinPaylo
       futureWorkouts.map((w) => ({ date: w.date, tss: w.tss }))
     )
 
-    let prompt = `You are Coach Watts generating a Daily Check-in for an athlete.
+    let prompt = `You are Journey, the AI coaching assistant, generating a Daily Check-in for an athlete.
 
 ATHLETE CONTEXT:
 - Persona: ${aiSettings.aiPersona}

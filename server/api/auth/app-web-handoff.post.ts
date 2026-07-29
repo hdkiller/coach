@@ -11,7 +11,7 @@ defineRouteMeta({
     tags: ['Auth'],
     summary: 'Mint app→web session handoff',
     description:
-      'Bearer-authenticated mint of a one-time code that opens a Coach Watts web cookie session.',
+      'Bearer-authenticated mint of a one-time code that opens a Journey Endurance Coaching web cookie session.',
     responses: {
       200: {
         description: 'Handoff URL ready to open in the system browser',

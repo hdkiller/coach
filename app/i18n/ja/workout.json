@@ -55,7 +55,7 @@
   "level_up_new": "新しい",
   "level_up_old": "古い",
   "level_up_peak_effort": "20分間のピークの努力: {value}{unit}",
-  "level_up_sync_note": "アップデートはCoach WattsとIntervals.icuと同期されます。ウォッチゾーンを合わせるには、Garmin Connectを手動でアップデートすることを忘れないでください。",
+  "level_up_sync_note": "アップデートはJourney Endurance CoachingとIntervals.icuと同期されます。ウォッチゾーンを合わせるには、Garmin Connectを手動でアップデートすることを忘れないでください。",
   "level_up_update_now": "今すぐアップデート",
   "map_analysis": "マップ分析",
   "metrics_ai_analyzed": "AI分析",

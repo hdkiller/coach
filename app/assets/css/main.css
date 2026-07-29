@@ -11,17 +11,83 @@
 
   --radius-xs: 0.0625rem;
 
-  --color-green-50: #effdf5;
-  --color-green-100: #d9fbe8;
-  --color-green-200: #b3f5d1;
-  --color-green-300: #75edae;
-  --color-green-400: #00dc82;
-  --color-green-500: #00c16a;
-  --color-green-600: #00a155;
-  --color-green-700: #007f45;
-  --color-green-800: #016538;
-  --color-green-900: #0a5331;
-  --color-green-950: #052e16;
+  /* Journey Endurance Semantic Palette */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-alt-bg: var(--brand-alt-bg);
+
+  --color-utility-text-primary: var(--utility-text-primary);
+  --color-utility-text-secondary: var(--utility-text-secondary);
+  --color-utility-bg-primary: var(--utility-bg-primary);
+  --color-utility-bg-secondary: var(--utility-bg-secondary);
+
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-accent-4: var(--accent-4);
+
+  --color-semantic-success: var(--semantic-success);
+  --color-semantic-error: var(--semantic-error);
+  --color-semantic-warning: var(--semantic-warning);
+  --color-semantic-info: var(--semantic-info);
+
+  --color-depth-subtle-bg: var(--depth-subtle-bg);
+  --color-depth-supporting: var(--depth-supporting);
+}
+
+@layer base {
+  :root {
+    /* Light Mode (Classic) */
+    --brand-primary: #0091ea;
+    --brand-secondary: #b3e5fc;
+    --brand-tertiary: #ee6c4d;
+    --brand-alt-bg: #f0f4f8;
+
+    --utility-text-primary: #102a43;
+    --utility-text-secondary: #627d98;
+    --utility-bg-primary: #ffffff;
+    --utility-bg-secondary: #f5f7fa;
+
+    --accent-1: #7f8c8d;
+    --accent-2: #5fa8d3;
+    --accent-3: #7b5e4b;
+    --accent-4: #8d99ae;
+
+    --semantic-success: #26c6da;
+    --semantic-error: #f44336;
+    --semantic-warning: #ffc107;
+    --semantic-info: #e0f7fa;
+
+    --depth-subtle-bg: #f9fafb;
+    --depth-supporting: #62b6cb;
+  }
+
+  .dark {
+    /* Dark Mode (AETHER) */
+    --brand-primary: #00b0ff;
+    --brand-secondary: #0077b6;
+    --brand-tertiary: #ffb74d;
+    --brand-alt-bg: #1c2541;
+
+    --utility-text-primary: #e0e1dd;
+    --utility-text-secondary: #9aa5b1;
+    --utility-bg-primary: #0b132b;
+    --utility-bg-secondary: #102a43;
+
+    --accent-1: #bdc3c7;
+    --accent-2: #1b4965;
+    --accent-3: #b08968;
+    --accent-4: #2b2d42;
+
+    --semantic-success: #26c6da;
+    --semantic-error: #f44336;
+    --semantic-warning: #ffc107;
+    --semantic-info: #e0f7fa;
+
+    --depth-subtle-bg: #415a77;
+    --depth-supporting: #62b6cb;
+  }
 }
 
 @utility no-scrollbar {
@@ -165,8 +231,12 @@ a[href],
   padding: 14px 18px !important;
   border-radius: 18px !important;
   border-bottom-left-radius: 4px !important;
-  background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%) !important;
-  box-shadow: 0 1px 3px rgba(0, 220, 130, 0.15) !important;
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-secondary) 100%
+  ) !important;
+  box-shadow: 0 1px 3px rgba(0, 145, 234, 0.15) !important;
 }
 
 .vac-message-box-author .vac-text-message-content {
@@ -239,7 +309,11 @@ a[href],
 
 /* Dark Mode Adjustments */
 .dark .vac-message-box-author .vac-message-card {
-  background: linear-gradient(135deg, #00c16a 0%, #00a155 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--brand-secondary) 0%,
+    var(--brand-primary) 100%
+  ) !important;
 }
 
 .dark .vac-text-message-content strong {

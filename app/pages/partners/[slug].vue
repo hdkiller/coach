@@ -298,7 +298,7 @@
   })
 
   useSeoMeta({
-    title: () => `${headline.value} | Coach Watts`,
+    title: () => `${headline.value} | Journey Endurance Coaching`,
     description: () => benefitCopy.value || t.value('meta_partner_fallback'),
     robots: 'noindex, nofollow'
   })

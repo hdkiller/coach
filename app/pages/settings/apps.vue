@@ -83,13 +83,18 @@
     <div>
       <div>
         <h2 class="text-2xl font-bold">
-          {{ tr('apps_available_header', 'Applications that can connect to Coach Watts') }}
+          {{
+            tr(
+              'apps_available_header',
+              'Applications that can connect to Journey Endurance Coaching'
+            )
+          }}
         </h2>
         <p class="text-neutral-500">
           {{
             tr(
               'apps_available_description',
-              'Discover third-party applications that can access your Coach Watts account.'
+              'Discover third-party applications that can access your Journey Endurance Coaching account.'
             )
           }}
         </p>
@@ -218,7 +223,7 @@
       :description="
         tr(
           'apps_revoke_description',
-          'Revoke the authorization for this application to access your Coach Watts data.'
+          'Revoke the authorization for this application to access your Journey Endurance Coaching data.'
         )
       "
     >

@@ -114,7 +114,7 @@
             <UAvatar
               v-if="message.role === 'assistant'"
               src="/media/logo.webp"
-              alt="Coach Watts"
+              alt="Journey Endurance Coaching"
               size="sm"
               class="flex-shrink-0 mt-1"
             />

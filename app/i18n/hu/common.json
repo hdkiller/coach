@@ -3,19 +3,19 @@
   "banner_exit": "Kilépés",
   "coaching_banner_active": "Megtekintés mint {name}",
   "cta": {
-    "description": "Csatlakozz az állóképességi sportolókhoz, akik a Coach Watts segítségével edzenek okosabban, és minden nap tudatosabban tervezik meg az energia-utánpótlásukat.",
+    "description": "Csatlakozz az állóképességi sportolókhoz, akik a Journey Endurance Coaching segítségével edzenek okosabban, és minden nap tudatosabban tervezik meg az energia-utánpótlásukat.",
     "headline": "Készen állsz okosabban edzeni?",
     "primary": "Kezdj el ingyen",
     "secondary": "Sikertörténetek olvasása"
   },
-  "cta_description": "Csatlakozz az állóképességi atlétákhoz, akik a Coach Watts-t használják az okosabb edzéshez és a magabiztos feltöltéshez minden nap.",
+  "cta_description": "Csatlakozz az állóképességi atlétákhoz, akik a Journey Endurance Coaching-t használják az okosabb edzéshez és a magabiztos feltöltéshez minden nap.",
   "cta_headline": "Készen állsz a csúcsra?",
   "cta_primary": "Kezdj el ingyen",
   "cta_secondary": "Sikertörténetek olvasása",
   "footer": {
     "architecture": "Architektúra",
     "cookies": "Sütik",
-    "copyright": "© 2026 Coach Watts. Minden jog fenntartva.",
+    "copyright": "© 2026 Journey Endurance Coaching. Minden jog fenntartva.",
     "docs": "Dokumentáció",
     "events": "Események",
     "features": "Funkciók",
@@ -31,7 +31,7 @@
   },
   "footer_architecture": "Architektúra",
   "footer_cookies": "Sütik",
-  "footer_copyright": "© 2026 Coach Watts. Minden jog fenntartva.",
+  "footer_copyright": "© 2026 Journey Endurance Coaching. Minden jog fenntartva.",
   "footer_docs": "Dokumentáció",
   "footer_features": "Funkciók",
   "footer_legal": "Jogi",
@@ -88,8 +88,8 @@
   },
   "seo": {
     "home_title": "AI-alapú állóképességi edzés",
-    "home_og_title": "Coach Watts – AI-alapú állóképességi edzés",
-    "home_description": "A Coach Watts személyre szabott AI-edzőként segít összehangolni az edzést, a regenerációt és az energia-utánpótlást."
+    "home_og_title": "Journey Endurance Coaching – AI-alapú állóképességi edzés",
+    "home_description": "A Journey Endurance Coaching személyre szabott AI-edzőként segít összehangolni az edzést, a regenerációt és az energia-utánpótlást."
   },
   "nav_get_started": "Kezdés",
   "nav_how_it_works": "Hogyan Működik",

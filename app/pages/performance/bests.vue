@@ -56,11 +56,11 @@
   })
 
   useHead({
-    title: 'Personal Bests | Coach Watts',
+    title: 'Personal Bests | Journey Endurance Coaching',
     meta: [
       {
         name: 'description',
-        content: 'View your all-time records and peak performances detected by Coach Watts.'
+        content: 'View your all-time records and peak performances detected by Journey.'
       }
     ]
   })

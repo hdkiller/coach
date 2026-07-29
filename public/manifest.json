@@ -1,7 +1,7 @@
 {
-  "name": "Coach Watts",
-  "short_name": "Coach Watts",
-  "description": "AI-powered endurance coaching platform that adapts to your training.",
+  "name": "Journey Endurance Coaching",
+  "short_name": "Journey",
+  "description": "AI-powered endurance and multisport coaching platform — personalized training, nutrition, and recovery.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

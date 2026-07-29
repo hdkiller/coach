@@ -1159,10 +1159,15 @@
       class="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 print:hidden"
       :ui="{ footer: 'lg:border-t lg:border-default', body: 'flex min-h-0 flex-col' }"
       :title="navLabel('navigation_sidebar_title', 'Navigation')"
-      :description="navLabel('navigation_sidebar_description', 'Browse Coach Watts destinations')"
+      :description="
+        navLabel('navigation_sidebar_description', 'Browse Journey Endurance Coaching destinations')
+      "
       :menu="{
         title: navLabel('navigation_sidebar_title', 'Navigation'),
-        description: navLabel('navigation_sidebar_description', 'Browse Coach Watts destinations')
+        description: navLabel(
+          'navigation_sidebar_description',
+          'Browse Journey Endurance Coaching destinations'
+        )
       }"
     >
       <template #header="{ collapsed }">
@@ -1174,10 +1179,15 @@
           <img
             v-if="!collapsed"
             src="/media/coach_watts_text_cropped.webp"
-            alt="Coach Watts"
+            alt="Journey Endurance Coaching"
             class="h-8 lg:h-10 w-auto object-contain"
           />
-          <img v-else src="/media/logo.webp" alt="Coach Watts" class="size-12 object-contain" />
+          <img
+            v-else
+            src="/media/logo.webp"
+            alt="Journey Endurance Coaching"
+            class="size-12 object-contain"
+          />
         </NuxtLink>
       </template>
 

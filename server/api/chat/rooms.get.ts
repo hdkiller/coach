@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
   if (rooms.length === 0) {
     const aiRoom = await prisma.chatRoom.create({
       data: {
-        name: 'Coach Watts',
+        name: 'Journey',
         avatar: '/media/logo.webp',
         lastMessageAt: new Date(),
         users: {
@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
     },
     {
       _id: 'ai_agent',
-      username: 'Coach Watts',
+      username: 'Journey',
       avatar: '/media/logo.webp',
       status: {
         state: 'online',
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
         ? {
             content: lastMessage.content,
             senderId: lastMessage.senderId,
-            username: lastMessage.senderId === 'ai_agent' ? 'Coach Watts' : 'Me',
+            username: lastMessage.senderId === 'ai_agent' ? 'Journey' : 'Me',
             timestamp: new Date(lastMessage.createdAt).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit'

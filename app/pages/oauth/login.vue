@@ -10,7 +10,11 @@
         <!-- App Identity -->
         <div class="flex flex-col items-center gap-4 text-center">
           <div class="flex items-center gap-3">
-            <img src="/media/logo.webp" alt="Coach Watts" class="size-10 object-contain" />
+            <img
+              src="/media/logo.webp"
+              alt="Journey Endurance Coaching"
+              class="size-10 object-contain"
+            />
             <UIcon name="i-heroicons-plus" class="text-gray-400 w-4 h-4" />
             <UAvatar
               :src="app?.logoUrl || undefined"
@@ -20,7 +24,9 @@
             />
           </div>
           <div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Sign in to Coach Watts</h1>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+              Sign in to Journey Endurance Coaching
+            </h1>
             <p v-if="app" class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
               to continue to
               <span class="text-gray-900 dark:text-white font-bold">{{ app.name }}</span>
@@ -147,7 +153,7 @@
         <p
           class="text-[10px] text-gray-400 dark:text-gray-500 text-center font-medium leading-relaxed"
         >
-          By continuing, you allow Coach Watts to share your identity with
+          By continuing, you allow Journey Endurance Coaching to share your identity with
           {{ app?.name || 'this application' }}.
         </p>
       </div>
@@ -243,11 +249,11 @@
   })
 
   useHead({
-    title: 'Sign in - Coach Watts',
+    title: 'Sign in - Journey Endurance Coaching',
     meta: [
       {
         name: 'description',
-        content: 'Sign in to your Coach Watts account to authorize an application.'
+        content: 'Sign in to your Journey Endurance Coaching account to authorize an application.'
       }
     ]
   })

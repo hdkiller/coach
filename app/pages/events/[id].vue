@@ -404,7 +404,7 @@
       return { title: 'Event Details' }
     }
     return {
-      title: `${event.value.title} | Coach Watts`,
+      title: `${event.value.title} | Journey Endurance Coaching`,
       meta: [{ name: 'description', content: `Details for ${event.value.title}` }]
     }
   })

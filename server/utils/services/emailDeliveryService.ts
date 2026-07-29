@@ -53,7 +53,9 @@ export const EmailDeliveryService = {
 
     try {
       const from =
-        delivery.fromEmail || process.env.MAIL_FROM_ADDRESS || 'Coach Watts <onboarding@resend.dev>'
+        delivery.fromEmail ||
+        process.env.MAIL_FROM_ADDRESS ||
+        'Journey Endurance Coaching <onboarding@resend.dev>'
 
       const response = await resend.emails.send({
         from,

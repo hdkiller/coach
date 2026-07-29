@@ -147,7 +147,7 @@
       {
         name: 'description',
         content:
-          'Coach Watts Cookie Policy. Learn about how Watt Mind Kft. uses cookies to improve your experience and how you can manage them.'
+          'Journey Endurance Coaching Cookie Policy. Learn about how Watt Mind Kft. uses cookies to improve your experience and how you can manage them.'
       }
     ]
   })

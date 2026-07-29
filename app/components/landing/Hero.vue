@@ -63,7 +63,7 @@
             <div class="aspect-[16/10] w-full overflow-hidden">
               <div class="flex h-12 items-center justify-between border-b border-white/8 px-5">
                 <span class="text-xs font-bold uppercase tracking-[0.2em] text-gray-500"
-                  >Coach Watts</span
+                  >Journey</span
                 >
                 <span
                   class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-400"

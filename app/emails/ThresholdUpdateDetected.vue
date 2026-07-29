@@ -94,7 +94,7 @@
               :src="logoUrl"
               width="64"
               height="64"
-              alt="Coach Watts"
+              alt="Journey Endurance Coaching"
               style="margin: 0 auto; border-radius: 12px; display: block"
             />
           </ELink>
@@ -121,7 +121,7 @@
 
           <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 24px">
             Based on your performance in <strong style="color: #09090b">{{ workoutTitle }}</strong
-            >, Coach Watts has detected an improvement in your
+            >, Journey has detected an improvement in your
             <strong>{{ sportProfileName ? `${sportProfileName} ` : '' }}{{ metricLabel }}</strong
             >.
           </EText>
@@ -254,7 +254,7 @@
           style="background-color: #fafafa; padding: 32px 40px; border-top: 1px solid #e4e4e7"
         >
           <EText style="font-size: 14px; font-weight: 600; color: #09090b; margin: 0 0 8px">
-            Coach Watts
+            Journey Endurance Coaching
           </EText>
           <EText style="font-size: 12px; color: #71717a; line-height: 1.6; margin: 0 0 16px">
             AI-powered endurance coaching that adapts to you.

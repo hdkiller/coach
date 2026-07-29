@@ -43,7 +43,7 @@ export function buildCoachWattsProtectedResourceMetadata(
   return buildOAuthProtectedResourceMetadata({
     oauthMetadata: buildCoachWattsOAuthMetadata(siteUrl, options),
     resourceServerUrl,
-    resourceName: 'Coach Watts MCP',
+    resourceName: 'Journey Endurance Coaching MCP',
     serviceDocumentationUrl: new URL('/docs/developer/scopes', siteUrl),
     scopesSupported: [...MCP_OAUTH_SCOPES]
   })

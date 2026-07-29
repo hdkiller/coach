@@ -277,7 +277,7 @@
               >
                 <img
                   src="/media/logo_square.webp"
-                  alt="Coach Watts"
+                  alt="Journey Endurance Coaching"
                   class="h-full w-full object-contain"
                 />
               </div>

@@ -3,19 +3,19 @@
   "banner_exit": "Exit",
   "coaching_banner_active": "Viewing as {name}",
   "cta": {
-    "description": "Join endurance athletes using Coach Watts to train smarter and fuel with confidence every day.",
+    "description": "Join endurance athletes using Journey Endurance Coaching to train smarter and fuel with confidence every day.",
     "headline": "Ready to reach your peak?",
     "primary": "Get Started for Free",
     "secondary": "Read Success Stories"
   },
-  "cta_description": "Join endurance athletes using Coach Watts to train smarter and fuel with confidence every day.",
+  "cta_description": "Join endurance athletes using Journey Endurance Coaching to train smarter and fuel with confidence every day.",
   "cta_headline": "Ready to reach your peak?",
   "cta_primary": "Get Started for Free",
   "cta_secondary": "Read Success Stories",
   "footer": {
     "architecture": "Architecture",
     "cookies": "Cookies",
-    "copyright": "© 2026 Coach Watts. All rights reserved.",
+    "copyright": "© 2026 Journey Endurance Coaching. All rights reserved.",
     "docs": "Docs",
     "events": "Events",
     "features": "Features",
@@ -31,7 +31,7 @@
   },
   "footer_architecture": "Architecture",
   "footer_cookies": "Cookies",
-  "footer_copyright": "© 2026 Coach Watts. All rights reserved.",
+  "footer_copyright": "© 2026 Journey Endurance Coaching. All rights reserved.",
   "footer_docs": "Docs",
   "footer_features": "Features",
   "footer_legal": "Legal",
@@ -141,8 +141,8 @@
   },
   "seo": {
     "home_title": "AI Endurance Coaching",
-    "home_og_title": "Coach Watts - AI Endurance Coaching",
-    "home_description": "Coach Watts is your AI-powered endurance coach. Optimize training, recovery, and glycogen-aware fueling with personalized daily guidance."
+    "home_og_title": "Journey Endurance Coaching - AI Endurance Coaching",
+    "home_description": "Journey Endurance Coaching is your AI-powered endurance coach. Optimize training, recovery, and glycogen-aware fueling with personalized daily guidance."
   },
   "nav_dashboard": "Dashboard",
   "nav_get_started": "Get Started",
@@ -237,7 +237,7 @@
   "sidebar_attribution_garmin": "Works with Garmin",
   "navigation_search_morning_routine": "Morning Routine",
   "navigation_sidebar_title": "Navigation",
-  "navigation_sidebar_description": "Browse Coach Watts destinations",
+  "navigation_sidebar_description": "Browse Journey Endurance Coaching destinations",
   "navigation_search_title": "Search",
   "navigation_search_description": "Search pages, workouts, and shortcuts",
   "navigation_search_nutrition_history": "Nutrition: History",

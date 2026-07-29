@@ -816,7 +816,7 @@
         content:
           'Detailed analysis of your athletic performance, including FTP evolution, training load, nutrition quality, and workout execution.'
       },
-      { property: 'og:title', content: 'Performance Scores | Coach Watts' },
+      { property: 'og:title', content: 'Performance Scores | Journey Endurance Coaching' },
       {
         property: 'og:description',
         content:

@@ -81,7 +81,10 @@
       {
         name: 'description',
         content: () =>
-          tr('meta_description', 'Coach Watts system-wide statistics and AI cost analysis.')
+          tr(
+            'meta_description',
+            'Journey Endurance Coaching system-wide statistics and AI cost analysis.'
+          )
       }
     ]
   })

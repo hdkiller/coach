@@ -35,7 +35,7 @@ export const sendEmail = async (options: SendEmailOptions) => {
     options.from ||
     process.env.MAIL_FROM_ADDRESS ||
     process.env.EMAIL_FROM ||
-    'Coach Watts <onboarding@resend.dev>'
+    'Journey Endurance Coaching <onboarding@resend.dev>'
 
   const response = await resend.emails.send({
     from,

@@ -194,7 +194,7 @@
   <UModal
     v-model:open="showAdjustModal"
     title="Adjust Workout Structure"
-    description="Tell Coach Watts how you want this structure updated."
+    description="Tell Journey how you want this structure updated."
   >
     <template #body>
       <div class="p-6 flex flex-col gap-5">

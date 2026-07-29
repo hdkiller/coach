@@ -464,7 +464,7 @@
       buildTicketClipboardText(),
       '',
       'Task',
-      'Investigate this ticket, write both an internal resolution note and a user-facing reply with the Coach Watts CLI, then resolve the ticket.',
+      'Investigate this ticket, write both an internal resolution note and a user-facing reply with the Journey CLI, then resolve the ticket.',
       '',
       'Required support workflow',
       `1. Inspect the ticket with: pnpm cw:cli support tickets get ${report.value.id} --prod`,

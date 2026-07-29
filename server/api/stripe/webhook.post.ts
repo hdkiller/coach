@@ -104,7 +104,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription, event
           templateKey: 'SubscriptionStarted',
           eventKey: `SUBSCRIPTION_STARTED_${tier}`,
           audience: 'TRANSACTIONAL',
-          subject: `Welcome to Coach Watts ${tier}!`,
+          subject: `Welcome to Journey Endurance Coaching ${tier}!`,
           props: {
             name: user.name || 'Athlete',
             tier,

@@ -62,7 +62,12 @@
 
   useHead({
     title: 'User Management',
-    meta: [{ name: 'description', content: 'Coach Watts user administration and management.' }]
+    meta: [
+      {
+        name: 'description',
+        content: 'Journey Endurance Coaching user administration and management.'
+      }
+    ]
   })
 </script>
 

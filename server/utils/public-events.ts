@@ -245,7 +245,7 @@ export async function joinPublicEventAsGoal(
           priority: existingGoal.priority,
           phase: existingGoal.phase
         },
-        message: 'Already in your Coach Watts goals'
+        message: 'Already in your Journey goals'
       }
     }
 
@@ -256,7 +256,7 @@ export async function joinPublicEventAsGoal(
         title: publicEvent.title,
         description:
           publicEvent.description ||
-          `Training preparation for ${publicEvent.title}. This is a Coach Watts training goal, not official race registration.`,
+          `Training preparation for ${publicEvent.title}. This is a Journey Endurance Coaching training goal, not official race registration.`,
         targetDate: publicEvent.date,
         priority,
         phase,
@@ -278,7 +278,7 @@ export async function joinPublicEventAsGoal(
         priority: goal.priority,
         phase: goal.phase
       },
-      message: 'Event added to your Coach Watts training goals'
+      message: 'Event added to your Journey training goals'
     }
   })
 }

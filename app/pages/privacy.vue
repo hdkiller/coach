@@ -19,7 +19,8 @@
             1. Introduction
           </h3>
           <p>
-            Welcome to Coach Watts ("we," "our," or "us"). This service is operated by
+            Welcome to Journey Endurance Coaching ("we," "our," or "us"). This service is operated
+            by
             <strong>Watt Mind Kft.</strong>, a company headquartered in Gödöllő, Hungary. We are
             committed to protecting the privacy of your personal and physiological information. This
             Privacy Policy explains how we collect, use, and safeguard your data when you use our
@@ -359,7 +360,7 @@
       {
         name: 'description',
         content:
-          'Coach Watts Privacy Policy. How Watt Mind Kft. collects, uses, and protects your personal fitness and health data.'
+          'Journey Endurance Coaching Privacy Policy. How Watt Mind Kft. collects, uses, and protects your personal fitness and health data.'
       }
     ]
   })

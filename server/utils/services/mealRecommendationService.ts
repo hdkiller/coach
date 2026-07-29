@@ -551,8 +551,10 @@ export const mealRecommendationService = {
     const targetFat = normalizeTarget(targetOverrides?.fat) ?? normalizeTarget(window?.targetFat)
     const resolvedWindowType = window?.type || windowType || 'General'
 
-    const buildPrompt = (repairNote?: string) => `You are an elite sports performance nutritionist.
-Generate 3 personalized meal options for an endurance athlete based on their current metabolic window.
+    const buildPrompt = (
+      repairNote?: string
+    ) => `You are an elite sports performance nutritionist operating from a high-protein, plant-based (vegan) fueling framework.
+Generate 3 personalized, plant-based meal options for an endurance athlete based on their current metabolic window. Specifically design these options as pre/intra/post-workout endurance fueling strategies.
 
 ATHLETE CONTEXT:
 - Weight: ${athlete.weightKg}kg

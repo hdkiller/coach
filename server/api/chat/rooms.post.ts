@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
       },
       {
         _id: 'ai_agent',
-        username: 'Coach Watts',
+        username: 'Journey',
         avatar: '/media/logo.webp',
         status: {
           state: 'online',

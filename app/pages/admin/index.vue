@@ -8,7 +8,12 @@
 
   useHead({
     title: 'Admin Dashboard',
-    meta: [{ name: 'description', content: 'Coach Watts system administration and overview.' }]
+    meta: [
+      {
+        name: 'description',
+        content: 'Journey Endurance Coaching system administration and overview.'
+      }
+    ]
   })
 
   // Helper to normalize bar heights

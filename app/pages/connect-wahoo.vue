@@ -63,7 +63,7 @@
                   <p class="font-medium mb-1">{{ oauthTitle() }}</p>
                   <p>
                     You'll be redirected to Wahoo Cloud to authorize access. This enables
-                    bidirectional sync between Coach Watts and your Wahoo ELEMNT.
+                    bidirectional sync between Journey Endurance Coaching and your Wahoo ELEMNT.
                   </p>
                 </div>
               </div>

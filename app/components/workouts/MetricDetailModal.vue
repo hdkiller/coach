@@ -124,7 +124,7 @@
             <p class="text-[11px] italic text-gray-500 dark:text-gray-400">
               <span
                 class="font-black uppercase tracking-widest not-italic mr-1 text-[9px] text-gray-400"
-                >Coach Watts:</span
+                >Journey:</span
               >
               {{ metricInfo.coachingTip }}
             </p>

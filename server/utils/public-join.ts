@@ -14,19 +14,19 @@ export function buildResolvedCoachJoinPage(profile: any) {
       joinPage.headline || `Join ${settings.displayName || settings.coachingBrand || 'this coach'}`,
     intro:
       joinPage.intro ||
-      'Create your account or log in to connect with this coach inside Coach Watts.',
+      'Create your account or log in to connect with this coach inside Journey Endurance Coaching.',
     ctaLabel: joinPage.ctaLabel || 'Join this coach',
     welcomeTitle: joinPage.welcomeTitle || 'What joining means',
     welcomeBody:
       joinPage.welcomeBody ||
-      'You are joining this coach inside Coach Watts so your communication, plans, and training context all stay connected.',
+      'You are joining this coach inside Journey Endurance Coaching so your communication, plans, and training context all stay connected.',
     trustTitle: joinPage.trustTitle || 'Why join with confidence',
     trustNote:
       joinPage.trustNote ||
-      'You will join under this coach inside Coach Watts and continue from there.',
+      'You will join under this coach inside Journey Endurance Coaching and continue from there.',
     unavailableMessage:
       joinPage.unavailableMessage ||
-      'This coach does not have an active public join link right now. You can still create your account on Coach Watts and join later.',
+      'This coach does not have an active public join link right now. You can still create your account on Journey Endurance Coaching and join later.',
     steps: Array.isArray(joinPage.steps) ? joinPage.steps : [],
     faq: Array.isArray(joinPage.faq) ? joinPage.faq : []
   }

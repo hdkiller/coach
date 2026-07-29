@@ -470,7 +470,7 @@
             </p>
             <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
               Facebook groups, WhatsApp communities, website CTAs, and onboarding posts for athletes
-              who already use Coach Watts.
+              who already use Journey Endurance Coaching.
             </p>
           </div>
         </div>

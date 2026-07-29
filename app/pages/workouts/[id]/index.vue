@@ -3530,7 +3530,9 @@
         :expiry-value="shareExpiryValue"
         resource-label="workout"
         :share-title="
-          workout?.title ? `Workout: ${workout.title}` : 'Workout shared from Coach Watts'
+          workout?.title
+            ? `Workout: ${workout.title}`
+            : 'Workout shared from Journey Endurance Coaching'
         "
         @update:expiry-value="shareExpiryValue = $event"
         @generate="generateShareLink"

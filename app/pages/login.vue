@@ -9,7 +9,9 @@
         <aside
           class="relative hidden flex-col justify-center border-r border-white/8 p-10 lg:col-span-5 lg:flex lg:p-12"
         >
-          <p class="text-xs font-bold uppercase tracking-widest text-primary-400">Coach Watts</p>
+          <p class="text-xs font-bold uppercase tracking-widest text-primary-400">
+            Journey Endurance Coaching
+          </p>
           <h2
             class="font-athletic mt-6 text-3xl font-bold uppercase leading-[0.95] tracking-tight text-white"
           >

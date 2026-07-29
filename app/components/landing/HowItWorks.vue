@@ -151,7 +151,7 @@
                 <div class="mb-2 flex items-center gap-2">
                   <span class="h-1.5 w-1.5 rounded-full bg-primary-500" />
                   <span class="text-xs font-bold uppercase tracking-widest text-slate-500"
-                    >Coach Watts</span
+                    >Journey</span
                   >
                 </div>
                 <p class="text-sm font-medium leading-snug text-gray-200">
