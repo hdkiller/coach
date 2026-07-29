@@ -23,6 +23,33 @@ export interface FitData {
 }
 
 /**
+ * Produce an ArrayBuffer for fit-file-parser without an unnecessary full copy.
+ *
+ * fit-file-parser only skips its internal copy when given an ArrayBuffer; for
+ * Buffer/Uint8Array inputs it allocates a new ArrayBuffer and copies every byte.
+ * Large FIT downloads typically own their underlying ArrayBuffer
+ * (byteOffset === 0 and byteLength === buffer.byteLength), so we can pass that
+ * through with zero extra allocation.
+ *
+ * Node's small-buffer pool (and other TypedArray views) may expose a larger
+ * underlying ArrayBuffer with a non-zero byteOffset. In that case a slice copy
+ * is required so the parser — which wraps the whole ArrayBuffer — does not read
+ * adjacent unrelated bytes. That copy is intentionally kept as ArrayBuffer
+ * (not Buffer) so fit-file-parser does not copy a second time.
+ */
+export function toFitParserArrayBuffer(buffer: Buffer): ArrayBuffer {
+  const { buffer: arrayBuffer, byteOffset, byteLength } = buffer
+  if (
+    byteOffset === 0 &&
+    byteLength === arrayBuffer.byteLength &&
+    arrayBuffer instanceof ArrayBuffer
+  ) {
+    return arrayBuffer
+  }
+  return arrayBuffer.slice(byteOffset, byteOffset + byteLength)
+}
+
+/**
  * Parse a FIT file buffer into a structured object
  */
 export function parseFitFile(buffer: Buffer): Promise<FitData> {
@@ -36,9 +63,10 @@ export function parseFitFile(buffer: Buffer): Promise<FitData> {
       mode: 'list'
     })
 
-    const cleanBuffer = Buffer.isBuffer(buffer)
-      ? buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
-      : buffer
+    // Prefer the Buffer's underlying ArrayBuffer when it already owns the full
+    // byte range (no slice). Only copy when the Buffer is a view into a larger
+    // slab — see toFitParserArrayBuffer.
+    const cleanBuffer = toFitParserArrayBuffer(buffer)
 
     fitParser.parse(cleanBuffer as any, (error: any, data: any) => {
       if (error) {
