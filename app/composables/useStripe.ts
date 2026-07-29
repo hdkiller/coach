@@ -1,3 +1,11 @@
+/** Prefer server body message (e.g. store-subscriber 409) over ofetch's generic status text. */
+function stripeFetchErrorMessage(
+  error: { data?: { message?: string }; message?: string } | null | undefined,
+  fallback: string
+) {
+  return error?.data?.message || error?.message || fallback
+}
+
 export function useStripe() {
   const toast = useToast()
   const fetchAny = useFetch as any
@@ -23,7 +31,7 @@ export function useStripe() {
       })
 
       if (error.value) {
-        throw new Error(error.value.message || 'Failed to create checkout session')
+        throw new Error(stripeFetchErrorMessage(error.value, 'Failed to create checkout session'))
       }
 
       if (data.value?.url) {
@@ -55,7 +63,7 @@ export function useStripe() {
       })
 
       if (error.value) {
-        throw new Error(error.value.message || 'Failed to create portal session')
+        throw new Error(stripeFetchErrorMessage(error.value, 'Failed to create portal session'))
       }
 
       if (data.value?.url) {
@@ -88,7 +96,7 @@ export function useStripe() {
       })
 
       if (error.value) {
-        throw new Error(error.value.message || `Failed to ${direction} subscription`)
+        throw new Error(stripeFetchErrorMessage(error.value, `Failed to ${direction} subscription`))
       }
 
       if (data.value?.status === 'requires_action') {
