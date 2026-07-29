@@ -19,9 +19,9 @@
     unsubscribeUrl?: string
     utmQuery?: string
   }>()
-  const siteUrl = 'https://coachwatts.com'
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const connectSourceUrl = 'https://coachwatts.com/settings/apps'
+  const siteUrl = 'https://journeyendurance.com'
+  const logoUrl = 'https://journeyendurance.com/icon.png'
+  const connectSourceUrl = 'https://journeyendurance.com/settings/apps'
   const discordUrl = 'https://discord.gg/dPYkzg49T9'
 </script>
 

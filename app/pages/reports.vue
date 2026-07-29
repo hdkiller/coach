@@ -92,7 +92,7 @@
 
   <UDashboardPanel id="reports">
     <template #header>
-      <UDashboardNavbar title="Reports">
+      <UDashboardNavbar title="Multisport Load Tracker">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -124,12 +124,12 @@
         <!-- Dashboard Branding -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Reports
+            Multisport Load Tracker
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            AI Insights & Performance Summaries
+            Journey Performance Analytics & Training Load Summaries
           </p>
         </div>
 

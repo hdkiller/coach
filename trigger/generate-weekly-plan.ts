@@ -662,9 +662,10 @@ INSTRUCTIONS:
 2. **RESPECT LOCKED WORKOUTS**: You MUST include the "LOCKED/ANCHOR WORKOUTS" in your plan on their specific days. Do not schedule conflicting workouts on those days unless it's a multi-session day (e.g. gym + ride). Account for their TSS in the weekly total.
 3. **RESPECT AVAILABILITY**: Do not schedule workouts on days marked as "rest day" or conflicting with time slots unless the User Instructions explicitly override this.
 4. **WORKOUT TYPES**:
-   - USE ONLY: Ride, Run, Gym, Swim, Rest.
+   - USE ONLY: Ride (Cycling), Run (Running), Swim (Triathlon/Swimming), Gym (Hybrid/Strength), Rest.
    - **DO NOT USE**: "Workout", "Active Recovery", or other generic types. Map recovery sessions to a light "Ride" or "Run" or "Rest".
    - "Gym" means strength training.
+   - Ensure the generated workouts highlight the athlete's primary endurance disciplines (running, cycling, triathlon, or hybrid/strength).
 5. **PROGRESSION**:
    - If User Instructions are absent/minimal, aim for progressive overload based on the current phase.
    - Weekly TSS target: ${Math.round(currentWeeklyTSS)} - ${targetMaxTSS} (unless overridden by instructions).

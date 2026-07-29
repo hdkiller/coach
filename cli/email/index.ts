@@ -141,7 +141,7 @@ emailCommand
   .option('--subject <subject>', 'Override email subject')
   .option('--from <email>', 'Sender email (overrides env var)')
   .option('--prod', 'Use DATABASE_URL_PROD instead of default DATABASE_URL')
-  .option('--site-url <url>', 'Workout link base URL', 'https://coachwatts.com')
+  .option('--site-url <url>', 'Workout link base URL', 'https://journeyendurance.com')
   .action(
     async (options: {
       workoutId: string
@@ -558,10 +558,10 @@ emailCommand
       templateKey: 'Welcome',
       eventKey: 'CLI_TEST',
       audience: 'TRANSACTIONAL',
-      subject: 'Welcome to Coach Watts!',
+      subject: 'Welcome to Journey Endurance Coaching!',
       props: {
         name: user.name || 'Athlete',
-        unsubscribeUrl: 'https://app.coachwatts.com/settings/profile'
+        unsubscribeUrl: 'https://app.journeyendurance.com/settings/profile'
       }
     })
 
@@ -592,7 +592,7 @@ emailCommand
         name: user.name || 'Athlete',
         workoutTitle: 'Threshold Intervals',
         overallScore: 8,
-        unsubscribeUrl: 'https://app.coachwatts.com/settings/profile'
+        unsubscribeUrl: 'https://app.journeyendurance.com/settings/profile'
       }
     })
 
@@ -618,11 +618,11 @@ emailCommand
       templateKey: 'SubscriptionStarted',
       eventKey: 'CLI_TEST_SUBSCRIPTION',
       audience: 'TRANSACTIONAL',
-      subject: 'Welcome to Coach Watts Pro!',
+      subject: 'Welcome to Journey Endurance Coaching Pro!',
       props: {
         name: user.name || 'Athlete',
         tier: 'PRO',
-        unsubscribeUrl: 'https://app.coachwatts.com/settings/profile'
+        unsubscribeUrl: 'https://app.journeyendurance.com/settings/profile'
       }
     })
 
@@ -655,7 +655,7 @@ emailCommand
         recommendation: 'PROCEED',
         reasoning:
           'Your TSB is in the building zone (-15) and your recovery score is excellent (88%). It is a great day for your planned interval session.',
-        unsubscribeUrl: 'https://coachwatts.com/profile/settings?tab=communication'
+        unsubscribeUrl: 'https://journeyendurance.com/profile/settings?tab=communication'
       }
     })
 

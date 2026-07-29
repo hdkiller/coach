@@ -1162,7 +1162,7 @@
     }
   }
 
-  // Open workout modal with AI insights
+  // Open workout modal with Journey Performance Analytics
   async function openWorkoutModal(title: string, score: number | null, color?: string) {
     if (!score) return
 
@@ -1179,7 +1179,7 @@
 
     if (selectedWorkoutTags.value.length > 0) {
       modalData.value.explanation =
-        'Detailed AI insights are currently unavailable for tag-filtered subsets.'
+        'Detailed Journey Performance Analytics are currently unavailable for tag-filtered subsets.'
       return
     }
 

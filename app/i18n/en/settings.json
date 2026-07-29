@@ -201,7 +201,7 @@
   "danger_activities_wipe_desc": "Remove all actual activity data imported from external sources (Strava, Garmin, Intervals.icu, etc.). This is useful for resolving integration conflicts or clearing duplicate activities.",
   "danger_activities_wipe_title": "Wipe Synced Activities",
   "danger_ai_header": "AI Analysis Data",
-  "danger_ai_wipe_desc": "Remove all AI-generated workout analysis, recommendations, and reports. This will not delete your actual workout data, only the AI insights.",
+  "danger_ai_wipe_desc": "Remove all AI-generated workout analysis, recommendations, and reports. This will not delete your actual workout data, only the Journey Performance Analytics.",
   "danger_ai_wipe_title": "Wipe AI Recommendations & Analysis",
   "danger_athlete_header": "Athlete Profile",
   "danger_athlete_wipe_desc": "Remove all AI-generated athlete profiles and clear cached performance scores. This is useful if your scores were calculated using duplicate workout data.",

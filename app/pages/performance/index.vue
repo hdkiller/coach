@@ -1071,7 +1071,7 @@
 
     if (scopeToTags(workoutScope.value).length > 0) {
       modalData.value.explanation =
-        'Detailed AI insights are currently unavailable for tag-filtered subsets.'
+        'Detailed Journey Performance Analytics are currently unavailable for tag-filtered subsets.'
       loadingExplanation.value = false
       return
     }

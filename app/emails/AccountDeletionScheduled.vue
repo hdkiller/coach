@@ -29,9 +29,9 @@
     utmQuery: ''
   })
 
-  const siteUrl = 'https://coachwatts.com'
-  const logoUrl = 'https://coachwatts.com/icon.png'
-  const supportEmail = 'hello@coachwatts.com'
+  const siteUrl = 'https://journeyendurance.com'
+  const logoUrl = 'https://journeyendurance.com/icon.png'
+  const supportEmail = 'hello@journeyendurance.com'
   const formattedRequestedAt = new Date(props.requestedAt).toLocaleString('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',

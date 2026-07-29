@@ -173,7 +173,7 @@
     "e2e:remote:ui": "bash e2e/scripts/ui-remote.sh",
     "e2e:tunnel": "bash e2e/scripts/tunnel-to-mini.sh",
     "e2e:tunnel:stop": "bash e2e/scripts/tunnel-to-mini.sh stop",
-    "build": "prisma generate && nuxt build",
+    "build": "prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=8192 nuxt build",
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=8192 nuxt dev",
     "dev:worker": "tsx watch cli/worker/index.ts start",
     "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",

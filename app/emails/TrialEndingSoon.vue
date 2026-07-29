@@ -24,8 +24,8 @@
     utmQuery?: string
   }>()
 
-  const siteUrl = 'https://coachwatts.com'
-  const logoUrl = 'https://coachwatts.com/icon.png'
+  const siteUrl = 'https://journeyendurance.com'
+  const logoUrl = 'https://journeyendurance.com/icon.png'
 </script>
 
 <template>
