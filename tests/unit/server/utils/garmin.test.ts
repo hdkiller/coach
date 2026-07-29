@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   fetchGarminActivityFile,
+  fetchGarminActivityFileByCallbackUrl,
   fetchGarminData,
   buildGarminTimeSlices,
   ensureValidGarminToken,
+  GarminDownloadTokenExpiredError,
   hasGarminPermission,
+  isGarminDownloadTokenError,
   mergeGarminScopes,
   parseGarminScope,
   refreshGarminToken
@@ -435,5 +438,44 @@ describe('Garmin auth retry', () => {
     expect(fetchMock.mock.calls[2]?.[1]?.headers).toMatchObject({
       Authorization: 'Bearer fresh-token'
     })
+  })
+
+  it('throws GarminDownloadTokenExpiredError for HTTP 400 Invalid download token', async () => {
+    const integration = {
+      id: 'int-file-token',
+      accessToken: 'fresh-token',
+      refreshToken: 'refresh-token',
+      expiresAt: new Date(Date.now() + 3600_000)
+    }
+
+    prismaIntegrationFindUnique.mockResolvedValue(integration)
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: async () => ({ errorMessage: 'Invalid download token' })
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    await expect(
+      fetchGarminActivityFile(integration as any, '23772550387', 'stale')
+    ).rejects.toBeInstanceOf(GarminDownloadTokenExpiredError)
+
+    await expect(
+      fetchGarminActivityFileByCallbackUrl(
+        integration as any,
+        'https://apis.garmin.com/wellness-api/rest/activityFile?id=23772550387&token=stale'
+      )
+    ).rejects.toMatchObject({
+      name: 'GarminDownloadTokenExpiredError',
+      code: 'GARMIN_DOWNLOAD_TOKEN_EXPIRED',
+      statusCode: 400,
+      retryable: true
+    })
+
+    expect(
+      isGarminDownloadTokenError(new Error('Garmin File API error (400): Invalid download token'))
+    ).toBe(true)
   })
 })

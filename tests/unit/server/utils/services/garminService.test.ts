@@ -348,7 +348,11 @@ describe('GarminService activity push stream & file ingestion', () => {
 
   it('downloads FIT file directly and creates workout when activityFiles push arrives out-of-order', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
-    prismaMock.workout = { findFirst: vi.fn().mockResolvedValue(null) } as any
+    prismaMock.workout = {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue({ rawJson: null }),
+      update: vi.fn().mockResolvedValue({})
+    } as any
     prismaMock.fitFile = {
       findUnique: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockResolvedValue({})
@@ -405,6 +409,151 @@ describe('GarminService activity push stream & file ingestion', () => {
       expect.objectContaining({ externalId: '23703759997', source: 'garmin' }),
       expect.objectContaining({ externalId: '23703759997', source: 'garmin' })
     )
+
+    vi.restoreAllMocks()
+  })
+
+  it('marks file ingestion expired and requests backfill when activityFiles download token is invalid', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    prismaMock.workout = {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'workout-expired-1',
+        externalId: '23772550387',
+        date: new Date('2026-07-01T10:00:00.000Z')
+      }),
+      findUnique: vi.fn().mockResolvedValue({
+        rawJson: { activityName: 'Morning Run' }
+      }),
+      update: vi.fn().mockResolvedValue({})
+    } as any
+    prismaMock.fitFile = {
+      findUnique: vi.fn().mockResolvedValue(null)
+    } as any
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    const garminModule = await import('../../../../../server/utils/garmin')
+    vi.spyOn(garminModule, 'fetchGarminActivityFileByCallbackUrl').mockRejectedValue(
+      new garminModule.GarminDownloadTokenExpiredError(
+        'Garmin File API error (400): Invalid download token',
+        400
+      )
+    )
+    const backfillSpy = vi
+      .spyOn(garminModule, 'requestGarminBackfill')
+      .mockResolvedValue({ success: true } as any)
+
+    await expect(
+      GarminService.processActivityFiles(
+        'user-1',
+        [
+          {
+            activityId: 23772550387,
+            startTimeInSeconds: 1_720_000_000,
+            callbackURL:
+              'https://apis.garmin.com/wellness-api/rest/activityFile?id=23772550387&token=stale'
+          }
+        ],
+        { id: 'int-1' }
+      )
+    ).resolves.toBeUndefined()
+
+    expect(prismaMock.workout.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'workout-expired-1' },
+        data: expect.objectContaining({
+          rawJson: expect.objectContaining({
+            activityName: 'Morning Run',
+            garminFileIngestion: expect.objectContaining({
+              status: 'download_token_expired',
+              retryable: true,
+              externalId: '23772550387'
+            })
+          })
+        })
+      })
+    )
+    expect(backfillSpy).toHaveBeenCalledWith(
+      { id: 'int-1' },
+      'activities',
+      1_720_000_000 - 3600,
+      expect.any(Number)
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('download token expired'),
+      expect.objectContaining({ workoutId: 'workout-expired-1' })
+    )
+    expect(errorSpy).not.toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+
+  it('handles expired download tokens during processActivities without failing the batch', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.fitFile = { findUnique: vi.fn().mockResolvedValue(null) } as any
+    prismaMock.workout = {
+      findUnique: vi.fn().mockResolvedValue({ rawJson: {} }),
+      update: vi.fn().mockResolvedValue({})
+    } as any
+
+    const garminModule = await import('../../../../../server/utils/garmin')
+    vi.spyOn(garminModule, 'fetchGarminActivityFile').mockRejectedValue(
+      new Error('Garmin File API error (400): Invalid download token')
+    )
+    const backfillSpy = vi
+      .spyOn(garminModule, 'requestGarminBackfill')
+      .mockResolvedValue({ success: true } as any)
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-200', externalId: 'activity-200' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    await expect(
+      GarminService.processActivities(
+        'user-1',
+        [
+          {
+            summaryId: 'activity-200',
+            startTimeInSeconds: 1_720_000_100,
+            activityType: 'RUNNING'
+          }
+        ],
+        { id: 'int-1' },
+        'stale-pull-token'
+      )
+    ).resolves.toBeUndefined()
+
+    expect(prismaMock.workout.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'workout-200' },
+        data: expect.objectContaining({
+          rawJson: expect.objectContaining({
+            garminFileIngestion: expect.objectContaining({
+              status: 'download_token_expired',
+              retryable: true,
+              externalId: 'activity-200'
+            })
+          })
+        })
+      })
+    )
+    expect(backfillSpy).toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
 
     vi.restoreAllMocks()
   })
