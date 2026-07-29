@@ -44,7 +44,10 @@
     "upgrade_confirm": "Confirm and pay",
     "upgrade_title": "Confirm upgrade",
     "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
-    "warning": "Estás migrando a un nivel inferior. Algunas funciones (como el Análisis Profundo de IA) estarán restringidas una vez procesado el cambio."
+    "warning": "Estás migrando a un nivel inferior. Algunas funciones (como el Análisis Profundo de IA) estarán restringidas una vez procesado el cambio.",
+    "interval_confirm": "Confirm change",
+    "interval_title": "Confirm billing change",
+    "interval_warning": "You'll switch to {interval} billing at {price}. Any prorated difference is applied to your next invoice — you won't be charged immediately."
   },
   "plan": {
     "free": {
