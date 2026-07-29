@@ -51,8 +51,8 @@ When the developer accepts your fix plan (e.g., using `/support resolve <ticket_
 
 ## 3. Sentry Issues
 
-**Project for this repo:** org `newpush-y4`, project `coach-watts`, region `https://de.sentry.io`.
-Do **not** pull from `watt-mind` / `coach-watts-app` (mobile companion). See [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md) → _Which Sentry project_.
+**Project for this repo:** org `watt-mind`, project `coach-watts-web`, region `https://de.sentry.io`.
+Do **not** pull from `watt-mind` / `coach-watts-app` (mobile companion). See [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md) → _Current web project_.
 
 When a bug is also tracked in Sentry (see [SENTRY-ISSUES.md](../../SENTRY-ISSUES.md)), **resolve it in Sentry in the same session** once it is handled:
 
