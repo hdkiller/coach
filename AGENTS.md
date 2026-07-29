@@ -28,7 +28,7 @@ Task state lives in Linear, never in git-tracked markdown. Files under `docs/iss
 
 ## Execution loop
 
-**Plan → Act → Verify → Push & Open PR → Log & Transition.** Confirm file locations and restate the approach on the ticket; implement inside the worktree; run the verification command; push branch (`git push origin <branch>`) and open Pull Request (`gh pr create --target develop --body "Fixes CW-XYZ"`); post results, PR link, and diff summary to Linear.
+**Plan → Act → Verify → Push & Open PR → Log & Transition.** Confirm file locations and restate the approach on the ticket; implement inside the worktree; run the verification command; push branch (`git push origin <branch>`) and open Pull Request (`gh pr create --base develop --body "Fixes CW-XYZ"`); post results, PR link, and diff summary to Linear.
 
 ## Commands
 
@@ -42,10 +42,6 @@ npx prisma migrate dev
 ```
 
 See [`docs/04-guides/`](docs/04-guides/) for typechecking, e2e testing, chat development, localization, and analytics guides.
-
-## Trigger.dev
-
-This project has Trigger.dev agent skills in `.claude/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or `chat.agent` AI agents), load the relevant skill: `trigger-authoring-chat-agent`.
 
 ## Scope
 
