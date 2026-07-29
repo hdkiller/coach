@@ -80,29 +80,60 @@ export const trialEndingReminderCron = schedules.task({
       windowEnd: windowEnd.toISOString()
     })
 
+    let dispatchedCount = 0
+    let failedCount = 0
+    let skippedCount = 0
+
     for (const user of users) {
-      if (!user.trialEndsAt) continue
+      if (!user.trialEndsAt) {
+        skippedCount++
+        continue
+      }
 
-      const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
-      const usageHighlights = await getWeeklyUsageSummary(user.id)
+      try {
+        const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
+        const usageHighlights = await getWeeklyUsageSummary(user.id)
 
-      await dispatchTask('send-email', {
-        userId: user.id,
-        templateKey: 'TrialEndingSoon',
-        eventKey: `TRIAL_ENDING_${trialEndKey}`,
-        idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
-        audience: 'ENGAGEMENT',
-        subject: 'Your Coach Watts performance trial ends soon',
-        props: {
-          name: user.name || 'Athlete',
-          trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
-          usageHighlights,
-          supporterHighlights: formatSupporterHighlights(),
-          pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
-        }
+        await dispatchTask('send-email', {
+          userId: user.id,
+          templateKey: 'TrialEndingSoon',
+          eventKey: `TRIAL_ENDING_${trialEndKey}`,
+          idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
+          audience: 'ENGAGEMENT',
+          subject: 'Your Coach Watts performance trial ends soon',
+          props: {
+            name: user.name || 'Athlete',
+            trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
+            usageHighlights,
+            supporterHighlights: formatSupporterHighlights(),
+            pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
+          }
+        })
+        dispatchedCount++
+      } catch (error) {
+        failedCount++
+        logger.error('Failed to dispatch trial ending reminder', {
+          userId: user.id,
+          error
+        })
+      }
+    }
+
+    if (failedCount > 0) {
+      logger.warn('Trial ending reminder cron completed with partial failures', {
+        count: users.length,
+        dispatchedCount,
+        failedCount,
+        skippedCount
       })
     }
 
-    return { success: true, count: users.length }
+    return {
+      success: failedCount === 0,
+      count: users.length,
+      dispatchedCount,
+      failedCount,
+      skippedCount
+    }
   }
 })
