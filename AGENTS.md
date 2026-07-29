@@ -24,6 +24,7 @@ Task state lives in Linear, never in git-tracked markdown. Files under `docs/iss
 3. **Only touch the ticket's `Owned Paths`.** If the work requires files outside that set, stop and move the ticket to `Blocked`.
 4. **Never mark a ticket `Done` without clean verification output.** Run the ticket's Verification Command and post the output as a comment.
 5. **Blocked is a state, not a vibe.** Missing credentials, ambiguity, or an external dependency → move to `Blocked` and say what you need. Never leave a stalled ticket sitting in `In Progress`.
+6. **File follow-ups in Linear.** Bugs, risks, missing requirements, tech debt, or out-of-scope todos discovered while working → create a `CW` issue in `Triage` (see issue-management §8). Do not expand the current ticket's scope to absorb them.
 
 ## Execution loop
 

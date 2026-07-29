@@ -3,7 +3,7 @@
 Issue tracking standards, ticket templates, and AI agent execution workflow for **Coach Watts** in **Linear** (team key **`CW`**).
 
 > [!NOTE]
-> This guide covers Coach Watts product development and distribution only. Internal company governance and private consulting workflows live in the internal Watt Mind documentation repository.
+> **Derived from** the multi-team workspace protocol in the private Watt Mind infra repo (`hdkiller/docs/orgs/linear.md`). If workspace semantics conflict, that SoT wins; this file wins for CW-only product scope, the `develop` PR target, and what may appear in this public repo. Never import `WM` / `OPS` / `LAB` / `CLNT`, internal financial namespaces, or client names into commits, PRs, or issue comments here.
 
 ---
 
@@ -172,3 +172,9 @@ Each agent runs as its **own Linear member with its own API key**, so `assignee`
 3. **Verify** — run the Verification Command (`pnpm test`, `pnpm typecheck`, build). **Never mark complete without clean output.**
 4. **Push & Open PR** — push the feature/bugfix branch to remote (`git push origin <branch>`) and open a GitHub Pull Request targeting `develop` (`gh pr create --base develop --title "..." --body "Fixes <ISSUE-ID>"`).
 5. **Log & Transition** — post verification results, PR URL, and diff summary to the Linear ticket, transitioning state to `In Review` (`ai:needs-review`). Set to `Done` once PR is merged and verified.
+
+### Capture newly discovered work
+
+Agents are empowered to create Linear issues whenever work reveals a genuine bug, risk, missing requirement, technical debt item, or follow-up that is outside the current ticket's acceptance criteria or `Owned Paths`. Do this as soon as the finding is clear; do not let useful work disappear into a PR comment, chat history, or a vague note.
+
+Route the new issue to team **`CW`** and the appropriate Coach Watts project, use the canonical `type:*` and `area:*` labels, set an evidence-based priority, and link it to the originating issue or PR in the description. New discoveries normally start in `Triage`; promote them to `Todo` with `ai:agent-ready` only once they meet the complete template in §5. Creating the follow-up records it — it does **not** expand the current ticket's scope or authorize work outside its `Owned Paths`.
