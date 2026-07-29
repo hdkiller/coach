@@ -602,12 +602,37 @@
     { label: 'Poor (<6h)', value: 'poor' }
   ]
 
-  // Fetch all wellness data
+  const { formatDateUTC, getUserLocalDate } = useFormat()
+
+  function getSelectedPeriodRange() {
+    const endDate = getUserLocalDate()
+    let startDate: Date
+
+    if (selectedPeriod.value === 'YTD') {
+      startDate = new Date(Date.UTC(endDate.getUTCFullYear(), 0, 1))
+    } else {
+      const days =
+        typeof selectedPeriod.value === 'string'
+          ? parseInt(selectedPeriod.value)
+          : selectedPeriod.value
+      startDate = new Date(endDate)
+      startDate.setUTCDate(endDate.getUTCDate() - (days || 30))
+    }
+
+    return { startDate, endDate }
+  }
+
+  // Fetch wellness for the selected period (API accepts startDate/endDate)
   async function fetchWellness() {
     loading.value = true
     try {
-      // Fetch up to 180 days to support YTD and historical trends
-      const wellness = await $fetch<any, string & {}>('/api/wellness', { query: { limit: 180 } })
+      const { startDate, endDate } = getSelectedPeriodRange()
+      const wellness = await $fetch<any, string & {}>('/api/wellness', {
+        query: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      })
 
       allWellness.value = wellness
     } catch (error) {
@@ -622,29 +647,15 @@
     }
   }
 
-  const { formatDateUTC, getUserLocalDate } = useFormat()
-
   // Computed properties
   const filteredWellness = computed(() => {
     let wellness = [...allWellness.value]
 
-    const todayUTC = getUserLocalDate()
-    let startDate: Date
-
-    if (selectedPeriod.value === 'YTD') {
-      startDate = new Date(Date.UTC(todayUTC.getUTCFullYear(), 0, 1))
-    } else {
-      const days =
-        typeof selectedPeriod.value === 'string'
-          ? parseInt(selectedPeriod.value)
-          : selectedPeriod.value
-      startDate = new Date(todayUTC)
-      startDate.setUTCDate(todayUTC.getUTCDate() - (days || 30))
-    }
+    const { startDate, endDate } = getSelectedPeriodRange()
 
     wellness = wellness.filter((w) => {
       const wellnessDate = new Date(w.date)
-      return wellnessDate <= todayUTC && wellnessDate >= startDate
+      return wellnessDate <= endDate && wellnessDate >= startDate
     })
 
     if (filterRecovery.value) {
@@ -1506,14 +1517,18 @@
     return opts
   }
 
-  watch([selectedPeriod, filterRecovery, filterSleep], () => {
+  watch([filterRecovery, filterSleep], () => {
     currentPage.value = 1
   })
 
-  // Load data on mount
-  onMounted(() => {
-    fetchWellness()
-  })
+  watch(
+    selectedPeriod,
+    () => {
+      currentPage.value = 1
+      fetchWellness()
+    },
+    { immediate: true }
+  )
 
   function changePage(page: number) {
     currentPage.value = page
