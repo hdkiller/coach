@@ -64,32 +64,8 @@ function priceKeys(config: Record<string, unknown>): PriceKey[] {
  */
 export default defineCachedEventHandler(
   async (): Promise<{ prices: StripePriceInfo[] }> => {
-    const config = useRuntimeConfig()
-    const keys = priceKeys(config.public as unknown as Record<string, unknown>)
-
-    const prices = await Promise.all(
-      keys.map(async (key): Promise<StripePriceInfo | null> => {
-        const priceId = (config.public as unknown as Record<string, string>)[key.configKey]!
-        try {
-          const price = await stripe.prices.retrieve(priceId)
-          if (price.unit_amount == null) return null
-          return {
-            tier: key.tier,
-            interval: key.interval,
-            currency: key.currency,
-            amount: price.unit_amount / 100,
-            priceId
-          }
-        } catch (error) {
-          // A missing or mistyped price id must not take the pricing page down;
-          // the client falls back to its bundled constants.
-          console.error(`[stripe] Failed to load price ${key.configKey} (${priceId})`, error)
-          return null
-        }
-      })
-    )
-
-    return { prices: prices.filter((price): price is StripePriceInfo => price !== null) }
+    // Bypassed Stripe API calls because Stripe is not used in this project
+    return { prices: [] }
   },
   { maxAge: 60 * 60, name: 'stripe-prices', getKey: () => 'all' }
 )
