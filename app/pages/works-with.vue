@@ -330,7 +330,7 @@
                     />
                   </div>
                   <span
-                    class="mt-2 text-xs font-black text-slate-600 group-hover:text-white transition-colors uppercase tracking-[0.15em] whitespace-nowrap"
+                    class="mt-2 text-xs font-black text-slate-400 group-hover:text-white transition-colors uppercase tracking-[0.15em] whitespace-nowrap"
                     >{{ integ.name }}</span
                   >
                 </motion.div>
@@ -360,7 +360,7 @@
                       }"
                     />
                   </div>
-                  <span class="text-xs font-black text-slate-500 uppercase tracking-wide">{{
+                  <span class="text-xs font-black text-slate-400 uppercase tracking-wide">{{
                     integ.name
                   }}</span>
                 </div>
@@ -492,9 +492,9 @@
               </div>
 
               <div class="space-y-1 sm:space-y-3 text-center sm:text-left">
-                <h3 class="text-sm font-bold uppercase tracking-tight text-white sm:text-2xl">
+                <h2 class="text-sm font-bold uppercase tracking-tight text-white sm:text-2xl">
                   {{ integ.name }}
-                </h3>
+                </h2>
                 <p class="hidden sm:block text-base text-gray-400 leading-relaxed font-medium">
                   {{ integ.description }}
                 </p>
@@ -693,7 +693,11 @@
                     <div
                       class="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-blue-500/30"
                     >
-                      <img src="/images/logos/intervals.png" class="w-10 h-10 object-contain" />
+                      <img
+                        src="/images/logos/intervals.png"
+                        alt="Intervals.icu Logo"
+                        class="w-10 h-10 object-contain"
+                      />
                     </div>
                     <span class="text-lg font-black text-white uppercase tracking-tight">{{
                       t('f2_ui_push')

@@ -100,6 +100,12 @@ const analysisSchema = {
         total_tss: { type: 'number' },
         avg_power: { type: 'number' },
         avg_heart_rate: { type: 'number' },
+        // NOTE: kept as kilometers (not renamed to a unit-agnostic name) because this exact
+        // field name/shape is a shared contract also consumed by app/pages/report/[id].vue
+        // (which independently converts to meters and re-formats via the user's distanceUnits
+        // client-side) and mirrored by the schemas in generate-weekly-report.ts and
+        // generate-custom-report.ts. Kilometers is treated as the canonical storage unit here;
+        // unit-aware formatting happens at render time (see convertStructuredToMarkdown below).
         total_distance_km: { type: 'number' }
       }
     }
@@ -144,7 +150,7 @@ USER PROFILE:
 
   prompt += `
 RECENT WORKOUTS (Last 3 Cycling Sessions):
-${buildWorkoutSummary(workouts, timezone)}
+${buildWorkoutSummary(workouts, timezone, user?.distanceUnits)}
 
 ANALYSIS FOCUS:
 1. **Training Progression**: Are they building fitness effectively? Getting stronger or showing fatigue?
@@ -173,7 +179,7 @@ Be specific with numbers and trends. Highlight both strengths and areas for impr
   return prompt
 }
 
-function convertStructuredToMarkdown(analysis: any): string {
+export function convertStructuredToMarkdown(analysis: any, distanceUnits?: string | null): string {
   let markdown = `# ${analysis.title}\n\n`
   markdown += `**Period**: ${analysis.date}\n\n`
   markdown += `## Quick Take\n\n${analysis.executive_summary}\n\n`
@@ -210,7 +216,7 @@ function convertStructuredToMarkdown(analysis: any): string {
     if (metrics.avg_heart_rate)
       markdown += `- **Average HR**: ${Math.round(metrics.avg_heart_rate)} bpm\n`
     if (metrics.total_distance_km)
-      markdown += `- **Total Distance**: ${metrics.total_distance_km.toFixed(1)} km\n`
+      markdown += `- **Total Distance**: ${formatPromptDistance(metrics.total_distance_km * 1000, distanceUnits)}\n`
   }
 
   return markdown
@@ -297,7 +303,8 @@ export const analyzeLast3WorkoutsTask = task({
           maxHr: true,
           dob: true,
           sex: true,
-          language: true
+          language: true,
+          distanceUnits: true
         }
       })
 
@@ -318,7 +325,7 @@ export const analyzeLast3WorkoutsTask = task({
       })
 
       // Also generate markdown for fallback/export
-      const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis)
+      const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis, user?.distanceUnits)
 
       logger.log('Analysis generated successfully', {
         sections: structuredAnalysis.sections?.length || 0,

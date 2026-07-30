@@ -122,6 +122,8 @@
 </template>
 
 <script setup lang="ts">
+  import { formatPace as formatPaceShared } from '~/utils/metrics'
+
   const props = withDefaults(
     defineProps<{
       intervals: any[]
@@ -134,6 +136,9 @@
   )
 
   defineEmits(['interval-hover', 'interval-leave'])
+
+  const userStore = useUserStore()
+  const distanceUnits = computed(() => userStore.profile?.distanceUnits || 'Kilometers')
 
   function formatDuration(seconds: number) {
     const mins = Math.floor(seconds / 60)
@@ -149,9 +154,6 @@
 
   function formatPace(mps: number) {
     if (!mps) return '-'
-    const paceMinPerKm = 16.6667 / mps
-    const mins = Math.floor(paceMinPerKm)
-    const secs = Math.round((paceMinPerKm - mins) * 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`
+    return formatPaceShared(1000 / mps, distanceUnits.value)
   }
 </script>

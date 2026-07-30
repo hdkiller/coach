@@ -45,8 +45,8 @@ on:
 jobs:
   deploy:
     name: Deploy Trigger.dev Tasks
-    # Keep Trigger deploys on the Linux `shadow` runner; do not share with `e2e`.
-    runs-on: [self-hosted, shadow]
+    # Keep Trigger deploys on the Linux self-hosted runner pool.
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 30
     environment: ${{ inputs.environment }}
     # Job-level (not workflow-level) so the group stays distinct from the caller's
@@ -57,16 +57,17 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy' }}
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -125,6 +126,15 @@ jobs:
           if [ -n "${TRIGGER_ACCESS_TOKEN}" ]; then echo "  TRIGGER_ACCESS_TOKEN: present"; else echo "  TRIGGER_ACCESS_TOKEN: MISSING"; fi
           if [ -n "${TRIGGER_API_URL}" ]; then echo "  TRIGGER_API_URL: ${TRIGGER_API_URL}"; else echo "  TRIGGER_API_URL: not set (defaults to Trigger.dev Cloud)"; fi
           if [ -n "${TRIGGER_PROJECT_REF}" ]; then echo "  TRIGGER_PROJECT_REF: ${TRIGGER_PROJECT_REF}"; else echo "  TRIGGER_PROJECT_REF: not set (will rely on config)"; fi
+
+          # Fail fast and clearly (CW-129) instead of letting the trigger.dev CLI
+          # surface an opaque auth error below. GitHub environment secrets do not
+          # fall back to another environment, so `environment: ${{ inputs.environment }}`
+          # (see caller workflow) must have these secrets provisioned directly.
+          if [ -z "${TRIGGER_ACCESS_TOKEN}" ] || [ -z "${TRIGGER_PROJECT_REF}" ]; then
+            echo "::error::Environment secrets not provisioned for the '${{ inputs.environment }}' GitHub environment (missing TRIGGER_ACCESS_TOKEN and/or TRIGGER_PROJECT_REF). Add them under Settings > Environments > ${{ inputs.environment }} before deploying."
+            exit 1
+          fi
 
           npx trigger.dev@${{ inputs.trigger-version }} deploy
 

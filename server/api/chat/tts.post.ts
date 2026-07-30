@@ -167,7 +167,8 @@ export default defineEventHandler(async (event) => {
   await assertQuotaAllowed(
     userId,
     'chat',
-    'Chat quota exceeded. Text-to-speech is unavailable until your limit resets.'
+    'Chat quota exceeded. Text-to-speech is unavailable until your limit resets.',
+    event
   )
 
   if (!process.env.GEMINI_API_KEY) {

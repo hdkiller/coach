@@ -236,8 +236,10 @@
   "trigger_monitor_stop_task": "タスクを停止",
   "trigger_monitor_unknown_error": "不明なエラー",
   "upcoming_workouts_empty": "今後予定されているトレーニングはありません。",
+  "upcoming_workouts_error": "今後のワークアウトの読み込みに失敗しました",
   "upcoming_workouts_header": "今後のワークアウト",
   "upcoming_workouts_plan_part_of": "計画の一部: {name}",
+  "upcoming_workouts_retry": "再試行",
   "upcoming_workouts_view_plans": "プランを見る",
   "weekly_training_load": "週間トレーニング負荷"
 }

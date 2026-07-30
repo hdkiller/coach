@@ -34,12 +34,16 @@
   "headline": "Планы для каждого спортсмена",
   "label": "ЦЕНЫ",
   "modal": {
+    "cancel": "Cancel",
     "confirm_change": "Подтвердить изменение",
     "description": "Ознакомьтесь с изменениями в вашем тарифном плане подписки.",
     "keep_plan": "Сохраню свой текущий план",
     "stripe_note": "Stripe автоматически рассчитает любые кредиты за неиспользованное время и применит их к вашим будущим счетам.",
     "switch_to": "Переключиться на {name}?",
     "title": "Подтвердить понижение уровня",
+    "upgrade_confirm": "Confirm and pay",
+    "upgrade_title": "Confirm upgrade",
+    "upgrade_warning": "You'll be charged the prorated difference for the rest of your current billing period now, then {price} on each renewal.",
     "warning": "Вы переходите на более низкий уровень. После обработки изменений некоторые функции (например, анализ с помощью глубокого ИИ) будут недоступны."
   },
   "plan": {
@@ -68,5 +72,16 @@
       "feature_4": "Надежное отслеживание тенденций и еженедельные сводки.",
       "name": "Сторонник"
     }
+  },
+  "upgrade_modal": {
+    "billing_details": "Billing details",
+    "close": "Close",
+    "compare_plans": "Compare all plans",
+    "default_title": "Upgrade Your Plan",
+    "eyebrow": "Elite Performance Solution",
+    "maintenance_body": "We are currently performing maintenance on our subscription system. Please check back later!",
+    "maintenance_title": "Subscriptions Temporarily Unavailable",
+    "maybe_later": "Maybe Later",
+    "reassurance": "Unlock instant access. Cancel or downgrade anytime."
   }
 }

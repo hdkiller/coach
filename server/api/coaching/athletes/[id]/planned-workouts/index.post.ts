@@ -10,7 +10,7 @@ const paramsSchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAuth(event)
   const { id: athleteId } = await getValidatedRouterParams(event, paramsSchema.parse)
-  await requireCoachAccessToAthlete(event, athleteId)
+  await requireCoachAccessToAthlete(event, athleteId, ['coaching:write'])
   const body = await readBody(event)
   return await createPlannedWorkoutForUser(athleteId, body)
 })

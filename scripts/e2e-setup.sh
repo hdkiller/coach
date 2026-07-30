@@ -7,7 +7,7 @@ pnpm e2e:up:infra
 pnpm e2e:db:prepare
 
 # Compute hash of app source files that impact the app-e2e docker image
-APP_HASH=$(git log -1 --format="%h" -- app server prisma package.json pnpm-lock.yaml Dockerfile.e2e docker-compose.e2e.yml 2>/dev/null || echo "latest")
+APP_HASH=$(git log -1 --format="%h" -- app server cli trigger prisma package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml Dockerfile.e2e docker-compose.e2e.yml 2>/dev/null || echo "latest")
 IMAGE_TAG="coach-e2e-app:${APP_HASH}"
 
 if docker image inspect "$IMAGE_TAG" >/dev/null 2>&1; then
@@ -15,8 +15,24 @@ if docker image inspect "$IMAGE_TAG" >/dev/null 2>&1; then
   docker tag "$IMAGE_TAG" coach-e2e-app:local
 else
   echo "=> Building Docker image for app source hash $APP_HASH"
-  pnpm e2e:build
-  docker tag coach-e2e-app:local "$IMAGE_TAG" || true
+  if [ -n "$CI" ] && docker buildx version >/dev/null 2>&1; then
+    echo "=> Using Docker Buildx with GitHub Actions layer cache (type=gha)"
+    docker buildx build \
+      --cache-from type=gha \
+      --cache-to type=gha,mode=max \
+      -f Dockerfile.e2e \
+      -t coach-e2e-app:local \
+      -t "$IMAGE_TAG" \
+      --load .
+  else
+    pnpm e2e:build
+    docker tag coach-e2e-app:local "$IMAGE_TAG" || true
+  fi
 fi
 
-docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml up -d --wait app-e2e
+if ! docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml up -d --wait app-e2e; then
+  echo "=> e2e stack failed to become healthy; dumping worker/app logs"
+  docker logs coach-worker-e2e 2>&1 || true
+  docker logs coach-app-e2e 2>&1 || true
+  exit 1
+fi

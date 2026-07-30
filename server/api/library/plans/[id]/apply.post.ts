@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { getServerSession } from '../../../../utils/session'
+import { requireAuth } from '../../../../utils/auth-guard'
 import { prisma } from '../../../../utils/db'
 import { requireCoachAccessToAthlete } from '../../../../utils/coaching-auth'
 import {
@@ -22,10 +22,7 @@ function normalizeStartDate(value: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  if (!session?.user?.id) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  const coach = await requireAuth(event, ['coaching:write'])
 
   const planId = getRouterParam(event, 'id')
   if (!planId) {
@@ -33,11 +30,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = applyPlanSchema.parse(await readBody(event))
-  const coachId = session.user.id
+  const coachId = coach.id
   const targetUserId = body.athleteId || coachId
 
   if (targetUserId !== coachId) {
-    await requireCoachAccessToAthlete(event, targetUserId)
+    await requireCoachAccessToAthlete(event, targetUserId, ['coaching:write'])
   }
 
   const template = await prisma.trainingPlan.findFirst({

@@ -135,8 +135,8 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
 
           // Convert Height to CM if provided in Feet
           if (payload.height !== undefined) {
-            const heightUnits = payload.heightUnits || user?.heightUnits || 'Centimeters'
-            if (heightUnits === 'Feet') {
+            const heightUnits = payload.heightUnits || user?.heightUnits || 'cm'
+            if (heightUnits === 'ft/in') {
               payload.height = payload.height * 2.54
             }
           }

@@ -1,18 +1,18 @@
 # Coach Watts — Issue Tracker
 
-Last reviewed: 2026-07-25 (issues 369–377 — CI/CD pipeline review)
+Last reviewed: 2026-07-27 (issue 383 — Intervals.icu scope handling)
 
-Master index for documented issues **001–377** (flat files `docs/issues/NNN-slug.md`).
+Master index for documented issues **001–383** (flat files `docs/issues/NNN-slug.md`).
 
 **Progress:** [REVIEW-PROGRESS.md](./REVIEW-PROGRESS.md)
 
 | Metric                         | Count              |
 | ------------------------------ | ------------------ |
-| **Total**                      | **377**            |
+| **Total**                      | **383**            |
 | Fixed                          | 250                |
-| Open                           | 106                |
+| Open                           | 112                |
 | Postponed                      | 21                 |
-| Critical / High / Medium / Low | 14 / 99 / 215 / 49 |
+| Critical / High / Medium / Low | 14 / 99 / 221 / 49 |
 
 Status counts are read from each issue file’s `**Status:**` line (Fixed includes Resolved/Handled; Open includes Partial).
 
@@ -802,7 +802,7 @@ Push inventory/policy from watts-marketing `knowledge/push/`. Device register +
 | [365](./365-expo-push-ignores-preferences.md)       | Expo push send ignores preference gates           | High     | Gap / Privacy          | Fixed  |
 | [366](./366-expo-high-value-event-types-unwired.md) | High-value Expo types unused (analysis, coaching) | Medium   | Feature / Gap          | Open   |
 | [367](./367-sync-completed-push-no-policy.md)       | SYNC_COMPLETED Expo type has no send policy       | Low      | Product decision / Gap | Open   |
-| [368](./368-expo-push-reliability-observability.md) | Expo push reliability and observability gaps      | Low      | Tech debt / Ops        | Open   |
+| [368](./368-expo-push-reliability-observability.md) | Expo push reliability and observability gaps      | Low      | Tech debt / Ops        | Fixed  |
 
 ### Suggested fix order (364–368)
 
@@ -859,6 +859,12 @@ findings were fixed in the same pass and are **not** tracked here:
 9. ~~**152–154** — Join/onboarding flow~~ **Fixed** (PR 8)
 10. **199–215** — i18n/a11y (incremental, low risk)
 11. Remaining active medium/low
+
+## Issue 383 — 2026-07-27
+
+| ID                                                            | Title                                                                          | Priority | Type | Status |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------- | ---- | ------ |
+| [383](./383-intervals-calendar-write-scope-error-handling.md) | Handle Intervals.icu 403 Access Denied (`CALENDAR:WRITE` scope) in UI Settings | Medium   | Bug  | Open   |
 
 ## How issues are managed
 

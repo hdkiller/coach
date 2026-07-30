@@ -5,6 +5,31 @@
   import { profileSettingsCardUi } from '~/utils/mobile-surface-ui'
 
   const { t } = useTranslate('settings')
+
+  type CurrentSubscription = {
+    amount: number | null
+    currency: string | null
+    interval: 'monthly' | 'annual' | null
+  }
+
+  // What Stripe actually bills. The page previously showed a renewal date with
+  // no amount, so athletes had to open the portal to learn what they pay.
+  const { data: currentSubscription } = useAsyncData<CurrentSubscription>(
+    'billing-current-subscription',
+    () => ($fetch as any)('/api/stripe/subscription'),
+    { lazy: true }
+  )
+
+  function formatSubscriptionAmount(subscription: CurrentSubscription | null): string {
+    if (!subscription || subscription.amount == null) return ''
+    const formatted = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: (subscription.currency || 'usd').toUpperCase()
+    }).format(subscription.amount)
+    if (subscription.interval === 'annual') return `${formatted} ${t.value('billing_per_year')}`
+    if (subscription.interval === 'monthly') return `${formatted} ${t.value('billing_per_month')}`
+    return formatted
+  }
   const tr = (key: string, fallback: string, params?: Record<string, any>) =>
     typeof t.value === 'function' ? t.value(key, params) : fallback
 
@@ -30,7 +55,8 @@
 
   const loadingPortal = ref(false)
   const syncing = ref(false)
-  const showSuccessMessage = ref(route.query.success === 'true')
+  const showSuccessMessage = ref(false)
+  const showPendingActivationMessage = ref(false)
   const showRefreshMessage = ref(route.query.refresh === 'true')
   const showCanceledMessage = ref(route.query.canceled === 'true')
   const showPlansModal = ref(false)
@@ -83,12 +109,20 @@
       window.addEventListener('focus', handleFocus)
     }
 
-    if (showSuccessMessage.value || showRefreshMessage.value) {
+    const hasSuccessQuery = route.query.success === 'true'
+    if (hasSuccessQuery || showRefreshMessage.value) {
       await pollSubscription()
-      if (userStore.user?.subscriptionStatus === 'ACTIVE') {
+      if (
+        userStore.user?.subscriptionStatus === 'ACTIVE' &&
+        userStore.user?.subscriptionTier !== 'FREE'
+      ) {
         triggerCelebration()
         showSuccessMessage.value = true
+        showPendingActivationMessage.value = false
         maybeTrackPurchase()
+      } else {
+        showSuccessMessage.value = false
+        showPendingActivationMessage.value = true
       }
     } else {
       try {
@@ -389,6 +423,18 @@
       await $fetch<any, string & {}>('/api/stripe/sync', { method: 'POST' })
       await userStore.fetchUser(true)
 
+      if (
+        userStore.user?.subscriptionStatus === 'ACTIVE' &&
+        userStore.user?.subscriptionTier !== 'FREE'
+      ) {
+        showPendingActivationMessage.value = false
+        if (!showSuccessMessage.value) {
+          showSuccessMessage.value = true
+          triggerCelebration()
+          maybeTrackPurchase()
+        }
+      }
+
       if (!silent) {
         const toast = useToast()
         toast.add({
@@ -413,6 +459,7 @@
 
   function dismissSuccessMessage() {
     showSuccessMessage.value = false
+    showPendingActivationMessage.value = false
     confettiPieces.value = []
   }
 
@@ -638,6 +685,34 @@
       </UAlert>
 
       <UAlert
+        v-if="showPendingActivationMessage && !isPremium && !polling"
+        :title="tr('billing_activation_pending_title', 'Subscription Activation Pending')"
+        icon="i-heroicons-clock"
+        color="warning"
+        variant="soft"
+        :close="{ color: 'warning', variant: 'link', label: t('billing_dismiss') }"
+        :description="
+          tr(
+            'billing_activation_pending_desc',
+            'Your checkout was received, but account activation is taking a moment. If your tier has not updated yet, click Sync to refresh status.'
+          )
+        "
+        @update:open="dismissSuccessMessage"
+      >
+        <template #actions>
+          <UButton
+            color="warning"
+            variant="solid"
+            size="sm"
+            :loading="syncing"
+            @click="() => handleSync(false)"
+          >
+            {{ t('billing_button_sync') }}
+          </UButton>
+        </template>
+      </UAlert>
+
+      <UAlert
         v-if="showCanceledMessage"
         :title="t('billing_checkout_canceled_title')"
         icon="i-heroicons-information-circle"
@@ -722,6 +797,14 @@
                   >
                     <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400" />
                   </UTooltip>
+                </dd>
+              </div>
+              <div v-if="currentSubscription?.amount != null">
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {{ t('billing_amount') }}
+                </dt>
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {{ formatSubscriptionAmount(currentSubscription) }}
                 </dd>
               </div>
               <div v-if="userStore.user?.subscriptionPeriodEnd">

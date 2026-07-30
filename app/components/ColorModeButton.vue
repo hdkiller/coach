@@ -4,7 +4,7 @@
       :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
       color="neutral"
       variant="ghost"
-      aria-label="Theme"
+      :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'"
       @click="
         () => {
           isDark = !isDark

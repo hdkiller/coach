@@ -65,10 +65,10 @@ const checkCommand = new Command('check')
     console.log(chalk.bold('\n🔍 Extraction Check'))
     console.log(chalk.gray(`Running tolgee extract check on: ${patterns.join(', ')}\n`))
 
-    const patternArgs = patterns.map((p) => `"${p}"`).join(' ')
-
     try {
-      execSync(`npx tolgee extract check --patterns ${patternArgs}`, { stdio: 'inherit' })
+      execFileSync('npx', ['tolgee', 'extract', 'check', '--patterns', ...patterns], {
+        stdio: 'inherit'
+      })
       console.log(chalk.green('\n✓ No extraction warnings.'))
     } catch {
       // tolgee extract check exits non-zero on warnings — output already printed

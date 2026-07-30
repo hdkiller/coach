@@ -3,6 +3,7 @@ import { requireAuth } from '../../../utils/auth-guard'
 import { assertWorkoutComparisonAccess } from '../../../utils/analyticsScope'
 import { prisma } from '../../../utils/db'
 import { workoutStreamRepository } from '../../../utils/repositories/workoutStreamRepository'
+import { formatAlignmentLabel } from '../../../utils/analytics/format-alignment-label'
 
 const schema = z.object({
   comparison: z.object({
@@ -37,28 +38,11 @@ function evenlySampleIndices(length: number, targetPoints: number) {
   )
 }
 
-function formatAlignmentLabel(
-  value: number,
-  alignment: 'elapsed_time' | 'distance' | 'percent_complete'
-) {
-  if (alignment === 'elapsed_time') {
-    if (value >= 3600) return `${(value / 3600).toFixed(1)}h`
-    if (value >= 60) return `${Math.round(value / 60)}m`
-    return `${Math.round(value)}s`
-  }
-
-  if (alignment === 'distance') {
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}km`
-    return `${Math.round(value)}m`
-  }
-
-  return `${Math.round(value)}%`
-}
-
 function resolveAlignedSeries(
   workoutStream: any,
   field: 'watts' | 'heartrate' | 'cadence' | 'velocity' | 'altitude' | 'grade',
-  alignment: 'elapsed_time' | 'distance' | 'percent_complete'
+  alignment: 'elapsed_time' | 'distance' | 'percent_complete',
+  distanceUnits?: string | null
 ) {
   const valueStream = toNumberArray(workoutStream?.[field])
   if (valueStream.length === 0) return null
@@ -82,7 +66,7 @@ function resolveAlignedSeries(
   const sampledValues = indices.map((index) => valueStream[index] ?? null)
 
   return {
-    labels: sampledAxis.map((value) => formatAlignmentLabel(value, alignment)),
+    labels: sampledAxis.map((value) => formatAlignmentLabel(value, alignment, distanceUnits)),
     points: sampledAxis.map((value, index) => ({
       x: Number(value.toFixed(2)),
       y: sampledValues[index] ?? null
@@ -127,7 +111,8 @@ export default defineEventHandler(async (event) => {
       const series = resolveAlignedSeries(
         streamMap.get(workout.id) ?? null,
         comparison.field,
-        comparison.alignment
+        comparison.alignment,
+        user.distanceUnits
       )
       if (!series) return null
 

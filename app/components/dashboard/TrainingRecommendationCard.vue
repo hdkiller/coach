@@ -423,6 +423,15 @@
             >
               {{ lockedTierLabel }}
             </UBadge>
+            <UBadge
+              v-else-if="recommendationRemainingLabel"
+              color="neutral"
+              variant="subtle"
+              size="xs"
+              class="shrink-0 uppercase tracking-wide font-bold"
+            >
+              {{ recommendationRemainingLabel }}
+            </UBadge>
           </div>
           <p
             v-if="!recommendationStore.todayRecommendation"
@@ -477,8 +486,11 @@
   const recommendationStore = useRecommendationStore()
   const userStore = useUserStore()
   const { handleLockedAction, useOperationLockState } = useQuotaPaywall()
-  const { locked: isRecommendationLocked, lockedTierLabel } =
-    useOperationLockState('activity_recommendation')
+  const {
+    locked: isRecommendationLocked,
+    lockedTierLabel,
+    remainingLabel: recommendationRemainingLabel
+  } = useOperationLockState('activity_recommendation')
   const checkinStore = useCheckinStore()
   const { checkProfileStale } = useDataStatus()
   const toast = useToast()

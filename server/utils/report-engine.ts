@@ -12,6 +12,7 @@ import {
   calculateAge
 } from './date'
 import { buildWorkoutSummary, buildMetricsSummary } from './gemini'
+import { formatPromptDistance } from './ai-prompt-format'
 
 /**
  * Fetches data for a report based on the template input configuration.
@@ -33,7 +34,8 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
         dob: true,
         sex: true,
         language: true,
-        nutritionTrackingEnabled: true
+        nutritionTrackingEnabled: true,
+        distanceUnits: true
       }
     })
   }
@@ -88,7 +90,11 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
           }
 
           context[key] = data
-          context[`${key}_summary`] = buildWorkoutSummary(data, timezone)
+          context[`${key}_summary`] = buildWorkoutSummary(
+            data,
+            timezone,
+            context.user?.distanceUnits
+          )
           break
 
         case 'wellness':
@@ -207,7 +213,7 @@ export function renderPrompt(template: string, context: any): string {
 /**
  * Standard markdown converter for structured analysis
  */
-export function convertStructuredToMarkdown(analysis: any): string {
+export function convertStructuredToMarkdown(analysis: any, distanceUnits?: string | null): string {
   let markdown = `# ${analysis.title}\n\n`
   if (analysis.date) markdown += `**Period**: ${analysis.date}\n\n`
   markdown += `## Quick Take\n\n${analysis.executive_summary}\n\n`
@@ -245,7 +251,7 @@ export function convertStructuredToMarkdown(analysis: any): string {
     if (metrics.avg_heart_rate)
       markdown += `- **Average HR**: ${Math.round(metrics.avg_heart_rate)} bpm\n`
     if (metrics.total_distance_km)
-      markdown += `- **Total Distance**: ${metrics.total_distance_km.toFixed(1)} km\n`
+      markdown += `- **Total Distance**: ${formatPromptDistance(metrics.total_distance_km * 1000, distanceUnits)}\n`
   }
 
   return markdown

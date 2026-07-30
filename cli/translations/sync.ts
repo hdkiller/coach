@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import chalk from 'chalk'
 
 const syncCommand = new Command('sync')
@@ -25,17 +25,19 @@ const syncCommand = new Command('sync')
       process.exit(1)
     }
 
-    const patterns = (options.patterns as string[]).map((p) => `"${p}"`).join(' ')
+    const patterns = options.patterns as string[]
 
-    const cmd = [
-      `npx tolgee sync`,
-      `--api-url "${apiUrl}"`,
-      `--api-key "${apiKey}"`,
-      `--patterns ${patterns}`,
+    const args = [
+      'tolgee',
+      'sync',
+      '--api-url',
+      apiUrl,
+      '--api-key',
+      apiKey,
+      '--patterns',
+      ...patterns,
       dryRun ? '--dry-run' : '-Y'
     ]
-      .filter(Boolean)
-      .join(' ')
 
     console.log(chalk.bold('\n🔄 Syncing keys to Tolgee platform...\n'))
     if (dryRun) {
@@ -43,7 +45,7 @@ const syncCommand = new Command('sync')
     }
 
     try {
-      execSync(cmd, { stdio: 'inherit' })
+      execFileSync('npx', args, { stdio: 'inherit' })
       console.log(chalk.green('\n✓ Sync complete.'))
       if (!dryRun) {
         console.log(

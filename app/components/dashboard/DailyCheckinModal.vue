@@ -346,6 +346,15 @@
             >
               {{ lockedTierLabel }}
             </UBadge>
+            <UBadge
+              v-else-if="checkinRemainingLabel"
+              color="neutral"
+              variant="subtle"
+              size="xs"
+              class="shrink-0 uppercase tracking-wide font-bold"
+            >
+              {{ checkinRemainingLabel }}
+            </UBadge>
           </div>
           <div class="flex gap-2 ml-auto">
             <UButton
@@ -412,7 +421,11 @@
   const showRecentCheckins = ref(false)
   const deleting = ref(false)
   const { showQuotaPaywall, handleLockedAction, useOperationLockState } = useQuotaPaywall()
-  const { locked: isCheckinLocked, lockedTierLabel } = useOperationLockState('daily_checkin')
+  const {
+    locked: isCheckinLocked,
+    lockedTierLabel,
+    remainingLabel: checkinRemainingLabel
+  } = useOperationLockState('daily_checkin')
   const toast = useToast()
   const { formatDateUTC } = useFormat()
   const { trackDailyCheckinStart, trackDailyCheckinComplete } = useAnalytics()

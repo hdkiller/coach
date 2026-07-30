@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
+import { execFile } from 'child_process'
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -519,9 +520,9 @@ locationCommand
       const geoipPath = require.resolve('geoip-lite/package.json').replace('/package.json', '')
       console.log(chalk.gray(`Found geoip-lite at: ${geoipPath}`))
 
-      const command = `cd "${geoipPath}" && npm run-script updatedb license_key=${licenseKey}`
-
-      const child = exec(command)
+      const child = execFile('npm', ['run-script', 'updatedb', `license_key=${licenseKey}`], {
+        cwd: geoipPath
+      })
 
       child.stdout?.on('data', (data) => {
         console.log(chalk.gray(data.toString()))

@@ -1,162 +1,174 @@
-# Issue Management Guidelines
+# Linear & Agentic Issue Management — Coach Watts
 
-This document outlines the standards and procedures for creating and managing GitHub issues in the Coach Watts project. Consistent issue reporting ensures efficient tracking, prioritization, and resolution of bugs and features.
+Issue tracking standards, ticket templates, and AI agent execution workflow for **Coach Watts** in **Linear** (team key **`CW`**).
 
-## 1. Issue Types
-
-We categorize issues into the following primary types:
-
-- **Bug Report**: Something isn't working as expected.
-- **Feature Request**: A suggestion for a new feature or improvement.
-- **Maintenance**: Refactoring, technical debt, dependencies, or documentation updates.
-
-## 2. Issue Templates
-
-When creating an issue, please adhere to the following templates.
-
-### 🐛 Bug Report Template
-
-**Title**: `Concise description of the bug`
-
-- _Example_: `Recent activities widget is not clickable`
-
-**Body**:
-
-```markdown
-### 📝 Description
-
-A clear and concise description of what the bug is.
-
-### 👣 Steps to Reproduce
-
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
-
-### 😯 Expected Behavior
-
-A clear and concise description of what you expected to happen.
-
-### 🐛 Actual Behavior
-
-A clear and concise description of what actually happened.
-
-### 🖼️ Screenshots / Logs
-
-If applicable, add screenshots or copy-paste error logs to help explain your problem.
-
-### 💻 Environment
-
-- **Browser/Device**: [e.g. Chrome 120, iPhone 14]
-- **OS**: [e.g. macOS Sonoma, iOS 17]
-- **User ID (if known)**:
-```
-
-### ✨ Feature Request Template
-
-**Title**: `Concise description of the feature`
-
-- _Example_: `Add "Training Availability" section`
-
-**Body**:
-
-```markdown
-### 💡 Summary
-
-A clear and concise description of the proposed feature.
-
-### 🤷 Motivation / Use Case
-
-Why is this feature needed? What problem does it solve for the user?
-
-### 📋 Detailed Requirements
-
-- [ ] Requirement 1
-- [ ] Requirement 2
-- [ ] Requirement 3
-
-### ✅ Acceptance Criteria
-
-- The user can...
-- The system should...
-```
-
-### 🛠️ Maintenance / Tech Debt
-
-**Title**: `Concise description of the task`
-
-- _Example_: `Update API documentation for v2 endpoints`
-
-**Body**:
-
-```markdown
-### 🎯 Goal
-
-What needs to be done?
-
-### ❓ Why
-
-Why is this maintenance necessary?
-
-### 🔄 Tasks
-
-- [ ] Task 1
-- [ ] Task 2
-```
-
-## 3. Labeling Strategy
-
-We use a specific set of labels to categorize issues. Please apply at least one label from each category where applicable.
-
-### Type Labels
-
-- `bug`: Something isn't working.
-- `enhancement`: New feature or request.
-- `documentation`: Improvements or additions to documentation.
-- `maintenance`: Technical debt, refactoring, dependencies.
-- `question`: Further information is requested.
-
-### Priority Labels
-
-- `priority: critical`: Blocker, needs immediate attention.
-- `priority: high`: Important functionality is broken or missing.
-- `priority: medium`: Standard priority.
-- `priority: low`: Nice to have, minor issue.
-
-### Status Labels
-
-- `status: needs-info`: Waiting for user or more details.
-- `status: in-progress`: Currently being worked on.
-- `status: blocked`: Waiting on something else.
-- `status: review`: Pull request submitted.
-
-### Area Labels (Technical)
-
-- `ui/ux`: Visual design, Vue components, and frontend logic.
-- `backend`: API endpoints, server-side logic, and authentication.
-- `data`: Database schema, ingestion pipelines, and synchronization.
-- `infra`: Docker, CI/CD, CLI tools, and environment configuration.
-- `ai`: Gemini/LLM prompts, agents, and AI logic.
-
-### Feature Labels (Functional)
-
-- `dashboard`: Main landing page and widgets.
-- `activities`: Activities list, calendar, and summary.
-- `workouts`: Workout execution, details, and intervals.
-- `planning`: Training blocks, weekly plans, and scheduling.
-- `wellness`: Sleep, HRV, weight, and readiness metrics.
-- `integrations`: External services (Strava, Intervals.icu, etc.).
-
-## 4. Best Practices
-
-1.  **Search First**: Before creating an issue, search existing issues to avoid duplicates.
-2.  **Be Specific**: Use clear, unambiguous language.
-3.  **One Issue per Topic**: Do not combine multiple unrelated bugs or features into a single issue.
-4.  **Keep it Updated**: If you find new information, update the issue comments.
-5.  **Reference Code**: If you know where the issue might be in the codebase, link to the file or line number.
-6.  **PR Target Branch**: When opening Pull Requests to resolve issues, default to targeting the `develop` branch. PRs are merged into `develop`, and `develop` is subsequently merged into `master`.
+> [!NOTE]
+> This guide covers Coach Watts product development and distribution only. Internal company governance and private consulting workflows live in the internal Watt Mind documentation repository.
 
 ---
 
-**Note to AI Agents**: When asked to create issues, always follow these templates and labeling conventions. Do not prefix titles with the area/component, as labels handle categorization.
+## 1. Linear as an execution substrate
+
+Linear is not a passive board — it is the **persistent execution substrate and memory store** for autonomous agents (Claude Code, Gemini CLI, Cursor).
+
+- **Human as architect, agent as executor.** Humans define requirements, review plans, and approve PRs. Agents claim tickets, write code, run verification, and report back.
+- **Context efficiency.** Agents fetch one ticket's context — acceptance criteria and file pointers — rather than loading an entire backlog into the context window.
+- **No git churn.** Task state lives in Linear, not in git-tracked markdown, so parallel agents never merge-conflict over status lines.
+
+Files under `docs/issues/` are the **archive** of resolved issues plus specs. They are not a live queue.
+
+---
+
+## 2. Team & projects
+
+**Team:** `Coach Watts` — key **`CW`** (`CW-1`, `CW-105`, …)
+
+| Project                                | Scope                                                         | Repo              |
+| -------------------------------------- | ------------------------------------------------------------- | ----------------- |
+| Coach Watts – Web & AI Core Platform   | Nuxt 3 web app, AI Coach chatroom, Prisma, Trigger.dev        | `coach-wattz`     |
+| Coach Watts – Mobile App               | Expo / React Native, iOS & Android                            | `watts-mobile`    |
+| Coach Watts – App Store Distribution   | App Store Connect, Google Play, TestFlight, RevenueCat        | `watts-mobile`    |
+| Coach Watts – Feeder & Ingestion       | Intervals.icu, Strava, Oura, Yazio connectors; event scrapers | `watts-feeder`    |
+| Coach Watts – BI & Analytics           | Platform analytics, telemetry, dashboards                     | `watts-bi`        |
+| Coach Watts – Marketing & Outreach     | Social, event promos, race entrant campaigns                  | `watts-marketing` |
+| Coach Watts – Integration Partnerships | Partner business agreements                                   | —                 |
+
+---
+
+## 3. Labels
+
+All labels are namespaced. Never invent a label outside these namespaces.
+
+**`ai:*` — agent lifecycle**
+`ai:agent-ready` (fully specified, safe to execute autonomously) · `ai:in-progress` · `ai:needs-review` · `ai:blocked`
+
+**`agent:*` — which agent holds the ticket**
+`agent:claude-code` · `agent:gemini` · `agent:cursor`
+
+**`type:*`**
+`bug` · `feature` · `ui-ux` · `security` · `performance` · `maintenance` · `docs` · `a11y`
+
+**`area:*`**
+`ui-ux` `navigation` `backend` `ai` `integrations` `workouts` `coaching` `nutrition` `wellness` `planning` `dashboard` `analytics` `auth` `security` `infra` `performance` `mobile` `chat` `email` `push` `i18n` `a11y` `docs` `data` `profile` `admin` `marketing` `architecture`
+
+`area:*` is the concurrency partition key — it is how the dispatcher avoids giving two agents overlapping work.
+
+**`dist:*`**
+`dist:app-store` · `dist:play-store` · `dist:web` · `dist:raycast`
+
+**Priority is Linear's native field**, not a label: Urgent(1) / High(2) / Medium(3) / Low(4). It determines agent dispatch order.
+
+---
+
+## 4. Workflow states
+
+```
+Triage ──► Backlog ──► Todo ──► In Progress ──► In Review ──► Done
+                                     ▲              │
+                                     └── Blocked ◄──┘
+                                                    └─► Canceled / Duplicate
+```
+
+| State                        | Type      | Trigger                                                                   |
+| ---------------------------- | --------- | ------------------------------------------------------------------------- |
+| **Triage**                   | Backlog   | Raw or imported; lacks acceptance criteria. **Never agent-dispatchable.** |
+| **Backlog**                  | Backlog   | Specified, not scheduled.                                                 |
+| **Todo**                     | Unstarted | Actionable. With `ai:agent-ready`, this is the agent queue.               |
+| **In Progress**              | Started   | Claimed; branch and worktree exist.                                       |
+| **Blocked**                  | Started   | Needs a human: missing credentials, ambiguity, external dependency.       |
+| **In Review**                | Started   | PR open; awaiting CI and review.                                          |
+| **Done**                     | Completed | Merged **and** verified.                                                  |
+| **Canceled** / **Duplicate** | Canceled  | Dropped.                                                                  |
+
+`Blocked` is a real state, not a label. A blocked ticket left in `In Progress` looks like a live agent claim forever — no agent picks it up and no human notices.
+
+---
+
+## 5. AI-Ready ticket template
+
+A ticket earns `ai:agent-ready` only with all five sections present. Missing any → `Triage`.
+
+````markdown
+## Problem & Context
+
+What is broken or missing, and why it matters.
+
+## Acceptance Criteria
+
+- [ ] Token refresh propagates auth failure to the caller
+- [ ] Unit test covers the expired-refresh-token path
+
+## Source File Pointers
+
+- Primary: `app/services/api.ts`
+- Test: `app/services/__tests__/api.test.ts`
+
+## Owned Paths
+
+- `app/services/api.ts`
+- `app/services/__tests__/*`
+
+## Verification Command
+
+```bash
+pnpm test:unit app/services/__tests__/api.test.ts
+```
+````
+
+**`Owned Paths`** is the glob set the ticket may modify. Two in-flight tickets must never have overlapping globs — otherwise they collide at merge instead of at dispatch.
+
+---
+
+## 6. Git conventions
+
+**Branch:** `<type>/CW-<id>-<slug>`
+
+```bash
+git checkout -b feat/CW-105-spo2-chart
+git checkout -b fix/CW-42-token-refresh-race
+```
+
+**Worktree — one per ticket, mandatory:**
+
+```bash
+git worktree add ~/Develop/.worktrees/coach-wattz/CW-105 -b feat/CW-105-spo2-chart
+```
+
+Agents sharing a checkout corrupt each other's branch state. This rule is the mitigation.
+
+**Commits:**
+
+```bash
+git commit -m "fix(mobile): resolve token refresh race condition (CW-105)"
+```
+
+**Magic keywords move a ticket to `In Review` only — never `Done`.** `Done` is set by the agent after posting verification output. Auto-closing on merge would bypass the test gate.
+
+---
+
+## 7. Concurrent agent protocol
+
+Each agent runs as its **own Linear member with its own API key**, so `assignee` is a real lock.
+
+1. **Query** `state:Todo AND label:ai:agent-ready AND assignee:none`, sorted priority asc, then createdAt asc.
+2. **Check paths** — skip tickets whose `Owned Paths` overlap anything currently `In Progress`.
+3. **Claim** — set assignee to self, state `In Progress`, add `ai:in-progress` + `agent:<name>`.
+4. **Re-read the ticket.** If the assignee is not you, another agent won — release and take the next. Linear has no compare-and-swap; this read-back _is_ the concurrency control.
+5. **Heartbeat** — comment at least every 10 minutes while working.
+6. **Finish** — push branch (`git push origin <branch>`), open PR (`gh pr create --title "..." --body "Fixes <ISSUE-ID>"`), set state `In Review` + `ai:needs-review` (remove `ai:in-progress`), and post verification comment with PR link. Set to `Done` after PR merge and CI pass.
+
+**Stale claims:** anything `In Progress` with no comment for 45 minutes is reclaimed — assignee cleared, back to `Todo`.
+
+**Rate limits:** poll at most once per minute per agent; back off on `RATELIMITED`.
+
+---
+
+## 8. Execution loop
+
+**Plan → Act → Verify → Push & Open PR → Log & Transition**
+
+1. **Plan** — confirm file locations; restate the approach on the ticket.
+2. **Act** — implement in the ticket's worktree, touching only `Owned Paths`, without breaking existing API contracts.
+3. **Verify** — run the Verification Command (`pnpm test`, `pnpm typecheck`, build). **Never mark complete without clean output.**
+4. **Push & Open PR** — push the feature/bugfix branch to remote (`git push origin <branch>`) and open a GitHub Pull Request targeting `develop` (`gh pr create --base develop --title "..." --body "Fixes <ISSUE-ID>"`).
+5. **Log & Transition** — post verification results, PR URL, and diff summary to the Linear ticket, transitioning state to `In Review` (`ai:needs-review`). Set to `Done` once PR is merged and verified.

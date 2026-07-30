@@ -32,6 +32,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   e2e:
     name: Playwright E2E
@@ -50,21 +53,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Prepare Nuxt
+        run: pnpm exec nuxt prepare
 
       - name: Prepare e2e env
         run: |
@@ -78,11 +84,21 @@ jobs:
             sleep 2
           fi
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
       - name: Build and start Docker e2e stack
         run: pnpm e2e:setup
 
+      - name: Dump e2e container logs on setup failure
+        if: failure()
+        run: |
+          docker logs coach-worker-e2e 2>&1 || true
+          docker logs coach-app-e2e 2>&1 || true
+          docker compose --env-file .env.e2e -p coach-e2e -f docker-compose.e2e.yml ps || true
+
       - name: Cache Playwright Chromium
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -111,7 +127,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always() && !inputs.lighthouse_only
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ github.run_id }}
           path: |
@@ -122,7 +138,7 @@ jobs:
 
       - name: Upload Lighthouse report
         if: always() && (github.base_ref == 'master' || inputs.with_lighthouse == true || inputs.lighthouse_only == true || contains(github.event.pull_request.labels.*.name, 'run-lighthouse'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouserc-report-${{ github.run_id }}
           path: .lighthouseci/
@@ -131,4 +147,4 @@ jobs:
 
       - name: Tear down e2e stack
         if: always()
-        run: pnpm e2e:down
+        run: command -v pnpm >/dev/null 2>&1 && pnpm e2e:down || true

@@ -2,8 +2,12 @@ import type { H3Event } from 'h3'
 import { requireAuth } from './auth-guard'
 import { coachingRepository } from './repositories/coachingRepository'
 
-export async function requireCoachAccessToAthlete(event: H3Event, athleteId: string) {
-  const coach = await requireAuth(event, ['coaching:read'])
+export async function requireCoachAccessToAthlete(
+  event: H3Event,
+  athleteId: string,
+  requiredScopes: string[] = ['coaching:read']
+) {
+  const coach = await requireAuth(event, requiredScopes)
   const isCoaching = await coachingRepository.checkRelationship(coach.id, athleteId)
 
   if (!isCoaching) {
