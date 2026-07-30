@@ -275,10 +275,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   auth: {
-    originEnvKey: 'AUTH_ORIGIN',
-    origin: process.env.AUTH_ORIGIN || process.env.NUXT_AUTH_ORIGIN || 'http://localhost:3199',
-    computedPath: '/api/auth',
-    baseURL: '/api/auth',
+    originEnvKey: 'NUXT_AUTH_ORIGIN',
+    baseURL: process.env.NUXT_AUTH_ORIGIN || 'http://localhost:3099/api/auth',
     provider: {
       type: 'authjs'
     },
@@ -342,7 +340,7 @@ export default defineNuxtConfig({
     subscriptionProProductIds: process.env.SUBSCRIPTION_PRO_PRODUCT_IDS || '',
 
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3099',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3099/',
       version: pkg.version,
       commitHash,
       buildDate,
