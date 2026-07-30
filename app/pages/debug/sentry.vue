@@ -143,7 +143,7 @@
       <template #footer>
         <p class="text-xs text-gray-400">
           Check your Sentry dashboard at: <br />
-          <code class="text-blue-400">https://newpush-y4.sentry.io/projects/coach-watts/</code>
+          <code class="text-blue-400">https://watt-mind.sentry.io/projects/coach-watts-web/</code>
         </p>
       </template>
     </UCard>

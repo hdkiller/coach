@@ -460,8 +460,8 @@ export default defineNuxtConfig({
 
   sentry: {
     enabled: sentryEnabled,
-    org: 'newpush-y4',
-    project: 'coach-watts',
+    org: process.env.SENTRY_ORG || 'watt-mind',
+    project: process.env.SENTRY_PROJECT || 'coach-watts-web',
     sourceMapsUploadOptions: {
       enabled: !!process.env.SENTRY_AUTH_TOKEN,
       telemetry: false
