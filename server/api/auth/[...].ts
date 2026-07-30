@@ -229,7 +229,7 @@ function buildAuthProviders() {
       clientId: process.env.INTERVALS_CLIENT_ID,
       clientSecret: process.env.INTERVALS_CLIENT_SECRET,
       client: {
-        token_endpoint_auth_method: 'client_secret_post'
+        token_endpoint_auth_method: 'client_secret_basic'
       },
       allowDangerousEmailAccountLinking: true,
       async profile(profile: any) {
