@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from './db'
 import type { StructureRunSource } from './trigger-run-tags'
+import { STRUCTURE_GENERATION_RUN_STALE_AFTER_MS } from './workout-ai-timeouts'
 
 export type StructureGenerationMode = 'generate' | 'adjust'
 export type StructureGenerationRunStatus =
@@ -145,14 +146,40 @@ export async function attachTriggerRunId(runId: string, triggerRunId: string) {
   })
 }
 
+/**
+ * Returns true when this workout has a run genuinely in progress. Also self-heals: a hard
+ * Trigger.dev `maxDuration` kill skips the task's own lifecycle hooks (see
+ * STRUCTURE_GENERATION_RUN_STALE_AFTER_MS), so a PENDING/RUNNING row can outlive the run that
+ * created it. Any such row older than the stale threshold is reconciled to FAILED here and does
+ * not count as active, so callers (the "still generating" UI gate, the chat tool's in-flight
+ * guard) recover on their own without needing a separate reconciliation job.
+ */
 export async function hasActiveStructureGenerationRun(plannedWorkoutId: string): Promise<boolean> {
-  const count = await prisma.workoutStructureGenerationRun.count({
+  const activeRuns = await prisma.workoutStructureGenerationRun.findMany({
     where: {
       plannedWorkoutId,
       status: { in: ACTIVE_STATUSES }
-    }
+    },
+    select: { id: true, startedAt: true, createdAt: true }
   })
-  return count > 0
+  if (activeRuns.length === 0) return false
+
+  const now = Date.now()
+  let stillActive = false
+
+  for (const run of activeRuns) {
+    const referenceTime = (run.startedAt ?? run.createdAt).getTime()
+    if (now - referenceTime > STRUCTURE_GENERATION_RUN_STALE_AFTER_MS) {
+      await markStructureGenerationRunFailed(
+        run.id,
+        'Generation timed out before the task could report completion.'
+      )
+    } else {
+      stillActive = true
+    }
+  }
+
+  return stillActive
 }
 
 export async function supersedeActiveStructureGenerationRuns(

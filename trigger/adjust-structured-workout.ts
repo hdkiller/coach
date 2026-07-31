@@ -70,6 +70,8 @@ import {
   hasRenderableStructure
 } from '../server/utils/structured-workout-persistence'
 import {
+  STRUCTURE_GENERATION_TASK_MAX_DURATION_MS,
+  STRUCTURE_GENERATION_TASK_MAX_DURATION_SEC,
   WORKOUT_STRUCTURE_AI_MAX_RETRIES,
   WORKOUT_STRUCTURE_AI_TIMEOUT_MS
 } from '../server/utils/workout-ai-timeouts'
@@ -674,7 +676,7 @@ export async function runAdjustStructuredWorkout(
   const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
   if (!entityId) throw new Error('Planned workout ID or workout template ID is required')
   const startedAtMs = Date.now()
-  const MAX_DURATION_MS = 180_000
+  const MAX_DURATION_MS = STRUCTURE_GENERATION_TASK_MAX_DURATION_MS
   const logStage = (stage: string, meta: Record<string, any> = {}) => {
     const elapsedMs = Date.now() - startedAtMs
     logger.log(`[AdjustStructuredWorkout] ${stage}`, {
@@ -1607,7 +1609,7 @@ registerTaskHandler('adjust-structured-workout', (payload) => runAdjustStructure
 export const adjustStructuredWorkoutTask = task({
   id: 'adjust-structured-workout',
   queue: userReportsQueue,
-  maxDuration: 180,
+  maxDuration: STRUCTURE_GENERATION_TASK_MAX_DURATION_SEC,
   run: async (payload: AdjustStructuredWorkoutPayload, { ctx }) =>
     runAdjustStructuredWorkout(payload, { runId: ctx.run.id })
 })
