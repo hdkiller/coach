@@ -169,14 +169,81 @@ export function getGramsPerMin(
   return base * (SPORT_DRAIN_WEIGHTS[sportClass] ?? 1)
 }
 
-function getDateStr(date: any): string {
+function getDateStr(date: any, timezone: string): string {
   if (date instanceof Date) {
+    // `@db.Date` columns (nutrition/workout records) arrive as a UTC-midnight instant that already
+    // encodes the intended calendar day, so the day key is read straight off it rather than
+    // reinterpreted through the timezone - doing the latter would shift it a day for any offset.
     return date.toISOString().split('T')[0]!
   }
   if (typeof date === 'string') {
     return date.split('T')[0]!
   }
-  return new Date().toISOString().split('T')[0]!
+  // No date supplied at all: this is the one spot with no calendar day to anchor to, so "today" has
+  // to be invented. It used to be read off the server's UTC clock, which disagrees with the
+  // athlete's own "today" for roughly a third of the day depending on their offset. Anchoring it to
+  // the caller's timezone instead matches how "today" is resolved everywhere else in this domain
+  // (see `getUserLocalDate` / `getDateKey`).
+  return formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd')
+}
+
+/**
+ * Resolves the calendar day and its UTC day-start instant for a simulation run.
+ *
+ * Both calculators anchor every relative calculation (BMR drain, interval stepping, meal timing) to
+ * these two values, so deriving them once here is what keeps a shared date resolution from drifting
+ * back apart the way the per-function copies previously did.
+ */
+export function resolveSimulationStartTime(
+  rawDate: any,
+  timezone: string
+): { dateStr: string; dayStart: Date } {
+  const dateStr = getDateStr(rawDate, timezone)
+  const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
+  return { dateStr, dayStart }
+}
+
+/**
+ * Minutes a workout lasted, resolved with one field precedence for every caller.
+ *
+ * `durationSec` is the canonical field on both the completed `Workout` and `PlannedWorkout` models;
+ * `duration`/`plannedDuration` are legacy or synthetic aliases seen on some call sites. The two
+ * calculators used to check these in different orders, which meant a workout carrying more than one
+ * of these fields could report a different length depending on which function read it.
+ */
+export function resolveWorkoutDurationMin(workout: any): number {
+  const durationSec = workout?.durationSec || workout?.duration || workout?.plannedDuration || 3600
+  return durationSec / 60
+}
+
+/**
+ * A workout's intensity (roughly an intensity factor, 0-1+), resolved with one field precedence for
+ * every caller. `workIntensity` is the canonical field on `PlannedWorkout`, `intensity` on the
+ * completed `Workout` model; `intensityFactor` is carried by some synthetic/derived workout objects.
+ * A real workout normally only has one of these populated, so the order rarely matters in practice,
+ * but the two calculators used to disagree on it, which is a mismatch waiting to happen the day a
+ * caller sends an object that has more than one set.
+ */
+export function resolveWorkoutIntensity(workout: any): number {
+  return workout?.workIntensity || workout?.intensityFactor || workout?.intensity || 0.7
+}
+
+/**
+ * The glycogen percentage a simulation should start from.
+ *
+ * An explicit starting value - including an honest zero - is evidence and is used as-is (floored at
+ * 0, since a negative tank is not meaningful). Only the absence of a value falls back to the
+ * metabolic floor. `calculateEnergyTimeline` and `calculateGlycogenState` used to apply this
+ * distinction differently: one tolerated a non-finite explicit value by silently propagating NaN
+ * through the rest of the simulation, and only one of them floored a negative value at 0.
+ */
+export function resolveStartingGlycogenPercentage(
+  explicitPercentage: number | undefined,
+  metabolicFloor: number
+): number {
+  const hasExplicit = explicitPercentage !== undefined && Number.isFinite(explicitPercentage)
+  if (hasExplicit) return Math.max(0, explicitPercentage as number)
+  return metabolicFloor * 100
 }
 
 export function parseMealDateTime(
@@ -238,14 +305,14 @@ export function calculateGlycogenState(
   const C_cap = resolveGlycogenCapacityG(settings)
 
   const metabolicFloor = settings?.metabolicFloor || 0.6
-  const baselinePct = startingPercentage !== undefined ? startingPercentage : metabolicFloor * 100
+  const baselinePct = resolveStartingGlycogenPercentage(startingPercentage, metabolicFloor)
   let currentGrams = C_cap * (baselinePct / 100)
 
   const targetCarbs = nutritionRecord.carbsGoal || 300
 
   let absorbedUntilNow = 0
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
-  const dateStr = getDateStr(nutritionRecord.date)
+  const { dateStr, dayStart } = resolveSimulationStartTime(nutritionRecord.date, timezone)
 
   mealTypes.forEach((type) => {
     if (Array.isArray(nutritionRecord[type])) {
@@ -283,7 +350,6 @@ export function calculateGlycogenState(
 
   const replenishmentPct = (actualCarbs / C_cap) * 100
 
-  const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
   const minsSinceMidnight = differenceInMinutes(currentTime, dayStart)
   const dailyBmr = settings?.bmr || 1600
   const restingDailyKcal = dailyBmr * RESTING_ACTIVITY_FACTOR
@@ -303,9 +369,8 @@ export function calculateGlycogenState(
     const workoutStart = new Date(getWorkoutDate(workout, timezone))
     const isCompleted = workout.source === 'completed' || workout.completed === true
 
-    const intensity = workout.intensity || workout.workIntensity || 0.7
-    const durationMin =
-      (workout.duration || workout.durationSec || workout.plannedDuration || 3600) / 60
+    const intensity = resolveWorkoutIntensity(workout)
+    const durationMin = resolveWorkoutDurationMin(workout)
 
     const gramsPerMin =
       getGramsPerMin(intensity, getSportFuelingClass(workout.type)) * WORKOUT_DRAIN_MULTIPLIER
@@ -386,8 +451,7 @@ export function calculateEnergyTimeline(
     now?: Date
   } = {}
 ): EnergyPoint[] {
-  const dateStr = getDateStr(nutritionRecord.date)
-  const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
+  const { dateStr, dayStart } = resolveSimulationStartTime(nutritionRecord.date, timezone)
   const now = options.now || new Date()
 
   const points: EnergyPoint[] = []
@@ -408,20 +472,25 @@ export function calculateEnergyTimeline(
   //
   // A day that ended empty now starts empty. That reads as an athlete digging a hole, which is the
   // signal worth showing; a chain that is actually broken supplies no starting value at all and
-  // still gets the floor.
-  const hasKnownStart =
-    options.startingGlycogenPercentage !== undefined &&
-    Number.isFinite(options.startingGlycogenPercentage)
-
-  const startingPct = hasKnownStart
-    ? Math.max(0, options.startingGlycogenPercentage as number)
-    : metabolicFloor * 100
+  // still gets the floor. `resolveStartingGlycogenPercentage` is shared with `calculateGlycogenState`
+  // so the two calculators cannot drift apart on this again.
+  const startingPct = resolveStartingGlycogenPercentage(
+    options.startingGlycogenPercentage,
+    metabolicFloor
+  )
 
   let currentGrams = C_cap * (startingPct / 100)
   let currentFluidDeficit = options.startingFluidDeficit || 0
 
   let cumulativeKcalDelta = 0
   let cumulativeCarbDelta = 0
+
+  // Carbohydrate (and its paired calories) that the gut cap held back this interval. It is not
+  // lost - it is still sitting in the gut - so it rolls into the next interval's absorption instead
+  // of vanishing, the same way the 15 minute loop below already carries every other running total
+  // forward.
+  let carriedGramsIn = 0
+  let carriedKcalIn = 0
 
   const dailyBmr = settings?.bmr || 1600
   // Both lines derive from the same daily resting figure. They used to disagree: grams came off
@@ -534,8 +603,8 @@ export function calculateEnergyTimeline(
   const workoutDrainGrams = workouts
     .filter((w: any) => w.type !== 'Rest')
     .reduce((sum: number, w: any) => {
-      const durationMin = (w.durationSec || w.duration || w.plannedDuration || 3600) / 60
-      const intensity = w.workIntensity || w.intensityFactor || w.intensity || 0.7
+      const durationMin = resolveWorkoutDurationMin(w)
+      const intensity = resolveWorkoutIntensity(w)
       return (
         sum +
         getGramsPerMin(intensity, getSportFuelingClass(w.type)) *
@@ -654,9 +723,8 @@ export function calculateEnergyTimeline(
     .filter((w) => w.type !== 'Rest')
     .map((w) => {
       const start = new Date(getWorkoutDate(w, timezone))
-      const durationSec = w.durationSec || w.duration || w.plannedDuration || 3600
-      const durationMin = durationSec / 60
-      const intensity = w.workIntensity || w.intensityFactor || w.intensity || 0.7
+      const durationMin = resolveWorkoutDurationMin(w)
+      const intensity = resolveWorkoutIntensity(w)
       const sweatRateLph =
         settings.sweatRate && settings.sweatRate > 0
           ? settings.sweatRate
@@ -792,11 +860,19 @@ export function calculateEnergyTimeline(
       // Roughly 90g/hr, the ceiling on what the gut can take up. Whatever the cap holds back has
       // not been absorbed, so its energy must be held back with it - otherwise a big meal credited
       // calories the athlete could not yet have used.
-      const cappedGramsIn = Math.min(intervalGramsIn, INTERVAL_CARB_ABSORPTION_CAP_G)
-      const absorbedRatio = intervalGramsIn > 0 ? cappedGramsIn / intervalGramsIn : 0
+      //
+      // What the cap withholds is still in the gut, not gone: it is added to what this same meal's
+      // own curve produces next interval, so a large meal is absorbed in full over several windows
+      // instead of permanently losing whatever one 15 minute slice could not take up.
+      const availableGramsIn = intervalGramsIn + carriedGramsIn
+      const availableKcalIn = intervalKcalIn + carriedKcalIn
+      const cappedGramsIn = Math.min(availableGramsIn, INTERVAL_CARB_ABSORPTION_CAP_G)
+      const absorbedRatio = availableGramsIn > 0 ? cappedGramsIn / availableGramsIn : 0
       currentGrams += cappedGramsIn
-      cumulativeKcalDelta += intervalKcalIn * absorbedRatio
+      cumulativeKcalDelta += availableKcalIn * absorbedRatio
       cumulativeCarbDelta += cappedGramsIn
+      carriedGramsIn = availableGramsIn - cappedGramsIn
+      carriedKcalIn = availableKcalIn - availableKcalIn * absorbedRatio
 
       if (isPassiveWindow && !manualFluidHours.has(hourKey)) {
         intervalFluidIn += PASSIVE_REHYDRATION_ML_PER_HOUR * (INTERVAL / 60)
