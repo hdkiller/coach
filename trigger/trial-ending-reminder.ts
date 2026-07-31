@@ -1,4 +1,4 @@
-import { schedules, logger } from '@trigger.dev/sdk/v3'
+import { task, logger } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { QUOTA_REGISTRY } from '../server/utils/quotas/registry'
 import { formatUserDate } from '../server/utils/date'
@@ -49,9 +49,17 @@ function formatSupporterHighlights() {
   ]
 }
 
-export const trialEndingReminderCron = schedules.task({
+// CW-188: This used to be a `schedules.task` with a declarative `cron`, which
+// keeps re-registering an active schedule trigger on Trigger.dev Cloud every
+// time it's deployed there. Actual scheduling now happens exclusively via
+// cw:worker's Redis/BullMQ job scheduler (see cli/worker/start.ts,
+// registerScheduledTasks), driven off the `schedule.cron` entry for this task
+// id in server/utils/task-manifest.json. Keep this a plain `task()` so no
+// declarative schedule gets synced back to Trigger.dev Cloud.
+export const trialEndingReminderCron = task({
   id: 'trial-ending-reminder-cron',
-  cron: '0 9 * * *',
+  // Actual cron ("0 9 * * *", daily at 09:00 UTC) lives in
+  // server/utils/task-manifest.json and is registered by cw:worker.
   run: async () => {
     const now = new Date()
     const { windowStart, windowEnd } = getTrialEndingWindow(now)

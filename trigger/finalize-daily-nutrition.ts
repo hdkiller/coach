@@ -1,4 +1,4 @@
-import { logger, schedules, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { prisma } from '../server/utils/db'
@@ -21,10 +21,17 @@ export const finalizeDailyNutritionTask = task({
   }
 })
 
-export const finalizeDailyNutritionCron = schedules.task({
+// CW-188: This used to be a `schedules.task` with a declarative `cron`, which
+// keeps re-registering an active schedule trigger on Trigger.dev Cloud every
+// time it's deployed there. Actual scheduling now happens exclusively via
+// cw:worker's Redis/BullMQ job scheduler (see cli/worker/start.ts,
+// registerScheduledTasks), driven off the `schedule.cron` entry for this task
+// id in server/utils/task-manifest.json. Keep this a plain `task()` so no
+// declarative schedule gets synced back to Trigger.dev Cloud.
+export const finalizeDailyNutritionCron = task({
   id: 'finalize-daily-nutrition-cron',
-  // Run daily (02:10) to persist yesterday/today chain state.
-  cron: '10 2 * * *',
+  // Actual cron ("10 2 * * *", run daily at 02:10 UTC) lives in
+  // server/utils/task-manifest.json and is registered by cw:worker.
   run: async () => {
     const users = await prisma.user.findMany({
       where: {
