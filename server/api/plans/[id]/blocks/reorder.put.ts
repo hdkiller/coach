@@ -36,10 +36,22 @@ export default defineEventHandler(async (event) => {
 
   if (!plan) throw createError({ statusCode: 404, message: 'Plan not found' })
 
+  // Nested block ids must belong to this ownership-verified plan (IDOR guard).
+  const ownedBlockIds = new Set(plan.blocks.map((b) => b.id))
+  for (const b of blocks) {
+    if (!ownedBlockIds.has(b.id)) {
+      throw createError({ statusCode: 404, message: 'Block not found' })
+    }
+  }
+
   return await prisma.$transaction(async (tx) => {
-    // 1. Update Orders
+    // 1. Update Orders (scoped to this plan)
     for (const b of blocks) {
-      await trainingBlockRepository.update(b.id, { order: b.order }, tx)
+      await trainingBlockRepository.updateMany(
+        { id: b.id, trainingPlanId: planId! },
+        { order: b.order },
+        tx
+      )
     }
 
     // 2. Fetch reordered blocks to recalculate dates
