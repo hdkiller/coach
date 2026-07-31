@@ -12,6 +12,7 @@ import {
   resolveApprovalOriginLineageId,
   buildCanonicalApprovalResponse
 } from '../../utils/chat/approval-continuation'
+import { sanitizeChatMessagesForToolApprovals } from './sanitize-tool-approval'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['chat:write'])
@@ -32,7 +33,9 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { roomId, messages, files, replyMessage } = body
-  const clientMessages = Array.isArray(messages) ? messages : []
+  const clientMessages = sanitizeChatMessagesForToolApprovals(
+    Array.isArray(messages) ? messages : []
+  )
   const truncatedMessages = clientMessages.slice(-25)
 
   const lastMessage = truncatedMessages?.[truncatedMessages.length - 1]

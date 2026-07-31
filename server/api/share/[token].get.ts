@@ -1,7 +1,13 @@
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { attachStreamToWorkout } from '../../utils/repositories/workoutStreamRepository'
-import { sanitizeSharedNutrition, sanitizeSharedPlannedWorkout } from '../../utils/share-response'
+import {
+  sanitizeSharedNutrition,
+  sanitizeSharedPlannedWorkout,
+  sanitizeSharedWellness,
+  sanitizeSharedReport,
+  sanitizeSharedTrainingPlan
+} from '../../utils/share-response'
 
 defineRouteMeta({
   openAPI: {
@@ -84,9 +90,10 @@ export default defineEventHandler(async (event) => {
   let data: any = null
 
   if (shareToken.resourceType === 'REPORT') {
-    data = await prisma.report.findUnique({
+    const report = await prisma.report.findUnique({
       where: { id: shareToken.resourceId }
     })
+    data = report ? sanitizeSharedReport(report) : null
   } else if (shareToken.resourceType === 'WORKOUT') {
     const workoutRecord = await workoutRepository.getById(shareToken.resourceId, shareToken.userId)
     data = workoutRecord ? await attachStreamToWorkout(workoutRecord) : null
@@ -94,9 +101,10 @@ export default defineEventHandler(async (event) => {
     const nutrition = await nutritionRepository.getByIdInternal(shareToken.resourceId)
     data = nutrition ? sanitizeSharedNutrition(nutrition) : null
   } else if (shareToken.resourceType === 'ATHLETE_PROFILE') {
-    data = await prisma.report.findUnique({
+    const profile = await prisma.report.findUnique({
       where: { id: shareToken.resourceId }
     })
+    data = profile ? sanitizeSharedReport(profile) : null
   } else if (shareToken.resourceType === 'PLANNED_WORKOUT') {
     const plannedWorkout = await prisma.plannedWorkout.findUnique({
       where: { id: shareToken.resourceId },
@@ -120,7 +128,7 @@ export default defineEventHandler(async (event) => {
       ? sanitizeSharedPlannedWorkout(plannedWorkout, shareToken.accessMode)
       : null
   } else if (shareToken.resourceType === 'TRAINING_PLAN') {
-    data = await prisma.trainingPlan.findUnique({
+    const plan = await prisma.trainingPlan.findUnique({
       where: { id: shareToken.resourceId },
       include: {
         goal: true,
@@ -140,10 +148,10 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    if (data && data.blocks) {
+    if (plan?.blocks) {
       const workoutIds: string[] = []
 
-      data.blocks.forEach((block: any) => {
+      plan.blocks.forEach((block: any) => {
         block.weeks.forEach((week: any) => {
           week.workouts.forEach((workout: any) => {
             workoutIds.push(workout.id)
@@ -160,7 +168,7 @@ export default defineEventHandler(async (event) => {
 
       const tokenMap = new Map(existingTokens.map((t) => [t.resourceId, t.token]))
 
-      data.blocks.forEach((block: any) => {
+      plan.blocks.forEach((block: any) => {
         block.weeks.forEach((week: any) => {
           week.workouts.forEach((workout: any) => {
             const token = tokenMap.get(workout.id)
@@ -171,10 +179,13 @@ export default defineEventHandler(async (event) => {
         })
       })
     }
+
+    data = plan ? sanitizeSharedTrainingPlan(plan) : null
   } else if (shareToken.resourceType === 'WELLNESS') {
-    data = await prisma.wellness.findUnique({
+    const wellness = await prisma.wellness.findUnique({
       where: { id: shareToken.resourceId }
     })
+    data = wellness ? sanitizeSharedWellness(wellness) : null
   }
 
   if (!data) {

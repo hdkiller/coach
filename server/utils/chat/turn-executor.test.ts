@@ -675,6 +675,28 @@ describe('write repair prompt helpers', () => {
     ).toBe(false)
   })
 
+  it('treats structure mutations as successful writes for empty-response retry guards', () => {
+    const setStructure = [
+      {
+        toolName: 'set_planned_workout_structure',
+        args: { plannedWorkoutId: 'pw-1', structure: { steps: [] } },
+        result: { message: 'Workout structure updated.', success: true }
+      }
+    ]
+    const modifyPlanStructure = [
+      {
+        toolName: 'modify_training_plan_structure',
+        args: { planId: 'plan-1', blocks: [] },
+        result: { message: 'Training plan structure updated.', success: true }
+      }
+    ]
+
+    expect(hasSuccessfulMutatingToolResult(setStructure)).toBe(true)
+    expect(shouldRetryEmptyToolResponse(0, setStructure)).toBe(false)
+    expect(hasSuccessfulMutatingToolResult(modifyPlanStructure)).toBe(true)
+    expect(shouldRetryEmptyToolResponse(0, modifyPlanStructure)).toBe(false)
+  })
+
   it('retries a successful read once but returns no fallback when every tool failed', () => {
     expect(
       shouldRetryEmptyToolResponse(0, [

@@ -4,6 +4,7 @@ import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
 import { isLifetimeSubscriber, stripeBillingResetData } from '../../utils/lifetime-subscription'
+import { requireStripeRedirectUrl } from '../../utils/stripe-redirect-url'
 
 const portalSessionSchema = z.object({
   returnUrl: z.string().optional()
@@ -64,14 +65,20 @@ export default defineEventHandler(async (event) => {
     throw error
   }
 
-  const config = useRuntimeConfig()
-  const baseUrl = config.public.siteUrl || 'http://localhost:3099'
+  let config: any
+  try {
+    config = useRuntimeConfig()
+  } catch {
+    config = {}
+  }
+  const baseUrl = config?.public?.siteUrl || 'http://localhost:3099'
+  const return_url = requireStripeRedirectUrl(returnUrl, baseUrl, '/settings/billing')
 
   let portalSession
   try {
     portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: returnUrl || `${baseUrl}/settings/billing`
+      return_url
     })
   } catch (error: any) {
     if (error?.type !== 'StripeInvalidRequestError' && error?.code !== 'resource_missing') {

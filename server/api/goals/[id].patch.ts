@@ -98,12 +98,32 @@ export default defineEventHandler(async (event) => {
   const { eventData, eventId, eventIds, ...goalData } = body
   const data: any = { ...goalData }
 
-  if (eventIds && Array.isArray(eventIds)) {
-    data.events = {
-      set: eventIds.map((id) => ({ id }))
+  const requestedEventIds: string[] | null =
+    eventIds && Array.isArray(eventIds) ? eventIds : eventId ? [eventId] : null
+
+  if (requestedEventIds) {
+    // Prevent IDOR: only the caller's events may be linked to their goal
+    const uniqueEventIds = [...new Set(requestedEventIds)]
+    if (uniqueEventIds.length > 0) {
+      const ownedEvents = await prisma.event.findMany({
+        where: {
+          id: { in: uniqueEventIds },
+          userId
+        },
+        select: { id: true }
+      })
+
+      if (ownedEvents.length !== uniqueEventIds.length) {
+        throw createError({
+          statusCode: 403,
+          message: 'Not authorized to link one or more events'
+        })
+      }
     }
-  } else if (eventId) {
-    data.events = { set: [{ id: eventId }] }
+
+    data.events = {
+      set: requestedEventIds.map((id) => ({ id }))
+    }
   }
 
   if (eventData) {

@@ -38,18 +38,47 @@ export const finalizeDailyNutritionCron = schedules.task({
 
     logger.log('Finalizing daily nutrition for users', { count: users.length })
 
+    let dispatchedCount = 0
+    let failedCount = 0
     const batchSize = 25
     for (let i = 0; i < users.length; i += batchSize) {
       const batch = users.slice(i, i + batchSize)
-      await Promise.all(
-        batch.map((u) =>
-          dispatchTask('finalize-daily-nutrition', {
-            userId: u.id
-          })
-        )
+      const results = await Promise.all(
+        batch.map(async (u) => {
+          try {
+            await dispatchTask('finalize-daily-nutrition', {
+              userId: u.id
+            })
+            return true
+          } catch (error) {
+            logger.error('Failed to dispatch finalize-daily-nutrition', {
+              userId: u.id,
+              error
+            })
+            return false
+          }
+        })
       )
+
+      for (const ok of results) {
+        if (ok) dispatchedCount++
+        else failedCount++
+      }
     }
 
-    return { success: true, count: users.length }
+    if (failedCount > 0) {
+      logger.warn('Finalize daily nutrition cron completed with partial failures', {
+        count: users.length,
+        dispatchedCount,
+        failedCount
+      })
+    }
+
+    return {
+      success: failedCount === 0,
+      count: users.length,
+      dispatchedCount,
+      failedCount
+    }
   }
 })

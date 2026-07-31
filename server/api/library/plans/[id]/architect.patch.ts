@@ -86,9 +86,32 @@ export default defineEventHandler(async (event) => {
     isPublic,
     blocks: incomingBlocks
   } = validation.data
+
+  // Nested ids in the body must belong to this ownership-verified plan.
+  // Reject foreign block/week/workout ids before any mutation (IDOR guard).
+  const ownedBlockIds = new Set(plan.blocks.map((b: any) => b.id as string))
+  const ownedWeekIds = new Set(
+    plan.blocks.flatMap((b: any) => b.weeks.map((w: any) => w.id as string))
+  )
+  const ownedWorkoutIds = new Set(
+    plan.blocks.flatMap((b: any) =>
+      b.weeks.flatMap((w: any) => w.workouts.map((wo: any) => wo.id as string))
+    )
+  )
+  const isPersistedId = (value?: string) => Boolean(value && !value.startsWith('temp-'))
+
   for (const block of incomingBlocks) {
+    if (isPersistedId(block.id) && !ownedBlockIds.has(block.id!)) {
+      throw createError({ statusCode: 404, message: 'Block not found' })
+    }
     for (const week of block.weeks) {
+      if (isPersistedId(week.id) && !ownedWeekIds.has(week.id!)) {
+        throw createError({ statusCode: 404, message: 'Week not found' })
+      }
       for (const workout of week.workouts) {
+        if (isPersistedId(workout.id) && !ownedWorkoutIds.has(workout.id!)) {
+          throw createError({ statusCode: 404, message: 'Workout not found' })
+        }
         if (!workout.structuredWorkout) continue
         const canonical = adaptStructuredWorkout(workout.structuredWorkout, { source: 'TEMPLATE' })
         if (!canonical || canonical.diagnostics?.length) {
@@ -126,7 +149,7 @@ export default defineEventHandler(async (event) => {
 
     if (blocksToDelete.length > 0) {
       await tx.trainingBlock.deleteMany({
-        where: { id: { in: blocksToDelete } }
+        where: { id: { in: blocksToDelete }, trainingPlanId: id }
       })
     }
 
@@ -135,7 +158,7 @@ export default defineEventHandler(async (event) => {
       let blockId = bData.id
 
       if (blockId && !blockId.startsWith('temp-')) {
-        // Update existing block
+        // Update existing block (id already verified against this plan)
         await tx.trainingBlock.update({
           where: { id: blockId },
           data: {
@@ -170,7 +193,7 @@ export default defineEventHandler(async (event) => {
 
       if (weeksToDelete.length > 0) {
         await tx.trainingWeek.deleteMany({
-          where: { id: { in: weeksToDelete } }
+          where: { id: { in: weeksToDelete }, blockId: blockId! }
         })
       }
 
@@ -179,6 +202,7 @@ export default defineEventHandler(async (event) => {
         let weekId = wData.id
 
         if (weekId && !weekId.startsWith('temp-')) {
+          // id already verified against this plan's weeks
           await tx.trainingWeek.update({
             where: { id: weekId },
             data: {
@@ -213,7 +237,7 @@ export default defineEventHandler(async (event) => {
 
         if (workoutsToDelete.length > 0) {
           await tx.plannedWorkout.deleteMany({
-            where: { id: { in: workoutsToDelete } }
+            where: { id: { in: workoutsToDelete }, trainingWeekId: weekId! }
           })
         }
 
@@ -233,6 +257,7 @@ export default defineEventHandler(async (event) => {
           const canonicalStructure = canonicalWrite?.canonical || null
           const structureFields = canonicalWrite?.data || {}
           if (woData.id && !woData.id.startsWith('temp-')) {
+            // id already verified against this plan's workouts
             await tx.plannedWorkout.update({
               where: { id: woData.id },
               data: {

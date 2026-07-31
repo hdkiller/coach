@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 const ACT_AS_COOKIE_NAME = 'coach_wattz_act_as_user'
+const ACT_AS_DASHBOARD_PATH = '/dashboard'
 
 function persistActAsCookie(userId: string | null) {
   if (!import.meta.client) return
@@ -11,6 +12,21 @@ function persistActAsCookie(userId: string | null) {
   }
 
   document.cookie = `${ACT_AS_COOKIE_NAME}=${encodeURIComponent(userId)}; path=/; SameSite=Lax`
+}
+
+/**
+ * Hard-navigate so identity-scoped Pinia caches (user, profile, entitlements)
+ * are wiped and re-fetched under the new act-as (or restored coach) identity.
+ */
+function hardResetForIdentityChange(path?: string) {
+  if (!import.meta.client) return
+
+  if (path) {
+    window.location.assign(path)
+    return
+  }
+
+  window.location.reload()
 }
 
 export const useCoachingStore = defineStore('coaching', () => {
@@ -37,6 +53,8 @@ export const useCoachingStore = defineStore('coaching', () => {
       localStorage.setItem('coaching_act_as_id', userId)
       localStorage.setItem('coaching_act_as_name', userName)
       persistActAsCookie(userId)
+      // Mirror stopActingAs: full navigation clears stale coach identity UI
+      hardResetForIdentityChange(ACT_AS_DASHBOARD_PATH)
     }
   }
 
@@ -52,10 +70,8 @@ export const useCoachingStore = defineStore('coaching', () => {
 
   function stopActingAs() {
     clearActingAs()
-    if (import.meta.client) {
-      // Force reload to clear all states and re-fetch session
-      window.location.reload()
-    }
+    // Force reload to clear all states and re-fetch session
+    hardResetForIdentityChange()
   }
 
   return {

@@ -201,14 +201,10 @@
 
           <div class="relative z-10">
             <h3 class="text-3xl font-black text-white font-athletic italic uppercase mb-6">
-              {{ pendingIsUpgrade ? t('modal.upgrade_title') : t('modal.title') }}
+              {{ pendingModalTitle }}
             </h3>
             <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
-              {{
-                pendingIsUpgrade
-                  ? t('modal.upgrade_warning', { price: pendingPriceLabel })
-                  : t('modal.warning')
-              }}
+              {{ pendingModalWarning }}
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4">
@@ -223,7 +219,7 @@
                   }
                 "
               >
-                {{ pendingIsUpgrade ? t('modal.cancel') : t('modal.keep_plan') }}
+                {{ pendingChangeKind === 'downgrade' ? t('modal.keep_plan') : t('modal.cancel') }}
               </UButton>
               <UButton
                 color="primary"
@@ -237,7 +233,7 @@
                   }
                 "
               >
-                {{ pendingIsUpgrade ? t('modal.upgrade_confirm') : t('modal.confirm_change') }}
+                {{ pendingModalConfirm }}
               </UButton>
             </div>
           </div>
@@ -294,18 +290,67 @@
   // while the cards below it showed the actual (different) figures.
   const toggleSavings = computed(() => bestAnnualSavings(PRICING_PLANS, currency.value))
 
+  /** Matches server proration: upgrade → always_invoice; interval/downgrade → next invoice. */
+  type PlanChangeKind = 'upgrade' | 'interval' | 'downgrade'
+
+  const PLAN_TIERS = ['FREE', 'SUPPORTER', 'PRO'] as const
+
   const billingInterval = ref<BillingInterval>('monthly')
   const loading = ref(false)
   const selectedPlan = ref<string | null>(null)
   const showConfirmModal = ref(false)
   const planToChangeTo = ref<PricingPlan | null>(null)
-  const pendingIsUpgrade = ref(false)
+  const pendingChangeKind = ref<PlanChangeKind>('downgrade')
 
   const pendingPriceLabel = computed(() =>
     planToChangeTo.value
-      ? formatPrice(priceFor(planToChangeTo.value, billingInterval.value, currency.value), currency.value)
+      ? formatPrice(
+          priceFor(planToChangeTo.value, billingInterval.value, currency.value),
+          currency.value
+        )
       : ''
   )
+
+  const pendingIntervalLabel = computed(() =>
+    billingInterval.value === 'annual' ? translate('billing.annual') : translate('billing.monthly')
+  )
+
+  const pendingModalTitle = computed(() => {
+    if (pendingChangeKind.value === 'upgrade') return translate('modal.upgrade_title')
+    if (pendingChangeKind.value === 'interval') return translate('modal.interval_title')
+    return translate('modal.title')
+  })
+
+  const pendingModalWarning = computed(() => {
+    if (pendingChangeKind.value === 'upgrade') {
+      return (t.value as (key: string, params?: Record<string, string>) => string)(
+        'modal.upgrade_warning',
+        { price: pendingPriceLabel.value }
+      )
+    }
+    if (pendingChangeKind.value === 'interval') {
+      return (t.value as (key: string, params?: Record<string, string>) => string)(
+        'modal.interval_warning',
+        { interval: pendingIntervalLabel.value, price: pendingPriceLabel.value }
+      )
+    }
+    return translate('modal.warning')
+  })
+
+  const pendingModalConfirm = computed(() => {
+    if (pendingChangeKind.value === 'upgrade') return translate('modal.upgrade_confirm')
+    if (pendingChangeKind.value === 'interval') return translate('modal.interval_confirm')
+    return translate('modal.confirm_change')
+  })
+
+  function planChangeKind(plan: PricingPlan): PlanChangeKind {
+    const currentTier = (userStore.user?.subscriptionTier || 'FREE').toUpperCase()
+    const currentLevel = PLAN_TIERS.indexOf(currentTier as (typeof PLAN_TIERS)[number])
+    const planLevel = PLAN_TIERS.indexOf(plan.key.toUpperCase() as (typeof PLAN_TIERS)[number])
+    if (planLevel > currentLevel) return 'upgrade'
+    if (planLevel === currentLevel) return 'interval'
+    return 'downgrade'
+  }
 
   const displayedPlans = computed(() => {
     const planByKey = new Map(PRICING_PLANS.map((plan) => [plan.key, plan]))
@@ -403,11 +448,10 @@
 
     const priceId = getStripePriceId(plan, billingInterval.value, currency.value)
     if (priceId) {
-      const currentTier = (userStore.user?.subscriptionTier || 'FREE').toUpperCase()
-      const tiers = ['FREE', 'SUPPORTER', 'PRO']
-      const currentLevel = tiers.indexOf(currentTier)
-      const planLevel = tiers.indexOf(plan.key.toUpperCase())
-      const direction = planLevel > currentLevel ? 'upgrade' : 'downgrade'
+      // API contract is upgrade | downgrade. Same-tier interval switches share the
+      // create_prorations path with downgrades (next invoice, not charged now).
+      const kind = planChangeKind(plan)
+      const direction = kind === 'upgrade' ? 'upgrade' : 'downgrade'
 
       const success = await changePlan(priceId, direction)
       if (success) {
@@ -424,23 +468,20 @@
 
   async function handlePlanSelect(plan: PricingPlan) {
     if (userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE') {
-      const currentTier = (userStore.user?.subscriptionTier || 'FREE').toUpperCase()
-      const tiers = ['FREE', 'SUPPORTER', 'PRO']
-      const currentLevel = tiers.indexOf(currentTier)
-      const planLevel = tiers.indexOf(plan.key.toUpperCase())
+      const kind = planChangeKind(plan)
 
-      // Every paid change is confirmed first: the upgrade path invoices the
-      // prorated difference immediately, so it must never fire on one click.
-      if (planLevel >= currentLevel) {
+      // Paid upgrades, interval switches, and paid downgrades all confirm first.
+      // Only true tier upgrades invoice immediately (always_invoice on the server).
+      if (kind === 'upgrade' || kind === 'interval') {
         planToChangeTo.value = plan
-        pendingIsUpgrade.value = true
+        pendingChangeKind.value = kind
         showConfirmModal.value = true
         return
       }
 
       if (plan.key !== 'free') {
         planToChangeTo.value = plan
-        pendingIsUpgrade.value = false
+        pendingChangeKind.value = 'downgrade'
         showConfirmModal.value = true
         return
       }

@@ -1,9 +1,7 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const { status, data, getSession, signOut } = useAuth()
 
-  if (typeof data.value === 'undefined') {
-    await getSession().catch(() => null)
-  }
+  await getSession().catch(() => null)
 
   if (status.value === 'loading') {
     return
@@ -30,5 +28,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // If not authenticated, redirect to the specialized OAuth login page
   if (status.value !== 'authenticated') {
     return navigateTo(`/oauth/login?callbackUrl=${encodeURIComponent(to.fullPath)}`)
+  }
+
+  const deactivatedAt = (data.value?.user as { deactivatedAt?: string | Date | null } | undefined)
+    ?.deactivatedAt
+
+  if (deactivatedAt) {
+    return signOut({
+      callbackUrl: '/login?error=deactivated'
+    }) as Promise<void>
   }
 })

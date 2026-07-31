@@ -114,6 +114,29 @@ describe('POST /api/oauth/authorize', () => {
     })
   })
 
+  it('rejects deactivated users with 403 before issuing consent', async () => {
+    getEffectiveUserId.mockRejectedValue(
+      Object.assign(new Error('Account deactivated'), { statusCode: 403 })
+    )
+    const handler = await getHandler()
+
+    await expect(
+      handler({
+        body: {
+          client_id: 'client-1',
+          redirect_uri: 'https://example.com/callback',
+          action: 'approve'
+        }
+      })
+    ).rejects.toMatchObject({
+      message: 'Account deactivated',
+      statusCode: 403
+    })
+
+    expect(findUnique).not.toHaveBeenCalled()
+    expect(createAuthCode).not.toHaveBeenCalled()
+  })
+
   it('throws 400 when required fields are missing', async () => {
     const handler = await getHandler()
 
