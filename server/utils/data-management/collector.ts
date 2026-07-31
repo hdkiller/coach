@@ -92,6 +92,11 @@ export class UserUniverseCollector {
       }
     })
 
+    // This is a full-fidelity GDPR/migration export, so we deliberately keep
+    // the default (no `fields` option) full-column fetch here -- every stream
+    // column, including the JSON blobs, must round-trip intact. The CW-224
+    // slow-query fix still applies via findManyByWorkoutIds' internal
+    // chunking of large IN(...) clauses.
     const workoutsWithStreams = await attachStreamsToWorkouts(workouts)
 
     const fitFiles = await this.prisma.fitFile.findMany({
