@@ -22,7 +22,8 @@ import {
   synthesizeRefills,
   ABSORPTION_PROFILES,
   getAbsorbedInInterval,
-  getProfileForItem
+  getProfileForItem,
+  getDateKey
 } from '../nutrition-domain'
 import { HYDRATION_DEBT_NUDGE_THRESHOLD_ML, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
 import { getUserNutritionSettings } from '../nutrition/settings'
@@ -1000,24 +1001,28 @@ export const metabolicService = {
       allWorkouts.map((w: any) => w.plannedWorkoutId).filter(Boolean)
     )
 
-    const addWorkout = (w: any, date: Date) => {
-      const key = date.toISOString().split('T')[0] as string
+    const addWorkout = (w: any, key: string) => {
       if (!workoutsByDate.has(key)) workoutsByDate.set(key, [])
       workoutsByDate.get(key)!.push(w)
     }
 
-    allWorkouts.forEach((w) => addWorkout(w, w.date))
+    // CW-84: Workout.date is a real timestamp, so it must be bucketed by the user's local
+    // calendar day (not the UTC date) - otherwise a late-night or early-morning session shifts
+    // onto the wrong day's glycogen simulation.
+    allWorkouts.forEach((w) => addWorkout(w, getDateKey(w.date, timezone)))
     // CW-76: a day that has already ended is reconstructed from what actually happened, not from a
     // session that was planned but never completed - the same policy `finalizeDay` and
     // `getDailyTimeline` use for a past day. Only today-or-later keeps planned-but-uncompleted
     // ("ghost") workouts, since those days still need a projection for hours that have not
     // happened yet.
+    // PlannedWorkout.date is a @db.Date column (a calendar date, not a timestamp), so it is
+    // already keyed by day and does not need timezone conversion.
     allPlanned
       .filter(
         (p: any) =>
           !p.completed && !completedPlannedIds.has(p.id) && formatDateUTC(p.date) >= todayKey
       )
-      .forEach((p) => addWorkout(p, p.date))
+      .forEach((p) => addWorkout(p, formatDateUTC(p.date)))
 
     const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     for (let i = 0; i <= daysDiff; i++) {
@@ -1584,16 +1589,19 @@ export const metabolicService = {
     )
 
     // Helper to group by local date
-    const addWorkout = (w: any, date: Date) => {
-      const key = date.toISOString().split('T')[0] as string
+    const addWorkout = (w: any, key: string) => {
       if (!workoutsByDate.has(key)) workoutsByDate.set(key, [])
       workoutsByDate.get(key)!.push(w)
     }
 
-    allWorkouts.forEach((w) => addWorkout(w, w.date))
+    // CW-84: Workout.date is a real timestamp, so it must be bucketed by the user's local
+    // calendar day (not the UTC date) to line up with the day-by-day simulation below.
+    allWorkouts.forEach((w) => addWorkout(w, getDateKey(w.date, timezone)))
+    // PlannedWorkout.date is a @db.Date column (a calendar date, not a timestamp), so it is
+    // already keyed by day and does not need timezone conversion.
     allPlanned
       .filter((p: any) => !p.completed && !completedPlannedIds.has(p.id))
-      .forEach((p) => addWorkout(p, p.date))
+      .forEach((p) => addWorkout(p, formatDateUTC(p.date)))
 
     // 3. Single-pass simulation through the range
     const statesByDate = new Map<string, { startingGlycogen: number; startingFluid: number }>()
