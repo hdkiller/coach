@@ -224,7 +224,27 @@ function buildAuthProviders() {
         url: 'https://intervals.icu/oauth/authorize',
         params: { scope: 'ACTIVITY:WRITE,CALENDAR:WRITE,WELLNESS:WRITE,SETTINGS:WRITE' }
       },
-      token: 'https://intervals.icu/api/oauth/token',
+      token: {
+        url: 'https://intervals.icu/api/oauth/token',
+        async request(context: any) {
+          const response = await fetch('https://intervals.icu/api/oauth/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              client_id: context.provider.clientId as string,
+              client_secret: context.provider.clientSecret as string,
+              grant_type: 'authorization_code',
+              code: context.params.code as string,
+              redirect_uri: context.provider.callbackUrl as string
+            })
+          })
+
+          const tokens = await response.json()
+          return { tokens }
+        }
+      },
       userinfo: 'https://intervals.icu/api/v1/athlete/0',
       clientId: process.env.INTERVALS_CLIENT_ID,
       clientSecret: process.env.INTERVALS_CLIENT_SECRET,
