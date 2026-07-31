@@ -1,5 +1,8 @@
 import { requireAuth } from '../../../utils/auth-guard'
-import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
+import {
+  CONCURRENT_UPDATE_CONFLICT,
+  nutritionRepository
+} from '../../../utils/repositories/nutritionRepository'
 import { z } from 'zod/v3'
 import { metabolicService } from '../../../utils/services/metabolicService'
 import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
@@ -95,9 +98,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
+  const expectedUpdatedAt = nutrition.updatedAt
   const currentItems = (nutrition[mealType] as any[]) || []
   let updatedItems = [...currentItems]
   let movedFromMeal: string | null = null
+  let movedFromMealItems: any[] | null = null
 
   if (action === 'add') {
     if (!item) throw createError({ statusCode: 400, message: 'Item is required for add' })
@@ -130,11 +135,15 @@ export default defineEventHandler(async (event) => {
         const otherItems = (nutrition[m] as any[]) || []
         const otherIndex = otherItems.findIndex((i) => i.id === item.id)
         if (otherIndex !== -1) {
-          // Found it in another meal!
-          // We need to remove it from there and add it to the target mealType
-          const [foundItem] = otherItems.splice(otherIndex, 1)
-          nutrition = await nutritionRepository.update(nutrition.id, { [m]: otherItems })
+          // Found it in another meal! Remove it from there (in memory only) and
+          // add it to the target mealType. Both changes are committed together
+          // in the single atomic write below, so a cross-meal move can never
+          // leave the item removed from the source meal without also being
+          // added to the target meal (or vice versa).
+          const remainingOtherItems = [...otherItems]
+          const [foundItem] = remainingOtherItems.splice(otherIndex, 1)
           movedFromMeal = m
+          movedFromMealItems = remainingOtherItems
 
           // Update the local list and set the index
           index = updatedItems.length
@@ -188,14 +197,20 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Update record
-  const updatedNutrition = await nutritionRepository.update(nutrition.id, {
-    [mealType]: updatedItems
-  })
+  // Build every field this mutation touches into a single payload: the meal
+  // array(s) and the recalculated totals. Recalculating totals from the
+  // in-memory merged state (rather than re-reading from the DB after a first
+  // write) lets the whole mutation land in one atomic statement.
+  const mealChanges: Record<string, any[]> = { [mealType]: updatedItems }
+  if (movedFromMeal && movedFromMealItems && movedFromMeal !== mealType) {
+    mealChanges[movedFromMeal] = movedFromMealItems
+  }
 
-  const totals = recalculateNutritionTotals(updatedNutrition)
+  const mergedForTotals = { ...nutrition, ...mealChanges }
+  const totals = recalculateNutritionTotals(mergedForTotals)
 
-  await nutritionRepository.update(updatedNutrition.id, {
+  const result = await nutritionRepository.updateWithVersionCheck(nutrition.id, expectedUpdatedAt, {
+    ...mealChanges,
     calories: totals.calories,
     protein: totals.protein,
     carbs: totals.carbs,
@@ -204,6 +219,15 @@ export default defineEventHandler(async (event) => {
     sugar: totals.sugar,
     waterMl: totals.waterMl
   })
+
+  if (result === CONCURRENT_UPDATE_CONFLICT) {
+    throw createError({
+      statusCode: 409,
+      message: 'This nutrition entry was updated elsewhere. Please refresh and try again.'
+    })
+  }
+
+  const updatedNutrition = result
 
   // REACTIVE: Trigger fueling plan update for the entry date
   try {

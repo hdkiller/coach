@@ -1,5 +1,8 @@
 import { prisma } from '../db'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+
+/** Sentinel returned by `updateWithVersionCheck` when the row changed since it was read. */
+export const CONCURRENT_UPDATE_CONFLICT = Symbol('CONCURRENT_UPDATE_CONFLICT')
 
 export const nutritionRepository = {
   /**
@@ -154,6 +157,42 @@ export const nutritionRepository = {
       where: { id },
       data
     })
+  },
+
+  /**
+   * Update a nutrition entry with an optimistic concurrency check.
+   *
+   * The caller must pass the `updatedAt` value it originally read the row with.
+   * The write is executed inside a transaction and its `where` clause includes
+   * that `updatedAt`, so if another request modified the row in between, zero
+   * rows match and Prisma raises `P2025` ("record not found"). We translate that
+   * into a `CONCURRENT_UPDATE_CONFLICT` sentinel instead of throwing, so callers
+   * can surface a clear 409 rather than silently losing the concurrent write.
+   *
+   * All item mutations (add/update/delete/move) should merge every field they
+   * intend to change — meal arrays and recalculated totals alike — into a
+   * single `data` payload passed here, so the entire mutation lands in one
+   * atomic statement instead of a sequence of separate reads/writes that a
+   * concurrent request could interleave with.
+   */
+  async updateWithVersionCheck(
+    id: string,
+    expectedUpdatedAt: Date,
+    data: Prisma.NutritionUpdateInput
+  ) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        return tx.nutrition.update({
+          where: { id, updatedAt: expectedUpdatedAt },
+          data
+        })
+      })
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return CONCURRENT_UPDATE_CONFLICT
+      }
+      throw error
+    }
   },
 
   /**
