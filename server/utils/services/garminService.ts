@@ -1,5 +1,6 @@
 import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
+import { toPrismaInputJsonValue } from '../prisma-json'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { workoutStreamRepository } from '../repositories/workoutStreamRepository'
@@ -13,6 +14,7 @@ import {
   fetchGarminSleeps,
   fetchGarminUserMetrics,
   buildGarminTimeSlices,
+  isGarminDownloadTokenError,
   refreshGarminIntegrationPermissions,
   requestGarminBackfill,
   type GarminBackfillType
@@ -649,13 +651,17 @@ export const GarminService = {
                 buffer
               )
             } catch (e) {
-              const isTokenError =
-                e instanceof Error &&
-                /invalid (download|pull) token|invalidtokenexception/i.test(e.message)
-              if (isTokenError) {
-                console.log(
-                  `[GarminService] Stream download token not available in summary push for ${externalId}; awaiting activityFiles push...`
-                )
+              if (isGarminDownloadTokenError(e)) {
+                await this.handleExpiredActivityFileDownloadToken({
+                  workoutId: upserted.record.id,
+                  externalId,
+                  integration,
+                  startTimeInSeconds:
+                    typeof record.startTimeInSeconds === 'number'
+                      ? record.startTimeInSeconds
+                      : null,
+                  error: e
+                })
               } else {
                 console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
               }
@@ -739,10 +745,21 @@ export const GarminService = {
             `[GarminService] Created workout and ingested FIT file from out-of-order activityFiles push for ${primaryExternalId}`
           )
         } catch (e) {
-          console.error(
-            `[GarminService] Failed to ingest early activity file for candidate externalIds ${candidateExternalIds.join(', ')}`,
-            e
-          )
+          if (isGarminDownloadTokenError(e)) {
+            await this.handleExpiredActivityFileDownloadToken({
+              workoutId: null,
+              externalId: candidateExternalIds[0] || 'unknown',
+              integration,
+              startTimeInSeconds:
+                typeof record?.startTimeInSeconds === 'number' ? record.startTimeInSeconds : null,
+              error: e
+            })
+          } else {
+            console.error(
+              `[GarminService] Failed to ingest early activity file for candidate externalIds ${candidateExternalIds.join(', ')}`,
+              e
+            )
+          }
         }
         continue
       }
@@ -759,10 +776,25 @@ export const GarminService = {
         const buffer = await fetchGarminActivityFileByCallbackUrl(integration, callbackUrl)
         await this.ingestFitArtifactsForWorkout(userId, workout.id, workout.externalId, buffer)
       } catch (e) {
-        console.error(
-          `[GarminService] Failed to ingest activity file for workout ${workout.id} (${workout.externalId})`,
-          e
-        )
+        if (isGarminDownloadTokenError(e)) {
+          await this.handleExpiredActivityFileDownloadToken({
+            workoutId: workout.id,
+            externalId: workout.externalId,
+            integration,
+            startTimeInSeconds:
+              typeof record?.startTimeInSeconds === 'number'
+                ? record.startTimeInSeconds
+                : workout.date
+                  ? Math.floor(new Date(workout.date).getTime() / 1000)
+                  : null,
+            error: e
+          })
+        } else {
+          console.error(
+            `[GarminService] Failed to ingest activity file for workout ${workout.id} (${workout.externalId})`,
+            e
+          )
+        }
       }
     }
   },
@@ -858,6 +890,131 @@ export const GarminService = {
     } finally {
       releaseFitData(fitData)
     }
+
+    await this.clearActivityFileIngestionStatus(workoutId)
+  },
+
+  /**
+   * Persist expired/retryable FIT download state on the workout without failing the job batch.
+   * Tokens in Garmin activityFiles callbacks are short-lived; request a narrow activities
+   * backfill so Garmin can re-push a fresh callbackURL.
+   */
+  async handleExpiredActivityFileDownloadToken(params: {
+    workoutId: string | null
+    externalId: string
+    integration: any
+    startTimeInSeconds?: number | null
+    error: unknown
+  }) {
+    const message =
+      params.error instanceof Error ? params.error.message : String(params.error || 'unknown')
+
+    console.warn(
+      `[GarminService] Activity FIT download token expired for ${params.externalId}; marking retryable and requesting activities backfill`,
+      { workoutId: params.workoutId, message }
+    )
+
+    if (params.workoutId) {
+      try {
+        await this.markActivityFileIngestionExpired(params.workoutId, {
+          externalId: params.externalId,
+          reason: message
+        })
+      } catch (markError) {
+        console.warn(
+          `[GarminService] Failed to mark file ingestion expired for workout ${params.workoutId}`,
+          markError
+        )
+      }
+    }
+
+    try {
+      await this.requestActivityFileBackfill(params.integration, params.startTimeInSeconds)
+    } catch (backfillError) {
+      console.warn(
+        `[GarminService] Failed to request activities backfill after download token expiry for ${params.externalId}`,
+        backfillError
+      )
+    }
+  },
+
+  async markActivityFileIngestionExpired(
+    workoutId: string,
+    details: { externalId: string; reason: string }
+  ) {
+    const workout = await prisma.workout.findUnique({
+      where: { id: workoutId },
+      select: { rawJson: true }
+    })
+
+    const existing =
+      workout?.rawJson && typeof workout.rawJson === 'object' && !Array.isArray(workout.rawJson)
+        ? ({ ...(workout.rawJson as Record<string, unknown>) } as Record<string, unknown>)
+        : {}
+
+    await prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        rawJson: {
+          ...existing,
+          garminFileIngestion: {
+            status: 'download_token_expired',
+            retryable: true,
+            externalId: details.externalId,
+            reason: details.reason,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      }
+    })
+  },
+
+  async clearActivityFileIngestionStatus(workoutId: string) {
+    try {
+      const workout = await prisma.workout.findUnique({
+        where: { id: workoutId },
+        select: { rawJson: true }
+      })
+
+      if (
+        !workout?.rawJson ||
+        typeof workout.rawJson !== 'object' ||
+        Array.isArray(workout.rawJson)
+      ) {
+        return
+      }
+
+      const existing = { ...(workout.rawJson as Record<string, unknown>) }
+      if (!('garminFileIngestion' in existing)) return
+
+      delete existing.garminFileIngestion
+      await prisma.workout.update({
+        where: { id: workoutId },
+        data: { rawJson: toPrismaInputJsonValue(existing) }
+      })
+    } catch (error) {
+      console.warn(
+        `[GarminService] Failed to clear garminFileIngestion status for workout ${workoutId}`,
+        error
+      )
+    }
+  },
+
+  async requestActivityFileBackfill(
+    integration: any,
+    startTimeInSeconds?: number | null
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000) - 60
+    const anchor =
+      typeof startTimeInSeconds === 'number' && Number.isFinite(startTimeInSeconds)
+        ? Math.floor(startTimeInSeconds)
+        : now - 24 * 60 * 60
+
+    // Narrow window around the activity so Garmin re-pushes activities + activityFiles.
+    const startTimestamp = Math.max(0, anchor - 60 * 60)
+    const endTimestamp = Math.min(now, Math.max(startTimestamp + 60, anchor + 24 * 60 * 60))
+
+    await requestGarminBackfill(integration, 'activities', startTimestamp, endTimestamp)
   },
 
   extractPullToken(
