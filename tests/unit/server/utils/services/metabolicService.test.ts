@@ -6,7 +6,7 @@ import { workoutRepository } from '../../../../../server/utils/repositories/work
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
 import { auditLogRepository } from '../../../../../server/utils/repositories/auditLogRepository'
 import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/settings'
-import { formatUserTime } from '../../../../../server/utils/date'
+import { formatDateUTC, formatUserTime } from '../../../../../server/utils/date'
 import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
 import {
   calculateGlycogenState,
@@ -23,6 +23,9 @@ vi.mock('../../../../../server/utils/db', () => ({
     },
     auditLog: {
       findMany: vi.fn()
+    },
+    nutritionPlan: {
+      findFirst: vi.fn()
     }
   }
 }))
@@ -371,6 +374,144 @@ describe('metabolicService smoke coverage', () => {
       await metabolicService.checkCriticalAlerts(userId, 12, date)
 
       expect(auditLogRepository.log).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('getUpcomingFuelingWindows carb-loading backfill (CW-71)', () => {
+    // weight is mocked to 70kg for this whole file (see resolveEffectiveWeight above),
+    // so MEAL_CAP = weight * 2.0 = 140g per sitting.
+    const MEAL_CAP = 140
+
+    function makeWindow(targetCarbs: number, hour: string) {
+      return {
+        type: 'DAILY_BASE',
+        slotName: 'Meal',
+        startTime: `2026-02-1${hour}T0${hour}:00:00.000Z`,
+        endTime: `2026-02-1${hour}T0${hour}:30:00.000Z`,
+        targetCarbs,
+        targetProtein: 20,
+        targetFat: 10,
+        status: 'PENDING'
+      }
+    }
+
+    beforeEach(() => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue(null as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        weight: 70,
+        weightSourceMode: 'MANUAL'
+      } as any)
+      // Hydration debt is orthogonal to carb-loading; keep it at zero so Pass 3 is a no-op.
+      vi.spyOn(metabolicService, 'getWaveRange').mockResolvedValue({
+        points: [{ fluidDeficit: 0 }]
+      } as any)
+      // The file-level mock returns a single fixed date string; give each day its own key here
+      // so the two simulated days ('2026-02-13' and '2026-02-14') don't collide.
+      vi.mocked(formatDateUTC).mockImplementation(
+        (d: Date) => d.toISOString().split('T')[0] as string
+      )
+    })
+
+    it('documents the pre-fix double-count regression that zeroed out carryOverDebt', () => {
+      // This is the Pass 2 arithmetic that shipped before commit bd9c33213 ("Build day-level
+      // fueling plans that reconcile to daily macro targets."), reproduced here verbatim because
+      // that code path no longer exists to call directly. It summed each window's existing
+      // PRE/POST target once via `allocated`, then re-added the very same `currentAmount` a second
+      // time inside the distribution loop (`newAmount = currentAmount + baseShare`, then
+      // `allocated += newAmount`) - hiding a big event day's real overflow.
+      const windows = [{ targetCarbs: 140 }, { targetCarbs: 140 }, { targetCarbs: 140 }]
+      const carbsGoal = 900 // exceeds windows.length * MEAL_CAP (3 * 140 = 420)
+      const totalToAllocate = carbsGoal
+
+      let allocated = windows.reduce((sum, w) => sum + w.targetCarbs, 0) // 420
+      const remainingForStationary = totalToAllocate - allocated // 480
+      const baseShare = Math.max(0, remainingForStationary) / windows.length // 160
+
+      windows.forEach((w) => {
+        const currentAmount = w.targetCarbs // already folded into `allocated` above
+        const newAmount = Math.min(MEAL_CAP, currentAmount + baseShare) // capped back to 140
+        w.targetCarbs = newAmount
+        allocated += w.targetCarbs // BUG: re-adds currentAmount, double-counting it
+      })
+
+      const buggyCarryOverDebt = Math.max(0, totalToAllocate - allocated)
+
+      // The correct value (what the fixed code computes): sum the FINAL per-window targets exactly
+      // once, then take the day's own shortfall against that.
+      const correctAllocated = windows.reduce((sum, w) => sum + w.targetCarbs, 0) // 420 (unchanged,
+      // every window was already at MEAL_CAP so the backfill loop couldn't add anything)
+      const correctCarryOverDebt = Math.max(0, totalToAllocate - correctAllocated)
+
+      expect(allocated).toBe(840) // 420 (first pass) + 420 (re-counted second pass) - each
+      // window's target was folded into `allocated` twice.
+      expect(buggyCarryOverDebt).toBe(60) // should be 480; double-counting the existing 420g of
+      // window targets hid all but 60g of the day's true overflow.
+      expect(correctCarryOverDebt).toBe(480)
+      expect(buggyCarryOverDebt).toBeLessThan(correctCarryOverDebt)
+    })
+
+    it('produces carryOverDebt for a major-event day and back-distributes it to the prior day', async () => {
+      const todaysWindows = [makeWindow(60, '3'), makeWindow(60, '3'), makeWindow(60, '3')]
+      const eventDaysWindows = [makeWindow(140, '4'), makeWindow(140, '4'), makeWindow(140, '4')]
+
+      vi.spyOn(metabolicService, 'calculateFuelingPlanForDate').mockImplementation(
+        async (_userId: string, date: Date) => {
+          const isEventDay = date.getUTCDate() === 14
+          return {
+            success: true,
+            skipped: false,
+            plan: {
+              windows: isEventDay ? eventDaysWindows : todaysWindows,
+              dailyTotals: {
+                carbs: isEventDay ? 900 : 300, // event day exceeds windows.length * MEAL_CAP (420)
+                protein: 100,
+                fat: 50
+              }
+            }
+          } as any
+        }
+      )
+
+      const result = await metabolicService.getUpcomingFuelingWindows(userId, 2)
+
+      const todayWindows = result.filter((w: any) => w.dateKey === '2026-02-13')
+      const eventWindows = result.filter((w: any) => w.dateKey === '2026-02-14')
+
+      // The event day cannot hold more than MEAL_CAP per window, so its own windows are unchanged...
+      eventWindows.forEach((w: any) => expect(w.targetCarbs).toBe(140))
+
+      // ...but the 480g it could not fit (900 - 420) flows backward and fills up today's headroom
+      // (each window had 80g of room to MEAL_CAP: 140 - 60), confirming carryOverDebt was computed
+      // correctly (not zeroed by double-counting) AND actually consumed, not discarded.
+      todayWindows.forEach((w: any) => {
+        expect(w.targetCarbs).toBe(140)
+        expect(w.advice).toBe('Carb loading: extra carbohydrate moved here for a big day ahead.')
+      })
+
+      const todayTotal = todayWindows.reduce((sum: number, w: any) => sum + w.targetCarbs, 0)
+      expect(todayTotal).toBe(420) // 60*3 original + 80*3 backfilled, each window counted once
+    })
+
+    it('does not back-distribute when the day has no overflow', async () => {
+      // Return fresh window objects per call - Pass 2 mutates windows in place, and reusing the
+      // same object references across days would let one day's mutation leak into the other's.
+      vi.spyOn(metabolicService, 'calculateFuelingPlanForDate').mockImplementation(async () => ({
+        success: true,
+        skipped: false,
+        plan: {
+          windows: [makeWindow(50, '3'), makeWindow(50, '3'), makeWindow(50, '3')],
+          dailyTotals: { carbs: 150, protein: 100, fat: 50 }
+        }
+      }))
+
+      const result = await metabolicService.getUpcomingFuelingWindows(userId, 2)
+
+      result.forEach((w: any) => {
+        expect(w.targetCarbs).toBe(50)
+        expect(w.advice).not.toBe(
+          'Carb loading: extra carbohydrate moved here for a big day ahead.'
+        )
+      })
     })
   })
 })
