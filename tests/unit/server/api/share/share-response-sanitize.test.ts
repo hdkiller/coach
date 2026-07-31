@@ -66,6 +66,25 @@ describe('share response sanitizers (CW-147)', () => {
     }
   })
 
+  it('excludes a hypothetical future Wellness field not present in the allowlist', () => {
+    // Simulates a new column being added to the Prisma Wellness model in the
+    // future. Because sanitizeSharedWellness is allowlist-based, an unknown
+    // field must be dropped by default instead of leaking automatically.
+    const result = sanitizeSharedWellness({
+      id: 'wellness-2',
+      date: '2026-07-29',
+      recoveryScore: 90,
+      futureClinicalMetric: 'super-secret-future-field'
+    })
+
+    expect(result).toEqual({
+      id: 'wellness-2',
+      date: '2026-07-29',
+      recoveryScore: 90
+    })
+    expect(result).not.toHaveProperty('futureClinicalMetric')
+  })
+
   it('allowlists REPORT / ATHLETE_PROFILE fields and drops private ones', () => {
     const analysisJson = {
       title: 'Athlete Profile',
@@ -216,5 +235,26 @@ describe('share response sanitizers (CW-147)', () => {
     expect(workout).not.toHaveProperty('syncStatus')
     expect(workout).not.toHaveProperty('externalId')
     expect(workout).not.toHaveProperty('lastGenerationContext')
+  })
+
+  it('excludes a hypothetical future TrainingPlan field not present in the allowlist', () => {
+    // Simulates a new column being added to the Prisma TrainingPlan model in
+    // the future. Because sanitizeSharedTrainingPlan is allowlist-based, an
+    // unknown top-level field must be dropped by default instead of leaking.
+    const result = sanitizeSharedTrainingPlan({
+      id: 'plan-2',
+      name: 'Peak Block',
+      internalBillingTier: 'super-secret-future-field',
+      goal: null,
+      blocks: []
+    })
+
+    expect(result).toEqual({
+      id: 'plan-2',
+      name: 'Peak Block',
+      goal: null,
+      blocks: []
+    })
+    expect(result).not.toHaveProperty('internalBillingTier')
   })
 })

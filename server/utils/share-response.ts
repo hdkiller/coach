@@ -54,37 +54,50 @@ export function sanitizeSharedPlannedWorkout(
   }
 }
 
-/** Fields safe for unauthenticated WELLNESS share pages (metrics + AI summary). */
-export function sanitizeSharedWellness(wellness: Record<string, unknown>) {
-  const {
-    userId: _userId,
-    rawJson: _rawJson,
-    comments: _comments,
-    history: _history,
-    lastSource: _lastSource,
-    feedback: _feedback,
-    feedbackText: _feedbackText,
-    customMetrics: _customMetrics,
-    aiAnalysis: _aiAnalysis,
-    aiAnalysisStatus: _aiAnalysisStatus,
-    aiAnalyzedAt: _aiAnalyzedAt,
-    // Clinical / sensitive biometrics not shown on the public share page
-    bloodGlucose: _bloodGlucose,
-    diastolic: _diastolic,
-    systolic: _systolic,
-    injury: _injury,
-    menstrualPhase: _menstrualPhase,
-    lactate: _lactate,
-    abdomen: _abdomen,
-    bodyFat: _bodyFat,
-    hydration: _hydration,
-    hydrationVolume: _hydrationVolume,
-    skinTemp: _skinTemp,
-    tags: _tags,
-    ...safe
-  } = wellness
+const SHARED_WELLNESS_FIELDS = [
+  'id',
+  'date',
+  'hrv',
+  'hrvSdnn',
+  'restingHr',
+  'avgSleepingHr',
+  'sleepSecs',
+  'sleepHours',
+  'sleepScore',
+  'sleepQuality',
+  'sleepDeepSecs',
+  'sleepRemSecs',
+  'sleepLightSecs',
+  'sleepAwakeSecs',
+  'readiness',
+  'recoveryScore',
+  'soreness',
+  'fatigue',
+  'stress',
+  'mood',
+  'motivation',
+  'weight',
+  'spO2',
+  'ctl',
+  'atl',
+  'tsb',
+  'createdAt',
+  'updatedAt',
+  'respiration',
+  'vo2max',
+  'restingCaloriesBurned',
+  'activeCaloriesBurned',
+  'totalCaloriesBurned',
+  'steps',
+  'distanceMeters',
+  'exerciseMinutes',
+  'floors',
+  'aiAnalysisJson'
+] as const
 
-  return safe
+/** Allowlisted fields safe for unauthenticated WELLNESS share pages (metrics + AI summary). */
+export function sanitizeSharedWellness(wellness: Record<string, unknown>) {
+  return pickFields(wellness, SHARED_WELLNESS_FIELDS)
 }
 
 const SHARED_REPORT_FIELDS = [
@@ -148,25 +161,50 @@ function sanitizeSharedPlanGoal(goal: unknown) {
   return title === undefined ? null : { title }
 }
 
+const SHARED_TRAINING_PLAN_FIELDS = [
+  'id',
+  'goalId',
+  'startDate',
+  'targetDate',
+  'strategy',
+  'status',
+  'currentBlockId',
+  'createdAt',
+  'updatedAt',
+  'description',
+  'isTemplate',
+  'isPublic',
+  'slug',
+  'visibility',
+  'accessState',
+  'primarySport',
+  'sportSubtype',
+  'difficulty',
+  'skillLevel',
+  'planLanguage',
+  'daysPerWeek',
+  'weeklyVolumeBand',
+  'goalLabel',
+  'equipmentTags',
+  'publicHeadline',
+  'publicDescription',
+  'methodology',
+  'whoItsFor',
+  'faq',
+  'extraContent',
+  'isFeatured',
+  'name',
+  'activityTypes',
+  'recoveryRhythm'
+] as const
+
 /**
  * Sanitize TRAINING_PLAN rows returned by GET /api/share/[token].
  * Primary UI uses /api/public/plans/access/[token]; this path still must not
  * leak userId, private notes, or sync/internal workout fields.
  */
 export function sanitizeSharedTrainingPlan(plan: Record<string, unknown>) {
-  const {
-    userId: _userId,
-    teamId: _teamId,
-    folderId: _folderId,
-    coachNotes: _coachNotes,
-    athleteNotes: _athleteNotes,
-    customInstructions: _customInstructions,
-    fromTemplateId: _fromTemplateId,
-    hasBeenSavedAsTemplate: _hasBeenSavedAsTemplate,
-    goal,
-    blocks,
-    ...rest
-  } = plan
+  const { goal, blocks } = plan
 
   const sanitizedBlocks = Array.isArray(blocks)
     ? blocks.map((block) => {
@@ -191,7 +229,7 @@ export function sanitizeSharedTrainingPlan(plan: Record<string, unknown>) {
     : blocks
 
   return {
-    ...rest,
+    ...pickFields(plan, SHARED_TRAINING_PLAN_FIELDS),
     goal: sanitizeSharedPlanGoal(goal),
     blocks: sanitizedBlocks
   }
