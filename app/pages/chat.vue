@@ -489,6 +489,7 @@
     }, delayMs)
   }
   const sendOutgoingMessage = async (message: {
+    id: string
     text: string
     attachments: QueuedAttachment[]
   }) => {
@@ -497,6 +498,10 @@
       (chat as any).sendMessage(
         parts.length > 0
           ? {
+              // Reusing the same client-generated id across attempts lets the server
+              // recognize a retry of an already-persisted message (see
+              // server/api/chat/messages.post.ts) instead of creating a duplicate.
+              id: message.id,
               role: 'user',
               parts
             }
@@ -529,6 +534,7 @@
 
     try {
       await sendOutgoingMessage({
+        id: nextQueuedMessage.id,
         text: nextQueuedMessage.text,
         attachments: nextQueuedMessage.attachments
       })
@@ -929,14 +935,27 @@
       awaitingTurnStart.value = true
       try {
         await sendOutgoingMessage({
+          id: outgoingMessage.id,
           text: submittedText,
           attachments
         })
         input.value = ''
-      } catch (error) {
+      } catch (error: any) {
+        // The direct-send path bypassed the durable outgoing queue entirely, so a
+        // transient failure here used to just restore the composer text and leave
+        // no trace of the message anywhere else. Fall back to the same durable
+        // queue the "turn already active" branch above uses, so the message is
+        // retained, visible, and retried the same way. Reusing outgoingMessage.id
+        // (rather than generating a new one) means a retry can't duplicate a
+        // message that actually landed server-side before the client saw the error.
         awaitingTurnStart.value = false
-        input.value = submittedText
-        throw error
+        enqueueOutgoingMessage({ ...outgoingMessage, failed: true })
+        input.value = ''
+        toast.add({
+          title: 'Message failed to send',
+          description: error?.message || 'Could not send the message. It will retry when ready.',
+          color: 'error'
+        })
       }
     }
   }
