@@ -5,6 +5,7 @@ import {
   dispatchTask,
   getTaskDriver,
   getTaskStatus,
+  isTaskRunningForUser,
   listTaskRunsForUser,
   parseTaskRunId
 } from '../../../../server/utils/task-dispatcher'
@@ -36,7 +37,8 @@ vi.mock('../../../../server/utils/task-registry', () => ({
 }))
 
 vi.mock('../../../../server/utils/trigger-check', () => ({
-  safeTriggerTask: vi.fn()
+  safeTriggerTask: vi.fn(),
+  isRunFresh: vi.fn().mockReturnValue(true)
 }))
 
 function redisJob(overrides: Record<string, unknown> = {}) {
@@ -62,6 +64,7 @@ describe('Task Dispatcher Framework', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(hasTaskHandler).mockImplementation((taskId) => taskId !== 'trigger-only-task')
+    vi.mocked(triggerCheck.isRunFresh).mockReturnValue(true)
     process.env = { ...originalEnv }
   })
 
@@ -203,6 +206,46 @@ describe('Task Dispatcher Framework', () => {
         isRunning: false,
         status: 'NOT_FOUND'
       })
+    })
+  })
+
+  describe('isTaskRunningForUser() resilience', () => {
+    it('retries a transient run-status error and returns the confirmed result', async () => {
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
+      vi.mocked(runs.list)
+        .mockRejectedValueOnce(new Error('ECONNRESET'))
+        .mockResolvedValueOnce({
+          data: [
+            {
+              id: 'run_1',
+              taskIdentifier: 'ingest-strava',
+              status: 'EXECUTING',
+              createdAt: new Date(),
+              tags: ['user:u1']
+            }
+          ]
+        } as any)
+
+      await expect(isTaskRunningForUser('ingest-strava', 'u1')).resolves.toBe(true)
+      expect(runs.list).toHaveBeenCalledTimes(2)
+    })
+
+    it('fails closed by throwing once every retry attempt errors, instead of reporting "not running"', async () => {
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
+      vi.mocked(runs.list).mockRejectedValue(new Error('Request contains an invalid argument.'))
+
+      await expect(isTaskRunningForUser('ingest-strava', 'u1')).rejects.toThrow(
+        /Unable to determine run status/
+      )
+      expect(runs.list).toHaveBeenCalledTimes(3)
+    })
+
+    it('resolves false once the API confirms cleanly that nothing is running', async () => {
+      process.env.TASK_QUEUE_DRIVER = 'trigger'
+      vi.mocked(runs.list).mockResolvedValueOnce({ data: [] } as any)
+
+      await expect(isTaskRunningForUser('ingest-strava', 'u1')).resolves.toBe(false)
+      expect(runs.list).toHaveBeenCalledTimes(1)
     })
   })
 
