@@ -357,7 +357,7 @@
                     @mouseleave="onSplitLeave"
                   >
                     <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
-                      +{{ climb.ascent }}m
+                      +{{ formatElevation(climb.ascent) }}
                     </td>
                     <td
                       class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
@@ -692,7 +692,11 @@
 <script setup lang="ts">
   import { decode } from '@googlemaps/polyline-codec'
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
-  import { formatDistance as formatDist, formatPace as formatPaceShared } from '~/utils/metrics'
+  import {
+    formatDistance as formatDist,
+    formatElevation as formatElev,
+    formatPace as formatPaceShared
+  } from '~/utils/metrics'
 
   import { ref, computed, watch, toRaw, nextTick } from 'vue'
   import draggable from 'vuedraggable'
@@ -814,7 +818,7 @@
       { label: 'NP', value: formatNullableWatts(summary.normalizedPower) },
       { label: 'Avg Power', value: formatNullableWatts(summary.averageWatts) },
       { label: 'Gradient', value: formatNullablePercent(summary.gradientPercent) },
-      { label: 'Elev Gain', value: `${summary.elevationGain || 0}m` },
+      { label: 'Elev Gain', value: formatElevation(summary.elevationGain || 0) },
       { label: 'VAM', value: summary.vam ? `${summary.vam} m/h` : '-' }
     ]
   })
@@ -1519,6 +1523,10 @@
 
   function formatDistance(meters: number) {
     return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
+
+  function formatElevation(meters: number) {
+    return formatElev(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function formatNullableWatts(value: unknown) {
