@@ -255,6 +255,28 @@
           // Requests endpoint may be unavailable for some roles; keep overview CTA as-is.
         }
       }
+
+      // CW-103: this "Overview" page is a coach dashboard. A user with no
+      // coaching-as-coach relationships (no active athletes, no pending
+      // requests to become someone's coach) who IS connected to at least one
+      // coach of their own is a pure athlete — send them to their active
+      // coaching connections instead of the coach-only "Connect Your First
+      // Athlete" empty state. Brand-new users with no coaching relationships
+      // at all (neither role) keep seeing the coach empty state so the
+      // "Add Athlete" onboarding path stays reachable.
+      if (overviewData.value.athletes.length === 0 && pendingRequestCount.value === 0) {
+        try {
+          const coaches = await $fetch<any, string & {}>('/api/coaching/coaches')
+          const isPureAthlete = Array.isArray(coaches) && coaches.length > 0
+          if (isPureAthlete) {
+            await navigateTo('/coaching/team', { replace: true })
+            return
+          }
+        } catch {
+          // If we can't determine athlete-role, fall back to the existing
+          // coach empty state rather than redirecting incorrectly.
+        }
+      }
     } catch (e) {
       console.error(e)
       toast.add({ title: 'Failed to load coaching overview', color: 'error' })

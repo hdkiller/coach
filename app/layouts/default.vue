@@ -2,6 +2,7 @@
   import { useTranslate, useTolgee } from '@tolgee/vue'
   import type { NavigationMenuItem } from '@nuxt/ui'
   import { useAppLogout } from '#imports'
+  import { useCoachingRole } from '~/components/navigation/useCoachingRole'
 
   const { t } = useTranslate('common')
   const tolgee = useTolgee()
@@ -49,6 +50,11 @@
   )
 
   const { trackNavClick } = useAnalytics()
+
+  // CW-103: role-aware Coaching nav — pure athletes (connected to a coach but
+  // never coaching anyone themselves) see a simplified "My Coaches" entry
+  // instead of the full coach roster/teams suite.
+  const { showFullCoachingSuite } = useCoachingRole()
 
   function wrapNavItems(items: NavigationMenuItem[]): NavigationMenuItem[] {
     return items.map((item) => {
@@ -299,54 +305,67 @@
           }
         ]
       },
-      {
-        label: 'Coaching',
-        icon: 'i-lucide-users',
-        defaultOpen: route.path.startsWith('/coaching'),
-        children: [
-          {
-            label: 'Overview',
-            icon: 'i-lucide-layout-dashboard',
-            to: '/coaching',
-            exact: true,
-            onSelect: () => {
-              open.value = false
+      ...(showFullCoachingSuite.value
+        ? [
+            {
+              label: 'Coaching',
+              icon: 'i-lucide-users',
+              defaultOpen: route.path.startsWith('/coaching'),
+              children: [
+                {
+                  label: 'Overview',
+                  icon: 'i-lucide-layout-dashboard',
+                  to: '/coaching',
+                  exact: true,
+                  onSelect: () => {
+                    open.value = false
+                  }
+                },
+                {
+                  label: 'Calendar',
+                  icon: 'i-lucide-calendar-days',
+                  to: '/coaching/calendar',
+                  onSelect: () => {
+                    open.value = false
+                  }
+                },
+                {
+                  label: 'Athletes',
+                  icon: 'i-lucide-users-round',
+                  to: '/coaching/athletes',
+                  onSelect: () => {
+                    open.value = false
+                  }
+                },
+                {
+                  label: 'Analytics',
+                  icon: 'i-lucide-bar-chart-3',
+                  to: '/analytics',
+                  onSelect: () => {
+                    open.value = false
+                  }
+                },
+                {
+                  label: 'My Coaches',
+                  icon: 'i-lucide-building-2',
+                  to: '/coaching/team',
+                  onSelect: () => {
+                    open.value = false
+                  }
+                }
+              ]
             }
-          },
-          {
-            label: 'Calendar',
-            icon: 'i-lucide-calendar-days',
-            to: '/coaching/calendar',
-            onSelect: () => {
-              open.value = false
+          ]
+        : [
+            {
+              label: 'My Coaches',
+              icon: 'i-lucide-users',
+              to: '/coaching/team',
+              onSelect: () => {
+                open.value = false
+              }
             }
-          },
-          {
-            label: 'Athletes',
-            icon: 'i-lucide-users-round',
-            to: '/coaching/athletes',
-            onSelect: () => {
-              open.value = false
-            }
-          },
-          {
-            label: 'Analytics',
-            icon: 'i-lucide-bar-chart-3',
-            to: '/analytics',
-            onSelect: () => {
-              open.value = false
-            }
-          },
-          {
-            label: 'My Coaches',
-            icon: 'i-lucide-building-2',
-            to: '/coaching/team',
-            onSelect: () => {
-              open.value = false
-            }
-          }
-        ]
-      },
+          ]),
       {
         label: navLabel('navigation_help_center', 'Help Center'),
         icon: 'i-heroicons-question-mark-circle',
@@ -606,41 +625,51 @@
         id: 'coaching',
         label: label('navigation_coaching', 'Coaching'),
         defaultOpen: route.path.startsWith('/coaching') || route.path === '/analytics',
-        items: sectionItems([
-          {
-            label: label('navigation_coaching', 'Coaching'),
-            icon: 'i-lucide-users',
-            defaultOpen: route.path.startsWith('/coaching') || route.path === '/analytics',
-            children: [
-              {
-                label: label('navigation_coaching_overview', 'Overview'),
-                icon: 'i-lucide-layout-dashboard',
-                to: '/coaching',
-                exact: true
-              },
-              {
-                label: label('navigation_coaching_calendar', 'Calendar'),
-                icon: 'i-lucide-calendar-days',
-                to: '/coaching/calendar'
-              },
-              {
-                label: label('navigation_coaching_athletes', 'Athletes'),
-                icon: 'i-lucide-users-round',
-                to: '/coaching/athletes'
-              },
-              {
-                label: label('navigation_analytics', 'Analytics'),
-                icon: 'i-lucide-bar-chart-3',
-                to: '/analytics'
-              },
-              {
-                label: label('navigation_coaching_team', 'My Coaches'),
-                icon: 'i-lucide-building-2',
-                to: '/coaching/team'
-              }
-            ]
-          }
-        ])
+        items: sectionItems(
+          showFullCoachingSuite.value
+            ? [
+                {
+                  label: label('navigation_coaching', 'Coaching'),
+                  icon: 'i-lucide-users',
+                  defaultOpen: route.path.startsWith('/coaching') || route.path === '/analytics',
+                  children: [
+                    {
+                      label: label('navigation_coaching_overview', 'Overview'),
+                      icon: 'i-lucide-layout-dashboard',
+                      to: '/coaching',
+                      exact: true
+                    },
+                    {
+                      label: label('navigation_coaching_calendar', 'Calendar'),
+                      icon: 'i-lucide-calendar-days',
+                      to: '/coaching/calendar'
+                    },
+                    {
+                      label: label('navigation_coaching_athletes', 'Athletes'),
+                      icon: 'i-lucide-users-round',
+                      to: '/coaching/athletes'
+                    },
+                    {
+                      label: label('navigation_analytics', 'Analytics'),
+                      icon: 'i-lucide-bar-chart-3',
+                      to: '/analytics'
+                    },
+                    {
+                      label: label('navigation_coaching_team', 'My Coaches'),
+                      icon: 'i-lucide-building-2',
+                      to: '/coaching/team'
+                    }
+                  ]
+                }
+              ]
+            : [
+                {
+                  label: label('navigation_coaching_team', 'My Coaches'),
+                  icon: 'i-lucide-users',
+                  to: '/coaching/team'
+                }
+              ]
+        )
       },
       {
         id: 'account',
