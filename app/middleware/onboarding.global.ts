@@ -2,7 +2,7 @@ import { buildConsentGateRedirect } from '#shared/consent-redirect'
 import { sanitizeCallbackUrl } from '#shared/safe-callback-url'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const { status, data, getSession } = useAuth()
+  const { status, data, getSession, signOut } = useAuth()
 
   if (status.value === 'loading') {
     await getSession().catch(() => null)
@@ -12,7 +12,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (status.value !== 'authenticated') return
 
-  const user = data.value?.user as { termsAcceptedAt?: string | null } | undefined
+  const user = data.value?.user as
+    | {
+        termsAcceptedAt?: string | null
+        deactivatedAt?: string | Date | null
+      }
+    | undefined
+
+  if (user?.deactivatedAt) {
+    return signOut({
+      callbackUrl: '/login?error=deactivated'
+    }) as Promise<void>
+  }
+
   const termsAccepted = !!user?.termsAcceptedAt
 
   if (!termsAccepted) {
