@@ -117,7 +117,7 @@
     Legend,
     Filler
   } from 'chart.js'
-  import { usesImperialDistance } from '~/utils/metrics'
+  import { convertElevation, getElevationUnitLabel, usesImperialDistance } from '~/utils/metrics'
   import { ensureChartJsAnnotationDefaults, safeChartUpdate } from '~/utils/chartjs-annotation'
 
   // Register Chart.js components
@@ -180,7 +180,12 @@
       })
     }
     if (streamData.value.altitude && streamData.value.altitude.length > 0) {
-      metrics.push({ key: 'altitude', label: 'Altitude', color: 'rgb(34, 197, 94)', unit: 'm' })
+      metrics.push({
+        key: 'altitude',
+        label: 'Altitude',
+        color: 'rgb(34, 197, 94)',
+        unit: getElevationUnitLabel(userStore.profile?.distanceUnits)
+      })
     }
     if (streamData.value.velocity && streamData.value.velocity.length > 0) {
       metrics.push({
@@ -335,6 +340,14 @@
       const divisor = usesImperialDistance(userStore.profile?.distanceUnits) ? 1609.344 : 1000
       return rawDistance.map((value: unknown) =>
         typeof value === 'number' && Number.isFinite(value) ? value / divisor : value
+      )
+    }
+    if (metricKey === 'altitude') {
+      const rawAltitude = streamData.value.altitude || []
+      return rawAltitude.map((value: unknown) =>
+        typeof value === 'number' && Number.isFinite(value)
+          ? convertElevation(value, userStore.profile?.distanceUnits)
+          : value
       )
     }
     if (metricKey === 'targetPower') {

@@ -648,11 +648,18 @@
                 >
                 <div class="flex items-baseline gap-1">
                   <span class="text-2xl font-black text-black dark:text-white">{{
-                    workout.elevationGain
+                    Math.round(
+                      convertElevation(
+                        workout.elevationGain,
+                        userStore.profile?.distanceUnits || 'Kilometers'
+                      )
+                    )
                   }}</span>
                   <span
                     class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
-                    >m</span
+                    >{{
+                      getElevationUnitLabel(userStore.profile?.distanceUnits || 'Kilometers')
+                    }}</span
                   >
                 </div>
               </div>
@@ -3734,8 +3741,11 @@
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
   import { metricTooltips } from '~/utils/tooltips'
   import {
+    convertElevation,
     formatDistance as formatDist,
+    formatElevation as formatElev,
     formatTemperature,
+    getElevationUnitLabel,
     getVelocityUnitLabel,
     isRideWorkoutType
   } from '~/utils/metrics'
@@ -4971,7 +4981,7 @@
       metrics.push({
         key: 'elevation',
         label: t.value('metrics_elevation'),
-        value: `${workout.value.elevationGain} m`
+        value: formatElevation(workout.value.elevationGain)
       })
     if (workout.value.kilojoules)
       metrics.push({ key: 'kj', label: 'Work (kJ)', value: `${workout.value.kilojoules} kJ` })
@@ -5167,7 +5177,11 @@
       heartrate: { label: 'Heart Rate', color: '#ef4444', unit: 'bpm' },
       cadence: { label: 'Cadence', color: '#f59e0b', unit: 'rpm' },
       watts: { label: t.value('metrics_avg_power'), color: '#8b5cf6', unit: 'W' },
-      altitude: { label: 'Altitude', color: '#10b981', unit: 'm' },
+      altitude: {
+        label: 'Altitude',
+        color: '#10b981',
+        unit: getElevationUnitLabel(userStore.profile?.distanceUnits || 'Kilometers')
+      },
       latlng: { label: 'GPS', color: '#6366f1', unit: '' },
       grade: { label: 'Grade', color: '#14b8a6', unit: '%' },
       moving: { label: 'Moving', color: '#9ca3af', unit: '' },
@@ -5782,6 +5796,10 @@
 
   function formatDistance(meters: number) {
     return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
+
+  function formatElevation(meters: number) {
+    return formatElev(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function getSourceBadgeClass(source: string) {
