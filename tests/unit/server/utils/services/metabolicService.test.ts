@@ -4,6 +4,7 @@ import { prisma } from '../../../../../server/utils/db'
 import { nutritionRepository } from '../../../../../server/utils/repositories/nutritionRepository'
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
+import { auditLogRepository } from '../../../../../server/utils/repositories/auditLogRepository'
 import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/settings'
 import { formatUserTime } from '../../../../../server/utils/date'
 import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
@@ -19,7 +20,16 @@ vi.mock('../../../../../server/utils/db', () => ({
     },
     athleteJourneyEvent: {
       findMany: vi.fn()
+    },
+    auditLog: {
+      findMany: vi.fn()
     }
+  }
+}))
+
+vi.mock('../../../../../server/utils/repositories/auditLogRepository', () => ({
+  auditLogRepository: {
+    log: vi.fn()
   }
 }))
 
@@ -277,6 +287,90 @@ describe('metabolicService smoke coverage', () => {
           'Europe/Budapest'
         )
       ).toBe('Pre-Workout Breakfast')
+    })
+  })
+
+  describe('checkCriticalAlerts', () => {
+    const hardMorningWorkout = {
+      id: 'w-hard-1',
+      title: 'Threshold Intervals',
+      startTime: '2026-02-13T07:00:00.000Z',
+      intensityFactor: 0.9,
+      durationSec: 60 * 60
+    }
+
+    beforeEach(() => {
+      vi.mocked(nutritionRepository.getByDate).mockResolvedValue({ id: 'nutrition-1' } as any)
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([] as any)
+      // Morning by default (7:00 local < 10:00 cutoff)
+      vi.mocked(formatUserTime).mockReturnValue('7:0')
+    })
+
+    it('logs a CRITICAL_FUELING_ALERT when starting glycogen is critically low before a hard morning workout', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([hardMorningWorkout] as any)
+
+      await metabolicService.checkCriticalAlerts(userId, 15, date)
+
+      expect(auditLogRepository.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          action: 'CRITICAL_FUELING_ALERT',
+          resourceType: 'Nutrition',
+          resourceId: 'nutrition-1',
+          metadata: expect.objectContaining({
+            startingGlycogen: 15,
+            workoutId: 'w-hard-1',
+            workoutTitle: 'Threshold Intervals'
+          })
+        })
+      )
+    })
+
+    it('does not log an alert when starting glycogen is not critically low', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([hardMorningWorkout] as any)
+
+      await metabolicService.checkCriticalAlerts(userId, 45, date)
+
+      expect(workoutRepository.getForUser).not.toHaveBeenCalled()
+      expect(auditLogRepository.log).not.toHaveBeenCalled()
+    })
+
+    it('does not log an alert when there is no hard morning workout', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+        { ...hardMorningWorkout, intensityFactor: 0.5 }
+      ] as any)
+
+      await metabolicService.checkCriticalAlerts(userId, 10, date)
+
+      expect(auditLogRepository.log).not.toHaveBeenCalled()
+    })
+
+    it('does not log an alert for a hard workout later in the day', async () => {
+      // Afternoon local time (>= 10:00 cutoff)
+      vi.mocked(formatUserTime).mockReturnValue('15:0')
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([hardMorningWorkout] as any)
+
+      await metabolicService.checkCriticalAlerts(userId, 10, date)
+
+      expect(auditLogRepository.log).not.toHaveBeenCalled()
+    })
+
+    it('does not throw and returns cleanly when no workouts exist for the day', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([] as any)
+
+      await expect(metabolicService.checkCriticalAlerts(userId, 5, date)).resolves.toBeUndefined()
+      expect(auditLogRepository.log).not.toHaveBeenCalled()
+    })
+
+    it('de-dupes and does not re-log an alert already recorded for the same date', async () => {
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([hardMorningWorkout] as any)
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([
+        { metadata: { date: date.toISOString().split('T')[0] } }
+      ] as any)
+
+      await metabolicService.checkCriticalAlerts(userId, 12, date)
+
+      expect(auditLogRepository.log).not.toHaveBeenCalled()
     })
   })
 })
