@@ -6,6 +6,8 @@ import { prisma } from '../db'
  */
 function mapStatus(type: string): EmailDeliveryStatus | null {
   switch (type) {
+    case 'email.sent':
+      return 'SENT'
     case 'email.delivered':
       return 'DELIVERED'
     case 'email.opened':
@@ -71,6 +73,9 @@ export const ResendService = {
       data?.bounce?.message || data?.complaint?.feedback_type || data?.failed?.message
 
     switch (status) {
+      case 'SENT':
+        updateData.sentAt = timestamp
+        break
       case 'DELIVERED':
         updateData.deliveredAt = timestamp
         break
