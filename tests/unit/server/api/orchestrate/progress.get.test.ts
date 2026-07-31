@@ -101,7 +101,7 @@ describe('GET /api/orchestrate/progress', () => {
         'task-a': { taskId: 'task-a', status: 'running' }
       }
     })
-    expect(requireAuth).toHaveBeenCalledWith(event)
+    expect(requireAuth).toHaveBeenCalledWith(event, ['workout:write'])
   })
 
   it('returns no_sync when no entry exists for user.id', async () => {
@@ -121,5 +121,21 @@ describe('GET /api/orchestrate/progress', () => {
       type: 'no_sync',
       message: 'No active sync in progress'
     })
+  })
+
+  it('rejects a validly-authenticated token missing the workout:write scope', async () => {
+    const forbidden = Object.assign(
+      new Error('Insufficient permissions. Required scopes: workout:write'),
+      { statusCode: 403 }
+    )
+    vi.mocked(requireAuth).mockRejectedValue(forbidden)
+
+    const handler = await getHandler()
+
+    await expect(handler(createMockEvent() as any)).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Insufficient permissions. Required scopes: workout:write'
+    })
+    expect(requireAuth).toHaveBeenCalledWith(expect.anything(), ['workout:write'])
   })
 })
