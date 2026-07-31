@@ -1,5 +1,6 @@
 import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
+import { toPrismaInputJsonValue } from '../prisma-json'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { workoutStreamRepository } from '../repositories/workoutStreamRepository'
@@ -967,7 +968,7 @@ export const GarminService = {
       delete existing.garminFileIngestion
       await prisma.workout.update({
         where: { id: workoutId },
-        data: { rawJson: existing }
+        data: { rawJson: toPrismaInputJsonValue(existing) }
       })
     } catch (error) {
       console.warn(
