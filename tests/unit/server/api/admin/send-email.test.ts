@@ -86,7 +86,8 @@ describe('Admin Send Email API', () => {
       expect.objectContaining({
         to: 'test@example.com',
         html: '<html></html>'
-      })
+      }),
+      expect.objectContaining({ idempotencyKey: 'del-1' })
     )
     expect(prisma.emailDelivery.update).toHaveBeenCalledWith(
       expect.objectContaining({
