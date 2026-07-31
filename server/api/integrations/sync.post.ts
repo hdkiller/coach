@@ -9,6 +9,19 @@ import {
   resolveSyncAllBlock
 } from '../../utils/integration-sync-guard'
 
+// CW-90: Garmin partner guidance treats Push/Ping as the primary realtime
+// delivery channel; ad-hoc pull (this endpoint + trigger/ingest-garmin.ts)
+// exists only to recover from a missed or delayed push, never as a
+// routine/primary sync path. These two constants bound that "recovery-only"
+// role at the HTTP layer, so a caller gets immediate feedback instead of a
+// silent no-op. Keep them in sync with the mirrored copies in
+// trigger/ingest-garmin.ts (which enforces the same bounds again at the task
+// level as defense-in-depth, since "Sync All" reaches that task without
+// going through this per-provider check). See
+// docs/01-architecture/system-overview.md#garmin-push-first-policy.
+const GARMIN_ADHOC_MAX_LOOKBACK_DAYS = 3
+const GARMIN_ADHOC_MIN_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
+
 defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],
@@ -193,6 +206,21 @@ export default defineEventHandler(async (event) => {
     startDate.setUTCDate(startDate.getUTCDate() - daysBack)
   }
 
+  // CW-90: enforce the recovery-only bound regardless of the branch above —
+  // a caller-supplied `days` override (or the 'all' batch window) must not
+  // be able to turn a Garmin ad-hoc pull into a multi-week historical
+  // backfill. Garmin's own Pull API is limited to a 24h window per request;
+  // a few days of lookback is enough to recover from a brief push outage.
+  if (provider === 'garmin') {
+    const earliestAllowedStart = new Date(now)
+    earliestAllowedStart.setUTCDate(
+      earliestAllowedStart.getUTCDate() - GARMIN_ADHOC_MAX_LOOKBACK_DAYS
+    )
+    if (startDate < earliestAllowedStart) {
+      startDate.setTime(earliestAllowedStart.getTime())
+    }
+  }
+
   const endDate =
     provider === 'intervals' || provider === 'all'
       ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // +30 days for planned workouts (Intervals & All)
@@ -227,6 +255,26 @@ export default defineEventHandler(async (event) => {
           reason: providerSyncBlock.reason
         }
       })
+    }
+
+    // CW-90: Garmin ad-hoc pull is recovery-only. Push delivers routine data
+    // automatically, so a manual sync fired again moments after the last
+    // successful one isn't recovering from anything — reject it with clear
+    // feedback instead of silently re-polling Garmin's Pull API.
+    if (provider === 'garmin' && integration.lastSyncAt) {
+      const elapsedMs = Date.now() - new Date(integration.lastSyncAt).getTime()
+      if (elapsedMs < GARMIN_ADHOC_MIN_INTERVAL_MS) {
+        const retryAfterMs = GARMIN_ADHOC_MIN_INTERVAL_MS - elapsedMs
+        throw createError({
+          statusCode: 429,
+          message: `Garmin syncs automatically via Push — ad-hoc sync is for recovery only. Please wait ${Math.ceil(retryAfterMs / 60000)} more minute(s) before syncing manually again.`,
+          data: {
+            code: 'GARMIN_ADHOC_COOLDOWN',
+            provider: 'garmin',
+            retryAfterMs
+          }
+        })
+      }
     }
   } else {
     const syncAllBlock = await resolveSyncAllBlock(userId)
