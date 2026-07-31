@@ -46,12 +46,10 @@ vi.mock('@trigger.dev/sdk/v3', () => ({
     warn: loggerWarn,
     error: loggerError
   },
-  schedules: {
-    task: vi.fn().mockImplementation((config) => ({
-      run: config.run,
-      id: config.id
-    }))
-  }
+  task: vi.fn().mockImplementation((config) => ({
+    run: config.run,
+    id: config.id
+  }))
 }))
 
 function trialUser(id: string, trialEndsAt: Date) {
