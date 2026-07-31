@@ -1138,6 +1138,176 @@ export const metabolicService = {
   },
 
   /**
+   * Builds the `FuelingProfile` passed to `buildDayFuelingPlan`.
+   *
+   * Shared by `calculateFuelingPlanForDate` and `calculateFuelingPlansForRange` (CW-83) so the two
+   * cannot drift apart - it depends only on the user's settings/weight/ftp, none of which vary
+   * across a date range, which is exactly why the range version fetches them once instead of once
+   * per day.
+   */
+  buildFuelingProfile(settings: any, weightKg: number, ftp: number) {
+    return {
+      weight: weightKg,
+      ftp: ftp || 250,
+      currentCarbMax: settings.currentCarbMax,
+      sodiumTarget: settings.sodiumTarget,
+      sweatRate: settings.sweatRate ?? undefined,
+      preWorkoutWindow: settings.preWorkoutWindow,
+      postWorkoutWindow: settings.postWorkoutWindow,
+      fuelingSensitivity: settings.fuelingSensitivity,
+      fuelState1Trigger: settings.fuelState1Trigger,
+      fuelState1Min: settings.fuelState1Min,
+      fuelState1Max: settings.fuelState1Max,
+      fuelState2Trigger: settings.fuelState2Trigger,
+      fuelState2Min: settings.fuelState2Min,
+      fuelState2Max: settings.fuelState2Max,
+      fuelState3Min: settings.fuelState3Min,
+      fuelState3Max: settings.fuelState3Max,
+      bmr: settings.bmr ?? 1600,
+      activityLevel: settings.activityLevel || 'ACTIVE',
+      baseCaloriesMode: (settings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+        ? 'MANUAL_NON_EXERCISE'
+        : 'AUTO') as 'AUTO' | 'MANUAL_NON_EXERCISE',
+      nonExerciseBaseCalories: settings.nonExerciseBaseCalories ?? undefined,
+      targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0,
+      baseProteinPerKg: settings.baseProteinPerKg,
+      baseFatPerKg: settings.baseFatPerKg
+    }
+  },
+
+  /**
+   * Turns a day's completed + planned workouts into the workout contexts `buildDayFuelingPlan`
+   * expects. Shared by `calculateFuelingPlanForDate` and `calculateFuelingPlansForRange` (CW-83).
+   */
+  resolveDayWorkoutContexts(
+    completedWorkouts: any[],
+    plannedWorkouts: any[],
+    timezone: string
+  ): any[] {
+    const contexts: any[] = []
+    const completedPlannedIds = new Set(
+      completedWorkouts.map((w) => w.plannedWorkoutId).filter(Boolean)
+    )
+    const remainingPlanned = plannedWorkouts.filter((w) => !completedPlannedIds.has(w.id))
+
+    for (const completed of completedWorkouts) {
+      contexts.push({
+        id: completed.id,
+        title: completed.title || 'Completed Workout',
+        durationSec: completed.durationSec || 0,
+        type: completed.type || 'Workout',
+        source: completed.source || 'completed',
+        date: completed.date,
+        startTime: completed.date,
+        durationHours: (completed.durationSec || 0) / 3600,
+        intensity: completed.intensity || 0.6,
+        calories: completed.calories,
+        kilojoules: completed.kilojoules,
+        strategyOverride: completed.plannedWorkout?.fuelingStrategy || undefined
+      })
+    }
+
+    for (const work of remainingPlanned) {
+      let startTimeDate: Date | null = null
+      if (work.startTime && typeof work.startTime === 'string' && work.startTime.includes(':')) {
+        startTimeDate = buildZonedDateTimeFromUtcDate(work.date, work.startTime, timezone, 10, 0)
+      } else if ((work.startTime as any) instanceof Date) {
+        startTimeDate = work.startTime as any as Date
+      }
+
+      contexts.push({
+        ...work,
+        source: 'planned',
+        startTime: startTimeDate,
+        durationHours: (work.durationSec || 0) / 3600,
+        intensity: work.workIntensity || 0.5,
+        strategyOverride: work.fuelingStrategy || undefined
+      })
+    }
+
+    return contexts
+  },
+
+  /**
+   * Resolves the day's meal-pattern slots into absolute times. Shared by
+   * `calculateFuelingPlanForDate` and `calculateFuelingPlansForRange` (CW-83).
+   */
+  resolveDayMealSlots(
+    settings: any,
+    targetDateStart: Date,
+    timezone: string
+  ): { name: string; at: Date }[] {
+    // Meal-pattern slots become the day's DAILY_BASE windows, so that baseline eating is planned
+    // on rest days too rather than leaving the day with no windows at all.
+    const mealPattern =
+      Array.isArray(settings.mealPattern) && settings.mealPattern.length > 0
+        ? (settings.mealPattern as any[])
+        : [
+            { name: 'Breakfast', time: '08:00' },
+            { name: 'Lunch', time: '13:00' },
+            { name: 'Dinner', time: '19:00' }
+          ]
+
+    return mealPattern
+      .map((slot: any) => {
+        const name = typeof slot?.name === 'string' && slot.name.trim() ? slot.name.trim() : 'Meal'
+        const at = buildZonedDateTimeFromUtcDate(targetDateStart, slot?.time, timezone, 12, 0)
+        return at instanceof Date && !Number.isNaN(at.getTime()) ? { name, at } : null
+      })
+      .filter((slot): slot is { name: string; at: Date } => slot !== null)
+  },
+
+  /**
+   * Builds the final serialized fueling plan for one day from already-resolved inputs (profile,
+   * workout contexts, meal slots, symptom override). Pure given its inputs - no fetching - so it is
+   * the single place `calculateFuelingPlanForDate` and `calculateFuelingPlansForRange` (CW-83) both
+   * call, guaranteeing they can never compute a day's plan differently.
+   */
+  buildFuelingPlanFromContexts(
+    profile: any,
+    contexts: any[],
+    targetDateStart: Date,
+    mealSlots: { name: string; at: Date }[],
+    override: {
+      carbAdjustment?: number
+      strategy?: string
+      notes?: string[]
+      isRescueProtocol?: boolean
+    } | null,
+    timezone: string
+  ) {
+    const dayPlan = buildDayFuelingPlan(profile, contexts as any, {
+      date: targetDateStart,
+      mealSlots,
+      carbAdjustment: override?.carbAdjustment ?? 1,
+      strategyOverride: override?.strategy
+    })
+
+    const labelledWindows = dayPlan.windows.map((w) => ({
+      ...w,
+      label: this.buildWindowLabel(w, timezone)
+    }))
+
+    const uniqueNotes = Array.from(new Set([...dayPlan.notes, ...(override?.notes || [])]))
+    const macroCalories = dayPlan.dailyTotals.calories
+    const energyTarget = dayPlan.dailyTotals.baseCalories + dayPlan.dailyTotals.activityCalories
+    const calories =
+      dayPlan.dailyTotals.activityCalories > 0
+        ? Math.max(energyTarget + dayPlan.dailyTotals.adjustmentCalories, macroCalories)
+        : energyTarget + dayPlan.dailyTotals.adjustmentCalories
+
+    return {
+      windows: labelledWindows,
+      notes: uniqueNotes,
+      dailyTotals: {
+        ...dayPlan.dailyTotals,
+        calories,
+        isRescueProtocol: override?.isRescueProtocol || false
+      }
+    }
+  },
+
+  /**
    * Computes a daily fueling plan synchronously.
    * Optional persistence keeps backward compatibility while enabling real-time on-demand generation.
    *
@@ -1212,128 +1382,21 @@ export const metabolicService = {
 
     const weightKg = await resolveWeightKg(userId, user)
 
-    const profile = {
-      weight: weightKg,
-      ftp: user?.ftp || 250,
-      currentCarbMax: settings.currentCarbMax,
-      sodiumTarget: settings.sodiumTarget,
-      sweatRate: settings.sweatRate ?? undefined,
-      preWorkoutWindow: settings.preWorkoutWindow,
-      postWorkoutWindow: settings.postWorkoutWindow,
-      fuelingSensitivity: settings.fuelingSensitivity,
-      fuelState1Trigger: settings.fuelState1Trigger,
-      fuelState1Min: settings.fuelState1Min,
-      fuelState1Max: settings.fuelState1Max,
-      fuelState2Trigger: settings.fuelState2Trigger,
-      fuelState2Min: settings.fuelState2Min,
-      fuelState2Max: settings.fuelState2Max,
-      fuelState3Min: settings.fuelState3Min,
-      fuelState3Max: settings.fuelState3Max,
-      bmr: settings.bmr ?? 1600,
-      activityLevel: settings.activityLevel || 'ACTIVE',
-      baseCaloriesMode: (settings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
-        ? 'MANUAL_NON_EXERCISE'
-        : 'AUTO') as 'AUTO' | 'MANUAL_NON_EXERCISE',
-      nonExerciseBaseCalories: settings.nonExerciseBaseCalories ?? undefined,
-      targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0,
-      baseProteinPerKg: settings.baseProteinPerKg,
-      baseFatPerKg: settings.baseFatPerKg
-    }
-
-    const contexts: any[] = []
-    const completedPlannedIds = new Set(
-      completedWorkouts.map((w) => w.plannedWorkoutId).filter(Boolean)
-    )
-    const remainingPlanned = plannedWorkouts.filter((w) => !completedPlannedIds.has(w.id))
+    const profile = this.buildFuelingProfile(settings, weightKg, user?.ftp || 250)
 
     // Check for symptom-based overrides
     const override = await remediationService.getActiveFuelingOverride(userId, date)
+    const contexts = this.resolveDayWorkoutContexts(completedWorkouts, plannedWorkouts, timezone)
+    const mealSlots = this.resolveDayMealSlots(settings, targetDateStart, timezone)
 
-    if (remainingPlanned.length > 0 || completedWorkouts.length > 0) {
-      for (const completed of completedWorkouts) {
-        contexts.push({
-          id: completed.id,
-          title: completed.title || 'Completed Workout',
-          durationSec: completed.durationSec || 0,
-          type: completed.type || 'Workout',
-          source: completed.source || 'completed',
-          date: completed.date,
-          startTime: completed.date,
-          durationHours: (completed.durationSec || 0) / 3600,
-          intensity: completed.intensity || 0.6,
-          calories: completed.calories,
-          kilojoules: completed.kilojoules,
-          strategyOverride: completed.plannedWorkout?.fuelingStrategy || undefined
-        })
-      }
-
-      for (const work of remainingPlanned) {
-        let startTimeDate: Date | null = null
-        if (work.startTime && typeof work.startTime === 'string' && work.startTime.includes(':')) {
-          startTimeDate = buildZonedDateTimeFromUtcDate(work.date, work.startTime, timezone, 10, 0)
-        } else if ((work.startTime as any) instanceof Date) {
-          startTimeDate = work.startTime as any as Date
-        }
-
-        contexts.push({
-          ...work,
-          source: 'planned',
-          startTime: startTimeDate,
-          durationHours: (work.durationSec || 0) / 3600,
-          intensity: work.workIntensity || 0.5,
-          strategyOverride: work.fuelingStrategy || undefined
-        })
-      }
-    }
-
-    // Meal-pattern slots become the day's DAILY_BASE windows, so that baseline eating is planned
-    // on rest days too rather than leaving the day with no windows at all.
-    const mealPattern =
-      Array.isArray(settings.mealPattern) && settings.mealPattern.length > 0
-        ? (settings.mealPattern as any[])
-        : [
-            { name: 'Breakfast', time: '08:00' },
-            { name: 'Lunch', time: '13:00' },
-            { name: 'Dinner', time: '19:00' }
-          ]
-
-    const mealSlots = mealPattern
-      .map((slot: any) => {
-        const name = typeof slot?.name === 'string' && slot.name.trim() ? slot.name.trim() : 'Meal'
-        const at = buildZonedDateTimeFromUtcDate(targetDateStart, slot?.time, timezone, 12, 0)
-        return at instanceof Date && !Number.isNaN(at.getTime()) ? { name, at } : null
-      })
-      .filter((slot): slot is { name: string; at: Date } => slot !== null)
-
-    const dayPlan = buildDayFuelingPlan(profile, contexts as any, {
-      date: targetDateStart,
+    const finalPlan = this.buildFuelingPlanFromContexts(
+      profile,
+      contexts,
+      targetDateStart,
       mealSlots,
-      carbAdjustment: override?.carbAdjustment ?? 1,
-      strategyOverride: override?.strategy
-    })
-
-    const labelledWindows = dayPlan.windows.map((w) => ({
-      ...w,
-      label: this.buildWindowLabel(w, timezone)
-    }))
-
-    const uniqueNotes = Array.from(new Set([...dayPlan.notes, ...(override?.notes || [])]))
-    const macroCalories = dayPlan.dailyTotals.calories
-    const energyTarget = dayPlan.dailyTotals.baseCalories + dayPlan.dailyTotals.activityCalories
-    const calories =
-      dayPlan.dailyTotals.activityCalories > 0
-        ? Math.max(energyTarget + dayPlan.dailyTotals.adjustmentCalories, macroCalories)
-        : energyTarget + dayPlan.dailyTotals.adjustmentCalories
-
-    const finalPlan = {
-      windows: labelledWindows,
-      notes: uniqueNotes,
-      dailyTotals: {
-        ...dayPlan.dailyTotals,
-        calories,
-        isRescueProtocol: override?.isRescueProtocol || false
-      }
-    }
+      override,
+      timezone
+    )
 
     if (persist) {
       await nutritionRepository.upsert(
@@ -1365,6 +1428,184 @@ export const metabolicService = {
       skipped: false,
       plan: finalPlan
     }
+  },
+
+  /**
+   * Batched, range-based counterpart to `calculateFuelingPlanForDate` (CW-83).
+   *
+   * `calculateFuelingPlanForDate` independently re-fetches the user's timezone, nutrition settings,
+   * weight and that single day's workouts on every call. Looping it once per day - as
+   * `strategy.get.ts`'s 7-day fueling matrix and `getUpcomingFuelingWindows`' lookahead both do -
+   * turns those into N redundant queries for values that do not vary across the range.
+   *
+   * This follows the same single-pass convention `getWaveRange` and `getMetabolicStatesForRange`
+   * already use: the shared per-user context (timezone/settings/weight) and the full range's
+   * workouts/nutrition are fetched ONCE, then one day-by-day loop builds each day's plan from the
+   * already-fetched data via the same `buildFuelingPlanFromContexts` helper
+   * `calculateFuelingPlanForDate` uses - so the two can never disagree on a given day (proven in
+   * nutritionPlanService.test.ts).
+   *
+   * `startDate`/`endDate` are treated as UTC-midnight calendar dates (the same convention
+   * `getWaveRange`/`getMetabolicStatesForRange` use), inclusive on both ends.
+   *
+   * Note: like `calculateFuelingPlanForDate`, workouts are queried by their raw UTC day rather than
+   * the user's local calendar day (the CW-84 `getDateKey` timezone bucketing that `getWaveRange` and
+   * `getMetabolicStatesForRange` use does not apply here) - this intentionally matches
+   * `calculateFuelingPlanForDate`'s existing per-day query bounds exactly, rather than changing
+   * fueling-plan generation's day-boundary behavior as a side effect of batching it.
+   *
+   * Returns a `Map` keyed by `yyyy-MM-dd`, one entry per day in the range, in the same
+   * `{ success, skipped, reason, plan }` shape `calculateFuelingPlanForDate` returns for a single
+   * day.
+   *
+   * `strategy.get.ts` is the only current caller (its Owned Paths), but nothing here is specific to
+   * it - `getUpcomingFuelingWindows`'s per-day loop and the `active-feed` endpoint could adopt this
+   * the same way without further changes to this function.
+   */
+  async calculateFuelingPlansForRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    options: { persist?: boolean } = {}
+  ): Promise<Map<string, { success: boolean; skipped: boolean; reason?: string; plan: any }>> {
+    const persist = options.persist ?? true
+
+    const dayCursorStart = new Date(startDate)
+    dayCursorStart.setUTCHours(0, 0, 0, 0)
+    const dayCursorEnd = new Date(endDate)
+    dayCursorEnd.setUTCHours(0, 0, 0, 0)
+
+    const rangeStart = new Date(dayCursorStart)
+    const rangeEnd = new Date(dayCursorEnd)
+    rangeEnd.setUTCHours(23, 59, 59, 999)
+
+    // --- 1. Shared per-user context, fetched ONCE for the whole range ---
+    const settings = await getUserNutritionSettings(userId)
+    const timezone = await getUserTimezone(userId)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true, weightSourceMode: true, ftp: true }
+    })
+    const weightKg = await resolveWeightKg(userId, user)
+    const profile = this.buildFuelingProfile(settings, weightKg, user?.ftp || 250)
+
+    // --- 2. Workouts + existing nutrition for the FULL range, fetched ONCE ---
+    const [plannedWorkouts, completedWorkouts, existingNutritionRows] = await Promise.all([
+      prisma.plannedWorkout.findMany({
+        where: {
+          userId,
+          date: { gte: rangeStart, lte: rangeEnd },
+          completed: { not: true },
+          completedWorkouts: { none: {} }
+        },
+        orderBy: { date: 'asc' }
+      }),
+      prisma.workout.findMany({
+        where: {
+          userId,
+          isDuplicate: false,
+          date: { gte: rangeStart, lte: rangeEnd }
+        },
+        orderBy: { date: 'asc' },
+        include: {
+          plannedWorkout: {
+            select: { fuelingStrategy: true, startTime: true }
+          }
+        }
+      }),
+      nutritionRepository.getForUser(userId, { startDate: rangeStart, endDate: rangeEnd })
+    ])
+
+    const plannedByDate = new Map<string, any[]>()
+    plannedWorkouts.forEach((w: any) => {
+      const key = formatDateUTC(w.date)
+      if (!plannedByDate.has(key)) plannedByDate.set(key, [])
+      plannedByDate.get(key)!.push(w)
+    })
+
+    const completedByDate = new Map<string, any[]>()
+    completedWorkouts.forEach((w: any) => {
+      const key = formatDateUTC(w.date)
+      if (!completedByDate.has(key)) completedByDate.set(key, [])
+      completedByDate.get(key)!.push(w)
+    })
+
+    const nutritionByDate = new Map<string, any>()
+    existingNutritionRows.forEach((n: any) => nutritionByDate.set(formatDateUTC(n.date), n))
+
+    // --- 3. Single-pass per-day loop over the already-fetched data ---
+    const results = new Map<
+      string,
+      { success: boolean; skipped: boolean; reason?: string; plan: any }
+    >()
+
+    const daysDiff = Math.round(
+      (dayCursorEnd.getTime() - dayCursorStart.getTime()) / (1000 * 60 * 60 * 24)
+    )
+
+    for (let i = 0; i <= daysDiff; i++) {
+      const date = new Date(dayCursorStart)
+      date.setUTCDate(dayCursorStart.getUTCDate() + i)
+      const dateKey = formatDateUTC(date)
+
+      const existingNutrition = nutritionByDate.get(dateKey)
+      if (persist && existingNutrition?.isManualLock) {
+        results.set(dateKey, {
+          success: true,
+          skipped: true,
+          reason: 'MANUAL_LOCK',
+          plan: existingNutrition.fuelingPlan
+        })
+        continue
+      }
+
+      const dayCompleted = completedByDate.get(dateKey) || []
+      const dayPlanned = plannedByDate.get(dateKey) || []
+
+      // Check for symptom-based overrides - genuinely per-day (a 24h rolling lookback), so this
+      // stays a per-day call rather than something batchable from the shared context above.
+      const override = await remediationService.getActiveFuelingOverride(userId, date)
+      const contexts = this.resolveDayWorkoutContexts(dayCompleted, dayPlanned, timezone)
+      const mealSlots = this.resolveDayMealSlots(settings, date, timezone)
+
+      const finalPlan = this.buildFuelingPlanFromContexts(
+        profile,
+        contexts,
+        date,
+        mealSlots,
+        override,
+        timezone
+      )
+
+      if (persist) {
+        await nutritionRepository.upsert(
+          userId,
+          date,
+          {
+            userId,
+            date,
+            fuelingPlan: finalPlan as any,
+            sourcePrecedence: 'AI',
+            caloriesGoal: finalPlan.dailyTotals.calories,
+            carbsGoal: finalPlan.dailyTotals.carbs,
+            proteinGoal: finalPlan.dailyTotals.protein,
+            fatGoal: finalPlan.dailyTotals.fat
+          },
+          {
+            fuelingPlan: finalPlan as any,
+            sourcePrecedence: 'AI',
+            caloriesGoal: finalPlan.dailyTotals.calories,
+            carbsGoal: finalPlan.dailyTotals.carbs,
+            proteinGoal: finalPlan.dailyTotals.protein,
+            fatGoal: finalPlan.dailyTotals.fat
+          }
+        )
+      }
+
+      results.set(dateKey, { success: true, skipped: false, plan: finalPlan })
+    }
+
+    return results
   },
 
   /**
