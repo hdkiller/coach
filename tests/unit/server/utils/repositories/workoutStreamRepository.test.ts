@@ -6,9 +6,11 @@ import {
   splitLatlngPoints,
   workoutStreamRepository
 } from '../../../../../server/utils/repositories/workoutStreamRepository'
+import { prisma } from '../../../../../server/utils/db'
 
 const workoutStreamV2 = {
-  upsert: vi.fn()
+  upsert: vi.fn(),
+  findMany: vi.fn()
 }
 
 vi.mock('../../../../../server/utils/db', () => ({
@@ -126,6 +128,140 @@ describe('workoutStreamRepository', () => {
           })
         })
       )
+    })
+  })
+
+  describe('findManyByWorkoutIds', () => {
+    beforeEach(() => {
+      workoutStreamV2.findMany.mockResolvedValue([])
+      vi.mocked(prisma.workoutStream.findMany).mockResolvedValue([] as any)
+    })
+
+    it('fetches every column when no `fields` option is given (default/full behavior)', async () => {
+      workoutStreamV2.findMany.mockResolvedValue([
+        { workoutId: 'workout-1', time: [0, 1], watts: [100, 110], lat: [], lng: [] }
+      ])
+
+      await workoutStreamRepository.findManyByWorkoutIds(['workout-1'])
+
+      expect(workoutStreamV2.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { workoutId: { in: ['workout-1'] } }
+        })
+      )
+      // No `select` key at all -- Prisma returns every column.
+      const call = workoutStreamV2.findMany.mock.calls[0]![0]
+      expect(call.select).toBeUndefined()
+    })
+
+    it('passes an explicit `select` limited to the mandatory baseline plus requested fields', async () => {
+      workoutStreamV2.findMany.mockResolvedValue([
+        {
+          workoutId: 'workout-1',
+          time: [0, 1],
+          heartrate: [90, 95],
+          watts: [100, 110],
+          velocity: [1, 2],
+          lat: [],
+          lng: [],
+          hrZoneTimes: null,
+          powerZoneTimes: null,
+          distance: [0, 10]
+        }
+      ])
+
+      await workoutStreamRepository.findManyByWorkoutIds(['workout-1'], { fields: ['distance'] })
+
+      expect(workoutStreamV2.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { workoutId: { in: ['workout-1'] } },
+          select: expect.objectContaining({
+            // mandatory baseline required by hasUsableStreamData()
+            time: true,
+            heartrate: true,
+            watts: true,
+            velocity: true,
+            lat: true,
+            lng: true,
+            hrZoneTimes: true,
+            powerZoneTimes: true,
+            // explicitly requested extra field
+            distance: true
+          })
+        })
+      )
+
+      // Fields never requested (and not part of the mandatory baseline)
+      // must not be present in the select at all.
+      const call = workoutStreamV2.findMany.mock.calls[0]![0]
+      expect(call.select.cadence).toBeUndefined()
+      expect(call.select.lapSplits).toBeUndefined()
+      expect(call.select.extrasMeta).toBeUndefined()
+    })
+
+    it('still fetches the mandatory baseline when `fields` is an empty array (existence-only callers)', async () => {
+      workoutStreamV2.findMany.mockResolvedValue([
+        { workoutId: 'workout-1', time: [0, 1], watts: [50], lat: [], lng: [] }
+      ])
+
+      const streams = await workoutStreamRepository.findManyByWorkoutIds(['workout-1'], {
+        fields: []
+      })
+
+      const call = workoutStreamV2.findMany.mock.calls[0]![0]
+      expect(call.select).toEqual(
+        expect.objectContaining({
+          time: true,
+          heartrate: true,
+          watts: true,
+          velocity: true,
+          lat: true,
+          lng: true,
+          hrZoneTimes: true,
+          powerZoneTimes: true
+        })
+      )
+      expect(streams.get('workout-1')).toBeTruthy()
+    })
+
+    it('splits a large IN(...) clause into chunks of at most 200 IDs', async () => {
+      const workoutIds = Array.from({ length: 450 }, (_, i) => `workout-${i}`)
+
+      await workoutStreamRepository.findManyByWorkoutIds(workoutIds)
+
+      expect(workoutStreamV2.findMany).toHaveBeenCalledTimes(3)
+      const callSizes = workoutStreamV2.findMany.mock.calls.map(
+        (call: any[]) => call[0].where.workoutId.in.length
+      )
+      expect(callSizes).toEqual([200, 200, 50])
+    })
+
+    it('falls back to the legacy V1 table (with the same lean select) for workouts missing a V2 row', async () => {
+      workoutStreamV2.findMany.mockResolvedValue([])
+      vi.mocked(prisma.workoutStream.findMany).mockResolvedValue([
+        { workoutId: 'workout-legacy', time: [0, 1], watts: [120], latlng: [] }
+      ] as any)
+
+      const streams = await workoutStreamRepository.findManyByWorkoutIds(['workout-legacy'], {
+        fields: ['distance']
+      })
+
+      expect(prisma.workoutStream.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { workoutId: { in: ['workout-legacy'] } },
+          select: expect.objectContaining({
+            time: true,
+            heartrate: true,
+            watts: true,
+            velocity: true,
+            latlng: true,
+            hrZoneTimes: true,
+            powerZoneTimes: true,
+            distance: true
+          })
+        })
+      )
+      expect(streams.get('workout-legacy')).toBeTruthy()
     })
   })
 })

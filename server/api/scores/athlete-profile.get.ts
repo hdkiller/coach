@@ -41,7 +41,13 @@ async function ensurePersonalBestsBackfilled(userId: string) {
     }
   })
 
-  const workoutsWithStreams = await attachStreamsToWorkouts(workouts)
+  // pbDetectionService.detectPBs only reads streams.time/watts/distance off each
+  // workout (peak power + fastest-distance-segment detection) -- the mandatory
+  // baseline (time/heartrate/watts/velocity/lat/lng/hrZoneTimes/powerZoneTimes)
+  // already covers time/watts, so only `distance` needs to be requested here.
+  // This avoids pulling every per-second stream array (and JSON blob) for a
+  // user's entire workout history, which was the CW-224 slow query.
+  const workoutsWithStreams = await attachStreamsToWorkouts(workouts, { fields: ['distance'] })
 
   for (const workout of workoutsWithStreams) {
     if (!workout.streams) continue

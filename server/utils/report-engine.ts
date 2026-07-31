@@ -79,6 +79,17 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
             orderBy: source.orderBy || { date: 'desc' },
             includeDuplicates: false
           })
+          // Deliberately left at the default (full-column) fetch: the
+          // downstream buildWorkoutSummary()/buildWorkoutAnalysisFactsV2()
+          // pipeline reads most stream fields (heartrate, watts, cadence,
+          // velocity, latlng, altitude, grade, temp, torque,
+          // leftRightBalance, hrv, respiration, targetPower, zone times),
+          // and report templates are user-editable DB content that could in
+          // principle reference any field on the raw workout data passed
+          // into the prompt context -- so trimming columns here isn't safe
+          // to do with confidence. The CW-224 slow-query fix still applies
+          // via findManyByWorkoutIds' internal chunking of large IN(...)
+          // clauses.
           data = await attachStreamsToWorkouts(data)
 
           // Apply additional filters (e.g., by sport type)

@@ -1404,8 +1404,12 @@ export const IntervalsService = {
 
     if (!workoutToDelete) return
 
+    // deduplicationService.calculateCompletenessScore only checks whether
+    // `streams` is truthy (never reads a specific field), so we don't need
+    // any of the optional stream columns here -- just the mandatory baseline
+    // that findManyByWorkoutIds always fetches to determine "usable" streams.
     const duplicatesWithStreams = workoutToDelete.duplicates.length
-      ? await attachStreamsToWorkouts(workoutToDelete.duplicates)
+      ? await attachStreamsToWorkouts(workoutToDelete.duplicates, { fields: [] })
       : []
 
     await prisma.$transaction(async (tx) => {
