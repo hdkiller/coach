@@ -4,9 +4,13 @@ import { sanitizeCallbackUrl } from '#shared/safe-callback-url'
 export default defineNuxtRouteMiddleware(async (to) => {
   const { status, data, getSession, signOut } = useAuth()
 
-  if (status.value === 'loading') {
-    await getSession().catch(() => null)
-  }
+  // Always refresh so a deactivation that lands mid-session (deactivatedAt from the
+  // DB) is observed before making an onboarding-redirect decision. This global
+  // middleware runs before the named auth/guest/oauth-auth middlewares on every
+  // navigation, so on a pure client-side route change with no other auth middleware
+  // it would otherwise be the only thing consulting a stale cached session. Mirrors
+  // the unconditional refresh in app/middleware/auth.ts.
+  await getSession().catch(() => null)
 
   if (status.value === 'loading') return
 
