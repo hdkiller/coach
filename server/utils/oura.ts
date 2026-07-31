@@ -10,6 +10,44 @@ interface OuraTokenResponse {
   token_type: string
 }
 
+/** Endpoints that may be unavailable when the user did not grant an optional OAuth scope. */
+const OPTIONAL_SCOPE_ENDPOINTS = new Set(['daily_spo2'])
+
+/**
+ * Process-local cache of endpoints that returned 401/403 for a given integration.
+ * Avoids repeated unauthorized API calls (and log noise) within a worker lifetime.
+ */
+const unauthorizedEndpointsByIntegration = new Set<string>()
+
+export function parseOuraScope(scope: string | null | undefined): Set<string> {
+  if (!scope) return new Set()
+  return new Set(
+    scope
+      .split(/[,\s]+/)
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )
+}
+
+export function hasOuraScope(
+  integration: Pick<Integration, 'scope'> | string | null | undefined,
+  requiredScope: string
+): boolean {
+  const scope =
+    typeof integration === 'string' || integration == null ? integration : integration.scope
+  if (!scope) return false
+  return parseOuraScope(scope).has(requiredScope)
+}
+
+function unauthorizedEndpointKey(integrationId: string, endpoint: string): string {
+  return `${integrationId}:${endpoint}`
+}
+
+/** Test helper: clear the process-local unauthorized-endpoint cache. */
+export function clearOuraUnauthorizedEndpointCache(): void {
+  unauthorizedEndpointsByIntegration.clear()
+}
+
 interface OuraTokenErrorPayload {
   status?: number
   error?: string
@@ -187,16 +225,24 @@ export async function refreshOuraToken(integration: Integration): Promise<Integr
         data: {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
-          expiresAt
+          expiresAt,
+          ...(tokenData.scope ? { scope: tokenData.scope } : {})
         }
       })
-      return { integration: updated }
+      return { integration: updated, scopeRefreshed: true as const }
     },
     { maxWait: OURA_TOKEN_TRANSACTION_TIMEOUT_MS, timeout: OURA_TOKEN_TRANSACTION_TIMEOUT_MS }
   )
 
   if ('authRevoked' in result) {
     throwOuraAuthRevoked(integration.id, result.statusCode)
+  }
+
+  if ('scopeRefreshed' in result) {
+    // Token scopes may have changed; allow optional endpoints to be retried.
+    for (const endpoint of OPTIONAL_SCOPE_ENDPOINTS) {
+      unauthorizedEndpointsByIntegration.delete(unauthorizedEndpointKey(integration.id, endpoint))
+    }
   }
 
   return result.integration
@@ -244,6 +290,11 @@ export async function fetchOuraData(
   startDate: Date,
   endDate: Date
 ) {
+  const cacheKey = unauthorizedEndpointKey(integration.id, endpoint)
+  if (OPTIONAL_SCOPE_ENDPOINTS.has(endpoint) && unauthorizedEndpointsByIntegration.has(cacheKey)) {
+    return []
+  }
+
   const validIntegration = await ensureValidToken(integration)
 
   const url = new URL(`https://api.ouraring.com/v2/usercollection/${endpoint}`)
@@ -270,6 +321,11 @@ export async function fetchOuraData(
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
+        if (OPTIONAL_SCOPE_ENDPOINTS.has(endpoint)) {
+          // Missing optional scopes are expected for older/re-auth'd tokens — stay quiet.
+          unauthorizedEndpointsByIntegration.add(cacheKey)
+          return []
+        }
         console.warn(`[Oura] Skipping ${endpoint}: Token not authorized (check scopes).`)
         return []
       }
@@ -331,6 +387,10 @@ export async function fetchOuraWorkouts(integration: Integration, startDate: Dat
 }
 
 export async function fetchOuraDailySpO2(integration: Integration, startDate: Date, endDate: Date) {
+  // Older tokens may omit spo2Daily; skip the call entirely when scope is known.
+  if (integration.scope && !hasOuraScope(integration, 'spo2Daily')) {
+    return []
+  }
   return fetchOuraData(integration, 'daily_spo2', startDate, endDate)
 }
 
