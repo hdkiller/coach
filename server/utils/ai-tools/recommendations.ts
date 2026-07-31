@@ -9,6 +9,11 @@ import {
   dismissRecommendation
 } from '../recommendation-actions'
 
+function normalizeSportType(type: string | null | undefined): string | undefined {
+  if (!type) return undefined
+  return type === 'Gym' ? 'WeightTraining' : type
+}
+
 function formatActivityRecommendation(rec: {
   id: string
   recommendation: string
@@ -33,7 +38,7 @@ function formatActivityRecommendation(rec: {
       source: 'activity_recommendation' as const,
       recommendation_id: rec.id,
       title: planned.title,
-      type: planned.type || 'Ride',
+      type: normalizeSportType(planned.type),
       duration_minutes: planned.durationSec ? Math.round(planned.durationSec / 60) : undefined,
       tss: planned.tss ?? undefined,
       description: planned.description || rec.recommendation,
@@ -49,7 +54,9 @@ function formatActivityRecommendation(rec: {
       source: 'activity_recommendation' as const,
       recommendation_id: rec.id,
       title: modifications.new_title || 'Suggested workout',
-      type: analysis.suggested_type || analysis.workout_type || undefined,
+      type: normalizeSportType(
+        modifications.new_type || analysis.suggested_type || analysis.workout_type
+      ),
       duration_minutes:
         typeof modifications.new_duration_min === 'number'
           ? modifications.new_duration_min

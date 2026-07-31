@@ -83,6 +83,109 @@ describe('recommendationTools', () => {
     )
   })
 
+  it('does not default the sport type to Ride when the planned workout has no type set', async () => {
+    vi.mocked(activityRecommendationRepository.findToday).mockResolvedValue({
+      id: 'act-rec-2',
+      recommendation: 'proceed',
+      confidence: 0.8,
+      reasoning: 'Readiness is good.',
+      status: 'COMPLETED',
+      analysisJson: null,
+      plannedWorkout: {
+        id: 'pw-2',
+        title: 'Untyped session',
+        type: null,
+        durationSec: 1800,
+        tss: 30,
+        description: null
+      }
+    } as any)
+
+    const result = await tools.recommend_workout.execute(
+      { day_of_week: 3 },
+      { toolCallId: 'tool-1', messages: [] }
+    )
+
+    expect(result.recommendation).toEqual(
+      expect.objectContaining({
+        source: 'activity_recommendation',
+        title: 'Untyped session',
+        type: undefined,
+        planned_workout_id: 'pw-2'
+      })
+    )
+  })
+
+  it('derives the sport type from the suggested_modifications.new_type field for a running suggestion', async () => {
+    vi.mocked(activityRecommendationRepository.findToday).mockResolvedValue({
+      id: 'act-rec-3',
+      recommendation: 'modify',
+      confidence: 0.7,
+      reasoning: 'Fatigue detected, suggest an easier run instead.',
+      status: 'COMPLETED',
+      plannedWorkout: null,
+      analysisJson: {
+        suggested_modifications: {
+          action: 'modify',
+          new_title: 'Recovery Run',
+          new_type: 'Run',
+          new_tss: 25,
+          new_duration_min: 40,
+          zone_adjustments: 'Zone 1-2 only',
+          description: 'Easy recovery run.'
+        }
+      }
+    } as any)
+
+    const result = await tools.recommend_workout.execute(
+      { day_of_week: 4 },
+      { toolCallId: 'tool-1', messages: [] }
+    )
+
+    expect(result.recommendation).toEqual(
+      expect.objectContaining({
+        source: 'activity_recommendation',
+        title: 'Recovery Run',
+        type: 'Run'
+      })
+    )
+  })
+
+  it('maps a Gym suggestion to the WeightTraining sport type instead of defaulting to Ride', async () => {
+    vi.mocked(activityRecommendationRepository.findToday).mockResolvedValue({
+      id: 'act-rec-4',
+      recommendation: 'modify',
+      confidence: 0.7,
+      reasoning: 'Suggest strength training instead.',
+      status: 'COMPLETED',
+      plannedWorkout: null,
+      analysisJson: {
+        suggested_modifications: {
+          action: 'modify',
+          new_title: 'Strength Session',
+          new_type: 'Gym',
+          new_tss: 20,
+          new_duration_min: 45,
+          zone_adjustments: '',
+          description: 'Strength training session.'
+        }
+      }
+    } as any)
+
+    const result = await tools.recommend_workout.execute(
+      { day_of_week: 6 },
+      { toolCallId: 'tool-1', messages: [] }
+    )
+
+    expect(result.recommendation).toEqual(
+      expect.objectContaining({
+        source: 'activity_recommendation',
+        title: 'Strength Session',
+        type: 'WeightTraining'
+      })
+    )
+  })
+
   describe('get_recommendation_details', () => {
     it('should return details when found', async () => {
       const mockRec = { id: 'rec1', userId, status: 'ACTIVE' }
