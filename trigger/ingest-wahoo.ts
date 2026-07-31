@@ -9,6 +9,63 @@ import type { IngestionResult } from './types'
 import crypto from 'crypto'
 import { dispatchTask } from '../server/utils/task-dispatcher'
 
+// Wahoo Cloud API caps `per_page` well below this, but 100 is a safe, generous page size.
+const WAHOO_PAGE_SIZE = 100
+// Safety cap on the number of pages we'll fetch in one sync, in case the API misbehaves
+// (e.g. `total` never converges or pages keep returning full batches indefinitely).
+const WAHOO_MAX_PAGES = 50
+// Small delay between page requests to stay comfortably under Wahoo's rate limits.
+const WAHOO_PAGE_DELAY_MS = 250
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+type WahooWorkout = Awaited<ReturnType<typeof fetchWahooWorkouts>>['workouts'][number]
+
+/**
+ * Fetch all Wahoo workouts across pages, stopping once we've collected everything the
+ * API reports as available, the API returns a short/empty page, or we hit the safety cap.
+ */
+export async function fetchAllWahooWorkouts(
+  integration: Parameters<typeof fetchWahooWorkouts>[0]
+): Promise<WahooWorkout[]> {
+  const allWorkouts: WahooWorkout[] = []
+  let page = 1
+  let total = Infinity
+
+  while (page <= WAHOO_MAX_PAGES && allWorkouts.length < total) {
+    const result = await fetchWahooWorkouts(integration, page, WAHOO_PAGE_SIZE)
+    total = result.total
+
+    logger.log(
+      `Fetched Wahoo page ${page}: ${result.workouts.length} workouts (${allWorkouts.length + result.workouts.length}/${total} total)`
+    )
+
+    allWorkouts.push(...result.workouts)
+
+    if (result.workouts.length === 0 || result.workouts.length < WAHOO_PAGE_SIZE) {
+      // Short (or empty) page means we've reached the end, regardless of what `total` says.
+      break
+    }
+
+    page++
+
+    if (allWorkouts.length < total) {
+      await sleep(WAHOO_PAGE_DELAY_MS)
+    }
+  }
+
+  if (page > WAHOO_MAX_PAGES) {
+    logger.warn(
+      `Wahoo pagination hit the safety cap of ${WAHOO_MAX_PAGES} pages; some workouts may not have been fetched`,
+      { fetched: allWorkouts.length, total }
+    )
+  }
+
+  return allWorkouts
+}
+
 export const ingestWahooTask = task({
   id: 'ingest-wahoo',
   queue: userIngestionQueue,
@@ -42,10 +99,10 @@ export const ingestWahooTask = task({
 
     try {
       logger.log('Fetching workouts from Wahoo...')
-      // Wahoo Cloud API returns descending by default.
-      // We might need to handle pagination if there are many workouts.
-      const { workouts, total } = await fetchWahooWorkouts(integration, 1, 100)
-      logger.log(`Fetched ${workouts.length} workouts from Wahoo (Total available: ${total})`)
+      // Wahoo Cloud API returns descending by default. Paginate until we've retrieved
+      // everything the API reports as available (bounded by a safety cap).
+      const workouts = await fetchAllWahooWorkouts(integration)
+      logger.log(`Fetched ${workouts.length} total workouts from Wahoo`)
 
       const start = new Date(startDate)
       const end = new Date(endDate)
