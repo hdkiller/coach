@@ -554,6 +554,43 @@ describe('planningTools', () => {
         })
       )
     })
+
+    it('rejects the edit when a structure generation run is active for the workout', async () => {
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
+        id: 'pw-inflight',
+        title: 'Tempo',
+        syncStatus: 'SYNCED',
+        type: 'Ride',
+        durationSec: 3600,
+        structuredWorkout: {
+          description: 'Existing',
+          steps: [{ type: 'Active', name: 'Main' }]
+        },
+        user: { ftp: 250, lthr: 168, maxHr: 185 }
+      } as any)
+      vi.mocked(hasActiveStructureGenerationRun).mockResolvedValue(true)
+
+      const result = await tools.set_planned_workout_structure.execute(
+        {
+          workout_id: 'pw-inflight',
+          structured_workout: {
+            description: 'Updated',
+            steps: [{ type: 'Active', name: 'Main updated' }]
+          }
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(hasActiveStructureGenerationRun).toHaveBeenCalledWith('pw-inflight')
+      expect(result).toEqual({
+        success: false,
+        structure_job_in_flight: true,
+        error:
+          'Structure generation or adjustment is already running for this workout. Wait for it to finish before editing structure directly.'
+      })
+      expect(writeCanonicalPlannedWorkoutStructure).not.toHaveBeenCalled()
+      expect(sportSettingsRepository.getForActivityType).not.toHaveBeenCalled()
+    })
   })
 
   describe('patch_planned_workout_structure', () => {
@@ -743,6 +780,40 @@ describe('planningTools', () => {
           })
         })
       )
+    })
+
+    it('rejects the patch when a structure generation run is active for the workout', async () => {
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
+        id: 'pw-inflight',
+        title: 'Patch test',
+        syncStatus: 'SYNCED',
+        type: 'Ride',
+        durationSec: 3600,
+        structuredWorkout: {
+          steps: [{ type: 'Warmup', name: 'Easy start' }],
+          coachInstructions: 'Old'
+        },
+        user: { ftp: 250, lthr: 168, maxHr: 185 }
+      } as any)
+      vi.mocked(hasActiveStructureGenerationRun).mockResolvedValue(true)
+
+      const result = await tools.patch_planned_workout_structure.execute(
+        {
+          workout_id: 'pw-inflight',
+          operations: [{ op: 'replace', path: 'steps.0.name', value: 'Revised warmup' }]
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(hasActiveStructureGenerationRun).toHaveBeenCalledWith('pw-inflight')
+      expect(result).toEqual({
+        success: false,
+        structure_job_in_flight: true,
+        error:
+          'Structure generation or adjustment is already running for this workout. Wait for it to finish before editing structure directly.'
+      })
+      expect(writeCanonicalPlannedWorkoutStructure).not.toHaveBeenCalled()
+      expect(plannedWorkoutRepository.update).not.toHaveBeenCalled()
     })
   })
 
