@@ -30,8 +30,42 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' server.json > server.tmp && mv server.tmp server.json
 
       - name: Install mcp-publisher
+        env:
+          # Pinned release of https://github.com/modelcontextprotocol/registry
+          # To bump: pick the new tag, then copy the matching sha256 values out of
+          # the release's `registry_<version>_checksums.txt` asset (e.g.
+          # https://github.com/modelcontextprotocol/registry/releases/download/vX.Y.Z/registry_X.Y.Z_checksums.txt)
+          # into the CHECKSUMS map below.
+          MCP_PUBLISHER_VERSION: 'v1.8.0'
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          set -euo pipefail
+
+          OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          ASSET="mcp-publisher_${OS}_${ARCH}.tar.gz"
+          URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/${ASSET}"
+
+          # SHA-256 checksums published alongside modelcontextprotocol/registry v1.8.0,
+          # taken from registry_1.8.0_checksums.txt on the release page.
+          declare -A CHECKSUMS=(
+            [mcp-publisher_darwin_amd64.tar.gz]="5350f756e8408d0e22802b7f384af941448358b503eb1e1772979a61b9b99fde"
+            [mcp-publisher_darwin_arm64.tar.gz]="e74f8846c3b5d0428cfeae3f9f520bbf9031d18e68224108c3760d60b6aaf2e0"
+            [mcp-publisher_linux_amd64.tar.gz]="1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf"
+            [mcp-publisher_linux_arm64.tar.gz]="c978982c60e1b4903a976de090f04dc4fac4a320daa50704fcad2dbc93433d62"
+            [mcp-publisher_windows_amd64.tar.gz]="697df4aaf7941ad6fbac9ebc48bd23ff87a3131ae7bb6ee0543cb857d8029939"
+            [mcp-publisher_windows_arm64.tar.gz]="21377f392433ec46ec4b5623a1bf72ba9e85b7849319a01f4768ab465b92fad2"
+          )
+
+          EXPECTED_SHA256="${CHECKSUMS[$ASSET]:-}"
+          if [ -z "$EXPECTED_SHA256" ]; then
+            echo "::error::No pinned checksum recorded for $ASSET (version $MCP_PUBLISHER_VERSION)" >&2
+            exit 1
+          fi
+
+          curl -sSL -o mcp-publisher.tar.gz "$URL"
+          echo "${EXPECTED_SHA256}  mcp-publisher.tar.gz" | sha256sum -c --strict -
+
+          tar xzf mcp-publisher.tar.gz mcp-publisher
 
       - name: Validate server.json
         run: ./mcp-publisher validate
