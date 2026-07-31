@@ -182,7 +182,7 @@ export const metabolicService = {
   },
 
   /**
-   * Internal helper to get merged workouts for a date.
+   * Internal helper to get merged workouts for a date (completed + planned-but-not-yet-completed).
    */
   async getRelevantWorkouts(userId: string, date: Date, timezone: string) {
     const rangeStart = getStartOfDayUTC(timezone, date)
@@ -197,17 +197,65 @@ export const metabolicService = {
   },
 
   /**
-   * Calculates the full energy timeline for a specific day.
-   * Centralizes logic for workout merging, meal synthesis policy, and timeline generation.
-   * Returns both the points (for charts) and the liveStatus (for the tank).
+   * Internal helper to get only completed (real, logged) workouts for a date - no planned/ghost
+   * sessions. Used for days being treated as final, where a workout that was planned but never
+   * actually completed must not be simulated as though it happened.
    */
-  async getDailyTimeline(
+  async getCompletedWorkoutsOnly(userId: string, date: Date, timezone: string) {
+    const rangeStart = getStartOfDayUTC(timezone, date)
+    const rangeEnd = getEndOfDayUTC(timezone, date)
+
+    return workoutRepository.getForUser(userId, {
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      includeDuplicates: false
+    })
+  },
+
+  /**
+   * Canonical single-day metabolic simulation core, shared by `finalizeDay` and `getDailyTimeline`
+   * (CW-76).
+   *
+   * These two used to duplicate this math with different inputs - `finalizeDay` used completed
+   * workouts and real logged nutrition only, while `getDailyTimeline` unconditionally merged in
+   * planned-but-not-yet-completed workouts and, when nothing was logged, synthetic meal
+   * projections. Their `endingGlycogenPercentage` values could drift apart by more than the 1%
+   * tolerance the day-to-day handoff (`getMetabolicStateForDate` / `repairMetabolicChain`) depends
+   * on, bypassing the fast path and forcing a full re-simulation on every read.
+   *
+   * Policy for what a day's simulation should include:
+   *  - `includePlannedWorkouts: false` / `synthesizeMealsIfUnlogged: false` - "finalized" mode.
+   *    A day that has already ended is closed out on what actually happened: completed workouts and
+   *    real logged nutrition. A planned-but-never-completed workout is a ghost session that didn't
+   *    happen and must not drain the tank; a synthetic meal projects a *future* meal-planning
+   *    assumption that no longer applies once the day is over - the real (possibly empty) log is
+   *    what should be trusted instead.
+   *  - `includePlannedWorkouts: true` / `synthesizeMealsIfUnlogged: true` - "projected" mode. Today
+   *    or a future day has no "what actually happened" yet for hours that have not occurred, so
+   *    planned workouts and synthesized meal refills legitimately stand in for real data that
+   *    doesn't exist yet.
+   *
+   * `finalizeDay` always simulates in finalized mode - it exists specifically to close a day out.
+   * `getDailyTimeline` picks the mode per call based on whether the requested date is already in
+   * the past, so simulating a past day here agrees with what `finalizeDay` persisted for it, while
+   * today/future behavior (planned workouts + synthetic meals) is unchanged.
+   */
+  async simulateDayCore(
     userId: string,
     date: Date,
     startingGlycogen: number,
     startingFluid: number,
+    policy: { includePlannedWorkouts: boolean; synthesizeMealsIfUnlogged: boolean },
     currentTime: Date = new Date()
-  ) {
+  ): Promise<{
+    points: any[]
+    dayNutrition: any
+    dayWorkouts: any[]
+    timezone: string
+    settings: any
+    weightKg: number
+    user: { weight?: number | null; weightSourceMode?: string | null; ftp?: number | null } | null
+  }> {
     const timezone = await getUserTimezone(userId)
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
@@ -217,27 +265,12 @@ export const metabolicService = {
 
     const weightKg = await resolveWeightKg(userId, user)
 
-    const dayWorkouts = await this.getRelevantWorkouts(userId, date, timezone)
+    const dayWorkouts = policy.includePlannedWorkouts
+      ? await this.getRelevantWorkouts(userId, date, timezone)
+      : await this.getCompletedWorkoutsOnly(userId, date, timezone)
+
     const dayNutrition = await nutritionRepository.getByDate(userId, date)
 
-    const rangeStart = getStartOfDayUTC(timezone, date)
-    const rangeEnd = getEndOfDayUTC(timezone, date)
-
-    const journeyEvents = await prisma.athleteJourneyEvent.findMany({
-      where: {
-        userId,
-        timestamp: {
-          gte: rangeStart,
-          lte: rangeEnd
-        }
-      },
-      orderBy: { timestamp: 'asc' }
-    })
-
-    const todayLocal = getUserLocalDate(timezone)
-
-    // Synthesize meals if needed (ONLY for Today or Future)
-    let simulationMeals: any[] = []
     const hasLogs = !!(
       dayNutrition &&
       ((Array.isArray(dayNutrition.breakfast) && dayNutrition.breakfast.length > 0) ||
@@ -246,17 +279,15 @@ export const metabolicService = {
         (Array.isArray(dayNutrition.snacks) && dayNutrition.snacks.length > 0))
     )
 
-    const isPast = date < todayLocal
-
-    // If no logs AND not past (i.e. Today or Future), synthesize based on workouts
-    if (!hasLogs && !isPast) {
-      simulationMeals = synthesizeRefills(
-        date,
-        dayWorkouts,
-        { weight: weightKg, ftp: user?.ftp || 250, ...settings },
-        timezone
-      )
-    }
+    const simulationMeals =
+      policy.synthesizeMealsIfUnlogged && !hasLogs
+        ? synthesizeRefills(
+            date,
+            dayWorkouts,
+            { weight: weightKg, ftp: user?.ftp || 250, ...settings },
+            timezone
+          )
+        : []
 
     const points = calculateEnergyTimeline(
       dayNutrition || {
@@ -274,6 +305,52 @@ export const metabolicService = {
         now: currentTime
       }
     )
+
+    return { points, dayNutrition, dayWorkouts, timezone, settings, weightKg, user }
+  },
+
+  /**
+   * Calculates the full energy timeline for a specific day.
+   * Centralizes logic for workout merging, meal synthesis policy, and timeline generation.
+   * Returns both the points (for charts) and the liveStatus (for the tank).
+   */
+  async getDailyTimeline(
+    userId: string,
+    date: Date,
+    startingGlycogen: number,
+    startingFluid: number,
+    currentTime: Date = new Date()
+  ) {
+    const timezone = await getUserTimezone(userId)
+    const todayLocal = getUserLocalDate(timezone)
+    // CW-76: a day that has already ended agrees with `finalizeDay` - completed workouts and real
+    // logged nutrition only. Today/future behavior (planned workouts + synthetic meal projection
+    // when unlogged) is unchanged.
+    const isPast = date < todayLocal
+
+    const { points, dayNutrition, dayWorkouts, settings, weightKg, user } =
+      await this.simulateDayCore(
+        userId,
+        date,
+        startingGlycogen,
+        startingFluid,
+        { includePlannedWorkouts: !isPast, synthesizeMealsIfUnlogged: !isPast },
+        currentTime
+      )
+
+    const rangeStart = getStartOfDayUTC(timezone, date)
+    const rangeEnd = getEndOfDayUTC(timezone, date)
+
+    const journeyEvents = await prisma.athleteJourneyEvent.findMany({
+      where: {
+        userId,
+        timestamp: {
+          gte: rangeStart,
+          lte: rangeEnd
+        }
+      },
+      orderBy: { timestamp: 'asc' }
+    })
 
     // DERIVE LIVE STATUS FROM POINTS (SINGLE SOURCE OF TRUTH)
     const nowTs = currentTime.getTime()
@@ -799,12 +876,6 @@ export const metabolicService = {
   async finalizeDay(userId: string, date: Date) {
     const timezone = await getUserTimezone(userId)
     const settings = await getUserNutritionSettings(userId)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { weight: true, weightSourceMode: true }
-    })
-
-    const weightKg = await resolveWeightKg(userId, user)
 
     // 1. Get current day's record
     let record = await nutritionRepository.getByDate(userId, date)
@@ -831,25 +902,16 @@ export const metabolicService = {
 
     const startingGlycogen = prevEndingGlycogen
 
-    // 3. Run Simulation
-    const rangeStart = getStartOfDayUTC(timezone, date)
-    const rangeEnd = getEndOfDayUTC(timezone, date)
-    const workouts = await workoutRepository.getForUser(userId, {
-      startDate: rangeStart,
-      endDate: rangeEnd,
-      includeDuplicates: false
-    })
-
-    const timeline = calculateEnergyTimeline(
-      record,
-      workouts,
-      { ...settings, weight: weightKg },
-      timezone,
-      undefined,
-      {
-        startingGlycogenPercentage: startingGlycogen,
-        startingFluidDeficit: prevEndingFluid
-      }
+    // 3. Run Simulation - "finalized" mode (CW-76): completed workouts and real logged nutrition
+    // only. This is the same core `getDailyTimeline` uses once a day is in the past, so the ending
+    // state persisted here for tomorrow's handoff agrees with what a timeline read for this same
+    // day would show - no planned-but-uncompleted ghost workouts, no synthetic meal projection.
+    const { points: timeline } = await this.simulateDayCore(
+      userId,
+      date,
+      startingGlycogen,
+      prevEndingFluid,
+      { includePlannedWorkouts: false, synthesizeMealsIfUnlogged: false }
     )
 
     const lastPoint = timeline[timeline.length - 1]
@@ -945,8 +1007,16 @@ export const metabolicService = {
     }
 
     allWorkouts.forEach((w) => addWorkout(w, w.date))
+    // CW-76: a day that has already ended is reconstructed from what actually happened, not from a
+    // session that was planned but never completed - the same policy `finalizeDay` and
+    // `getDailyTimeline` use for a past day. Only today-or-later keeps planned-but-uncompleted
+    // ("ghost") workouts, since those days still need a projection for hours that have not
+    // happened yet.
     allPlanned
-      .filter((p: any) => !p.completed && !completedPlannedIds.has(p.id))
+      .filter(
+        (p: any) =>
+          !p.completed && !completedPlannedIds.has(p.id) && formatDateUTC(p.date) >= todayKey
+      )
       .forEach((p) => addWorkout(p, p.date))
 
     const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))

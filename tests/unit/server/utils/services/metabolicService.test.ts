@@ -9,9 +9,15 @@ import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/
 import { formatDateUTC, formatUserTime } from '../../../../../server/utils/date'
 import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
 import {
+  calculateEnergyTimeline,
   calculateGlycogenState,
   selectRelevantWorkouts
 } from '../../../../../server/utils/nutrition-domain'
+// Real implementations, imported straight from their concrete modules so they bypass the
+// `../nutrition-domain` barrel mock below. Used to exercise real glycogen math for the CW-76
+// finalizeDay/getDailyTimeline unification tests instead of asserting against mocked stand-ins.
+import { calculateEnergyTimeline as realCalculateEnergyTimeline } from '../../../../../server/utils/nutrition-domain/metabolic-simulation'
+import { selectRelevantWorkouts as realSelectRelevantWorkouts } from '../../../../../server/utils/nutrition-domain/workout-selection'
 
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
@@ -590,6 +596,188 @@ describe('metabolicService smoke coverage', () => {
           'Carb loading: extra carbohydrate moved here for a big day ahead.'
         )
       })
+    })
+  })
+
+  describe('finalizeDay / getDailyTimeline unification (CW-76)', () => {
+    // "Today" is fixed at 2026-02-13 by the file-level `getUserLocalDate` mock, so this date is
+    // unambiguously in the past (`isPast` true in both finalizeDay and getDailyTimeline).
+    const PAST_DATE = new Date('2026-02-10T00:00:00.000Z')
+    const PAST_DATE_YESTERDAY_KEY = '2026-02-09'
+    const PAST_DATE_KEY = '2026-02-10'
+    // Well after the whole simulated day, so a workout's full duration is always captured
+    // regardless of exactly how each call resolves "now".
+    const AFTER_PAST_DATE = new Date('2026-02-11T00:00:00.000Z')
+
+    const pastDayRecord = {
+      id: 'nutrition-past-day',
+      date: PAST_DATE,
+      carbsGoal: 400,
+      carbs: 350,
+      // Logged exactly on the default meal-pattern times (Breakfast 08:00, Lunch 13:00, Dinner
+      // 19:00) so the simulation's own synthetic DAILY_BASE candidates are all suppressed by
+      // `hasRealLog` - the timeline is driven purely by these logged items, nothing assumed.
+      breakfast: [{ name: 'Oats', carbs: 80, protein: 10, fat: 5, calories: 400, date: '08:00' }],
+      lunch: [
+        { name: 'Rice Bowl', carbs: 120, protein: 20, fat: 10, calories: 700, date: '13:00' }
+      ],
+      dinner: [{ name: 'Pasta', carbs: 150, protein: 20, fat: 15, calories: 900, date: '19:00' }],
+      snacks: []
+    }
+
+    // A real, completed workout - always part of the simulation.
+    const completedWorkout = {
+      id: 'w-completed-1',
+      date: new Date('2026-02-10T00:00:00.000Z'),
+      title: 'Completed Ride',
+      type: 'Ride',
+      durationSec: 3600,
+      intensity: 0.75
+    }
+
+    // Planned for the same day, but never actually completed - a "ghost" workout. CW-76's bug was
+    // that `getDailyTimeline` simulated this as though it happened while `finalizeDay` did not.
+    const ghostWorkout = {
+      id: 'p-ghost-1',
+      date: new Date('2026-02-10T00:00:00.000Z'),
+      title: 'Planned Threshold Intervals',
+      type: 'Ride',
+      durationSec: 5400,
+      workIntensity: 0.85,
+      completed: false
+    }
+
+    const settings = {
+      bmr: 1600,
+      metabolicFloor: 0.6,
+      fuelState1Min: 3
+    }
+
+    function mockNutritionByDate() {
+      vi.mocked(nutritionRepository.getByDate).mockImplementation(
+        async (_userId: string, d: Date) => {
+          const key = d.toISOString().split('T')[0]
+          if (key === PAST_DATE_KEY) return pastDayRecord as any
+          if (key === PAST_DATE_YESTERDAY_KEY) {
+            return { endingGlycogenPercentage: 65, endingFluidDeficit: 0 } as any
+          }
+          return null as any
+        }
+      )
+    }
+
+    beforeEach(() => {
+      // The CW-72 block above spies on `metabolicService.getDailyTimeline` with a fixed stub
+      // return value, and `vi.clearAllMocks()` (run by the file-level beforeEach) clears call
+      // history but does not undo a `vi.spyOn(...).mockResolvedValue(...)`. Restore it here so
+      // these tests exercise the real method regardless of suite run order.
+      const dailyTimelineMock = metabolicService.getDailyTimeline as unknown as {
+        mockRestore?: () => void
+      }
+      dailyTimelineMock.mockRestore?.()
+
+      vi.mocked(getUserNutritionSettings).mockResolvedValue(settings as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        weight: 70,
+        weightSourceMode: 'MANUAL',
+        ftp: 250
+      } as any)
+      // Use the real glycogen math for these tests rather than the module-level mocks, so parity
+      // is proven against actual computed values, not a stand-in.
+      vi.mocked(calculateEnergyTimeline).mockImplementation(realCalculateEnergyTimeline)
+      vi.mocked(selectRelevantWorkouts).mockImplementation(realSelectRelevantWorkouts)
+    })
+
+    it('finalizeDay ending glycogen matches getDailyTimeline last point for identical inputs (no ghost workouts, fully logged)', async () => {
+      mockNutritionByDate()
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([completedWorkout] as any)
+      vi.mocked(plannedWorkoutRepository.list).mockResolvedValue([] as any)
+
+      await metabolicService.finalizeDay(userId, PAST_DATE)
+
+      const updateCall = vi.mocked(nutritionRepository.update).mock.calls[0]
+      expect(updateCall?.[0]).toBe(pastDayRecord.id)
+      const finalizedEndingGlycogen = updateCall?.[1]?.endingGlycogenPercentage
+
+      const timeline = await metabolicService.getDailyTimeline(
+        userId,
+        PAST_DATE,
+        65,
+        0,
+        AFTER_PAST_DATE
+      )
+      const timelineLastPoint = timeline.points[timeline.points.length - 1]
+
+      expect(finalizedEndingGlycogen).toBeDefined()
+      expect(timelineLastPoint.level).toBe(finalizedEndingGlycogen)
+    })
+
+    it('excludes a planned-but-never-completed ("ghost") workout from a past day for both finalizeDay and getDailyTimeline, keeping them in agreement', async () => {
+      mockNutritionByDate()
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([completedWorkout] as any)
+      vi.mocked(plannedWorkoutRepository.list).mockResolvedValue([ghostWorkout] as any)
+
+      await metabolicService.finalizeDay(userId, PAST_DATE)
+      const updateCall = vi.mocked(nutritionRepository.update).mock.calls[0]
+      const finalizedEndingGlycogen = updateCall?.[1]?.endingGlycogenPercentage
+
+      const timeline = await metabolicService.getDailyTimeline(
+        userId,
+        PAST_DATE,
+        65,
+        0,
+        AFTER_PAST_DATE
+      )
+      const timelineLastPoint = timeline.points[timeline.points.length - 1]
+
+      // The two agree...
+      expect(timelineLastPoint.level).toBe(finalizedEndingGlycogen)
+      // ...specifically because getDailyTimeline never even looked at planned workouts for a past
+      // day, not because the numbers coincidentally lined up.
+      expect(plannedWorkoutRepository.list).not.toHaveBeenCalled()
+
+      // Prove the exclusion actually has teeth: simulating the same day with the ghost workout
+      // merged in (the pre-fix behavior) produces a strictly lower ending glycogen, since the extra
+      // 90 minute session drains additional glycogen that never really happened.
+      const withGhostIncluded = realCalculateEnergyTimeline(
+        pastDayRecord,
+        [completedWorkout, ghostWorkout],
+        { ...settings, weight: 70 },
+        'UTC',
+        undefined,
+        { startingGlycogenPercentage: 65, startingFluidDeficit: 0, now: AFTER_PAST_DATE }
+      )
+      const withGhostIncludedLast = withGhostIncluded[withGhostIncluded.length - 1]
+
+      expect(withGhostIncludedLast.level).toBeLessThan(finalizedEndingGlycogen)
+    })
+
+    it('keeps including planned-but-not-yet-completed workouts for getDailyTimeline on today/future days (unchanged behavior)', async () => {
+      const TODAY = new Date('2026-02-13T00:00:00.000Z') // matches the mocked getUserLocalDate
+
+      vi.mocked(nutritionRepository.getByDate).mockResolvedValue({
+        id: 'nutrition-today',
+        date: TODAY,
+        carbsGoal: 400,
+        breakfast: [{ name: 'Oats', carbs: 80, protein: 10, fat: 5, calories: 400, date: '08:00' }],
+        lunch: [],
+        dinner: [],
+        snacks: []
+      } as any)
+      vi.mocked(workoutRepository.getForUser).mockResolvedValue([completedWorkout] as any)
+      vi.mocked(plannedWorkoutRepository.list).mockResolvedValue([ghostWorkout] as any)
+
+      await metabolicService.getDailyTimeline(
+        userId,
+        TODAY,
+        65,
+        0,
+        new Date('2026-02-13T12:00:00.000Z')
+      )
+
+      // Today is not past, so getDailyTimeline still merges in planned-but-uncompleted workouts -
+      // only the finalized-past-day behavior changed.
+      expect(plannedWorkoutRepository.list).toHaveBeenCalled()
     })
   })
 })
