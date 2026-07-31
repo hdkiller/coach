@@ -3,8 +3,10 @@ import { planningTools } from '../../../../../server/utils/ai-tools/planning'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
 import { sportSettingsRepository } from '../../../../../server/utils/repositories/sportSettingsRepository'
 import { trainingWeekRepository } from '../../../../../server/utils/repositories/trainingWeekRepository'
+import { trainingPlanRepository } from '../../../../../server/utils/repositories/trainingPlanRepository'
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { metabolicService } from '../../../../../server/utils/services/metabolicService'
+import { planService } from '../../../../../server/utils/services/planService'
 import { writeCanonicalPlannedWorkoutStructure } from '../../../../../server/utils/canonical-planned-workout-write'
 import { hasActiveStructureGenerationRun } from '../../../../../server/utils/structure-generation-run'
 import {
@@ -15,6 +17,19 @@ import { publishPlannedWorkoutToIntervals } from '../../../../../server/utils/pl
 
 vi.mock('../../../../../server/utils/planned-workout-intervals-publish', () => ({
   publishPlannedWorkoutToIntervals: vi.fn()
+}))
+
+vi.mock('../../../../../server/utils/repositories/trainingPlanRepository', () => ({
+  trainingPlanRepository: {
+    getById: vi.fn(),
+    update: vi.fn()
+  }
+}))
+
+vi.mock('../../../../../server/utils/services/planService', () => ({
+  planService: {
+    replanStructure: vi.fn()
+  }
 }))
 
 vi.mock('../../../../../server/utils/repositories/plannedWorkoutRepository', () => ({
@@ -941,6 +956,95 @@ describe('planningTools', () => {
         success: true,
         message: 'Planned workout deleted.'
       })
+    })
+  })
+
+  describe('modify_training_plan_structure', () => {
+    it('executes without throwing and calls planService.replanStructure with the reordered blocks', async () => {
+      vi.mocked(trainingPlanRepository.getById).mockResolvedValue({
+        id: 'plan-1',
+        blocks: [
+          {
+            id: 'block-1',
+            name: 'Base',
+            type: 'BASE',
+            primaryFocus: 'AEROBIC',
+            durationWeeks: 4,
+            order: 1
+          },
+          {
+            id: 'block-2',
+            name: 'Build',
+            type: 'BUILD',
+            primaryFocus: 'THRESHOLD',
+            durationWeeks: 3,
+            order: 2
+          }
+        ]
+      } as any)
+      vi.mocked(planService.replanStructure).mockResolvedValue({ success: true } as any)
+
+      const result = await tools.modify_training_plan_structure.execute(
+        {
+          plan_id: 'plan-1',
+          operations: [
+            { type: 'UPDATE', block_id: 'block-1', duration_weeks: 5 },
+            { type: 'DELETE', block_id: 'block-2' },
+            { type: 'ADD', name: 'Peak', block_type: 'PEAK', duration_weeks: 2 }
+          ]
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(trainingPlanRepository.getById).toHaveBeenCalledWith('plan-1', userId, {
+        include: { blocks: { orderBy: { order: 'asc' } } }
+      })
+      expect(planService.replanStructure).toHaveBeenCalledTimes(1)
+      const [calledUserId, calledPlanId, calledBlocks] = vi.mocked(planService.replanStructure).mock
+        .calls[0]!
+      expect(calledUserId).toBe(userId)
+      expect(calledPlanId).toBe('plan-1')
+      expect(calledBlocks).toEqual([
+        expect.objectContaining({ id: 'block-1', durationWeeks: 5, order: 1 }),
+        expect.objectContaining({ name: 'Peak', type: 'PEAK', durationWeeks: 2, order: 2 })
+      ])
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          message: 'Plan structure modified successfully.',
+          proposed_structure: 'Base (5w) -> Peak (2w)'
+        })
+      )
+    })
+
+    it('returns an error when the plan is not found', async () => {
+      vi.mocked(trainingPlanRepository.getById).mockResolvedValue(null as any)
+
+      const result = await tools.modify_training_plan_structure.execute(
+        { plan_id: 'missing-plan', operations: [] },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(result).toEqual({ success: false, error: 'Plan not found' })
+      expect(planService.replanStructure).not.toHaveBeenCalled()
+    })
+
+    it('returns a structured failure when planService.replanStructure rejects', async () => {
+      vi.mocked(trainingPlanRepository.getById).mockResolvedValue({
+        id: 'plan-2',
+        blocks: []
+      } as any)
+      vi.mocked(planService.replanStructure).mockRejectedValue(new Error('Plan not found'))
+
+      const result = await tools.modify_training_plan_structure.execute(
+        {
+          plan_id: 'plan-2',
+          operations: [{ type: 'ADD', name: 'Base', block_type: 'BASE', duration_weeks: 4 }]
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(result).toEqual({ success: false, error: 'Plan not found' })
     })
   })
 })
