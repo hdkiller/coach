@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - develop
   workflow_dispatch:
 
 concurrency:
@@ -32,7 +33,8 @@ jobs:
     # secrets do not fall back to another environment by name, so renaming this
     # from `preview` requires provisioning the secret on the new environment
     # before merge, or this job fails at the "Trigger Dokploy Deployment" step.
-    environment: production
+    # `develop` deploys to `staging` (coach-dev), `master` deploys to `production`.
+    environment: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
     permissions:
       contents: read
       packages: write
@@ -65,7 +67,7 @@ jobs:
           tags: |
             type=sha,format=long
             type=ref,event=branch
-            latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -128,6 +130,7 @@ jobs:
           title: 'Deploy Status - ${{ github.repository }}'
           description: |
             **Deploy:** ${{ job.status }}
+            **Environment:** ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
             **Branch:** ${{ github.ref_name }}
             **Commit:** [${{ github.sha }}](${{ github.event.head_commit.url }})
           color: ${{ job.status == 'success' && '0x28a745' || '0xdc3545' }}
