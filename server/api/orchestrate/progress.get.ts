@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { activeSyncs } from './full-sync.post'
 
 defineRouteMeta({
@@ -22,16 +22,9 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = session.user.email
+  // Use the same user.id key as full-sync.post.ts stores in activeSyncs
+  const user = await requireAuth(event)
+  const userId = user.id
 
   // Set SSE headers
   setHeader(event, 'Content-Type', 'text/event-stream')
@@ -49,7 +42,7 @@ export default defineEventHandler(async (event) => {
         controller.enqueue(encoder.encode(message))
       }
 
-      // Get sync state if it exists
+      // Get sync state if it exists (keyed by user.id, matching full-sync)
       const syncState = activeSyncs.get(userId)
 
       if (syncState) {
