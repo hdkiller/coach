@@ -197,6 +197,72 @@ describe('extractGarminBodyBatteryScore', () => {
   })
 })
 
+describe('extractGarminBodyBatteryScore (documented Garmin Health API fields)', () => {
+  it('derives an absolute recovery level from Stress Details timeOffsetBodyBatteryValues', () => {
+    // Real Garmin Stress Details push payloads sample Body Battery throughout the day as
+    // { "<secondsSinceStartOfDay>": level }. The peak sample is the best documented proxy
+    // for "how recovered" the user was (Body Battery is highest right after sleep/rest).
+    expect(
+      extractGarminBodyBatteryScore({
+        userId: 'garmin-user-1',
+        calendarDate: '2026-03-10',
+        timeOffsetBodyBatteryValues: {
+          '0': 62,
+          '3600': 78,
+          '7200': 55,
+          '10800': 40
+        }
+      })
+    ).toBe(78)
+  })
+
+  it('derives a net recovery percentage from Daily bodyBatteryChargedValue/bodyBatteryDrainedValue', () => {
+    // Garmin Daily Summary only documents charged/drained deltas, not an absolute level.
+    // Product rule: 50 (neutral) + netChange/2, clamped to 0-100.
+    expect(
+      extractGarminBodyBatteryScore({
+        calendarDate: '2026-03-10',
+        bodyBatteryChargedValue: 60,
+        bodyBatteryDrainedValue: 40
+      })
+    ).toBe(60)
+  })
+
+  it('clamps a fully-drained day to 0 when only bodyBatteryDrainedValue is present', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryDrainedValue: 100
+      })
+    ).toBe(0)
+  })
+
+  it('clamps a fully-charged day to 100 when only bodyBatteryChargedValue is present', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryChargedValue: 100
+      })
+    ).toBe(100)
+  })
+
+  it('prefers the Stress Details time series over Daily charged/drained deltas when both are present', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        timeOffsetBodyBatteryValues: { '0': 45, '3600': 90 },
+        bodyBatteryChargedValue: 10,
+        bodyBatteryDrainedValue: 80
+      })
+    ).toBe(90)
+  })
+
+  it('still falls back to the legacy non-standard fields when only those are present (kept for backward compatibility)', () => {
+    expect(
+      extractGarminBodyBatteryScore({
+        bodyBatteryMostRecentValue: 68
+      })
+    ).toBe(68)
+  })
+})
+
 describe('extractGarminReadinessScore', () => {
   it('normalizes Garmin training readiness scores into the app readiness scale', () => {
     expect(
@@ -250,6 +316,57 @@ describe('extractGarminSpO2Percentage', () => {
         averageStressLevel: 18
       })
     ).toBeNull()
+  })
+})
+
+describe('GarminService.processStressDetails', () => {
+  it('persists a recognized recovery-bearing Stress Details summary instead of discarding it (CW-96)', async () => {
+    const wellnessRepoModule =
+      await import('../../../../../server/utils/repositories/wellnessRepository')
+    const upsertSpy = vi
+      .spyOn(wellnessRepoModule.wellnessRepository, 'upsert')
+      .mockResolvedValue({ record: {} as any, isNew: true })
+
+    await GarminService.processStressDetails('user-1', [
+      {
+        userId: 'garmin-ext-1',
+        calendarDate: '2026-03-10',
+        startTimeInSeconds: 1773097200,
+        startTimeOffsetInSeconds: 0,
+        timeOffsetBodyBatteryValues: {
+          '0': 40,
+          '3600': 85,
+          '7200': 60
+        }
+      }
+    ])
+
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      expect.any(Date),
+      expect.objectContaining({ recoveryScore: 85 }),
+      expect.objectContaining({ recoveryScore: 85 }),
+      'garmin'
+    )
+
+    vi.restoreAllMocks()
+  })
+
+  it('skips Stress Details records with no usable date or recovery signal without throwing', async () => {
+    const wellnessRepoModule =
+      await import('../../../../../server/utils/repositories/wellnessRepository')
+    const upsertSpy = vi
+      .spyOn(wellnessRepoModule.wellnessRepository, 'upsert')
+      .mockResolvedValue({ record: {} as any, isNew: true })
+
+    await GarminService.processStressDetails('user-1', [
+      { calendarDate: '2026-03-10', averageStressLevel: 20 }
+    ])
+
+    expect(upsertSpy).not.toHaveBeenCalled()
+
+    vi.restoreAllMocks()
   })
 })
 

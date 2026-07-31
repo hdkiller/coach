@@ -176,10 +176,53 @@ export function extractGarminReadinessScore(record: Record<string, unknown> | nu
   return normalizeReadinessScore(clampPercentage(readiness))
 }
 
+/**
+ * Garmin's Stress Details schema exposes an absolute Body Battery *level* sampled
+ * throughout the day via `timeOffsetBodyBatteryValues` (a map of seconds-since-start-of-day
+ * to a 0-100 battery reading), the same shape as `timeOffsetSleepSpo2`. Body Battery is
+ * highest right after sleep/rest and drains through the day with activity and stress, so the
+ * peak sampled value is the best documented proxy for "how recovered" the user was that day.
+ */
+function extractGarminBodyBatteryPeakFromTimeSeries(value: unknown): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const values = Object.values(value as Record<string, unknown>)
+    .map((entry) => toFiniteNumber(entry))
+    .filter((entry): entry is number => entry !== null)
+
+  if (values.length === 0) return null
+
+  return Math.max(...values)
+}
+
 export function extractGarminBodyBatteryScore(record: Record<string, unknown> | null | undefined) {
   if (!record || typeof record !== 'object') return null
 
-  const bodyBattery = extractGarminNumericMetric(record, [
+  // Preferred source: Garmin Stress Details' documented time-series field. This carries an
+  // absolute Body Battery level (not a delta), so it maps directly onto our 0-100 recovery scale.
+  const timeSeriesPeak = extractGarminBodyBatteryPeakFromTimeSeries(
+    record.timeOffsetBodyBatteryValues
+  )
+  if (timeSeriesPeak !== null) {
+    return clampPercentage(timeSeriesPeak)
+  }
+
+  // Garmin Daily Summary's documented fields only expose the amount of Body Battery charged
+  // and drained over the day (deltas), not an absolute level. Derive a recovery percentage
+  // centered on a neutral 50: a net-positive day (charged > drained) moves the score up toward
+  // 100, a net-negative day moves it down toward 0. Charged/drained are each roughly 0-100, so
+  // halving the net keeps the result within the 0-100 recovery range before clamping.
+  const chargedValue = extractGarminNumericMetric(record, ['bodyBatteryChargedValue'])
+  const drainedValue = extractGarminNumericMetric(record, ['bodyBatteryDrainedValue'])
+  if (chargedValue !== null || drainedValue !== null) {
+    const netChange = (chargedValue ?? 0) - (drainedValue ?? 0)
+    return clampPercentage(50 + netChange / 2)
+  }
+
+  // Legacy/non-standard field names some earlier payload shapes used before this extractor was
+  // aligned with the documented Garmin Health API models. Kept as a fallback so any
+  // already-integrated data source that only ever sent these keeps working (CW-96).
+  const legacyBodyBattery = extractGarminNumericMetric(record, [
     'bodyBatteryMostRecentValue',
     'bodyBatteryCurrentValue',
     'bodyBatteryEndingValue',
@@ -189,8 +232,8 @@ export function extractGarminBodyBatteryScore(record: Record<string, unknown> | 
     'bodyBatteryMaxValue'
   ])
 
-  if (bodyBattery !== null) {
-    return clampPercentage(bodyBattery)
+  if (legacyBodyBattery !== null) {
+    return clampPercentage(legacyBodyBattery)
   }
 
   // Some Garmin devices surface readiness-style recovery metrics without a body battery field.
@@ -319,6 +362,7 @@ export const GarminService = {
       if (wellnessEnabled && dailies.length > 0) await this.processWellness(userId, dailies)
       if (wellnessEnabled && sleeps.length > 0) await this.processSleep(userId, sleeps)
       if (wellnessEnabled && hrv.length > 0) await this.processHRV(userId, hrv)
+      if (wellnessEnabled && stress.length > 0) await this.processStressDetails(userId, stress)
       if (activitiesEnabled && activities.length > 0)
         await this.processActivities(userId, activities, integration, pullToken)
       if (activitiesEnabled && activityFiles.length > 0) {
@@ -501,6 +545,44 @@ export const GarminService = {
       }
 
       await wellnessRepository.upsert(userId, utcDate, hrvData, hrvData, 'garmin')
+    }
+  },
+
+  /**
+   * Process Garmin Stress Details push records.
+   *
+   * These carry the `timeOffsetBodyBatteryValues` time series (and, in the future, stress
+   * level samples) that Dailies alone cannot provide an absolute Body Battery reading from.
+   * Previously these records were counted toward `hasSummaryData` but never persisted -
+   * recognized recovery-bearing summaries were silently discarded (CW-96). Only recoveryScore
+   * is written here; the wellnessRepository upsert only overwrites non-null fields, so this
+   * merges into whatever Dailies/Sleep/HRV already wrote for the same day without clobbering it.
+   */
+  async processStressDetails(userId: string, data: any[]) {
+    for (const record of data) {
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
+
+      const recoveryScore = extractGarminBodyBatteryScore(record)
+      if (recoveryScore === null) continue
+
+      const stressDetailsData: any = {
+        userId,
+        date: utcDate,
+        recoveryScore,
+        rawJson: record
+      }
+
+      await wellnessRepository.upsert(
+        userId,
+        utcDate,
+        stressDetailsData,
+        stressDetailsData,
+        'garmin'
+      )
     }
   },
 
