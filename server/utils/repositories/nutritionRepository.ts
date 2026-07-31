@@ -123,7 +123,8 @@ export const nutritionRepository = {
           { aiAnalysisStatus: null },
           { aiAnalysisStatus: 'NOT_STARTED' },
           { aiAnalysisStatus: 'PENDING' },
-          { aiAnalysisStatus: 'FAILED' }
+          { aiAnalysisStatus: 'FAILED' },
+          { aiAnalysisStatus: 'QUOTA_EXCEEDED' }
         ]
       },
       select: {
