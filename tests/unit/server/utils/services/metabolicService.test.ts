@@ -44,7 +44,10 @@ vi.mock('../../../../../server/utils/services/bodyMetricResolver', () => ({
 
 vi.mock('../../../../../server/utils/repositories/nutritionRepository', () => ({
   nutritionRepository: {
-    getByDate: vi.fn()
+    getByDate: vi.fn(),
+    upsert: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn()
   }
 }))
 
@@ -174,6 +177,81 @@ describe('metabolicService smoke coverage', () => {
     expect(result).toEqual({
       startingGlycogen: 50,
       startingFluid: 40
+    })
+  })
+
+  describe('repairMetabolicChain recursion depth & persistence (CW-72)', () => {
+    beforeEach(() => {
+      vi.mocked(getUserNutritionSettings).mockResolvedValue({ metabolicFloor: 0.6 } as any)
+      vi.spyOn(metabolicService, 'getDailyTimeline').mockResolvedValue({
+        points: [{ level: 55, fluidDeficit: 5 }]
+      } as any)
+      vi.mocked(nutritionRepository.upsert).mockResolvedValue({
+        record: { id: 'nutrition-x' },
+        isNew: true
+      } as any)
+    })
+
+    it('bounds recursion depth for a target date far in the future', async () => {
+      // No persisted rows anywhere in the chain, so the fast path never short-circuits and every
+      // level must decide whether to keep recursing.
+      vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null as any)
+
+      // ~60 days after the "today" baked into the file-level getUserLocalDate mock
+      // (2026-02-13). Before the fix, `yesterday >= todayLocal` stayed true at every level for a
+      // future date, so this recursed once per day all the way back to today (~60 levels, ~120
+      // persistence calls) instead of stopping at the depth-5 cap.
+      const farFuture = new Date('2026-04-13T00:00:00.000Z')
+
+      const result = await metabolicService.repairMetabolicChain(userId, farFuture)
+
+      expect(result.startingGlycogen).toBe(55)
+      // 5 simulate levels (depth 0-4) x 2 upserts per level (yesterday's ending state + target's
+      // starting state) = 10. Depth 5 hits the base case and persists nothing.
+      expect(nutritionRepository.upsert).toHaveBeenCalledTimes(10)
+      expect(metabolicService.getDailyTimeline).toHaveBeenCalledTimes(5)
+    })
+
+    it('still walks backward through past missing days up to the depth cap', async () => {
+      vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null as any)
+
+      // Comfortably in the past relative to the mocked "today" (2026-02-13), so the legitimate
+      // backward-repair behavior (not just the future-date bug) must keep working.
+      const pastDate = new Date('2026-01-01T00:00:00.000Z')
+
+      const result = await metabolicService.repairMetabolicChain(userId, pastDate)
+
+      expect(result.startingGlycogen).toBe(55)
+      expect(nutritionRepository.upsert).toHaveBeenCalledTimes(10)
+      expect(metabolicService.getDailyTimeline).toHaveBeenCalledTimes(5)
+    })
+
+    it('persists missing days via upsert, never a plain create, so overlapping repair calls cannot collide on the (userId, date) unique constraint', async () => {
+      vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null as any)
+      // create() is deliberately left rejecting: if this ever regresses back to create(), the test
+      // fails loudly (simulating the unique-constraint violation from a real concurrent insert)
+      // instead of silently passing.
+      vi.mocked(nutritionRepository.create).mockRejectedValue(
+        new Error('Unique constraint failed on the fields: (`userId`,`date`)')
+      )
+
+      const dayA = new Date('2026-02-20T00:00:00.000Z')
+      const dayB = new Date('2026-02-21T00:00:00.000Z') // overlaps dayA's chain via a shared "yesterday"
+
+      const [resultA, resultB] = await Promise.all([
+        metabolicService.repairMetabolicChain(userId, dayA),
+        metabolicService.repairMetabolicChain(userId, dayB)
+      ])
+
+      expect(resultA.startingGlycogen).toBe(55)
+      expect(resultB.startingGlycogen).toBe(55)
+      expect(nutritionRepository.create).not.toHaveBeenCalled()
+      expect(nutritionRepository.upsert).toHaveBeenCalled()
+      // Every upsert call is keyed on (userId, date), matching the @@unique([userId, date]) constraint.
+      for (const call of vi.mocked(nutritionRepository.upsert).mock.calls) {
+        expect(call[0]).toBe(userId)
+        expect(call[1]).toBeInstanceOf(Date)
+      }
     })
   })
 

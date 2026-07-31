@@ -702,13 +702,11 @@ export const metabolicService = {
       }
     }
 
-    // Check if yesterday is in the future relative to "Real Today"
-    const timezone = await getUserTimezone(userId)
-    const todayLocal = getUserLocalDate(timezone)
-
-    // If yesterday is Future OR (Past/Today and we are within recursion limit), simulate it.
-    // We prefer simulation over DB lookup to ensure dynamic continuity, unless we hit depth limit.
-    const shouldSimulate = yesterday >= todayLocal || recursionDepth < 5
+    // We prefer simulation over DB lookup to ensure dynamic continuity, but recursionDepth is an
+    // unconditional cap. Without this, a targetDate far in the future keeps "yesterday" in the
+    // future too (yesterday >= todayLocal stays true every level), so a future-dated call would
+    // recurse once per day all the way from targetDate back to today instead of stopping at 5.
+    const shouldSimulate = recursionDepth < 5
 
     if (shouldSimulate) {
       // 1. Get Yesterday's Starting State (recursive)
@@ -720,7 +718,7 @@ export const metabolicService = {
 
       // 2. Simulate Yesterday to get its Ending State (which is Target's Starting State)
       // Using centralized getDailyTimeline logic
-      const { points, dayNutrition } = await this.getDailyTimeline(
+      const { points } = await this.getDailyTimeline(
         userId,
         yesterday,
         currentGlycogen,
@@ -734,14 +732,14 @@ export const metabolicService = {
       }
 
       // PERSISTENCE: Link the chain
+      // Upsert (keyed on the userId+date unique constraint) rather than a plain create, so
+      // overlapping repair calls racing to persist the same missing day don't fail on the
+      // @@unique([userId, date]) constraint.
       // 1. Update Yesterday's Ending State
-      if (dayNutrition) {
-        await nutritionRepository.update(dayNutrition.id, {
-          endingGlycogenPercentage: currentGlycogen,
-          endingFluidDeficit: currentFluid
-        })
-      } else {
-        await nutritionRepository.create({
+      await nutritionRepository.upsert(
+        userId,
+        yesterday,
+        {
           userId,
           date: yesterday,
           endingGlycogenPercentage: currentGlycogen,
@@ -750,17 +748,18 @@ export const metabolicService = {
           protein: 0,
           carbs: 0,
           fat: 0
-        })
-      }
+        },
+        {
+          endingGlycogenPercentage: currentGlycogen,
+          endingFluidDeficit: currentFluid
+        }
+      )
 
       // 2. Update Today's Starting State
-      if (targetRecord) {
-        await nutritionRepository.update(targetRecord.id, {
-          startingGlycogenPercentage: currentGlycogen,
-          startingFluidDeficit: currentFluid
-        })
-      } else {
-        await nutritionRepository.create({
+      await nutritionRepository.upsert(
+        userId,
+        targetDate,
+        {
           userId,
           date: targetDate,
           startingGlycogenPercentage: currentGlycogen,
@@ -769,8 +768,12 @@ export const metabolicService = {
           protein: 0,
           carbs: 0,
           fat: 0
-        })
-      }
+        },
+        {
+          startingGlycogenPercentage: currentGlycogen,
+          startingFluidDeficit: currentFluid
+        }
+      )
 
       return {
         startingGlycogen: currentGlycogen,
