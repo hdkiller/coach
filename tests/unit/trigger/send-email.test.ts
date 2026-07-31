@@ -114,15 +114,30 @@ describe('sendEmailTask', () => {
     )
   })
 
-  it('should skip as a true duplicate when the colliding delivery already sent successfully', async () => {
+  it('should skip as a true duplicate when the colliding delivery already sent successfully (driver-adapter error shape)', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
 
+    // This app uses @prisma/adapter-pg (server/utils/db.ts). Under that
+    // driver-adapter engine, PrismaClientKnownRequestError does NOT have
+    // `meta.target` - the field list is nested at
+    // `meta.driverAdapterError.cause.constraint.fields` instead (see
+    // getUniqueConstraintFields in emailDeliveryService.ts). This mock
+    // mirrors that real shape so the guard is tested against reality, not
+    // just the classic-engine shape.
     const dbError = {
       code: 'P2002',
-      meta: { target: ['idempotencyKey'] },
-      message: 'Unique constraint failed'
+      meta: {
+        driverAdapterError: {
+          name: 'DriverAdapterError',
+          cause: {
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['idempotencyKey'] }
+          }
+        }
+      },
+      message: 'Unique constraint failed on the fields: (`idempotencyKey`)'
     }
 
     vi.mocked(prisma.emailDelivery.create).mockRejectedValue(dbError)
@@ -151,6 +166,10 @@ describe('sendEmailTask', () => {
     // the row is still FAILED, not SENT. The retry must resume dispatch
     // against that same row instead of treating it as an already-handled
     // duplicate (which would silently drop the email, the original bug).
+    //
+    // This mock intentionally uses the classic-engine `meta.target` shape
+    // (rather than the driver-adapter shape used elsewhere in this file) so
+    // the guard's fallback for that shape stays covered too.
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)

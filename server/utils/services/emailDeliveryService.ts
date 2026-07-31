@@ -88,6 +88,24 @@ function classifyResendError(error: {
   })
 }
 
+/**
+ * Extracts the list of column names involved in a P2002 unique-constraint
+ * violation. The shape of `PrismaClientKnownRequestError.meta` differs
+ * depending on which query engine produced the error:
+ * - Classic engine: `error.meta.target` is the field list directly.
+ * - Driver adapter engine (this app uses `@prisma/adapter-pg`, see
+ *   server/utils/db.ts): `meta.target` does not exist. Prisma instead
+ *   constructs the error as `new PrismaClientKnownRequestError(message, code,
+ *   { driverAdapterError: originalError })`, so the field list is nested at
+ *   `meta.driverAdapterError.cause.constraint.fields` (verified against
+ *   @prisma/client 7.8.0's runtime: `Ge()`/`Tn()` in runtime/client.js).
+ * Check both shapes defensively in case any code path in this app ever
+ * produces a classic-engine-shaped error.
+ */
+function getUniqueConstraintFields(dbError: any): string[] | undefined {
+  return dbError?.meta?.target ?? dbError?.meta?.driverAdapterError?.cause?.constraint?.fields
+}
+
 export const EmailDeliveryService = {
   /**
    * Dispatches a queued or failed email delivery record via Resend.
@@ -357,7 +375,10 @@ export const EmailDeliveryService = {
         }
       })
     } catch (dbError: any) {
-      if (dbError.code === 'P2002' && dbError.meta?.target?.includes('idempotencyKey')) {
+      if (
+        dbError.code === 'P2002' &&
+        getUniqueConstraintFields(dbError)?.includes('idempotencyKey')
+      ) {
         const existing = dedupeKey
           ? await prisma.emailDelivery.findUnique({ where: { idempotencyKey: dedupeKey } })
           : null
