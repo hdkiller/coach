@@ -18,6 +18,8 @@ import {
   computeStrengthExerciseMetrics
 } from '../server/utils/structured-workout-persistence'
 import {
+  STRUCTURE_GENERATION_TASK_MAX_DURATION_MS,
+  STRUCTURE_GENERATION_TASK_MAX_DURATION_SEC,
   WORKOUT_STRUCTURE_AI_MAX_RETRIES,
   WORKOUT_STRUCTURE_AI_TIMEOUT_MS
 } from '../server/utils/workout-ai-timeouts'
@@ -795,8 +797,7 @@ export async function runGenerateStructuredWorkout(
   const entityId = plannedWorkoutId || workoutTemplateId
   const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
   const startedAtMs = Date.now()
-  const MAX_DURATION_MS = 180_000
-  const STRUCTURED_WORKOUT_TIMEOUT_MS = 45_000
+  const MAX_DURATION_MS = STRUCTURE_GENERATION_TASK_MAX_DURATION_MS
   const logStage = (stage: string, meta: Record<string, any> = {}) => {
     const elapsedMs = Date.now() - startedAtMs
     logger.log(`[GenerateStructuredWorkout] ${stage}`, {
@@ -1138,7 +1139,7 @@ OUTPUT JSON matching the schema.`
           operation: 'generate_structured_workout',
           entityType,
           entityId: entityId!,
-          timeoutMs: STRUCTURED_WORKOUT_TIMEOUT_MS
+          timeoutMs: WORKOUT_STRUCTURE_AI_TIMEOUT_MS
         })
         if (generatorMode === 'draft_json_v1') {
           const draft = await generateStructuredAnalysis(
@@ -1889,7 +1890,7 @@ registerTaskHandler('generate-structured-workout', (payload) =>
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
-  maxDuration: 180,
+  maxDuration: STRUCTURE_GENERATION_TASK_MAX_DURATION_SEC,
   run: async (payload: GenerateStructuredWorkoutPayload, { ctx }) =>
     runGenerateStructuredWorkout(payload, { runId: ctx.run.id })
 })
