@@ -111,6 +111,43 @@ function extractGarminNumericMetric(
 }
 
 /**
+ * Detects whether a Prisma error is a P2002 unique-constraint violation on
+ * the Integration(provider, externalUserId) index added in CW-99 to close a
+ * race where two concurrent Garmin OAuth callbacks could both pass the
+ * application-level "is this externalUserId already linked?" check and then
+ * both write an Integration row for the same externalUserId.
+ *
+ * The shape of `PrismaClientKnownRequestError.meta` differs by query engine:
+ * - Classic engine: `error.meta.target` is the field list directly, e.g.
+ *   `["provider", "externalUserId"]`.
+ * - Driver adapter engine (this app uses `@prisma/adapter-pg`, see
+ *   server/utils/db.ts): `meta.target` does not exist. Prisma instead
+ *   constructs the error as `new PrismaClientKnownRequestError(message, code,
+ *   { driverAdapterError: originalError })`, so the field list is nested at
+ *   `meta.driverAdapterError.cause.constraint.fields` (same finding used in
+ *   emailDeliveryService.ts's getUniqueConstraintFields for CW-227).
+ *
+ * One extra wrinkle discovered while building this, verified against a live
+ * Postgres 16 + @prisma/adapter-pg 7.8.0 instance: for a *multi-column*
+ * unique index, the driver adapter's field list is derived from Postgres's
+ * own rendering of the index definition, which quotes camelCase identifiers
+ * but not lowercase ones. A real violation of this exact constraint reported
+ * `constraint.fields: ["provider", "\"externalUserId\""]` - note the second
+ * entry carries literal embedded double-quote characters that a naive
+ * `.includes('externalUserId')` check would silently fail to match. We strip
+ * surrounding quotes from every field before comparing to stay correct
+ * regardless of which shape/quoting shows up.
+ */
+export function isGarminExternalUserIdConflict(error: any): boolean {
+  if (!error || error.code !== 'P2002') return false
+  const rawFields: unknown =
+    error?.meta?.target ?? error?.meta?.driverAdapterError?.cause?.constraint?.fields
+  if (!Array.isArray(rawFields)) return false
+  const fields = rawFields.map((f) => (typeof f === 'string' ? f.replace(/^"+|"+$/g, '') : f))
+  return fields.includes('provider') && fields.includes('externalUserId')
+}
+
+/**
  * Garmin Push list keys per Health API (preferred first), plus legacy aliases we
  * historically looked for so existing payloads keep working.
  */

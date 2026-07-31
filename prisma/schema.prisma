@@ -638,6 +638,12 @@ model Integration {
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  // Prevents two different users from concurrently linking the same external
+  // provider account (e.g. two Garmin OAuth callbacks racing on the same
+  // externalUserId). Postgres unique indexes treat NULL as distinct from any
+  // other value, so providers that never populate externalUserId (ultrahuman,
+  // hevy, yazio, ...) are unaffected and can still have unlimited NULL rows.
+  @@unique([provider, externalUserId])
 }
 
 model Workout {

@@ -3,6 +3,7 @@ import { dispatchTask } from '../../../utils/task-dispatcher'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { refreshGarminIntegrationPermissions } from '../../../utils/garmin'
+import { isGarminExternalUserIdConflict } from '../../../utils/services/garminService'
 
 defineRouteMeta({
   openAPI: {
@@ -114,6 +115,12 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/settings/apps?garmin_error=profile-fetch-failed')
   }
 
+  // Best-effort pre-check: fails fast for the common case without touching
+  // the write path. This is NOT the source of truth against concurrent
+  // callbacks - two requests can both pass this findFirst before either has
+  // written. The real guarantee is the Integration_provider_externalUserId_key
+  // unique index added in CW-99 (prisma/schema.prisma), enforced by the
+  // catch block around the upsert below.
   const existingOwner = await prisma.integration.findFirst({
     where: {
       provider: 'garmin',
@@ -138,31 +145,53 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/settings/apps?garmin_error=account-already-linked')
   }
 
-  const integration = await prisma.integration.upsert({
-    where: { userId_provider: { userId: session.user.id, provider: 'garmin' } },
-    create: {
-      userId: session.user.id,
-      provider: 'garmin',
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-      externalUserId,
-      scope: tokenData.scope || null,
-      ingestWorkouts: true,
-      syncStatus: 'SUCCESS',
-      errorMessage: null
-    },
-    update: {
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-      externalUserId,
-      scope: tokenData.scope || null,
-      ingestWorkouts: true,
-      syncStatus: 'SUCCESS',
-      errorMessage: null
+  let integration
+  try {
+    integration = await prisma.integration.upsert({
+      where: { userId_provider: { userId: session.user.id, provider: 'garmin' } },
+      create: {
+        userId: session.user.id,
+        provider: 'garmin',
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
+        externalUserId,
+        scope: tokenData.scope || null,
+        ingestWorkouts: true,
+        syncStatus: 'SUCCESS',
+        errorMessage: null
+      },
+      update: {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
+        externalUserId,
+        scope: tokenData.scope || null,
+        ingestWorkouts: true,
+        syncStatus: 'SUCCESS',
+        errorMessage: null
+      }
+    })
+  } catch (dbError: any) {
+    // A second callback (for a different user) raced us between the
+    // findFirst check above and this write, and the Integration_provider_
+    // externalUserId_key unique index (CW-99) caught what the app-level
+    // check couldn't. Treat it the same as the pre-check case above instead
+    // of surfacing an unhandled 500.
+    if (isGarminExternalUserIdConflict(dbError)) {
+      console.error(
+        '[GarminCallback] Garmin account already connected to another user (race detected at write time)',
+        {
+          externalUserId,
+          currentUserId: session.user.id
+        }
+      )
+      deleteCookie(event, 'garmin_code_verifier')
+      deleteCookie(event, 'garmin_oauth_state')
+      return sendRedirect(event, '/settings/apps?garmin_error=account-already-linked')
     }
-  })
+    throw dbError
+  }
 
   // Best-effort: merge export permissions (HEALTH_EXPORT, WORKOUT_IMPORT, …) into scope.
   await refreshGarminIntegrationPermissions(integration)

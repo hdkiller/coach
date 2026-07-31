@@ -5,14 +5,17 @@ import {
   extractGarminBodyBatteryScore,
   extractGarminReadinessScore,
   extractGarminSpO2Percentage,
-  GarminService
+  GarminService,
+  isGarminExternalUserIdConflict
 } from '../../../../../server/utils/services/garminService'
 
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     integration: {
       findUnique: vi.fn(),
-      update: vi.fn()
+      findFirst: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn()
     },
     user: {
       findUnique: vi.fn()
@@ -859,5 +862,152 @@ describe('GarminService activity push stream & file ingestion', () => {
     expect(errorSpy).not.toHaveBeenCalled()
 
     vi.restoreAllMocks()
+  })
+})
+
+// CW-99: Integration(provider, externalUserId) unique index + P2002 handling.
+describe('isGarminExternalUserIdConflict', () => {
+  it('detects a driver-adapter P2002 error, stripping the quote artifact Postgres adds to camelCase field names', () => {
+    // This is the exact shape captured from a real Postgres 16 +
+    // @prisma/adapter-pg 7.8.0 violation of the multi-column
+    // Integration_provider_externalUserId_key index: the "provider" entry is
+    // clean, but "externalUserId" comes back with literal embedded quotes
+    // because Postgres quotes camelCase identifiers when rendering the index
+    // definition and the driver adapter does not strip them.
+    const dbError = {
+      code: 'P2002',
+      meta: {
+        modelName: 'Integration',
+        driverAdapterError: {
+          name: 'DriverAdapterError',
+          cause: {
+            originalCode: '23505',
+            originalMessage:
+              'duplicate key value violates unique constraint "Integration_provider_externalUserId_key"',
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['provider', '"externalUserId"'] }
+          }
+        }
+      }
+    }
+
+    expect(isGarminExternalUserIdConflict(dbError)).toBe(true)
+  })
+
+  it('detects a classic-engine-shaped P2002 error (meta.target)', () => {
+    const dbError = {
+      code: 'P2002',
+      meta: { target: ['provider', 'externalUserId'] }
+    }
+
+    expect(isGarminExternalUserIdConflict(dbError)).toBe(true)
+  })
+
+  it('ignores P2002 on an unrelated constraint, e.g. Integration_userId_provider_key', () => {
+    const dbError = {
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: { constraint: { fields: ['"userId"', 'provider'] } }
+        }
+      }
+    }
+
+    expect(isGarminExternalUserIdConflict(dbError)).toBe(false)
+  })
+
+  it('ignores non-P2002 errors and malformed error shapes', () => {
+    expect(isGarminExternalUserIdConflict(new Error('boom'))).toBe(false)
+    expect(isGarminExternalUserIdConflict({ code: 'P2025' })).toBe(false)
+    expect(isGarminExternalUserIdConflict(null)).toBe(false)
+    expect(isGarminExternalUserIdConflict(undefined)).toBe(false)
+    expect(isGarminExternalUserIdConflict({ code: 'P2002' })).toBe(false)
+    expect(isGarminExternalUserIdConflict({ code: 'P2002', meta: {} })).toBe(false)
+  })
+})
+
+describe('CW-99: concurrent Garmin OAuth callback race', () => {
+  // Mirrors the try/catch structure in
+  // server/api/integrations/garmin/callback.get.ts: an application-level
+  // findFirst pre-check, then an upsert whose P2002 is interpreted with the
+  // real isGarminExternalUserIdConflict guard under test. This proves the
+  // exported guard, wired the way the callback wires it, turns a raw DB
+  // constraint violation into a clean "already linked" outcome instead of an
+  // unhandled crash.
+  async function runGarminCallbackUpsert(userId: string, externalUserId: string) {
+    const existingOwner = await prismaMock.integration.findFirst({
+      where: { provider: 'garmin', externalUserId, NOT: { userId } },
+      select: { userId: true }
+    })
+
+    if (existingOwner) {
+      return { outcome: 'already-linked' as const }
+    }
+
+    try {
+      const integration = await prismaMock.integration.upsert({
+        where: { userId_provider: { userId, provider: 'garmin' } },
+        create: { userId, provider: 'garmin', externalUserId },
+        update: { externalUserId }
+      })
+      return { outcome: 'linked' as const, integration }
+    } catch (dbError: any) {
+      if (isGarminExternalUserIdConflict(dbError)) {
+        return { outcome: 'already-linked' as const }
+      }
+      throw dbError
+    }
+  }
+
+  it('gives the second of two concurrent callbacks for the same externalUserId a clean already-linked outcome, not a crash or a duplicate row', async () => {
+    const externalUserId = 'garmin-ext-race-1'
+    const driverAdapterP2002 = {
+      code: 'P2002',
+      meta: {
+        modelName: 'Integration',
+        driverAdapterError: {
+          cause: {
+            originalCode: '23505',
+            kind: 'UniqueConstraintViolation',
+            constraint: { fields: ['provider', '"externalUserId"'] }
+          }
+        }
+      }
+    }
+
+    // Both requests race past the pre-check before either has written.
+    prismaMock.integration.findFirst.mockResolvedValue(null)
+
+    // First writer wins the DB-level race and succeeds.
+    prismaMock.integration.upsert.mockResolvedValueOnce({
+      id: 'int-user-a',
+      userId: 'user-a',
+      provider: 'garmin',
+      externalUserId
+    })
+    // Second writer loses the race: the unique index added in CW-99 rejects
+    // the write with P2002 instead of silently creating a duplicate mapping.
+    prismaMock.integration.upsert.mockRejectedValueOnce(driverAdapterP2002)
+
+    const [resultA, resultB] = await Promise.all([
+      runGarminCallbackUpsert('user-a', externalUserId),
+      runGarminCallbackUpsert('user-b', externalUserId)
+    ])
+
+    expect(resultA).toEqual({
+      outcome: 'linked',
+      integration: { id: 'int-user-a', userId: 'user-a', provider: 'garmin', externalUserId }
+    })
+    expect(resultB).toEqual({ outcome: 'already-linked' })
+    expect(prismaMock.integration.upsert).toHaveBeenCalledTimes(2)
+  })
+
+  it('rethrows unrelated database errors instead of masking them as already-linked', async () => {
+    prismaMock.integration.findFirst.mockResolvedValue(null)
+    prismaMock.integration.upsert.mockRejectedValueOnce(new Error('connection reset'))
+
+    await expect(runGarminCallbackUpsert('user-c', 'garmin-ext-2')).rejects.toThrow(
+      'connection reset'
+    )
   })
 })
