@@ -582,6 +582,10 @@
                 </UCard>
               </div>
             </div>
+
+            <div v-else-if="item.value === 'nutrition'" class="space-y-6 pt-4">
+              <CoachingAthleteNutritionSummary :athlete-id="athleteId" />
+            </div>
           </template>
         </UTabs>
       </div>
@@ -729,7 +733,8 @@
   const tabItems = [
     { value: 'overview', label: 'Overview', icon: 'i-heroicons-squares-2x2' },
     { value: 'calendar', label: 'Calendar', icon: 'i-heroicons-calendar' },
-    { value: 'zones', label: 'Zones', icon: 'i-heroicons-adjustments-horizontal' }
+    { value: 'zones', label: 'Zones', icon: 'i-heroicons-adjustments-horizontal' },
+    { value: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-cake' }
   ]
 
   const performanceSummary = computed(() => athlete.value?.performanceSummary ?? null)
