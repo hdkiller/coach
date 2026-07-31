@@ -32,7 +32,7 @@ export function ensureWorkerHeapLimit(): void {
   process.env.NODE_OPTIONS = nextNodeOptions
   process.env[READY_MARKER] = '1'
 
-  const result = spawnSync(process.argv[0], process.argv.slice(1), {
+  const result = spawnSync(process.argv[0], buildRelaunchArgs(process.execArgv, process.argv), {
     stdio: 'inherit',
     env: process.env
   })
@@ -51,6 +51,16 @@ export function hasMaxOldSpaceSize(nodeOptions: string): boolean {
 
 export function appendNodeOption(nodeOptions: string, flag: string): string {
   return `${nodeOptions} ${flag}`.trim()
+}
+
+/**
+ * Build the argv for the relaunched process. Runtime loaders (e.g. tsx's
+ * --require/--import hooks) are injected via execArgv, not argv — dropping
+ * them relaunches under bare node, which cannot resolve our extensionless
+ * relative TS imports and fails with ERR_MODULE_NOT_FOUND.
+ */
+export function buildRelaunchArgs(execArgv: readonly string[], argv: readonly string[]): string[] {
+  return [...execArgv, ...argv.slice(1)]
 }
 
 function isWatchInvocation(): boolean {
