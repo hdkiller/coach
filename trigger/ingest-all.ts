@@ -8,7 +8,11 @@ import { auditLogRepository } from '../server/utils/repositories/auditLogReposit
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import type { IngestionResult } from './types'
 import { enqueueAutomaticWorkoutAnalysesForUser } from '../server/utils/workout-analysis-enqueue'
-import { dispatchTask, dispatchTaskAndWait } from '../server/utils/task-dispatcher'
+import {
+  dispatchTask,
+  dispatchTaskAndWait,
+  isTaskRunningForUser
+} from '../server/utils/task-dispatcher'
 
 export const ingestAllTask = task({
   id: 'ingest-all',
@@ -437,28 +441,44 @@ export const ingestAllTask = task({
       try {
         const aiSettings = await getUserAiSettings(userId)
         if (aiSettings.aiAutoAnalyzeReadiness) {
-          logger.log('🤖 [Auto-Analyze] Wellness updated: Triggering daily recommendation...')
-
-          await dispatchTask(
+          const recommendationAlreadyRunning = await isTaskRunningForUser(
             'recommend-today-activity',
-            {
-              userId,
-              date: new Date(),
-              source: 'AUTOMATIC'
-            },
-            {
-              concurrencyKey: userId,
-              tags: [`user:${userId}`]
-            }
+            userId
           )
 
-          // Log the action
-          await auditLogRepository.log({
-            userId,
-            action: 'AUTO_ANALYZE_READINESS',
-            resourceType: 'ActivityRecommendation',
-            metadata: { date: new Date().toISOString(), source: 'ingest-all' }
-          })
+          if (recommendationAlreadyRunning) {
+            logger.log(
+              '⏭️ Skipping daily recommendation: already running for user (concurrency guard)',
+              { userId }
+            )
+          } else {
+            logger.log('🤖 [Auto-Analyze] Wellness updated: Triggering daily recommendation...')
+
+            const recommendationDate = new Date()
+            const recommendationDateKey = recommendationDate.toISOString().slice(0, 10)
+
+            await dispatchTask(
+              'recommend-today-activity',
+              {
+                userId,
+                date: recommendationDate,
+                source: 'AUTOMATIC'
+              },
+              {
+                id: `recommend-today-activity:${userId}:${recommendationDateKey}`,
+                concurrencyKey: userId,
+                tags: [`user:${userId}`]
+              }
+            )
+
+            // Log the action
+            await auditLogRepository.log({
+              userId,
+              action: 'AUTO_ANALYZE_READINESS',
+              resourceType: 'ActivityRecommendation',
+              metadata: { date: recommendationDate.toISOString(), source: 'ingest-all' }
+            })
+          }
         }
       } catch (err) {
         logger.error('❌ [Auto-Analyze] Failed to trigger daily recommendation', { err })
