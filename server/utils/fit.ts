@@ -46,7 +46,7 @@ export function toFitParserArrayBuffer(buffer: Buffer): ArrayBuffer {
   ) {
     return arrayBuffer
   }
-  return arrayBuffer.slice(byteOffset, byteOffset + byteLength)
+  return arrayBuffer.slice(byteOffset, byteOffset + byteLength) as ArrayBuffer
 }
 
 /**
