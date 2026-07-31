@@ -22,8 +22,12 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  // Require the same scope as full-sync.post.ts (which starts the sync this
+  // endpoint reports progress for) — workout:write and workout:read are
+  // independent OAuth scopes in this codebase, so a client authorized to
+  // start a full sync must also be authorized to poll its progress.
   // Use the same user.id key as full-sync.post.ts stores in activeSyncs
-  const user = await requireAuth(event)
+  const user = await requireAuth(event, ['workout:write'])
   const userId = user.id
 
   // Set SSE headers
