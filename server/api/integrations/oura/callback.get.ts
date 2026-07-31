@@ -55,10 +55,15 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const config = useRuntimeConfig()
+    let config: any
+    try {
+      config = useRuntimeConfig()
+    } catch {
+      config = {}
+    }
     const clientId = process.env.OURA_CLIENT_ID
     const clientSecret = process.env.OURA_CLIENT_SECRET
-    const redirectUri = `${config.public.siteUrl || 'http://localhost:3099'}/api/integrations/oura/callback`
+    const redirectUri = `${config?.public?.siteUrl || 'http://localhost:3099'}/api/integrations/oura/callback`
 
     if (!clientId || !clientSecret) {
       throw new Error('OURA credentials not configured')
@@ -89,6 +94,7 @@ export default defineEventHandler(async (event) => {
     const accessToken = tokenData.access_token
     const refreshToken = tokenData.refresh_token
     const expiresIn = tokenData.expires_in
+    const scope = tokenData.scope || null
 
     // Fetch user profile to get user ID or Email
     const personalInfo = await fetchOuraPersonalInfo(accessToken)
@@ -134,6 +140,7 @@ export default defineEventHandler(async (event) => {
           refreshToken,
           externalUserId: String(externalUserId),
           expiresAt,
+          scope,
           lastSyncAt: new Date(),
           syncStatus: 'SUCCESS'
         }
@@ -148,6 +155,7 @@ export default defineEventHandler(async (event) => {
           refreshToken,
           externalUserId: String(externalUserId),
           expiresAt,
+          scope,
           syncStatus: 'SUCCESS',
           lastSyncAt: new Date(),
           ingestWorkouts: true

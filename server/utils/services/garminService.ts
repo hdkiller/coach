@@ -24,7 +24,8 @@ import {
   normalizeFitSession,
   reconstructSessionFromRecords,
   extractFitStreams,
-  extractFitExtrasMeta
+  extractFitExtrasMeta,
+  type FitData
 } from '../fit'
 import { triggerWorkoutDeduplicationIfEnabled } from '../trigger-workout-deduplication'
 import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
@@ -55,6 +56,15 @@ function inferDeviceNameFromFitData(fitData: any): string | null {
     if (candidate) return candidate
   }
   return null
+}
+
+/** Drop large FIT arrays so V8 can reclaim memory after stream upsert. */
+function releaseFitData(fitData: FitData | null | undefined) {
+  if (!fitData) return
+  for (const key of ['records', 'sessions', 'laps', 'events', 'device_infos'] as const) {
+    const value = fitData[key]
+    if (Array.isArray(value)) value.length = 0
+  }
 }
 
 function normalizeUtcDateFromTimestamp(
@@ -723,7 +733,14 @@ export const GarminService = {
           )
           workout = createdWorkout
 
-          await this.ingestFitArtifactsForWorkout(userId, workout.id, primaryExternalId, buffer)
+          // Reuse the already-parsed FIT data to avoid a second full parse in memory.
+          await this.ingestFitArtifactsForWorkout(
+            userId,
+            workout.id,
+            primaryExternalId,
+            buffer,
+            fitData
+          )
           console.log(
             `[GarminService] Created workout and ingested FIT file from out-of-order activityFiles push for ${primaryExternalId}`
           )
@@ -832,7 +849,8 @@ export const GarminService = {
     userId: string,
     workoutId: string,
     externalId: string,
-    buffer: Buffer
+    buffer: Buffer,
+    preParsed?: FitData
   ) {
     const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
@@ -852,22 +870,26 @@ export const GarminService = {
       }
     })
 
-    const fitData = await parseFitFile(buffer)
-    const streams = extractFitStreams(fitData.records)
-    const extrasMeta = extractFitExtrasMeta(fitData)
-    const fitDeviceName = inferDeviceNameFromFitData(fitData)
+    const fitData = preParsed ?? (await parseFitFile(buffer))
+    try {
+      const streams = extractFitStreams(fitData.records)
+      const extrasMeta = extractFitExtrasMeta(fitData)
+      const fitDeviceName = inferDeviceNameFromFitData(fitData)
 
-    if (fitDeviceName) {
-      await prisma.workout.update({
-        where: { id: workoutId },
-        data: { deviceName: fitDeviceName }
+      if (fitDeviceName) {
+        await prisma.workout.update({
+          where: { id: workoutId },
+          data: { deviceName: fitDeviceName }
+        })
+      }
+
+      await workoutStreamRepository.upsert(workoutId, {
+        ...streams,
+        extrasMeta
       })
+    } finally {
+      releaseFitData(fitData)
     }
-
-    await workoutStreamRepository.upsert(workoutId, {
-      ...streams,
-      extrasMeta
-    })
 
     await this.clearActivityFileIngestionStatus(workoutId)
   },

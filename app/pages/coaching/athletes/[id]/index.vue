@@ -915,7 +915,6 @@
     if (!athlete.value) return
     const name = athlete.value.name || athlete.value.email || 'Athlete'
     coachingStore.startActingAs(athlete.value.id, name)
-    void router.push('/dashboard')
   }
 
   async function confirmRemoveAthlete() {

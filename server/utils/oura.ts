@@ -1,4 +1,6 @@
 import type { Integration } from '@prisma/client'
+import { prisma } from './db'
+import { IntegrationAuthError, IntegrationProviderError } from './integration-errors'
 
 interface OuraTokenResponse {
   access_token: string
@@ -8,14 +10,71 @@ interface OuraTokenResponse {
   token_type: string
 }
 
+interface OuraTokenErrorPayload {
+  status?: number
+  error?: string
+  error_description?: string
+  message?: string
+}
+
+const OURA_TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
+const OURA_TOKEN_TRANSACTION_TIMEOUT_MS = 20_000
+const OURA_RECONNECT_MESSAGE = 'Oura authorization expired or was revoked. Please reconnect Oura.'
+
+const OURA_UNRECOVERABLE_REFRESH_ERRORS = new Set([
+  'invalid_request',
+  'invalid_grant',
+  'invalid_client',
+  'unauthorized_client',
+  'unsupported_grant_type'
+])
+
+function parseOuraTokenErrorPayload(errorText: string): OuraTokenErrorPayload {
+  try {
+    return JSON.parse(errorText) as OuraTokenErrorPayload
+  } catch {
+    return {}
+  }
+}
+
+function extractOuraRefreshErrorCode(payload: OuraTokenErrorPayload): string | undefined {
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    return payload.error.trim()
+  }
+  return undefined
+}
+
+function isUnrecoverableOuraRefreshFailure(
+  status: number,
+  payload: OuraTokenErrorPayload
+): boolean {
+  if (status === 401) return true
+  if (status !== 400) return false
+
+  const errorCode = extractOuraRefreshErrorCode(payload)?.toLowerCase()
+  if (!errorCode) {
+    // Oura often returns bare invalid_request / "Invalid request" for revoked tokens.
+    return true
+  }
+  return OURA_UNRECOVERABLE_REFRESH_ERRORS.has(errorCode)
+}
+
+function throwOuraAuthRevoked(integrationId: string, statusCode?: number): never {
+  throw new IntegrationAuthError({
+    provider: 'oura',
+    integrationId,
+    code: 'AUTH_REVOKED',
+    statusCode,
+    message: OURA_RECONNECT_MESSAGE
+  })
+}
+
 /**
- * Refreshes an expired Oura access token using the refresh token
+ * Refreshes an expired Oura access token using the refresh token.
+ * Serializes concurrent refreshes for one integration via a DB row lock so webhook
+ * fan-out (Promise.all of multiple endpoints) cannot stampede Oura with duplicate refreshes.
  */
 export async function refreshOuraToken(integration: Integration): Promise<Integration> {
-  if (!integration.refreshToken) {
-    throw new Error('No refresh token available for Oura integration')
-  }
-
   const clientId = process.env.OURA_CLIENT_ID
   const clientSecret = process.env.OURA_CLIENT_SECRET
 
@@ -23,42 +82,124 @@ export async function refreshOuraToken(integration: Integration): Promise<Integr
     throw new Error('OURA credentials not configured')
   }
 
-  console.log('Refreshing Oura token for integration:', integration.id)
+  const result = await prisma.$transaction(
+    async (transaction) => {
+      await transaction.$queryRaw`SELECT "id" FROM "Integration" WHERE "id" = ${integration.id} FOR UPDATE`
 
-  const response = await fetch('https://api.ouraring.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
+      const latest = await transaction.integration.findUnique({
+        where: { id: integration.id }
+      })
+      if (!latest) {
+        throw new Error('Oura integration no longer exists')
+      }
+
+      // A caller that waited for the lock must reuse credentials written by the winner.
+      if (
+        latest.accessToken !== integration.accessToken ||
+        latest.refreshToken !== integration.refreshToken
+      ) {
+        return { integration: latest }
+      }
+
+      if (latest.syncStatus === 'FAILED' && latest.errorMessage === OURA_RECONNECT_MESSAGE) {
+        return { authRevoked: true as const, statusCode: 400 }
+      }
+
+      if (!latest.refreshToken) {
+        throw new IntegrationAuthError({
+          provider: 'oura',
+          integrationId: integration.id,
+          code: 'AUTH_MISSING',
+          message: 'No refresh token available for Oura integration'
+        })
+      }
+
+      console.log('Refreshing Oura token for integration:', integration.id)
+
+      const response = await fetch('https://api.ouraring.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: latest.refreshToken,
+          client_id: clientId,
+          client_secret: clientSecret
+        }).toString()
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        const payload = parseOuraTokenErrorPayload(errorText)
+        const errorCode = extractOuraRefreshErrorCode(payload)
+
+        // Log diagnostics without request/response secrets (tokens never appear here).
+        console.error('Oura token refresh failed:', {
+          integrationId: integration.id,
+          status: response.status,
+          error: errorCode || undefined,
+          errorDescription:
+            typeof payload.error_description === 'string' ? payload.error_description : undefined
+        })
+
+        if (isUnrecoverableOuraRefreshFailure(response.status, payload)) {
+          try {
+            await transaction.integration.update({
+              where: { id: integration.id },
+              data: {
+                syncStatus: 'FAILED',
+                errorMessage: OURA_RECONNECT_MESSAGE
+              }
+            })
+          } catch (updateError) {
+            console.error('[Oura] Failed to mark integration as reconnect required', {
+              integrationId: integration.id,
+              updateError
+            })
+          }
+
+          // Commit FAILED status before surfacing the auth error to callers.
+          return { authRevoked: true as const, statusCode: response.status }
+        }
+
+        if (response.status >= 500) {
+          throw new IntegrationProviderError({
+            provider: 'oura',
+            integrationId: integration.id,
+            statusCode: response.status,
+            message: `Oura token refresh unavailable: ${response.status} ${response.statusText}`
+          })
+        }
+
+        throw new Error(
+          `Failed to refresh Oura token: ${response.status} ${response.statusText}${
+            errorCode ? ` (${errorCode})` : ''
+          }`
+        )
+      }
+
+      const tokenData: OuraTokenResponse = await response.json()
+      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+      const updated = await transaction.integration.update({
+        where: { id: integration.id },
+        data: {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresAt
+        }
+      })
+      return { integration: updated }
     },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: integration.refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret
-    }).toString()
-  })
+    { maxWait: OURA_TOKEN_TRANSACTION_TIMEOUT_MS, timeout: OURA_TOKEN_TRANSACTION_TIMEOUT_MS }
+  )
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Oura token refresh failed:', errorText)
-    throw new Error(`Failed to refresh Oura token: ${response.status} ${response.statusText}`)
+  if ('authRevoked' in result) {
+    throwOuraAuthRevoked(integration.id, result.statusCode)
   }
 
-  const tokenData: OuraTokenResponse = await response.json()
-  const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
-  const { prisma } = await import('./db')
-
-  // Update the integration in the database
-  const updatedIntegration = await prisma.integration.update({
-    where: { id: integration.id },
-    data: {
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt
-    }
-  })
-
-  return updatedIntegration
+  return result.integration
 }
 
 /**
@@ -70,19 +211,29 @@ function isTokenExpired(integration: Integration): boolean {
   }
 
   const now = new Date()
-  const expiryWithBuffer = new Date(integration.expiresAt.getTime() - 5 * 60 * 1000) // 5 minutes buffer
+  const expiryWithBuffer = new Date(integration.expiresAt.getTime() - OURA_TOKEN_REFRESH_BUFFER_MS)
   return now >= expiryWithBuffer
 }
 
 /**
- * Ensures the integration has a valid access token, refreshing if necessary
+ * Ensures the integration has a valid access token, refreshing if necessary.
+ * Re-reads the DB first so parallel webhook fetchers can reuse a just-rotated token.
  */
-async function ensureValidToken(integration: Integration): Promise<Integration> {
-  if (isTokenExpired(integration)) {
+export async function ensureValidOuraToken(integration: Integration): Promise<Integration> {
+  const latest = await prisma.integration.findUnique({
+    where: { id: integration.id }
+  })
+  if (!latest) return integration
+
+  if (isTokenExpired(latest)) {
     console.log('Oura token expired or expiring soon, refreshing...')
-    return await refreshOuraToken(integration)
+    return await refreshOuraToken(latest)
   }
-  return integration
+  return latest
+}
+
+async function ensureValidToken(integration: Integration): Promise<Integration> {
+  return ensureValidOuraToken(integration)
 }
 
 // --- Data Fetching ---

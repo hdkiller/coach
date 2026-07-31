@@ -28,6 +28,10 @@ import { userMemoryService } from '../services/userMemoryService'
 import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
 import { transformHistoryToCoreMessages } from '../ai-history'
+import {
+  sanitizeChatMessagesForToolApprovals,
+  sanitizeCoreMessagesForToolApprovals
+} from '../../api/chat/sanitize-tool-approval'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 import { extractMemoryCandidatesFromConversation } from './memory-extraction'
 import { findToolNameRepair } from './tool-call-repair'
@@ -128,9 +132,10 @@ function buildMemoryEventFromToolResults(toolResults: any[]) {
 }
 
 export function normalizeMessagesForSdk(inputMessages: any[]) {
+  const sanitizedMessages = sanitizeChatMessagesForToolApprovals(inputMessages)
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
 
-  for (const msg of inputMessages) {
+  for (const msg of sanitizedMessages) {
     if (msg.role !== 'tool') continue
     const parts = Array.isArray(msg.parts)
       ? msg.parts
@@ -138,21 +143,23 @@ export function normalizeMessagesForSdk(inputMessages: any[]) {
         ? msg.content
         : []
     for (const part of parts) {
-      if (part?.type !== 'tool-approval-response' || !part.approvalId) continue
-      approvalResponses.set(part.approvalId, {
+      if (part?.type !== 'tool-approval-response') continue
+      const approvalId = part.approvalId || part.toolCallId
+      if (!approvalId) continue
+      approvalResponses.set(approvalId, {
         approved: !!part.approved,
-        reason: part.reason || part.result
+        reason: typeof part.reason === 'string' ? part.reason : undefined
       })
     }
   }
 
-  return inputMessages.map((msg) => {
+  return sanitizedMessages.map((msg) => {
     if (msg.role !== 'assistant' || !Array.isArray(msg.parts)) return msg
 
     const parts = msg.parts.map((part: any) => {
       if (!part?.type?.startsWith('tool-')) return part
 
-      const approvalId = part.approvalId || part.approval?.id
+      const approvalId = part.approvalId || part.approval?.id || part.toolCallId
       if (!approvalId) return part
 
       const response = approvalResponses.get(approvalId)
@@ -165,7 +172,7 @@ export function normalizeMessagesForSdk(inputMessages: any[]) {
           ...(part.approval || {}),
           id: approvalId,
           approved: response.approved,
-          reason: response.reason
+          ...(response.reason !== undefined ? { reason: response.reason } : {})
         }
       }
     })
@@ -1258,7 +1265,9 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         boundedHistoryEstimatedTokens: estimateTokenCount(historyMessages)
       })
 
-      const coreMessages = await transformHistoryToCoreMessages(historyMessages)
+      const coreMessages = sanitizeCoreMessagesForToolApprovals(
+        await transformHistoryToCoreMessages(historyMessages)
+      )
       ensureTurnNotAborted()
       const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
 
