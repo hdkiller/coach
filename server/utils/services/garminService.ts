@@ -177,6 +177,41 @@ export function extractGarminReadinessScore(record: Record<string, unknown> | nu
 }
 
 /**
+ * Garmin's Activity summary exposes distinct average/max cadence fields per sport family:
+ * cycling (`...BikeCadenceInRoundsPerMinute`), running (`...RunCadenceInStepsPerMinute`), and
+ * swimming (`...SwimCadenceInStrokesPerMinute`). Our Workout model only stores one generic
+ * averageCadence/maxCadence pair, so pick the source field pair based on the activity's
+ * normalized sport (see `normalizeGarminActivityType`). Cycling (including virtual/mountain
+ * biking) keeps the original bike-field-only behavior; anything else that isn't running or
+ * swimming has no documented cadence fields and yields null, same as before this fix.
+ */
+export function extractGarminActivityCadence(
+  record: Record<string, unknown> | null | undefined,
+  normalizedType: string
+): { average: number | null; max: number | null } {
+  if (!record || typeof record !== 'object') return { average: null, max: null }
+
+  if (normalizedType === 'Run') {
+    return {
+      average: extractGarminNumericMetric(record, ['averageRunCadenceInStepsPerMinute']),
+      max: extractGarminNumericMetric(record, ['maxRunCadenceInStepsPerMinute'])
+    }
+  }
+
+  if (normalizedType === 'Swim') {
+    return {
+      average: extractGarminNumericMetric(record, ['averageSwimCadenceInStrokesPerMinute']),
+      max: extractGarminNumericMetric(record, ['maxSwimCadenceInStrokesPerMinute'])
+    }
+  }
+
+  return {
+    average: extractGarminNumericMetric(record, ['averageBikeCadenceInRoundsPerMinute']),
+    max: extractGarminNumericMetric(record, ['maxBikeCadenceInRoundsPerMinute'])
+  }
+}
+
+/**
  * Garmin's Stress Details schema exposes an absolute Body Battery *level* sampled
  * throughout the day via `timeOffsetBodyBatteryValues` (a map of seconds-since-start-of-day
  * to a 0-100 battery reading), the same shape as `timeOffsetSleepSpo2`. Body Battery is
@@ -672,25 +707,24 @@ export const GarminService = {
         continue
       }
 
+      const activityType = normalizeGarminActivityType(record.activityType)
+      const cadence = extractGarminActivityCadence(record, activityType)
+
       const workoutData: any = {
         userId,
         externalId,
         source: 'garmin',
         date: startDate,
         title: record.activityName || `Garmin ${record.activityType}`,
-        type: normalizeGarminActivityType(record.activityType),
+        type: activityType,
         durationSec: record.durationInSeconds,
         elapsedTimeSec: record.durationInSeconds || null,
         distanceMeters: record.distanceInMeters || null,
         elevationGain: record.totalElevationGainInMeters
           ? Math.round(record.totalElevationGainInMeters)
           : null,
-        averageCadence: record.averageBikeCadenceInRoundsPerMinute
-          ? Math.round(record.averageBikeCadenceInRoundsPerMinute)
-          : null,
-        maxCadence: record.maxBikeCadenceInRoundsPerMinute
-          ? Math.round(record.maxBikeCadenceInRoundsPerMinute)
-          : null,
+        averageCadence: cadence.average !== null ? Math.round(cadence.average) : null,
+        maxCadence: cadence.max !== null ? Math.round(cadence.max) : null,
         averageSpeed: record.averageSpeedInMetersPerSecond || null,
         averageHr: record.averageHeartRateInBeatsPerMinute || null,
         maxHr: record.maxHeartRateInBeatsPerMinute || null,

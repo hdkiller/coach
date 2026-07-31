@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  extractGarminActivityCadence,
   extractGarminBodyBatteryScore,
   extractGarminReadinessScore,
   extractGarminSpO2Percentage,
@@ -316,6 +317,191 @@ describe('extractGarminSpO2Percentage', () => {
         averageStressLevel: 18
       })
     ).toBeNull()
+  })
+})
+
+describe('extractGarminActivityCadence (CW-97)', () => {
+  it('extracts cycling cadence from bike cadence fields, unchanged from prior behavior', () => {
+    const record = {
+      activityType: 'ROAD_BIKING',
+      averageBikeCadenceInRoundsPerMinute: 84.6,
+      maxBikeCadenceInRoundsPerMinute: 102.3,
+      // Should be ignored for a cycling activity even if present.
+      averageRunCadenceInStepsPerMinute: 170,
+      averageSwimCadenceInStrokesPerMinute: 32
+    }
+
+    expect(extractGarminActivityCadence(record, 'Ride')).toEqual({
+      average: 84.6,
+      max: 102.3
+    })
+  })
+
+  it('extracts running cadence from run cadence fields', () => {
+    const record = {
+      activityType: 'RUNNING',
+      averageRunCadenceInStepsPerMinute: 172.4,
+      maxRunCadenceInStepsPerMinute: 188.1,
+      // A run summary has no bike cadence fields at all in real Garmin payloads.
+      averageBikeCadenceInRoundsPerMinute: undefined
+    }
+
+    expect(extractGarminActivityCadence(record, 'Run')).toEqual({
+      average: 172.4,
+      max: 188.1
+    })
+  })
+
+  it('extracts swimming cadence from swim cadence fields', () => {
+    const record = {
+      activityType: 'LAP_SWIMMING',
+      averageSwimCadenceInStrokesPerMinute: 31.5,
+      maxSwimCadenceInStrokesPerMinute: 38
+    }
+
+    expect(extractGarminActivityCadence(record, 'Swim')).toEqual({
+      average: 31.5,
+      max: 38
+    })
+  })
+
+  it('returns null cadence for activity types with no documented cadence fields', () => {
+    const record = {
+      activityType: 'STRENGTH_TRAINING'
+    }
+
+    expect(extractGarminActivityCadence(record, 'WeightTraining')).toEqual({
+      average: null,
+      max: null
+    })
+  })
+
+  it('returns null cadence for a null/undefined record', () => {
+    expect(extractGarminActivityCadence(null, 'Run')).toEqual({ average: null, max: null })
+    expect(extractGarminActivityCadence(undefined, 'Ride')).toEqual({ average: null, max: null })
+  })
+})
+
+describe('GarminService.processActivities cadence mapping (CW-97)', () => {
+  it('maps run cadence into averageCadence/maxCadence for a running activity', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.fitFile = { findUnique: vi.fn().mockResolvedValue(null) } as any
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    const upsertSpy = vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-run-1' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    await GarminService.processActivities(
+      'user-1',
+      [
+        {
+          summaryId: 'activity-run-1',
+          startTimeInSeconds: 1700000000,
+          durationInSeconds: 1800,
+          activityType: 'RUNNING',
+          averageRunCadenceInStepsPerMinute: 175.8,
+          maxRunCadenceInStepsPerMinute: 190.2,
+          averageBikeCadenceInRoundsPerMinute: 999 // must not leak into a run's cadence
+        }
+      ],
+      { id: 'int-1' }
+    )
+
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      'garmin',
+      'activity-run-1',
+      expect.objectContaining({ type: 'Run', averageCadence: 176, maxCadence: 190 }),
+      expect.objectContaining({ type: 'Run', averageCadence: 176, maxCadence: 190 })
+    )
+    vi.restoreAllMocks()
+  })
+
+  it('maps swim cadence into averageCadence/maxCadence for a swimming activity', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.fitFile = { findUnique: vi.fn().mockResolvedValue(null) } as any
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    const upsertSpy = vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-swim-1' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    await GarminService.processActivities(
+      'user-1',
+      [
+        {
+          summaryId: 'activity-swim-1',
+          startTimeInSeconds: 1700000000,
+          durationInSeconds: 2400,
+          activityType: 'LAP_SWIMMING',
+          averageSwimCadenceInStrokesPerMinute: 30.6,
+          maxSwimCadenceInStrokesPerMinute: 36.4
+        }
+      ],
+      { id: 'int-1' }
+    )
+
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      'garmin',
+      'activity-swim-1',
+      expect.objectContaining({ type: 'Swim', averageCadence: 31, maxCadence: 36 }),
+      expect.objectContaining({ type: 'Swim', averageCadence: 31, maxCadence: 36 })
+    )
+    vi.restoreAllMocks()
+  })
+
+  it('keeps mapping bike cadence into averageCadence/maxCadence for a cycling activity', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ dashboardSettings: {} })
+    prismaMock.fitFile = { findUnique: vi.fn().mockResolvedValue(null) } as any
+
+    const workoutRepoModule =
+      await import('../../../../../server/utils/repositories/workoutRepository')
+    const upsertSpy = vi.spyOn(workoutRepoModule.workoutRepository, 'upsert').mockResolvedValue({
+      record: { id: 'workout-ride-1' } as any,
+      created: true
+    })
+
+    const streamRepoModule =
+      await import('../../../../../server/utils/repositories/workoutStreamRepository')
+    vi.spyOn(streamRepoModule.workoutStreamRepository, 'existsByWorkoutId').mockResolvedValue(false)
+
+    await GarminService.processActivities(
+      'user-1',
+      [
+        {
+          summaryId: 'activity-ride-1',
+          startTimeInSeconds: 1700000000,
+          durationInSeconds: 3600,
+          activityType: 'ROAD_BIKING',
+          averageBikeCadenceInRoundsPerMinute: 85.2,
+          maxBikeCadenceInRoundsPerMinute: 104.9
+        }
+      ],
+      { id: 'int-1' }
+    )
+
+    expect(upsertSpy).toHaveBeenCalledWith(
+      'user-1',
+      'garmin',
+      'activity-ride-1',
+      expect.objectContaining({ type: 'Ride', averageCadence: 85, maxCadence: 105 }),
+      expect.objectContaining({ type: 'Ride', averageCadence: 85, maxCadence: 105 })
+    )
+    vi.restoreAllMocks()
   })
 })
 
