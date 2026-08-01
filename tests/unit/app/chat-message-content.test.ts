@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import ChatMessageContent from '../../../app/components/chat/ChatMessageContent.vue'

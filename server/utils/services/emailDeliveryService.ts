@@ -7,6 +7,105 @@ import { getInternalApiToken } from '../internal-api-token'
 import { resolveEmailSubject } from '../email-i18n'
 import type { EmailAudience, EmailDeliveryStatus } from '@prisma/client'
 
+/**
+ * Statuses that mean Resend already accepted/processed the send. A delivery
+ * in one of these states must never be re-dispatched, even if the caller
+ * retries (e.g. via a Trigger.dev retry hitting the same idempotency key).
+ */
+const ALREADY_DISPATCHED_STATUSES: EmailDeliveryStatus[] = [
+  'SENT',
+  'DELIVERED',
+  'OPENED',
+  'CLICKED',
+  'BOUNCED',
+  'COMPLAINED',
+  'UNSUBSCRIBED',
+  'SUPPRESSED'
+]
+
+/**
+ * Resend error codes that indicate a permanent, non-retryable failure
+ * (bad input, auth/config problems, malformed request). Retrying these would
+ * just fail again in the same way, wasting Trigger.dev attempts.
+ * See https://resend.com/docs/api-reference/errors
+ */
+const NON_RETRYABLE_RESEND_ERROR_CODES = new Set<string>([
+  'validation_error',
+  'invalid_from_address',
+  'invalid_access',
+  'invalid_parameter',
+  'invalid_region',
+  'missing_required_field',
+  'missing_api_key',
+  'restricted_api_key',
+  'invalid_api_key',
+  'invalid_idempotency_key',
+  'invalid_idempotent_request',
+  'not_found',
+  'method_not_allowed',
+  'security_error'
+])
+
+/**
+ * Thrown when Resend rejects a send. Carries enough information to decide
+ * whether the failure is worth retrying (transient: network blips, rate
+ * limits, provider 5xx) or not (permanent: invalid recipient, malformed
+ * content, bad config).
+ */
+export class EmailDispatchError extends Error {
+  readonly retryable: boolean
+  readonly code?: string
+  readonly statusCode?: number | null
+
+  constructor(
+    message: string,
+    options: { retryable: boolean; code?: string; statusCode?: number | null }
+  ) {
+    super(message)
+    this.name = 'EmailDispatchError'
+    this.retryable = options.retryable
+    this.code = options.code
+    this.statusCode = options.statusCode
+  }
+}
+
+function classifyResendError(error: {
+  message: string
+  statusCode?: number | null
+  name?: string
+}): EmailDispatchError {
+  const code = error.name
+  const statusCode = typeof error.statusCode === 'number' ? error.statusCode : null
+  const nonRetryableByCode = code ? NON_RETRYABLE_RESEND_ERROR_CODES.has(code) : false
+  // 4xx (excluding 429 rate limiting) is a permanent client error; 5xx and
+  // 429 are transient and worth retrying.
+  const nonRetryableByStatus =
+    statusCode !== null && statusCode >= 400 && statusCode < 500 && statusCode !== 429
+  return new EmailDispatchError(error.message, {
+    retryable: !nonRetryableByCode && !nonRetryableByStatus,
+    code,
+    statusCode
+  })
+}
+
+/**
+ * Extracts the list of column names involved in a P2002 unique-constraint
+ * violation. The shape of `PrismaClientKnownRequestError.meta` differs
+ * depending on which query engine produced the error:
+ * - Classic engine: `error.meta.target` is the field list directly.
+ * - Driver adapter engine (this app uses `@prisma/adapter-pg`, see
+ *   server/utils/db.ts): `meta.target` does not exist. Prisma instead
+ *   constructs the error as `new PrismaClientKnownRequestError(message, code,
+ *   { driverAdapterError: originalError })`, so the field list is nested at
+ *   `meta.driverAdapterError.cause.constraint.fields` (verified against
+ *   @prisma/client 7.8.0's runtime: `Ge()`/`Tn()` in runtime/client.js).
+ * Check both shapes defensively in case any code path in this app ever
+ * produces a classic-engine-shaped error.
+ */
+function getUniqueConstraintFields(dbError: any): string[] | undefined {
+  return dbError?.meta?.target ?? dbError?.meta?.driverAdapterError?.cause?.constraint?.fields
+}
+
 export const EmailDeliveryService = {
   /**
    * Dispatches a queued or failed email delivery record via Resend.
@@ -56,17 +155,23 @@ export const EmailDeliveryService = {
       const from =
         delivery.fromEmail || process.env.MAIL_FROM_ADDRESS || 'Coach Watts <onboarding@resend.dev>'
 
-      const response = await resend.emails.send({
-        from,
-        to: delivery.toEmail,
-        subject: delivery.subject,
-        html: delivery.htmlBody,
-        text: delivery.textBody || undefined,
-        replyTo: delivery.replyToEmail || undefined
-      })
+      const response = await resend.emails.send(
+        {
+          from,
+          to: delivery.toEmail,
+          subject: delivery.subject,
+          html: delivery.htmlBody,
+          text: delivery.textBody || undefined,
+          replyTo: delivery.replyToEmail || undefined
+        },
+        // Keyed by our own delivery id: if this exact dispatch attempt is
+        // retried (e.g. the response was lost after Resend already accepted
+        // the email), Resend will not send a second copy.
+        { idempotencyKey: deliveryId }
+      )
 
       if (response.error) {
-        throw new Error(response.error.message)
+        throw classifyResendError(response.error)
       }
 
       // 2. Success
@@ -95,16 +200,19 @@ export const EmailDeliveryService = {
     }
   },
 
-  async runSendEmail(payload: {
-    userId?: string
-    toEmail?: string
-    templateKey: string
-    eventKey: string
-    audience: EmailAudience
-    subject: string
-    props?: Record<string, any>
-    idempotencyKey?: string
-  }) {
+  async runSendEmail(
+    payload: {
+      userId?: string
+      toEmail?: string
+      templateKey: string
+      eventKey: string
+      audience: EmailAudience
+      subject: string
+      props?: Record<string, any>
+      idempotencyKey?: string
+    },
+    options?: { runId?: string }
+  ) {
     const {
       userId,
       toEmail,
@@ -115,6 +223,15 @@ export const EmailDeliveryService = {
       props = {},
       idempotencyKey
     } = payload
+
+    // When the caller doesn't supply its own dedup key, fall back to one
+    // scoped to this specific trigger run. That keeps every retry of the
+    // same run converging on the same EmailDelivery row (safe to resume /
+    // safe to skip if already sent) without accidentally deduping two
+    // distinct, legitimately-repeated business events (e.g. a user
+    // resubscribing later) that happen to share the same eventKey.
+    const dedupeKey =
+      idempotencyKey || (options?.runId ? `trigger-run:${options.runId}` : undefined)
 
     const template = getEmailTemplateDefinition(templateKey)
 
@@ -253,15 +370,45 @@ export const EmailDeliveryService = {
           htmlBody,
           textBody,
           status: 'QUEUED',
-          idempotencyKey,
+          idempotencyKey: dedupeKey,
           metadata: finalProps as any
         }
       })
     } catch (dbError: any) {
-      if (dbError.code === 'P2002' && dbError.meta?.target?.includes('idempotencyKey')) {
-        return { success: true, skipped: true, reason: 'Duplicate' }
+      if (
+        dbError.code === 'P2002' &&
+        getUniqueConstraintFields(dbError)?.includes('idempotencyKey')
+      ) {
+        const existing = dedupeKey
+          ? await prisma.emailDelivery.findUnique({ where: { idempotencyKey: dedupeKey } })
+          : null
+
+        if (!existing) {
+          // Unexpected: the unique constraint fired but we can't find the
+          // row it collided with. Don't silently claim success here.
+          throw dbError
+        }
+
+        if (ALREADY_DISPATCHED_STATUSES.includes(existing.status)) {
+          // A previous attempt already got this email out (or further along
+          // the lifecycle). Resending now would create a duplicate, so this
+          // really is a no-op duplicate.
+          return {
+            success: true,
+            deliveryId: existing.id,
+            skipped: true,
+            reason: 'Duplicate',
+            status: existing.status
+          }
+        }
+
+        // The earlier attempt for this run never actually succeeded
+        // (QUEUED/SENDING/FAILED) - resume dispatch against that same row
+        // instead of silently reporting success.
+        delivery = existing
+      } else {
+        throw dbError
       }
-      throw dbError
     }
 
     const disableEmails = process.env.DISABLE_EMAILS === 'true'
@@ -273,9 +420,23 @@ export const EmailDeliveryService = {
       const sent = await EmailDeliveryService.dispatch(delivery.id)
       return { success: true, deliveryId: sent.id, status: 'SENT' }
     } catch (dispatchError: any) {
-      return { success: false, deliveryId: delivery.id, error: dispatchError.message }
+      const retryable = dispatchError instanceof EmailDispatchError ? dispatchError.retryable : true
+
+      if (!retryable) {
+        // Permanent failure (invalid recipient, malformed content, bad
+        // config) - retrying would just fail the same way again, so report
+        // it without throwing (no Trigger.dev retry).
+        return { success: false, deliveryId: delivery.id, error: dispatchError.message }
+      }
+
+      // Transient failure (network blip, rate limit, provider 5xx) - propagate
+      // so Trigger.dev's retry (maxAttempts: 3 in trigger/send-email.ts) kicks
+      // in instead of the failure being silently swallowed.
+      throw dispatchError
     }
   }
 }
 
-registerTaskHandler('send-email', (payload) => EmailDeliveryService.runSendEmail(payload))
+registerTaskHandler('send-email', (payload, context) =>
+  EmailDeliveryService.runSendEmail(payload, { runId: context?.runId })
+)

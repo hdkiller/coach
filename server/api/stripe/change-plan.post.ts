@@ -1,14 +1,36 @@
+import type Stripe from 'stripe'
+import type { SubscriptionTier } from '@prisma/client'
 import { z } from 'zod/v3'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { isLifetimeSubscriber, stripeBillingResetData } from '../../utils/lifetime-subscription'
 import { assertNoActiveStoreSubscription } from '../../utils/provider-subscriptions'
+import { resolveSubscriptionTier } from '../../utils/subscription-tier'
 
 const changePlanSchema = z.object({
   priceId: z.string(),
+  // Client hint only — proration is decided from tier ranks below so same-tier
+  // interval switches cannot be mis-labeled as immediate-charge upgrades.
   direction: z.enum(['upgrade', 'downgrade']).optional().default('upgrade')
 })
+
+const TIER_RANK: Record<SubscriptionTier, number> = {
+  FREE: 0,
+  SUPPORTER: 1,
+  PRO: 2
+}
+
+/**
+ * True tier upgrades invoice the prorated difference immediately.
+ * Same-tier interval switches and downgrades credit/debit the next invoice.
+ */
+function prorationBehaviorForTiers(
+  currentTier: SubscriptionTier,
+  targetTier: SubscriptionTier
+): 'always_invoice' | 'create_prorations' {
+  return TIER_RANK[targetTier] > TIER_RANK[currentTier] ? 'always_invoice' : 'create_prorations'
+}
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -22,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
   // Validate request body
   const body = await readBody(event)
-  const { priceId, direction } = changePlanSchema.parse(body)
+  const { priceId } = changePlanSchema.parse(body)
 
   // Get user with Stripe subscription ID
   const user = await prisma.user.findUnique({
@@ -88,9 +110,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const config = useRuntimeConfig()
+  const currentTier = await resolveSubscriptionTier(subscriptionItem, config, stripe)
+  const targetItem = { price: { id: priceId } } as Stripe.SubscriptionItem
+  const targetTier = await resolveSubscriptionTier(targetItem, config, stripe)
+  const proration_behavior = prorationBehaviorForTiers(currentTier, targetTier)
+
   // 2. Update the subscription in Stripe
-  // For upgrades, we use 'always_invoice' to charge the difference now.
-  // For downgrades, we use 'create_prorations' (default) to credit the difference to the next bill.
+  // Upgrades (higher tier): `always_invoice` charges the difference now.
+  // Downgrades and same-tier interval switches: `create_prorations` on next invoice.
   //
   // `latest_invoice.payment_intent` no longer exists on the Invoice object from
   // API version 2025-03-31.basil onwards — the client secret now lives on
@@ -103,7 +131,7 @@ export default defineEventHandler(async (event) => {
         price: priceId
       }
     ],
-    proration_behavior: direction === 'upgrade' ? 'always_invoice' : 'create_prorations',
+    proration_behavior,
     payment_behavior: 'default_incomplete',
     expand: ['latest_invoice.confirmation_secret']
   })

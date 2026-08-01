@@ -1,4 +1,4 @@
-import { schedules, logger } from '@trigger.dev/sdk/v3'
+import { task, logger } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { QUOTA_REGISTRY } from '../server/utils/quotas/registry'
 import { formatUserDate } from '../server/utils/date'
@@ -49,9 +49,17 @@ function formatSupporterHighlights() {
   ]
 }
 
-export const trialEndingReminderCron = schedules.task({
+// CW-188: This used to be a `schedules.task` with a declarative `cron`, which
+// keeps re-registering an active schedule trigger on Trigger.dev Cloud every
+// time it's deployed there. Actual scheduling now happens exclusively via
+// cw:worker's Redis/BullMQ job scheduler (see cli/worker/start.ts,
+// registerScheduledTasks), driven off the `schedule.cron` entry for this task
+// id in server/utils/task-manifest.json. Keep this a plain `task()` so no
+// declarative schedule gets synced back to Trigger.dev Cloud.
+export const trialEndingReminderCron = task({
   id: 'trial-ending-reminder-cron',
-  cron: '0 9 * * *',
+  // Actual cron ("0 9 * * *", daily at 09:00 UTC) lives in
+  // server/utils/task-manifest.json and is registered by cw:worker.
   run: async () => {
     const now = new Date()
     const { windowStart, windowEnd } = getTrialEndingWindow(now)
@@ -80,29 +88,60 @@ export const trialEndingReminderCron = schedules.task({
       windowEnd: windowEnd.toISOString()
     })
 
+    let dispatchedCount = 0
+    let failedCount = 0
+    let skippedCount = 0
+
     for (const user of users) {
-      if (!user.trialEndsAt) continue
+      if (!user.trialEndsAt) {
+        skippedCount++
+        continue
+      }
 
-      const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
-      const usageHighlights = await getWeeklyUsageSummary(user.id)
+      try {
+        const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
+        const usageHighlights = await getWeeklyUsageSummary(user.id)
 
-      await dispatchTask('send-email', {
-        userId: user.id,
-        templateKey: 'TrialEndingSoon',
-        eventKey: `TRIAL_ENDING_${trialEndKey}`,
-        idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
-        audience: 'ENGAGEMENT',
-        subject: 'Your Coach Watts performance trial ends soon',
-        props: {
-          name: user.name || 'Athlete',
-          trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
-          usageHighlights,
-          supporterHighlights: formatSupporterHighlights(),
-          pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
-        }
+        await dispatchTask('send-email', {
+          userId: user.id,
+          templateKey: 'TrialEndingSoon',
+          eventKey: `TRIAL_ENDING_${trialEndKey}`,
+          idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
+          audience: 'ENGAGEMENT',
+          subject: 'Your Coach Watts performance trial ends soon',
+          props: {
+            name: user.name || 'Athlete',
+            trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
+            usageHighlights,
+            supporterHighlights: formatSupporterHighlights(),
+            pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
+          }
+        })
+        dispatchedCount++
+      } catch (error) {
+        failedCount++
+        logger.error('Failed to dispatch trial ending reminder', {
+          userId: user.id,
+          error
+        })
+      }
+    }
+
+    if (failedCount > 0) {
+      logger.warn('Trial ending reminder cron completed with partial failures', {
+        count: users.length,
+        dispatchedCount,
+        failedCount,
+        skippedCount
       })
     }
 
-    return { success: true, count: users.length }
+    return {
+      success: failedCount === 0,
+      count: users.length,
+      dispatchedCount,
+      failedCount,
+      skippedCount
+    }
   }
 })

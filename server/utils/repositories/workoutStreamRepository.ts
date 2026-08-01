@@ -123,13 +123,132 @@ export async function attachStreamToWorkout<T extends { id: string }>(
 }
 
 export async function attachStreamsToWorkouts<T extends { id: string }>(
-  workouts: T[]
+  workouts: T[],
+  options?: FindManyByWorkoutIdsOptions
 ): Promise<Array<T & { streams: NormalizedStream | null }>> {
-  const streamMap = await workoutStreamRepository.findManyByWorkoutIds(workouts.map((w) => w.id))
+  const streamMap = await workoutStreamRepository.findManyByWorkoutIds(
+    workouts.map((w) => w.id),
+    options
+  )
   return workouts.map((workout) => ({
     ...workout,
     streams: streamMap.get(workout.id) ?? null
   }))
+}
+
+/**
+ * Optional, non-mandatory NormalizedStream fields that a caller of
+ * findManyByWorkoutIds/attachStreamsToWorkouts can opt into fetching on top of
+ * the mandatory baseline (see REQUIRED_V2_SELECT/REQUIRED_V1_SELECT below).
+ */
+export type WorkoutStreamOptionalField =
+  | 'distance'
+  | 'cadence'
+  | 'altitude'
+  | 'grade'
+  | 'moving'
+  | 'temp'
+  | 'torque'
+  | 'leftRightBalance'
+  | 'hrv'
+  | 'respiration'
+  | 'targetPower'
+  | 'avgPacePerKm'
+  | 'paceVariability'
+  | 'lapSplits'
+  | 'paceZones'
+  | 'pacingStrategy'
+  | 'surges'
+  | 'extrasMeta'
+
+export interface FindManyByWorkoutIdsOptions {
+  /**
+   * Extra columns to fetch beyond the mandatory baseline. When omitted
+   * (undefined), every column is fetched -- this is the original/default
+   * behavior and should be kept for callers that need full-fidelity stream
+   * data (e.g. the GDPR/migration data export in data-management/collector.ts).
+   *
+   * When provided (including an empty array), only the mandatory baseline
+   * fields plus whatever is listed here are fetched, which is dramatically
+   * cheaper for hot paths that read a handful of scalar fields (or none) off
+   * potentially hundreds of workouts' streams at once.
+   */
+  fields?: readonly WorkoutStreamOptionalField[]
+}
+
+/**
+ * Columns always fetched from WorkoutStreamV2 once a caller opts into a lean
+ * `fields` selection. `time`/`heartrate`/`watts`/`velocity`/`lat`/`lng`/
+ * `hrZoneTimes`/`powerZoneTimes` are required because hasUsableStreamData()
+ * inspects them to decide whether a V2 row counts as "usable" stream data
+ * (falling back to the legacy V1 table otherwise) -- dropping any of them
+ * would silently change that determination for every caller, not just the
+ * one requesting a lean select. `id`/`workoutId`/`createdAt`/`updatedAt` are
+ * cheap identity/bookkeeping columns kept for parity with NormalizedStream.
+ */
+const REQUIRED_V2_SELECT = {
+  id: true,
+  workoutId: true,
+  createdAt: true,
+  updatedAt: true,
+  time: true,
+  heartrate: true,
+  watts: true,
+  velocity: true,
+  lat: true,
+  lng: true,
+  hrZoneTimes: true,
+  powerZoneTimes: true
+} as const
+
+/** Same rationale as REQUIRED_V2_SELECT, but for the legacy V1 fallback table (single `latlng` Json column instead of split lat/lng arrays). */
+const REQUIRED_V1_SELECT = {
+  id: true,
+  workoutId: true,
+  createdAt: true,
+  updatedAt: true,
+  time: true,
+  heartrate: true,
+  watts: true,
+  velocity: true,
+  latlng: true,
+  hrZoneTimes: true,
+  powerZoneTimes: true
+} as const
+
+function buildV2Select(
+  fields: readonly WorkoutStreamOptionalField[] | undefined
+): Record<string, true> | undefined {
+  if (fields === undefined) return undefined
+  const select: Record<string, true> = { ...REQUIRED_V2_SELECT }
+  for (const field of fields) select[field] = true
+  return select
+}
+
+function buildV1Select(
+  fields: readonly WorkoutStreamOptionalField[] | undefined
+): Record<string, true> | undefined {
+  if (fields === undefined) return undefined
+  const select: Record<string, true> = { ...REQUIRED_V1_SELECT }
+  for (const field of fields) select[field] = true
+  return select
+}
+
+/**
+ * Max number of workout IDs per `IN (...)` clause. A Sentry-reported slow
+ * query captured 623 workout IDs in a single IN clause; batching keeps each
+ * round trip's result set (and the DB's work per query) bounded regardless
+ * of how many workouts a caller asks for at once.
+ */
+const WORKOUT_ID_CHUNK_SIZE = 200
+
+function chunkArray<T>(items: readonly T[], size: number): T[][] {
+  if (items.length <= size) return [items as T[]]
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size) as T[])
+  }
+  return chunks
 }
 
 export const workoutStreamRepository = {
@@ -153,13 +272,27 @@ export const workoutStreamRepository = {
     return stream !== null
   },
 
-  async findManyByWorkoutIds(workoutIds: string[]): Promise<Map<string, NormalizedStream>> {
+  async findManyByWorkoutIds(
+    workoutIds: string[],
+    options?: FindManyByWorkoutIdsOptions
+  ): Promise<Map<string, NormalizedStream>> {
     const result = new Map<string, NormalizedStream>()
     if (workoutIds.length === 0) return result
 
-    const v2Records: any[] = await (prisma as any).workoutStreamV2
-      .findMany({ where: { workoutId: { in: workoutIds } } })
-      .catch(() => [])
+    const fields = options?.fields
+    const v2Select = buildV2Select(fields)
+
+    const v2Chunks = await Promise.all(
+      chunkArray(workoutIds, WORKOUT_ID_CHUNK_SIZE).map((chunk) =>
+        (prisma as any).workoutStreamV2
+          .findMany({
+            where: { workoutId: { in: chunk } },
+            ...(v2Select ? { select: v2Select } : {})
+          })
+          .catch(() => [])
+      )
+    )
+    const v2Records: any[] = v2Chunks.flat()
 
     const missingIds: string[] = []
     for (const r of v2Records) {
@@ -177,9 +310,18 @@ export const workoutStreamRepository = {
     }
 
     if (missingIds.length > 0) {
-      const v1Records = await prisma.workoutStream
-        .findMany({ where: { workoutId: { in: missingIds } } })
-        .catch(() => [])
+      const v1Select = buildV1Select(fields) as any
+      const v1Chunks = await Promise.all(
+        chunkArray(missingIds, WORKOUT_ID_CHUNK_SIZE).map((chunk) =>
+          prisma.workoutStream
+            .findMany({
+              where: { workoutId: { in: chunk } },
+              ...(v1Select ? { select: v1Select } : {})
+            })
+            .catch(() => [])
+        )
+      )
+      const v1Records = v1Chunks.flat()
       for (const r of v1Records) {
         const normalized = toNormalizedFromV1(r)
         if (hasUsableStreamData(normalized)) {

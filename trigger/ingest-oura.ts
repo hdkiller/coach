@@ -16,6 +16,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
+import { buildAuthFailureResult } from '../server/utils/ingestion-failure'
 import type { IngestionResult } from './types'
 import { registerTaskHandler } from '../server/utils/task-registry'
 
@@ -52,9 +53,6 @@ export async function runIngestOura(payload: IngestOuraPayload): Promise<Ingesti
     where: { id: integration.id },
     data: { syncStatus: 'SYNCING' }
   })
-
-  let syncSucceeded = false
-  let syncErrorMessage: string | null = null
 
   try {
     const start = new Date(startDate)
@@ -158,7 +156,10 @@ export async function runIngestOura(payload: IngestOuraPayload): Promise<Ingesti
     let workoutUpsertCount = 0
 
     if (OURA_WORKOUTS_ENABLED) {
-      const workouts = await fetchOuraWorkouts(integration, start, end)
+      // Re-fetch integration so subsequent requests use any token rotated during wellness fetch.
+      const latestIntegration =
+        (await prisma.integration.findUnique({ where: { id: integration.id } })) || integration
+      const workouts = await fetchOuraWorkouts(latestIntegration, start, end)
       logger.log(`[Oura Ingest] Fetched ${workouts.length} workout records`)
 
       for (const workout of workouts) {
@@ -193,7 +194,14 @@ export async function runIngestOura(payload: IngestOuraPayload): Promise<Ingesti
       logger.log('[Oura Ingest] Workouts Disabled - Skipping')
     }
 
-    syncSucceeded = true
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        syncStatus: 'SUCCESS',
+        lastSyncAt: new Date(),
+        errorMessage: null
+      }
+    })
 
     return {
       success: true,
@@ -207,18 +215,27 @@ export async function runIngestOura(payload: IngestOuraPayload): Promise<Ingesti
       endDate
     }
   } catch (error) {
+    const authFailure = buildAuthFailureResult(error, { userId, startDate, endDate })
+    if (authFailure) {
+      logger.warn('[Oura Ingest] Authorization expired or revoked', {
+        integrationId: integration.id,
+        message: authFailure.message,
+        code: authFailure.error?.code,
+        statusCode: authFailure.error?.statusCode
+      })
+      // refreshOuraToken already marked the integration FAILED with a reconnect message.
+      return authFailure
+    }
+
     logger.error('[Oura Ingest] Error ingesting data', { error })
-    syncErrorMessage = error instanceof Error ? error.message : 'Unknown error'
-    throw error
-  } finally {
     await prisma.integration.update({
       where: { id: integration.id },
       data: {
-        syncStatus: syncSucceeded ? 'SUCCESS' : 'FAILED',
-        lastSyncAt: syncSucceeded ? new Date() : undefined,
-        errorMessage: syncSucceeded ? null : syncErrorMessage
+        syncStatus: 'FAILED',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
       }
     })
+    throw error
   }
 }
 

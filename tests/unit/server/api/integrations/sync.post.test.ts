@@ -192,4 +192,88 @@ describe('POST /api/integrations/sync', () => {
       expect.any(Object)
     )
   })
+
+  describe('Garmin ad-hoc pull compliance (CW-90)', () => {
+    it('dispatches Garmin with the default 1-day recovery window when no override is given', async () => {
+      const handler = await getHandler()
+      prismaMock.integration.findUnique.mockResolvedValue({
+        id: 'integration-garmin',
+        provider: 'garmin',
+        syncStatus: 'SUCCESS',
+        lastSyncAt: null
+      })
+
+      const response = await handler({ body: { provider: 'garmin' } } as any)
+
+      expect(response).toMatchObject({ success: true, provider: 'garmin' })
+      expect(tasks.trigger).toHaveBeenCalledWith(
+        'ingest-garmin',
+        expect.objectContaining({
+          userId: 'user-1',
+          startDate: '2026-03-09T00:00:00.000Z',
+          endDate: '2026-03-10T00:00:00.000Z'
+        }),
+        expect.any(Object)
+      )
+    })
+
+    it('rejects a Garmin ad-hoc sync with 429 when the last sync is inside the cooldown window', async () => {
+      const handler = await getHandler()
+      const recentSync = new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
+      prismaMock.integration.findUnique.mockResolvedValue({
+        id: 'integration-garmin',
+        provider: 'garmin',
+        syncStatus: 'SUCCESS',
+        lastSyncAt: recentSync
+      })
+
+      await expect(handler({ body: { provider: 'garmin' } } as any)).rejects.toMatchObject({
+        statusCode: 429,
+        data: expect.objectContaining({ code: 'GARMIN_ADHOC_COOLDOWN', provider: 'garmin' })
+      })
+
+      expect(tasks.trigger).not.toHaveBeenCalled()
+    })
+
+    it('allows a Garmin ad-hoc sync once the cooldown window has elapsed', async () => {
+      const handler = await getHandler()
+      const oldSync = new Date(Date.now() - 20 * 60 * 1000) // 20 minutes ago, past the 15-minute cooldown
+      prismaMock.integration.findUnique.mockResolvedValue({
+        id: 'integration-garmin',
+        provider: 'garmin',
+        syncStatus: 'SUCCESS',
+        lastSyncAt: oldSync
+      })
+
+      const response = await handler({ body: { provider: 'garmin' } } as any)
+
+      expect(response).toMatchObject({ success: true, provider: 'garmin' })
+      expect(tasks.trigger).toHaveBeenCalledTimes(1)
+    })
+
+    it('clamps a caller-supplied `days` override so Garmin ad-hoc pull cannot exceed the recovery-only window', async () => {
+      const handler = await getHandler()
+      prismaMock.integration.findUnique.mockResolvedValue({
+        id: 'integration-garmin',
+        provider: 'garmin',
+        syncStatus: 'SUCCESS',
+        lastSyncAt: null
+      })
+
+      const response = await handler({ body: { provider: 'garmin', days: 30 } } as any)
+
+      expect(response).toMatchObject({ success: true, provider: 'garmin' })
+      // Requested 30 days back, but the recovery-only bound caps it at 3 days
+      // before "now" (2026-03-10T00:00:00.000Z per the mocked getUserLocalDate).
+      expect(tasks.trigger).toHaveBeenCalledWith(
+        'ingest-garmin',
+        expect.objectContaining({
+          userId: 'user-1',
+          startDate: '2026-03-07T00:00:00.000Z',
+          endDate: '2026-03-10T00:00:00.000Z'
+        }),
+        expect.any(Object)
+      )
+    })
+  })
 })

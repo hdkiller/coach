@@ -1,5 +1,18 @@
 import { resolveShareTokenAccessMode } from './public-plans'
 
+function pickFields<T extends Record<string, unknown>>(
+  source: T,
+  keys: readonly (keyof T & string)[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const key of keys) {
+    if (key in source) {
+      result[key] = source[key]
+    }
+  }
+  return result
+}
+
 export function sanitizeSharedNutrition(nutrition: Record<string, unknown>) {
   const {
     userId: _userId,
@@ -38,5 +51,186 @@ export function sanitizeSharedPlannedWorkout(
   return {
     ...preview,
     previewMode: true
+  }
+}
+
+const SHARED_WELLNESS_FIELDS = [
+  'id',
+  'date',
+  'hrv',
+  'hrvSdnn',
+  'restingHr',
+  'avgSleepingHr',
+  'sleepSecs',
+  'sleepHours',
+  'sleepScore',
+  'sleepQuality',
+  'sleepDeepSecs',
+  'sleepRemSecs',
+  'sleepLightSecs',
+  'sleepAwakeSecs',
+  'readiness',
+  'recoveryScore',
+  'soreness',
+  'fatigue',
+  'stress',
+  'mood',
+  'motivation',
+  'weight',
+  'spO2',
+  'ctl',
+  'atl',
+  'tsb',
+  'createdAt',
+  'updatedAt',
+  'respiration',
+  'vo2max',
+  'restingCaloriesBurned',
+  'activeCaloriesBurned',
+  'totalCaloriesBurned',
+  'steps',
+  'distanceMeters',
+  'exerciseMinutes',
+  'floors',
+  'aiAnalysisJson'
+] as const
+
+/** Allowlisted fields safe for unauthenticated WELLNESS share pages (metrics + AI summary). */
+export function sanitizeSharedWellness(wellness: Record<string, unknown>) {
+  return pickFields(wellness, SHARED_WELLNESS_FIELDS)
+}
+
+const SHARED_REPORT_FIELDS = [
+  'id',
+  'type',
+  'status',
+  'createdAt',
+  'updatedAt',
+  'dateRangeStart',
+  'dateRangeEnd',
+  'analysisJson',
+  'markdown',
+  'suggestions',
+  'overallScore',
+  'trainingLoadScore',
+  'recoveryScore',
+  'progressScore',
+  'consistencyScore',
+  'trainingLoadExplanation',
+  'recoveryBalanceExplanation',
+  'progressTrendExplanation',
+  'adaptationReadinessExplanation',
+  'injuryRiskExplanation'
+] as const
+
+/** Allowlisted REPORT / ATHLETE_PROFILE payload for public share links. */
+export function sanitizeSharedReport(report: Record<string, unknown>) {
+  return pickFields(report, SHARED_REPORT_FIELDS)
+}
+
+const SHARED_PLAN_WORKOUT_FIELDS = [
+  'id',
+  'date',
+  'dayIndex',
+  'weekIndex',
+  'title',
+  'description',
+  'type',
+  'category',
+  'durationSec',
+  'distanceMeters',
+  'tss',
+  'workIntensity',
+  'completed',
+  'completionStatus',
+  'structuredWorkout',
+  'targetArea',
+  'fuelingStrategy',
+  'startTime',
+  'trainingWeekId',
+  'shareToken'
+] as const
+
+function sanitizeSharedPlanWorkout(workout: Record<string, unknown>) {
+  return pickFields(workout, SHARED_PLAN_WORKOUT_FIELDS)
+}
+
+function sanitizeSharedPlanGoal(goal: unknown) {
+  if (!goal || typeof goal !== 'object') return null
+  const { title } = goal as Record<string, unknown>
+  return title === undefined ? null : { title }
+}
+
+const SHARED_TRAINING_PLAN_FIELDS = [
+  'id',
+  'goalId',
+  'startDate',
+  'targetDate',
+  'strategy',
+  'status',
+  'currentBlockId',
+  'createdAt',
+  'updatedAt',
+  'description',
+  'isTemplate',
+  'isPublic',
+  'slug',
+  'visibility',
+  'accessState',
+  'primarySport',
+  'sportSubtype',
+  'difficulty',
+  'skillLevel',
+  'planLanguage',
+  'daysPerWeek',
+  'weeklyVolumeBand',
+  'goalLabel',
+  'equipmentTags',
+  'publicHeadline',
+  'publicDescription',
+  'methodology',
+  'whoItsFor',
+  'faq',
+  'extraContent',
+  'isFeatured',
+  'name',
+  'activityTypes',
+  'recoveryRhythm'
+] as const
+
+/**
+ * Sanitize TRAINING_PLAN rows returned by GET /api/share/[token].
+ * Primary UI uses /api/public/plans/access/[token]; this path still must not
+ * leak userId, private notes, or sync/internal workout fields.
+ */
+export function sanitizeSharedTrainingPlan(plan: Record<string, unknown>) {
+  const { goal, blocks } = plan
+
+  const sanitizedBlocks = Array.isArray(blocks)
+    ? blocks.map((block) => {
+        if (!block || typeof block !== 'object') return block
+        const blockRecord = block as Record<string, unknown>
+        const weeks = Array.isArray(blockRecord.weeks)
+          ? blockRecord.weeks.map((week) => {
+              if (!week || typeof week !== 'object') return week
+              const weekRecord = week as Record<string, unknown>
+              const workouts = Array.isArray(weekRecord.workouts)
+                ? weekRecord.workouts.map((workout) =>
+                    workout && typeof workout === 'object'
+                      ? sanitizeSharedPlanWorkout(workout as Record<string, unknown>)
+                      : workout
+                  )
+                : weekRecord.workouts
+              return { ...weekRecord, workouts }
+            })
+          : blockRecord.weeks
+        return { ...blockRecord, weeks }
+      })
+    : blocks
+
+  return {
+    ...pickFields(plan, SHARED_TRAINING_PLAN_FIELDS),
+    goal: sanitizeSharedPlanGoal(goal),
+    blocks: sanitizedBlocks
   }
 }

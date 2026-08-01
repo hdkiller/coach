@@ -59,7 +59,17 @@ export async function deactivateAccount(options: DeactivateAccountOptions) {
     }
   })
 
+  // Invalidate all credential material so pre-existing tokens/keys cannot be reused.
   await prisma.session.deleteMany({
+    where: { userId }
+  })
+  await prisma.oAuthToken.deleteMany({
+    where: { userId }
+  })
+  await prisma.oAuthAuthCode.deleteMany({
+    where: { userId }
+  })
+  await prisma.apiKey.deleteMany({
     where: { userId }
   })
 

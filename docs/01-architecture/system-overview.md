@@ -79,6 +79,34 @@ graph LR
 4. Data fetched from external APIs
 5. Data normalized and stored in Postgres
 
+#### Garmin Push-First Policy (CW-90)
+
+Garmin's partner guidance prefers Ping/Push-driven delivery over ad-hoc
+polling. Coach Watts follows that guidance:
+
+- **Push is the primary, routine channel.** `server/api/webhooks/garmin.post.ts`
+  receives Garmin's Push notifications continuously and is the mechanism
+  that keeps daily/wellness/activity data current. No manual action is
+  required for this path.
+- **Ad-hoc pull (`trigger/ingest-garmin.ts`, driven by the Sync UI via
+  `server/api/integrations/sync.post.ts`) is recovery-only.** It exists to
+  catch up after a missed or delayed Push notification (e.g. a brief Garmin
+  or Coach Watts outage), not as a primary or routine sync mechanism.
+  Two bounds enforce that role in code, applied at both the HTTP endpoint
+  (for immediate user feedback) and the `ingest-garmin` task itself
+  (defense-in-depth, since the batch "Sync All" path reaches the task
+  without going through the per-provider endpoint check):
+  - **Cooldown:** an ad-hoc pull is rejected/skipped if the integration's
+    `lastSyncAt` is less than 15 minutes old — a pull fired again moments
+    after the last successful one isn't recovering from anything.
+  - **Bounded window:** the lookback window is capped at 3 days
+    regardless of any caller-supplied `days` override, so ad-hoc pull can
+    never become a de facto historical backfill. (Garmin's own Pull API is
+    itself limited to a 24h window per request; a few days of lookback is
+    enough headroom to recover from a short outage without drifting toward
+    routine polling.)
+- Decision history: `docs/issues/311-garmin-adhoc-pull-vs-push-guidance.md`.
+
 ### B. The AI Agent Layer (The "Brain")
 
 The AI is split into two specialized agents to manage context window limits and improve accuracy.

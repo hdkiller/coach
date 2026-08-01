@@ -120,6 +120,9 @@ services:
       DISABLE_EMAILS: 'true'
       NODE_ENV: production
       CI: 'true'
+      # Set directly (matches dev:worker/cw:worker/run.sh) so ensure-heap.ts's
+      # relaunch path — which re-execs with an elevated heap limit — is a no-op here.
+      NODE_OPTIONS: '--max-old-space-size=8192'
       CW_WORKER_HEALTH_PORT: '8081'
       NUXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3199/'
       NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED: 'true'

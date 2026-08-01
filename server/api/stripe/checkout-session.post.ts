@@ -4,6 +4,7 @@ import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { ensureStripeCustomerForUser } from '../../utils/stripe-customer'
 import { assertNoActiveStoreSubscription } from '../../utils/provider-subscriptions'
+import { requireStripeRedirectUrl } from '../../utils/stripe-redirect-url'
 
 const checkoutSessionSchema = z.object({
   priceId: z.string(),
@@ -48,8 +49,20 @@ export default defineEventHandler(async (event) => {
 
   const { customerId } = await ensureStripeCustomerForUser(user)
 
-  const config = useRuntimeConfig()
-  const baseUrl = config.public.siteUrl || 'http://localhost:3099'
+  let config: any
+  try {
+    config = useRuntimeConfig()
+  } catch {
+    config = {}
+  }
+  const baseUrl = config?.public?.siteUrl || 'http://localhost:3099'
+
+  const success_url = requireStripeRedirectUrl(
+    successUrl,
+    baseUrl,
+    '/settings/billing?success=true'
+  )
+  const cancel_url = requireStripeRedirectUrl(cancelUrl, baseUrl, '/settings/billing?canceled=true')
 
   // Create Stripe checkout session
   const checkoutSession = await stripe.checkout.sessions.create({
@@ -72,8 +85,8 @@ export default defineEventHandler(async (event) => {
     automatic_tax: {
       enabled: true
     },
-    success_url: successUrl || `${baseUrl}/settings/billing?success=true`,
-    cancel_url: cancelUrl || `${baseUrl}/settings/billing?canceled=true`,
+    success_url,
+    cancel_url,
     metadata: {
       userId: user.id
     }

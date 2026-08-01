@@ -74,23 +74,40 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const handle = await dispatchTask(
-    'recommend-nutrition-meal',
-    {
-      userId,
-      date: body.date,
-      windowType: body.windowType,
-      forceLlm: body.forceLlm,
-      targetCarbs: body.targetCarbs,
-      targetProtein: body.targetProtein,
-      targetKcal: body.targetKcal,
-      recommendationId: recommendation.id
-    },
-    {
-      concurrencyKey: userId,
-      tags: [`user:${userId}`]
-    }
-  )
+  let handle: { id: string }
+  try {
+    handle = await dispatchTask(
+      'recommend-nutrition-meal',
+      {
+        userId,
+        date: body.date,
+        windowType: body.windowType,
+        forceLlm: body.forceLlm,
+        targetCarbs: body.targetCarbs,
+        targetProtein: body.targetProtein,
+        targetKcal: body.targetKcal,
+        recommendationId: recommendation.id
+      },
+      {
+        concurrencyKey: userId,
+        tags: [`user:${userId}`]
+      }
+    )
+  } catch (error) {
+    await prisma.nutritionRecommendation.update({
+      where: { id: recommendation.id },
+      data: {
+        status: 'FAILED',
+        contextJson: {
+          requestedTargets,
+          error: 'ENQUEUE_FAILED',
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }
+      }
+    })
+
+    throw createError({ statusCode: 500, message: 'Failed to start meal recommendation' })
+  }
 
   await prisma.nutritionRecommendation.update({
     where: { id: recommendation.id },

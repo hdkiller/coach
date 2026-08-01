@@ -1,12 +1,24 @@
-import { schedules } from '@trigger.dev/sdk/v3'
+import { task } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import type { UltrahumanSettings } from '../server/utils/ultrahuman'
 import { dispatchTask } from '../server/utils/task-dispatcher'
 
-export const pollUltrahumanTask = schedules.task({
+// CW-188: This used to be a `schedules.task` with a declarative `cron`, which
+// keeps re-registering an active schedule trigger on Trigger.dev Cloud every
+// time it's deployed there. Actual scheduling now happens exclusively via
+// cw:worker's Redis/BullMQ job scheduler (see cli/worker/start.ts,
+// registerScheduledTasks), driven off the `schedule.cron` entry for this task
+// id in server/utils/task-manifest.json. Keep this a plain `task()` so no
+// declarative schedule gets synced back to Trigger.dev Cloud. The Redis
+// scheduler synthesizes the same { timestamp, timezone, scheduleId, upcoming }
+// payload shape the SDK's schedules.task would have provided (see
+// mainTaskWorker in cli/worker/start.ts), so `payload.timestamp` below still
+// works.
+export const pollUltrahumanTask = task({
   id: 'poll-ultrahuman',
-  cron: '5 * * * *', // Run at 5 minutes past every hour
+  // Actual cron ("5 * * * *", every hour at :05) lives in
+  // server/utils/task-manifest.json and is registered by cw:worker.
   run: async (payload) => {
     const now = new Date(payload.timestamp)
 

@@ -31,7 +31,8 @@ export default defineVitestConfig({
     }
   },
   test: {
-    environment: 'happy-dom',
+    environment: 'node',
+    pool: 'threads',
     globals: true,
     hookTimeout: 180_000,
     testTimeout: 30_000,

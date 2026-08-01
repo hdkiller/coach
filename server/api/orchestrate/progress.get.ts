@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
 import { activeSyncs } from './full-sync.post'
 
 defineRouteMeta({
@@ -22,16 +22,13 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user?.email) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
-
-  const userId = session.user.email
+  // Require the same scope as full-sync.post.ts (which starts the sync this
+  // endpoint reports progress for) — workout:write and workout:read are
+  // independent OAuth scopes in this codebase, so a client authorized to
+  // start a full sync must also be authorized to poll its progress.
+  // Use the same user.id key as full-sync.post.ts stores in activeSyncs
+  const user = await requireAuth(event, ['workout:write'])
+  const userId = user.id
 
   // Set SSE headers
   setHeader(event, 'Content-Type', 'text/event-stream')
@@ -49,7 +46,7 @@ export default defineEventHandler(async (event) => {
         controller.enqueue(encoder.encode(message))
       }
 
-      // Get sync state if it exists
+      // Get sync state if it exists (keyed by user.id, matching full-sync)
       const syncState = activeSyncs.get(userId)
 
       if (syncState) {

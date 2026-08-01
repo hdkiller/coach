@@ -6,6 +6,7 @@ import { metabolicService } from '../../../../server/utils/services/metabolicSer
 import { mealRecommendationService } from '../../../../server/utils/services/mealRecommendationService'
 import { nutritionPlanService } from '../../../../server/utils/services/nutritionPlanService'
 import { getUserNutritionSettings } from '../../../../server/utils/nutrition/settings'
+import { extractFluidIntakeMl } from '../../../../server/utils/nutrition/hydration'
 
 vi.mock('../../../../server/utils/db', () => ({
   prisma: {
@@ -360,5 +361,19 @@ describe('nutrition chat tools', () => {
       ]
     })
     expect(result.totals.water_ml).toBe(750)
+  })
+})
+
+describe('extractFluidIntakeMl container vs. explicit volume double-counting (CW-69)', () => {
+  it('does not add a container estimate on top of an explicit volume for the same drink', () => {
+    expect(extractFluidIntakeMl('a 500ml bottle of water')).toBe(500)
+  })
+
+  it('falls back to a container estimate when no explicit volume is given', () => {
+    expect(extractFluidIntakeMl('a bottle of water')).toBe(500)
+  })
+
+  it('sums independent entries instead of suppressing the second one', () => {
+    expect(extractFluidIntakeMl('500ml + a glass of water')).toBe(750)
   })
 })

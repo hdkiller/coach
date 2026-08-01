@@ -548,15 +548,53 @@ export async function getTaskStatus(
   }
 }
 
+const TASK_RUNNING_CHECK_MAX_ATTEMPTS = 3
+const TASK_RUNNING_CHECK_RETRY_DELAY_MS = 250
+
+/**
+ * Reports whether a task is currently running for a user.
+ *
+ * This backs sync/dispatch guards (see integration-sync-guard.ts), so a
+ * transient Trigger.dev/Redis API error must never be reported as "not
+ * running" here: a caller that saw `false` would treat it as safe to
+ * dispatch and could enqueue a duplicate task during an API blip. We retry a
+ * few times with a short backoff, and if we still can't get a confident
+ * answer we throw so the caller fails closed (treats "couldn't determine"
+ * as "don't dispatch") instead of silently proceeding.
+ */
 export async function isTaskRunningForUser(
   taskIdentifier: string,
   userId: string
 ): Promise<boolean> {
-  const runsForUser = await listTaskRunsForUser(userId, 100)
-  return runsForUser.some(
-    (run) =>
-      run.taskIdentifier === taskIdentifier &&
-      ACTIVE_RUN_STATUSES.has(run.status) &&
-      (!run.id.startsWith('run_') || isRunFresh(run))
+  let lastError: unknown
+  for (let attempt = 1; attempt <= TASK_RUNNING_CHECK_MAX_ATTEMPTS; attempt++) {
+    try {
+      const runsForUser = await listTaskRunsForUser(userId, 100)
+      return runsForUser.some(
+        (run) =>
+          run.taskIdentifier === taskIdentifier &&
+          ACTIVE_RUN_STATUSES.has(run.status) &&
+          (!run.id.startsWith('run_') || isRunFresh(run))
+      )
+    } catch (error) {
+      lastError = error
+      if (attempt < TASK_RUNNING_CHECK_MAX_ATTEMPTS) {
+        console.warn(
+          `[TaskDispatcher] isTaskRunningForUser check failed for "${taskIdentifier}" ` +
+            `(attempt ${attempt}/${TASK_RUNNING_CHECK_MAX_ATTEMPTS}), retrying`,
+          error
+        )
+        await new Promise((resolve) =>
+          setTimeout(resolve, TASK_RUNNING_CHECK_RETRY_DELAY_MS * attempt)
+        )
+      }
+    }
+  }
+
+  throw new Error(
+    `Unable to determine run status for task "${taskIdentifier}" after ` +
+      `${TASK_RUNNING_CHECK_MAX_ATTEMPTS} attempts: ` +
+      `${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    { cause: lastError }
   )
 }

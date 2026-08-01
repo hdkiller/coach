@@ -9,20 +9,26 @@ export type SweatRateBand = {
   }
 }
 
+/**
+ * Band edges are half-open (`[min, max)`), so every real-number temperature maps to exactly one
+ * band with no gap between them. The values themselves (min edges and rates) are unchanged from the
+ * original bands - only the top edges moved to meet the next band's bottom edge, closing the gaps
+ * that used to sit between e.g. 9.9 and 10, which silently fell through to the "warm" fallback band.
+ */
 export const SWEAT_RATE_LOOKUP_TABLE: SweatRateBand[] = [
   {
     temperatureMinC: -20,
-    temperatureMaxC: 9.9,
+    temperatureMaxC: 10,
     ratesLph: { low: 0.45, moderate: 0.6, high: 0.75, veryHigh: 0.9 }
   },
   {
     temperatureMinC: 10,
-    temperatureMaxC: 17.9,
+    temperatureMaxC: 18,
     ratesLph: { low: 0.55, moderate: 0.75, high: 0.95, veryHigh: 1.15 }
   },
   {
     temperatureMinC: 18,
-    temperatureMaxC: 25.9,
+    temperatureMaxC: 26,
     ratesLph: { low: 0.7, moderate: 0.95, high: 1.2, veryHigh: 1.45 }
   },
   {
@@ -40,11 +46,17 @@ function resolveIntensityBand(intensity: number): keyof SweatRateBand['ratesLph'
 }
 
 function getTempBand(temperatureC: number): SweatRateBand {
-  return (
-    SWEAT_RATE_LOOKUP_TABLE.find(
-      (band) => temperatureC >= band.temperatureMinC && temperatureC <= band.temperatureMaxC
-    ) || SWEAT_RATE_LOOKUP_TABLE[2]!
+  const match = SWEAT_RATE_LOOKUP_TABLE.find(
+    (band) => temperatureC >= band.temperatureMinC && temperatureC < band.temperatureMaxC
   )
+  if (match) return match
+
+  // Outside the tabulated range entirely (colder than -20 or at/above the top edge, 60): clamp to
+  // the nearest band rather than falling back to a fixed middle band regardless of which side of the
+  // table the value missed on.
+  const first = SWEAT_RATE_LOOKUP_TABLE[0]!
+  const last = SWEAT_RATE_LOOKUP_TABLE[SWEAT_RATE_LOOKUP_TABLE.length - 1]!
+  return temperatureC < first.temperatureMinC ? first : last
 }
 
 export function getEstimatedSweatRateLph(params: {

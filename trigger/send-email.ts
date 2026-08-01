@@ -12,19 +12,26 @@ export const sendEmailTask = task({
     minTimeoutInMs: 1000,
     maxTimeoutInMs: 10000
   },
-  run: async (payload: {
-    userId: string
-    templateKey: string
-    eventKey: string
-    audience: EmailAudience
-    subject: string
-    props?: Record<string, any>
-    idempotencyKey?: string
-  }) => {
+  run: async (
+    payload: {
+      userId: string
+      templateKey: string
+      eventKey: string
+      audience: EmailAudience
+      subject: string
+      props?: Record<string, any>
+      idempotencyKey?: string
+    },
+    { ctx }
+  ) => {
     logger.log('--- EMAIL TASK START VIA TRIGGER.DEV ---', {
       eventKey: payload.eventKey,
-      userId: payload.userId
+      userId: payload.userId,
+      attempt: ctx.attempt.number
     })
-    return await EmailDeliveryService.runSendEmail(payload)
+    // Falls back to a run-scoped dedup key (see EmailDeliveryService.runSendEmail)
+    // so a Trigger.dev retry resumes/skips the same delivery instead of
+    // creating a brand new one and potentially double-sending.
+    return await EmailDeliveryService.runSendEmail(payload, { runId: ctx.run.id })
   }
 })

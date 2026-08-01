@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  convertElevation,
   convertVelocity,
+  formatElevation,
   formatPace,
   formatVelocity,
+  getElevationUnitLabel,
   getVelocityUnitLabel,
   isRideWorkoutType
 } from '../../../app/utils/metrics'
@@ -61,5 +64,50 @@ describe('formatPace', () => {
     expect(formatPace(undefined, 'Kilometers')).toBe('N/A')
     expect(formatPace(NaN, 'Kilometers')).toBe('N/A')
     expect(formatPace(Infinity, 'Kilometers')).toBe('N/A')
+  })
+})
+
+describe('formatElevation', () => {
+  it('converts to feet and rounds for a Miles-preference athlete', () => {
+    // 100m * 3.28084 = 328.084 -> rounds to 328
+    expect(formatElevation(100, 'Miles')).toBe('328 ft')
+    // 1500m * 3.28084 = 4921.26 -> rounds to 4921
+    expect(formatElevation(1500, 'Miles')).toBe('4921 ft')
+  })
+
+  it('leaves a Kilometers-preference athlete unaffected (existing behavior preserved)', () => {
+    expect(formatElevation(100, 'Kilometers')).toBe('100 m')
+    expect(formatElevation(1500, 'Kilometers')).toBe('1500 m')
+    expect(formatElevation(100, null)).toBe('100 m')
+    expect(formatElevation(100, undefined)).toBe('100 m')
+    expect(formatElevation(100, 'SomethingElse')).toBe('100 m')
+  })
+
+  it('rounds fractional meter values for a Kilometers-preference athlete', () => {
+    expect(formatElevation(123.6, 'Kilometers')).toBe('124 m')
+  })
+
+  it('returns N/A for null/undefined input', () => {
+    expect(formatElevation(null, 'Miles')).toBe('N/A')
+    expect(formatElevation(undefined, 'Kilometers')).toBe('N/A')
+  })
+
+  it('handles zero elevation gain', () => {
+    expect(formatElevation(0, 'Miles')).toBe('0 ft')
+    expect(formatElevation(0, 'Kilometers')).toBe('0 m')
+  })
+})
+
+describe('getElevationUnitLabel / convertElevation', () => {
+  it('labels feet for Miles and meters otherwise', () => {
+    expect(getElevationUnitLabel('Miles')).toBe('ft')
+    expect(getElevationUnitLabel('Kilometers')).toBe('m')
+    expect(getElevationUnitLabel(null)).toBe('m')
+    expect(getElevationUnitLabel(undefined)).toBe('m')
+  })
+
+  it('converts raw meter values without rounding, for chart/stream usage', () => {
+    expect(convertElevation(100, 'Miles')).toBeCloseTo(328.084, 3)
+    expect(convertElevation(100, 'Kilometers')).toBe(100)
   })
 })

@@ -33,6 +33,25 @@ describe('ResendService', () => {
       status: 'SENT'
     }
 
+    it('should update delivery status to SENT', async () => {
+      vi.mocked(prisma.emailDelivery.findUnique).mockResolvedValue(mockDelivery as any)
+
+      const result = await ResendService.processWebhookEvent(
+        'email.sent',
+        { email_id: mockEmailId },
+        mockCreatedAt
+      )
+
+      expect(result.handled).toBe(true)
+      expect(prisma.emailDelivery.update).toHaveBeenCalledWith({
+        where: { id: mockDelivery.id },
+        data: expect.objectContaining({
+          status: 'SENT',
+          sentAt: new Date(mockCreatedAt)
+        })
+      })
+    })
+
     it('should update delivery status to DELIVERED', async () => {
       vi.mocked(prisma.emailDelivery.findUnique).mockResolvedValue(mockDelivery as any)
 

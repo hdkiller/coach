@@ -15,10 +15,8 @@
 
   definePageMeta({
     layout: 'admin',
-    middleware: ['auth']
+    middleware: ['auth', 'admin']
   })
-
-  // Ensure only admin can access (though middleware 'admin' likely handles this, duplicating check is safe)
   const { data: stats, pending, error } = await useFetch('/api/admin/subscriptions')
 
   useHead({

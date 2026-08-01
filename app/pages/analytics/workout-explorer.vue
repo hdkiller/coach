@@ -8,6 +8,7 @@
     type WorkoutExplorerVisualType
   } from '~/utils/workout-explorer-presets'
   import { useAnalyticsBus } from '~/composables/useAnalyticsBus'
+  import { formatElevation } from '~/utils/metrics'
 
   type ExplorerSummaryChartType = 'bar' | 'line' | 'combo' | 'radar' | 'scatter'
   type ExplorerStreamField =
@@ -50,6 +51,7 @@
   const router = useRouter()
   const toast = useToast()
   const comparisonStore = useWorkoutComparisonStore()
+  const userStore = useUserStore()
 
   const { data: dashboards, refresh: refreshDashboards } = await useFetch(
     '/api/analytics/dashboards'
@@ -755,8 +757,7 @@
 
   function formatMeters(meters: number | null | undefined) {
     if (meters === null || meters === undefined) return '—'
-    if (Math.abs(meters) >= 1000) return `${(meters / 1000).toFixed(1)} km`
-    return `${Math.round(meters)} m`
+    return formatElevation(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function formatLoad(value: number | null | undefined, suffix = 'load') {

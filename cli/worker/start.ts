@@ -3,6 +3,8 @@ import { Worker } from 'bullmq'
 import IORedis from 'ioredis'
 import chalk from 'chalk'
 import http from 'http'
+import v8 from 'node:v8'
+import { WORKER_MAX_OLD_SPACE_SIZE_MB } from './ensure-heap'
 import { IntervalsService } from '../../server/utils/services/intervalsService'
 import { GarminService } from '../../server/utils/services/garminService'
 import { WhoopService } from '../../server/utils/services/whoopService'
@@ -116,7 +118,13 @@ export const startCommand = new Command('start')
     const healthPort = parseInt(process.env.CW_WORKER_HEALTH_PORT || '8081')
     const verboseWorkerLogs = process.env.CW_VERBOSE_WORKER_LOGS === '1'
 
+    const heapLimitMb = Math.round(v8.getHeapStatistics().heap_size_limit / (1024 * 1024))
     console.log(chalk.blue.bold('Initializing Webhook Worker...'))
+    console.log(
+      chalk.gray(
+        `V8 heap limit: ${heapLimitMb}MB (target ${WORKER_MAX_OLD_SPACE_SIZE_MB}MB via NODE_OPTIONS)`
+      )
+    )
     console.log(chalk.gray(`Using REDIS_URL connection string`))
 
     const connection = new IORedis(connectionString, {

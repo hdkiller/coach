@@ -1,9 +1,18 @@
 import type { H3Event } from 'h3'
-import { getHeader } from 'h3'
+import { createError, getHeader } from 'h3'
 import { getServerSession } from './session'
 import { oauthRepository } from './repositories/oauthRepository'
 import { validateApiKey } from './auth-api-key'
 import { prisma } from './db'
+
+function ensureActiveUser(user: { deactivatedAt?: Date | string | null } | null | undefined) {
+  if (user?.deactivatedAt) {
+    throw createError({
+      statusCode: 403,
+      message: 'Account deactivated'
+    })
+  }
+}
 
 /**
  * Validates an OAuth Bearer token and returns the associated user.
@@ -54,18 +63,21 @@ export async function getEffectiveUserId(event: H3Event): Promise<string> {
   // 1. Try centralized session (handles Acting As and Impersonation)
   const session = await getServerSession(event)
   if (session?.user?.id) {
+    ensureActiveUser(session.user)
     return session.user.id
   }
 
   // 2. Try API key
   const user = await validateApiKey(event)
   if (user) {
+    ensureActiveUser(user)
     return user.id
   }
 
   // 3. Try OAuth Bearer Token
   const oauthUser = await validateOAuthToken(event)
   if (oauthUser) {
+    ensureActiveUser(oauthUser)
     return oauthUser.id
   }
 

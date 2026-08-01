@@ -120,6 +120,21 @@ function inferContainerMl(container: string): number {
   return 0
 }
 
+const EXPLICIT_VOLUME_PATTERN =
+  /(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|l|liters?|litres?|oz|fl\s?oz)\b/gi
+
+// A leading count is common ("2 bottles", "three glasses") and was previously dropped, so a
+// round of drinks logged as one phrase counted as a single container.
+const CONTAINER_PATTERN =
+  /\b(\d+|one|two|three|four|five|six)?\s*(large|medium|small)?\s*(bottles?|glass(?:es)?|cups?|flasks?)\b/gi
+
+// Separators that mark genuinely distinct drink entries rather than one drink described
+// twice, e.g. "500ml + a glass of water" is two separate drinks. Explicit-volume vs.
+// container-estimate double counting ("a 500ml bottle of water") is only a risk *within*
+// one of these segments/clauses, so double-count suppression is scoped per segment instead
+// of across the whole message.
+const DRINK_SEPARATOR_PATTERN = /\s*(?:\+|,|;|\n|\band\b|\bthen\b)\s*/
+
 export function extractFluidIntakeMl(text: string): number {
   if (!text || typeof text !== 'string') return 0
   const lower = text.toLowerCase()
@@ -127,33 +142,34 @@ export function extractFluidIntakeMl(text: string): number {
   if (!hasFluidKeyword) return 0
 
   let totalMl = 0
-  let hasExplicitVolume = false
-  const explicitVolumePattern =
-    /(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|l|liters?|litres?|oz|fl\s?oz)\b/gi
-  for (const match of Array.from(lower.matchAll(explicitVolumePattern))) {
-    const value = Number(match[1] || 0)
-    const unit = (match[2] || '').toLowerCase()
-    if (!value) continue
-    hasExplicitVolume = true
-    if (unit === 'ml' || unit.startsWith('millil')) totalMl += value
-    else if (unit === 'l' || unit.startsWith('liter') || unit.startsWith('litre'))
-      totalMl += value * 1000
-    else totalMl += value * OUNCE_TO_ML
-  }
+  for (const segment of lower.split(DRINK_SEPARATOR_PATTERN)) {
+    if (!segment) continue
 
-  // If the user already gave an explicit volume ("500ml bottle"), don't also add a
-  // container estimate (which would double count).
-  if (!hasExplicitVolume) {
-    // A leading count is common ("2 bottles", "three glasses") and was previously dropped, so a
-    // round of drinks logged as one phrase counted as a single container.
-    const containerPattern =
-      /\b(\d+|one|two|three|four|five|six)?\s*(large|medium|small)?\s*(bottles?|glass(?:es)?|cups?|flasks?)\b/gi
-    for (const match of Array.from(lower.matchAll(containerPattern))) {
-      const descriptor = `${match[2] || ''} ${match[3] || ''}`.trim()
-      const perContainerMl = inferContainerMl(descriptor)
-      if (!perContainerMl) continue
-      totalMl += perContainerMl * parseCount(match[1])
+    let segmentMl = 0
+    let hasExplicitVolume = false
+    for (const match of Array.from(segment.matchAll(EXPLICIT_VOLUME_PATTERN))) {
+      const value = Number(match[1] || 0)
+      const unit = (match[2] || '').toLowerCase()
+      if (!value) continue
+      hasExplicitVolume = true
+      if (unit === 'ml' || unit.startsWith('millil')) segmentMl += value
+      else if (unit === 'l' || unit.startsWith('liter') || unit.startsWith('litre'))
+        segmentMl += value * 1000
+      else segmentMl += value * OUNCE_TO_ML
     }
+
+    // If this segment already gave an explicit volume ("500ml bottle"), don't also add a
+    // container estimate for the same drink (which would double count).
+    if (!hasExplicitVolume) {
+      for (const match of Array.from(segment.matchAll(CONTAINER_PATTERN))) {
+        const descriptor = `${match[2] || ''} ${match[3] || ''}`.trim()
+        const perContainerMl = inferContainerMl(descriptor)
+        if (!perContainerMl) continue
+        segmentMl += perContainerMl * parseCount(match[1])
+      }
+    }
+
+    totalMl += segmentMl
   }
 
   return Math.round(totalMl)

@@ -9,6 +9,7 @@ import {
   fetchOuraDailyStress,
   fetchOuraVO2Max,
   fetchOuraPersonalInfo,
+  hasOuraScope,
   normalizeOuraWellness,
   normalizeOuraWorkout
 } from '../oura'
@@ -47,6 +48,9 @@ export const OuraService = {
     const start = new Date(date)
     const end = new Date(date) // Same day
 
+    // spo2Daily is optional; skip when the stored token scope is known to lack it.
+    const canFetchSpO2 = !integration.scope || hasOuraScope(integration, 'spo2Daily')
+
     const [
       sleepData,
       sleepPeriodsData,
@@ -62,7 +66,7 @@ export const OuraService = {
           fetchOuraSleepPeriods(integration, start, end),
           fetchOuraDailyActivity(integration, start, end),
           fetchOuraDailyReadiness(integration, start, end),
-          fetchOuraDailySpO2(integration, start, end),
+          canFetchSpO2 ? fetchOuraDailySpO2(integration, start, end) : Promise.resolve([]),
           fetchOuraDailyStress(integration, start, end),
           fetchOuraVO2Max(integration, start, end),
           fetchOuraPersonalInfo(integration)

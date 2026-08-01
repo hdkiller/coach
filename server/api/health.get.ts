@@ -11,7 +11,8 @@ export default defineEventHandler(async (event) => {
     dbStatus = 'connected'
   } catch (e: any) {
     dbStatus = 'disconnected'
-    error = e.message
+    console.error('[health] Database connection check failed:', e)
+    error = 'Database connection error'
     setResponseStatus(event, 503)
   }
 

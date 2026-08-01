@@ -615,7 +615,6 @@
     if (!athlete?.id) return
     const name = athlete.name || athlete.email || 'Athlete'
     coachingStore.startActingAs(athlete.id, name)
-    void router.push('/dashboard')
   }
 
   function extractInviteCode(raw: string) {

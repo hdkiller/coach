@@ -103,6 +103,48 @@ describe('integration-sync-guard', () => {
     expect(result).toEqual({ blocked: true, provider: 'oura', reason: 'provider' })
   })
 
+  it('fails closed and blocks provider sync when the run-status check errors (transient API failure)', async () => {
+    isTaskRunningMock.mockRejectedValue(new Error('Trigger.dev API request failed'))
+
+    const { resolveProviderSyncBlock } =
+      await import('../../../../server/utils/integration-sync-guard')
+
+    const result = await resolveProviderSyncBlock('user-1', {
+      id: 'integration-oura',
+      provider: 'oura',
+      syncStatus: 'SYNCING'
+    })
+
+    expect(result).toEqual({ blocked: true, provider: 'oura', reason: 'provider' })
+    expect(prismaMock.integration.update).not.toHaveBeenCalled()
+  })
+
+  it('fails closed and blocks sync-all when the ingest-all run-status check errors (transient API failure)', async () => {
+    isTaskRunningMock.mockRejectedValue(new Error('Trigger.dev API request failed'))
+    prismaMock.integration.findFirst.mockResolvedValue({ provider: 'oura' })
+
+    const { resolveSyncAllBlock } = await import('../../../../server/utils/integration-sync-guard')
+
+    const result = await resolveSyncAllBlock('user-1')
+
+    expect(result).toEqual({ blocked: true, provider: 'oura', reason: 'ingest-all' })
+    expect(prismaMock.integration.update).not.toHaveBeenCalled()
+  })
+
+  it('does not fail closed when the run-status check cleanly reports nothing running', async () => {
+    isTaskRunningMock.mockResolvedValue(false)
+    prismaMock.integration.findMany.mockResolvedValue([
+      { id: 'integration-oura', provider: 'oura', syncStatus: 'SYNCING' }
+    ])
+
+    const { resolveSyncAllBlock } = await import('../../../../server/utils/integration-sync-guard')
+
+    const result = await resolveSyncAllBlock('user-1')
+
+    expect(result).toEqual({ blocked: false })
+    expect(prismaMock.integration.update).toHaveBeenCalledTimes(1)
+  })
+
   it('formats sync-in-progress messages for batch and provider blocks', async () => {
     const { formatSyncInProgressMessage } =
       await import('../../../../server/utils/integration-sync-guard')

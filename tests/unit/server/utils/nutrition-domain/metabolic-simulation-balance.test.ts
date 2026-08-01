@@ -67,9 +67,11 @@ describe('energy timeline carbohydrate and calorie balance', () => {
       }
     )
 
-    const last = huge[huge.length - 1]!
-    const carbsIn = last.carbBalance
-    const kcalIn = last.kcalBalance
+    // An hour in, the cap has clearly bitten: at most 90g (4 intervals x 22.5g) can have cleared
+    // the gut so far, far short of what a RAPID curve would otherwise have released for a 400g meal.
+    const oneHourIn = huge.find((p) => p.time === '08:00')!
+    const carbsIn = oneHourIn.carbBalance
+    const kcalIn = oneHourIn.kcalBalance
 
     expect(carbsIn).toBeGreaterThan(0)
     expect(carbsIn).toBeLessThan(400) // the cap withheld some of it
@@ -80,6 +82,46 @@ describe('energy timeline carbohydrate and calorie balance', () => {
     const kcalPerGram = kcalIn / carbsIn
     expect(kcalPerGram).toBeGreaterThan(3.5)
     expect(kcalPerGram).toBeLessThan(4.5)
+  })
+
+  it('defers what the gut cap held back into later intervals instead of discarding it', () => {
+    // Same oversized single meal as above. The cap can only hold back roughly 90g/hour, so a lone
+    // 400g meal logged first thing in the morning has more than enough of the day left to clear the
+    // gut in full - it should all show up by the end of the day, not just the fraction one interval
+    // could take up front.
+    const huge = timeline(
+      {
+        breakfast: [
+          {
+            name: 'Huge Meal',
+            carbs: 400,
+            calories: 1600,
+            logged_at: `${DATE}T07:00:00Z`,
+            absorptionType: 'RAPID'
+          }
+        ]
+      },
+      [],
+      {},
+      {
+        bmr: 1,
+        mealPattern: [{ name: 'Breakfast', time: '07:00' }]
+      }
+    )
+
+    const last = huge[huge.length - 1]!
+
+    // Previously: whatever a single interval's cap withheld was gone for good, so the day-end total
+    // came out well short of the 400g actually eaten. Deferred to later windows, it should recover
+    // essentially all of it well before midnight.
+    expect(last.carbBalance).toBeGreaterThanOrEqual(399)
+    expect(last.kcalBalance).toBeGreaterThanOrEqual(4 * 399)
+
+    // The running total should also never fall as it moves from one capped interval to the next -
+    // deferral means nothing already credited is later taken back.
+    for (let i = 1; i < huge.length; i++) {
+      expect(huge[i]!.carbBalance).toBeGreaterThanOrEqual(huge[i - 1]!.carbBalance)
+    }
   })
 
   it('caps absorption per interval', () => {

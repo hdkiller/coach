@@ -183,11 +183,11 @@
             <div class="flex items-baseline gap-1 truncate">
               <span
                 class="text-xl sm:text-2xl font-black text-black dark:text-white tabular-nums"
-                >{{ workout.elevationGain }}</span
+                >{{ elevationGainValue(workout.elevationGain) }}</span
               >
               <span
                 class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
-                >m</span
+                >{{ elevationUnitLabel }}</span
               >
             </div>
           </div>
@@ -271,8 +271,10 @@
 
 <script setup lang="ts">
   import { getWorkoutSourceLabel } from '~/utils/workout-source'
+  import { convertElevation, getElevationUnitLabel } from '~/utils/metrics'
 
   const { formatDateTime } = useFormat()
+  const userStore = useUserStore()
 
   const props = defineProps<{
     workout: any
@@ -289,6 +291,14 @@
     if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
     return `${m}:${s.toString().padStart(2, '0')}`
   }
+
+  function elevationGainValue(meters: number): number {
+    return Math.round(convertElevation(meters, userStore.profile?.distanceUnits || 'Kilometers'))
+  }
+
+  const elevationUnitLabel = computed(() =>
+    getElevationUnitLabel(userStore.profile?.distanceUnits || 'Kilometers')
+  )
 
   function getIntensityColorClass(intensity: number | null, type: 'text' | 'bg' = 'text') {
     const val = intensity || 0

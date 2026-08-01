@@ -7,7 +7,7 @@
   import ChatDomainToolCard from '~/components/chat/ChatDomainToolCard.vue'
   import ChatPlannedWorkoutCard from '~/components/chat/ChatPlannedWorkoutCard.vue'
   import ChatTicketToolCard from '~/components/chat/ChatTicketToolCard.vue'
-  import { hasStructuredWorkoutPreviewData } from '~/utils/structuredWorkout'
+  import { hasRenderableStructure } from '~/utils/workout-structure'
 
   const props = withDefaults(
     defineProps<{
@@ -125,7 +125,7 @@
   const hasPlannedWorkoutStructure = (response: any) => {
     if (!response || typeof response !== 'object') return false
     const structure = response.structuredWorkout || response.structured_workout
-    return hasStructuredWorkoutPreviewData(structure)
+    return hasRenderableStructure(structure)
   }
 
   const shouldRenderPlannedWorkoutCard = (part: any) => {

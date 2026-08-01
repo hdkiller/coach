@@ -95,7 +95,9 @@ export async function runIngestStrava(payload: {
     let detailsFetched = 0
     const queuedRepairWorkoutIds = new Set<string>()
 
-    for (const activity of activities) {
+    // Drain the list so completed activity summaries are eligible for GC during long syncs.
+    while (activities.length > 0) {
+      const activity = activities.shift()!
       const activityDate = new Date(activity.start_date)
       const fiveMinutesBefore = new Date(activityDate.getTime() - 5 * 60 * 1000)
       const fiveMinutesAfter = new Date(activityDate.getTime() + 5 * 60 * 1000)

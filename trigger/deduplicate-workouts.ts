@@ -63,7 +63,13 @@ export const deduplicateWorkoutsTask = task({
         }
       })
 
-      const workouts = await attachStreamsToWorkouts(workoutRecords)
+      // deduplicationService.findDuplicateGroups()/calculateCompletenessScore
+      // only check whether `streams` is truthy (never read a specific field),
+      // so no optional stream columns are needed here -- just the mandatory
+      // baseline findManyByWorkoutIds always fetches to determine "usable"
+      // streams. This is the CW-224 fix: this task can process a user's
+      // entire workout history (hundreds of IDs) in one call.
+      const workouts = await attachStreamsToWorkouts(workoutRecords, { fields: [] })
 
       logger.log(`Found ${workouts.length} workouts to analyze`, {
         userId: actualUserId,

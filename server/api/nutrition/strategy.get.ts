@@ -2,8 +2,6 @@ import { requireAuth } from '../../utils/auth-guard'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../utils/date'
 import { prisma } from '../../utils/db'
-import { getUserNutritionSettings } from '../../utils/nutrition/settings'
-import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import {
   getHydrationAdviceSummary,
   getHydrationRingStatus,
@@ -57,29 +55,34 @@ export default defineEventHandler(async (event) => {
 
   try {
     // 1. Calculate Fueling Matrix (7 days: Today + 6 ahead)
-    const settings = await getUserNutritionSettings(userId)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { weight: true, weightSourceMode: true, ftp: true }
-    })
-    const weight =
-      (await bodyMetricResolver.resolveEffectiveWeight(userId, user || undefined)).value || 75
+    // CW-83: a single batched call for the whole 7-day window instead of 7 sequential
+    // calculateFuelingPlanForDate() calls, each of which independently re-fetched timezone,
+    // nutrition settings, weight and that single day's workouts. (The per-day settings/user/weight
+    // fetches this replaced were already unused by the rest of this handler - calculateFuelingPlansForRange
+    // resolves them itself from the shared context it fetches once.)
+    const matrixEndDate = new Date(today)
+    matrixEndDate.setUTCDate(today.getUTCDate() + 6)
+    const dayPlans = await metabolicService.calculateFuelingPlansForRange(
+      userId,
+      today,
+      matrixEndDate,
+      { persist: false }
+    )
 
     const fuelingMatrix = []
     for (let i = 0; i < 7; i++) {
       const date = new Date(today)
       date.setUTCDate(today.getUTCDate() + i)
+      const dateKey = formatDateUTC(date)
 
-      const dayPlan = await metabolicService.calculateFuelingPlanForDate(userId, date, {
-        persist: false
-      })
-      const plan = dayPlan.plan as any
+      const dayPlan = dayPlans.get(dateKey)
+      const plan = dayPlan?.plan as any
 
       const totals = plan.dailyTotals
       const state = totals.fuelState || 1
 
       fuelingMatrix.push({
-        date: formatDateUTC(date),
+        date: dateKey,
         state,
         label: state === 3 ? 'Performance' : state === 2 ? 'Steady' : 'Eco',
         carbsTarget: Math.round(totals.carbs),

@@ -103,6 +103,30 @@ export const WITHINGS_MEASURE_TYPES = {
 }
 
 /**
+ * Withings-documented status code for "Too Many Requests" (application temporarily
+ * rate-limited). https://developer.withings.com/api-reference/#section/Response-status
+ */
+const WITHINGS_RATE_LIMIT_STATUS = 601
+
+/**
+ * Throws a retryable IntegrationProviderError when the Withings body-level status
+ * indicates the app has been rate-limited. Trigger.dev's task-level retry config
+ * (see trigger.config.ts) will back off and retry automatically, and the global
+ * onFailure hook (trigger/init.ts) suppresses Sentry reporting until the final
+ * attempt via shouldReportIntegrationErrorToSentry.
+ */
+function throwIfWithingsRateLimited(status: number, integrationId: string): void {
+  if (status === WITHINGS_RATE_LIMIT_STATUS) {
+    throw new IntegrationProviderError({
+      provider: 'withings',
+      integrationId,
+      statusCode: status,
+      message: `Withings API rate limit exceeded (Status ${status})`
+    })
+  }
+}
+
+/**
  * Refreshes an expired Withings access token using the refresh token
  */
 export async function refreshWithingsToken(integration: Integration): Promise<Integration> {
@@ -244,6 +268,8 @@ export async function fetchWithingsMeasures(
   const data: WithingsMeasureResponse = await response.json()
 
   if (data.status !== 0) {
+    throwIfWithingsRateLimited(data.status, validIntegration.id)
+
     // 401: Invalid access token
     if (data.status === 401) {
       console.log('[Withings] Token invalid (401), attempting refresh...')
@@ -254,6 +280,7 @@ export async function fetchWithingsMeasures(
       const retryData: WithingsMeasureResponse = await retryResponse.json()
 
       if (retryData.status !== 0) {
+        throwIfWithingsRateLimited(retryData.status, refreshedIntegration.id)
         throw new Error(`Withings API error after refresh: Status ${retryData.status}`)
       }
 
@@ -300,6 +327,8 @@ export async function fetchWithingsActivities(
   const data: WithingsActivityResponse = await response.json()
 
   if (data.status !== 0) {
+    throwIfWithingsRateLimited(data.status, validIntegration.id)
+
     // 401: Invalid access token
     if (data.status === 401) {
       console.log('[Withings] Token invalid (401), attempting refresh...')
@@ -310,6 +339,7 @@ export async function fetchWithingsActivities(
       const retryData: WithingsActivityResponse = await retryResponse.json()
 
       if (retryData.status !== 0) {
+        throwIfWithingsRateLimited(retryData.status, refreshedIntegration.id)
         throw new Error(`Withings API error after refresh: Status ${retryData.status}`)
       }
 
@@ -502,13 +532,17 @@ export async function fetchWithingsWorkouts(
   const data: WithingsWorkoutResponse = await response.json()
 
   if (data.status !== 0) {
+    throwIfWithingsRateLimited(data.status, validIntegration.id)
+
     if (data.status === 401) {
       const refreshedIntegration = await refreshWithingsToken(validIntegration)
       url.searchParams.set('access_token', refreshedIntegration.accessToken)
       const retryResponse = await fetch(url.toString())
       const retryData: WithingsWorkoutResponse = await retryResponse.json()
-      if (retryData.status !== 0)
+      if (retryData.status !== 0) {
+        throwIfWithingsRateLimited(retryData.status, refreshedIntegration.id)
         throw new Error(`Withings API error after refresh: Status ${retryData.status}`)
+      }
       return retryData.body.series || []
     }
     throw new Error(`Withings API error: Status ${data.status}`)
@@ -545,13 +579,17 @@ export async function fetchWithingsIntraday(
   const data: any = await response.json()
 
   if (data.status !== 0) {
+    throwIfWithingsRateLimited(data.status, validIntegration.id)
+
     if (data.status === 401) {
       const refreshedIntegration = await refreshWithingsToken(validIntegration)
       url.searchParams.set('access_token', refreshedIntegration.accessToken)
       const retryResponse = await fetch(url.toString())
       const retryData: any = await retryResponse.json()
-      if (retryData.status !== 0)
+      if (retryData.status !== 0) {
+        throwIfWithingsRateLimited(retryData.status, refreshedIntegration.id)
         throw new Error(`Withings API error after refresh: Status ${retryData.status}`)
+      }
       // Return raw series object (keys are timestamps)
       return retryData.body.series || {}
     }
@@ -712,13 +750,17 @@ export async function fetchWithingsSleep(
   const data: WithingsSleepResponse = await response.json()
 
   if (data.status !== 0) {
+    throwIfWithingsRateLimited(data.status, validIntegration.id)
+
     if (data.status === 401) {
       const refreshedIntegration = await refreshWithingsToken(validIntegration)
       url.searchParams.set('access_token', refreshedIntegration.accessToken)
       const retryResponse = await fetch(url.toString())
       const retryData: WithingsSleepResponse = await retryResponse.json()
-      if (retryData.status !== 0)
+      if (retryData.status !== 0) {
+        throwIfWithingsRateLimited(retryData.status, refreshedIntegration.id)
         throw new Error(`Withings API error after refresh: Status ${retryData.status}`)
+      }
       return retryData.body.series || []
     }
     throw new Error(`Withings API error: Status ${data.status}`)

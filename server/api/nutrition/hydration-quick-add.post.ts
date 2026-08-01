@@ -1,7 +1,10 @@
 import { z } from 'zod/v3'
 import { requireAuth } from '../../utils/auth-guard'
 import { parseCalendarDate } from '../../utils/date'
-import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import {
+  CONCURRENT_UPDATE_CONFLICT,
+  nutritionRepository
+} from '../../utils/repositories/nutritionRepository'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../utils/nutrition/totals'
 
 const quickAddSchema = z.object({
@@ -69,27 +72,58 @@ export default defineEventHandler(async (event) => {
     source
   })
 
-  let nutrition = await nutritionRepository.getByDate(userId, date)
+  const nutrition = await nutritionRepository.getByDate(userId, date)
+
+  let updatedNutrition: Awaited<ReturnType<typeof nutritionRepository.create>>
 
   if (!nutrition) {
-    nutrition = await nutritionRepository.create({
-      userId,
-      date,
-      waterMl: body.volumeMl,
-      snacks: [hydrationItem]
-    })
+    const snacks = [hydrationItem]
+    const totals = recalculateNutritionTotals({ snacks })
+    try {
+      updatedNutrition = await nutritionRepository.create({
+        userId,
+        date,
+        waterMl: totals.waterMl,
+        snacks
+      })
+    } catch (err: any) {
+      // Another request created the row for this date between our read and
+      // this create (unique userId+date constraint violation).
+      if (err?.code === 'P2002') {
+        throw createError({
+          statusCode: 409,
+          message: 'A hydration entry was added elsewhere for this date. Please retry.'
+        })
+      }
+      throw err
+    }
   } else {
+    // Merge the new snack entry and the recalculated waterMl total into a
+    // single, version-checked write so a concurrent quick-add can never be
+    // silently dropped by a lost-update race.
+    const expectedUpdatedAt = nutrition.updatedAt
     const currentSnacks = Array.isArray(nutrition.snacks) ? nutrition.snacks : []
-    nutrition = await nutritionRepository.update(nutrition.id, {
-      snacks: [...currentSnacks, hydrationItem],
-      waterMl: Math.max(0, Number(nutrition.waterMl || 0) + body.volumeMl)
-    })
-  }
+    const snacks = [...currentSnacks, hydrationItem]
+    const totals = recalculateNutritionTotals({ ...nutrition, snacks })
 
-  const totals = recalculateNutritionTotals(nutrition as Record<string, any>)
-  const updatedNutrition = await nutritionRepository.update(nutrition.id, {
-    waterMl: totals.waterMl
-  })
+    const result = await nutritionRepository.updateWithVersionCheck(
+      nutrition.id,
+      expectedUpdatedAt,
+      {
+        snacks,
+        waterMl: totals.waterMl
+      }
+    )
+
+    if (result === CONCURRENT_UPDATE_CONFLICT) {
+      throw createError({
+        statusCode: 409,
+        message: 'This nutrition entry was updated elsewhere. Please retry.'
+      })
+    }
+
+    updatedNutrition = result
+  }
 
   return {
     success: true,

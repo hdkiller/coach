@@ -51,12 +51,24 @@ export async function isProviderActivelySyncing(
     return false
   }
 
-  const [providerRunning, batchRunning] = await Promise.all([
-    isTaskRunningForUser(taskId, userId),
-    isTaskRunningForUser('ingest-all', userId)
-  ])
+  try {
+    const [providerRunning, batchRunning] = await Promise.all([
+      isTaskRunningForUser(taskId, userId),
+      isTaskRunningForUser('ingest-all', userId)
+    ])
 
-  return providerRunning || batchRunning
+    return providerRunning || batchRunning
+  } catch (error) {
+    // Couldn't confirm run status (isTaskRunningForUser already retried and
+    // gave up) — a transient Trigger.dev/Redis blip. Fail closed: treat the
+    // integration as actively syncing so we neither clear its SYNCING
+    // status nor let a duplicate sync be dispatched.
+    console.warn(
+      `[SyncGuard] Unable to determine sync status for provider "${provider}"; assuming active`,
+      error
+    )
+    return true
+  }
 }
 
 export async function resolveProviderSyncBlock(
@@ -82,7 +94,16 @@ export async function resolveProviderSyncBlock(
 }
 
 export async function resolveSyncAllBlock(userId: string): Promise<SyncBlockResult> {
-  const batchRunning = await isTaskRunningForUser('ingest-all', userId)
+  let batchRunning: boolean
+  try {
+    batchRunning = await isTaskRunningForUser('ingest-all', userId)
+  } catch (error) {
+    // Same fail-closed reasoning as isProviderActivelySyncing above: an
+    // unconfirmed run status must not be treated as "safe to dispatch".
+    console.warn('[SyncGuard] Unable to determine ingest-all run status; assuming active', error)
+    batchRunning = true
+  }
+
   if (batchRunning) {
     const syncingIntegration = await prisma.integration.findFirst({
       where: { userId, syncStatus: 'SYNCING' },

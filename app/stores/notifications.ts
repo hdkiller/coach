@@ -37,18 +37,32 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   const markAsRead = async (id: string) => {
+    const n = notifications.value.find((n) => n.id === id)
+    const wasUnread = !!n && !n.read
+
+    // Optimistically flip local/store state first so the badge count and
+    // read styling update immediately, before the network round-trip
+    // resolves. This also means callers that `await markAsRead(id)` before
+    // navigating still see the optimistic UI update right away, while the
+    // actual API call below is guaranteed to complete (or fail) before that
+    // await resolves - it is never left dangling/cancelled by a route change.
+    if (n && wasUnread) {
+      n.read = true
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    }
+
     try {
       await ($fetch as any)('/api/notifications/read', {
         method: 'PATCH',
         body: { id }
       })
-      const n = notifications.value.find((n) => n.id === id)
-      if (n && !n.read) {
-        n.read = true
-        unreadCount.value = Math.max(0, unreadCount.value - 1)
-      }
     } catch (error) {
       console.error('Failed to mark notification as read:', error)
+      // Roll back the optimistic update since the server never persisted it.
+      if (n && wasUnread) {
+        n.read = false
+        unreadCount.value++
+      }
     }
   }
 
