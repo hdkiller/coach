@@ -143,22 +143,28 @@ export function sanitizeChatMessagesForToolApprovals(messages: any[]): any[] {
     const parts = getMessageParts(message)
     if (parts.length === 0) return message
 
-    if (message.role === 'tool') {
-      const sanitizedParts = parts
-        .map((part) =>
-          part?.type === 'tool-approval-response' ? sanitizeToolApprovalResponsePart(part) : part
-        )
-        .filter((part) => part != null)
+    // Bare tool-approval-response parts can appear under any role (assistant-role
+    // history rows included), so normalize them regardless of the parent message.
+    const sanitizedParts = parts
+      .map((part) => {
+        if (part?.type === 'tool-approval-response') {
+          return sanitizeToolApprovalResponsePart(part)
+        }
+        if (message.role === 'assistant') {
+          return sanitizeAssistantToolApprovalPart(part)
+        }
+        return part
+      })
+      .filter((part) => part != null)
 
-      return withMessageParts(message, sanitizedParts)
+    if (message.role !== 'tool' && message.role !== 'assistant') {
+      const changed =
+        sanitizedParts.length !== parts.length ||
+        sanitizedParts.some((part, i) => part !== parts[i])
+      if (!changed) return message
     }
 
-    if (message.role === 'assistant') {
-      const sanitizedParts = parts.map((part) => sanitizeAssistantToolApprovalPart(part))
-      return withMessageParts(message, sanitizedParts)
-    }
-
-    return message
+    return withMessageParts(message, sanitizedParts)
   })
 }
 
@@ -170,15 +176,27 @@ export function sanitizeCoreMessagesForToolApprovals(messages: any[]): any[] {
 
   return messages
     .map((message) => {
-      if (message?.role !== 'tool' || !Array.isArray(message.content)) return message
+      if (!message || !Array.isArray(message.content)) return message
 
-      const content = message.content
-        .map((part: any) =>
-          part?.type === 'tool-approval-response' ? sanitizeToolApprovalResponsePart(part) : part
-        )
-        .filter((part: any) => part != null)
+      if (message.role === 'tool') {
+        const content = message.content
+          .map((part: any) =>
+            part?.type === 'tool-approval-response' ? sanitizeToolApprovalResponsePart(part) : part
+          )
+          .filter((part: any) => part != null)
 
-      if (content.length === 0) return null
+        if (content.length === 0) return null
+
+        return { ...message, content }
+      }
+
+      // The ModelMessage schema only allows tool-approval-response parts inside
+      // tool-role messages; anywhere else they crash standardizePrompt, so drop them.
+      const content = message.content.filter((part: any) => part?.type !== 'tool-approval-response')
+      if (content.length === message.content.length) return message
+      if (content.length === 0 && message.role === 'assistant') {
+        content.push({ type: 'text', text: ' ' })
+      }
 
       return { ...message, content }
     })
