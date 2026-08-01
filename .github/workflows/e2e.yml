@@ -106,7 +106,7 @@ jobs:
             playwright-chromium-${{ runner.os }}-
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright
         if: ${{ !inputs.lighthouse_only }}
