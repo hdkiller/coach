@@ -189,8 +189,13 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
 
   for (const msg of historyMessages) {
     if (msg.role === 'tool') {
-      // Handle tool results
-      const parts = Array.isArray(msg.content) ? msg.content : msg.parts || []
+      // Handle tool results. Tool outputs loaded from the database can carry raw
+      // Date fields (e.g. plannedWorkout sync timestamps) that the AI SDK's
+      // JSON-only prompt schema rejects, so make the payload JSON-safe first.
+      const safeToolMsg = toJsonSafe(msg)
+      const parts = Array.isArray(safeToolMsg.content)
+        ? safeToolMsg.content
+        : safeToolMsg.parts || []
       const results = parts
         .filter(
           (p: any) =>
