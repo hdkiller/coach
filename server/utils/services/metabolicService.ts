@@ -1,3 +1,4 @@
+import { dailyBaseWindowKey } from '../../../shared/window-keys'
 import { prisma } from '../db'
 import { nutritionRepository } from '../repositories/nutritionRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
@@ -67,11 +68,9 @@ interface NutritionPlanSummary {
 
 export const metabolicService = {
   getDailyBaseWindowKey(slotName?: string) {
-    const normalized = (slotName || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-    return normalized ? `DAILY_BASE:${normalized}` : 'DAILY_BASE'
+    // Canonical slugifier shared with the generator and the app; a drifted local copy here once
+    // produced 'DAILY_BASE:lunch-' for 'Lunch!' and unlinked the stored meal.
+    return dailyBaseWindowKey(slotName)
   },
 
   /**

@@ -99,7 +99,8 @@ vi.mock('../../../../../server/utils/services/metabolicService', async (importOr
   return {
     metabolicService: {
       ...actual.metabolicService,
-      getNutritionDay: vi.fn()
+      getNutritionDay: vi.fn(),
+      getMealTargetContext: vi.fn()
     }
   }
 })
@@ -494,6 +495,173 @@ describe('nutritionPlanService', () => {
           })
         })
       )
+    })
+  })
+
+  describe('reconciliation matching', () => {
+    const snackWindow = {
+      type: 'DAILY_BASE',
+      windowKey: 'DAILY_BASE:snack',
+      slotName: 'Snack',
+      startTime: '2026-02-15T14:00:00.000Z',
+      endTime: '2026-02-15T16:00:00.000Z'
+    }
+
+    it('matches an item logged under the plural snacks array to a snack slot', () => {
+      // Logged items carry the Nutrition record's plural array name; slot slugs are singular.
+      // The raw includes() check never matched, so snack plan meals stayed PLANNED forever.
+      const planMeal = { windowType: 'DAILY_BASE:snack' }
+      const item = {
+        id: 'log-1',
+        mealType: 'snacks',
+        name: 'Apple',
+        at: new Date('2026-02-15T15:00:00.000Z')
+      }
+
+      expect(
+        nutritionPlanService.matchLoggedItemToPlanMeal(planMeal, [snackWindow], [item], new Set())
+      ).toBe(item)
+    })
+
+    it('still rejects items outside the window or of an unrelated meal type', () => {
+      const planMeal = { windowType: 'DAILY_BASE:snack' }
+      const outsideWindow = {
+        id: 'log-2',
+        mealType: 'snacks',
+        name: 'Apple',
+        at: new Date('2026-02-15T18:00:00.000Z')
+      }
+      const wrongMealType = {
+        id: 'log-3',
+        mealType: 'dinner',
+        name: 'Steak',
+        at: new Date('2026-02-15T15:00:00.000Z')
+      }
+
+      expect(
+        nutritionPlanService.matchLoggedItemToPlanMeal(
+          planMeal,
+          [snackWindow],
+          [outsideWindow, wrongMealType],
+          new Set()
+        )
+      ).toBeNull()
+    })
+  })
+
+  describe('lockMeal target and schedule handling', () => {
+    beforeEach(() => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({ id: 'plan-1' } as any)
+      vi.mocked(prisma.nutritionPlan.findMany).mockResolvedValue([] as any)
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockResolvedValue({
+        id: 'plan-meal-1',
+        planId: 'plan-1',
+        date: new Date('2026-02-15T00:00:00.000Z'),
+        windowType: 'PRE_WORKOUT',
+        scheduledAt: new Date('2026-02-15T00:00:00.000Z')
+      } as any)
+    })
+
+    it('keeps the stored window target when a re-lock carries no explicit targets', async () => {
+      // The replace action re-locks without targets; writing the meal's own totals as the
+      // target made every target-vs-planned comparison self-referential.
+      await nutritionPlanService.lockMeal('user-1', '2026-02-15', 'PRE_WORKOUT', {
+        title: 'Rice Cakes',
+        totals: { carbs: 50 }
+      })
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.update.targetJson).toBeUndefined()
+      expect(upsertArgs.create.targetJson).toEqual({ carbs: 50, protein: 0, kcal: 0 })
+    })
+
+    it('writes the explicit window target when the assignment carries one', async () => {
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Rice Cakes', totals: { carbs: 50 } },
+        undefined,
+        {
+          windowAssignments: [
+            {
+              windowType: 'PRE_WORKOUT',
+              windowKey: 'PRE_WORKOUT#1',
+              targetCarbs: 90,
+              targetProtein: 20,
+              targetKcal: 450
+            }
+          ]
+        }
+      )
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.update.targetJson).toEqual({ carbs: 90, protein: 20, kcal: 450 })
+    })
+
+    it('schedules a locked meal at its window start time instead of midnight', async () => {
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue({
+        id: 'nutrition-1',
+        fuelingPlan: {
+          windows: [
+            {
+              type: 'PRE_WORKOUT',
+              windowKey: 'PRE_WORKOUT#1',
+              startTime: '2026-02-15T09:30:00.000Z'
+            }
+          ]
+        }
+      } as any)
+
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Morning Oats', totals: { carbs: 60 } },
+        undefined,
+        { windowKey: 'PRE_WORKOUT#1' }
+      )
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.create.scheduledAt).toEqual(new Date('2026-02-15T09:30:00.000Z'))
+      expect(upsertArgs.update.scheduledAt).toEqual(new Date('2026-02-15T09:30:00.000Z'))
+    })
+  })
+
+  describe('generateDraftPlan', () => {
+    it('persists the full plan week even when a sub-range is generated', async () => {
+      // A caller-supplied endDate used to truncate the plan row, orphaning locked meals on the
+      // cut-off days, and the regenerated summary wiped the untouched days' entries.
+      const weekStart = new Date('2026-02-09T00:00:00.000Z')
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({
+        id: 'plan-1',
+        startDate: weekStart,
+        summaryJson: {
+          days: [{ date: '2026-02-12', fuelingPlan: { windows: [] }, targets: {} }]
+        },
+        meals: []
+      } as any)
+      vi.mocked(prisma.userNutritionSettings.findUnique).mockResolvedValue(null as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null as any)
+      vi.mocked(bodyMetricResolver.resolveEffectiveWeight).mockResolvedValue({ value: 75 } as any)
+      vi.mocked(metabolicService.getNutritionDay).mockResolvedValue({
+        fuelingPlan: { windows: [] },
+        targets: {}
+      } as any)
+      vi.mocked(metabolicService.getMealTargetContext).mockResolvedValue({} as any)
+
+      await nutritionPlanService.generateDraftPlan(
+        'user-1',
+        new Date('2026-02-09T00:00:00.000Z'),
+        new Date('2026-02-11T23:59:59.999Z')
+      )
+
+      const updateArgs = vi.mocked(prisma.nutritionPlan.update).mock.calls[0]?.[0] as any
+      expect(updateArgs.data.endDate).toEqual(new Date('2026-02-15T23:59:59.999Z'))
+
+      const summaryDates = updateArgs.data.summaryJson.days.map((day: any) => day.date)
+      expect(summaryDates).toEqual(['2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12'])
     })
   })
 })

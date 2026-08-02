@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  shiftPlanDates,
-  calculateWeekTargets
-} from '../../../../server/utils/plan-logic'
+import { shiftPlanDates } from '../../../../server/utils/plan-logic'
 import { prisma } from '../../../../server/utils/db'
 
 // Mock prisma
@@ -88,28 +85,6 @@ describe('Plan Logic Utils', () => {
     })
   })
 
-  describe('calculateWeekTargets', () => {
-    it('should calculate defaults (MID)', () => {
-      const result = calculateWeekTargets('Build', 'MID')
-      expect(result.volumeTargetMinutes).toBe(450)
-      expect(result.tssTarget).toBe(Math.round((450/60)*50)) // 375
-    })
-
-    it('should calculate LOW volume', () => {
-      const result = calculateWeekTargets('Base', 'LOW')
-      expect(result.volumeTargetMinutes).toBe(240)
-      expect(result.tssTarget).toBe(Math.round((240/60)*50)) // 200
-    })
-
-    it('should calculate HIGH volume', () => {
-      const result = calculateWeekTargets('Base', 'HIGH')
-      expect(result.volumeTargetMinutes).toBe(600)
-      expect(result.tssTarget).toBe(Math.round((600/60)*50)) // 500
-    })
-
-     it('should fallback to MID for unknown preference', () => {
-      const result = calculateWeekTargets('Base', 'UNKNOWN')
-      expect(result.volumeTargetMinutes).toBe(450)
-    })
-  })
+  // calculateWeekTargets moved to server/utils/plans/week-targets.ts (CW-318);
+  // see tests/unit/server/utils/plans/week-targets.test.ts
 })
