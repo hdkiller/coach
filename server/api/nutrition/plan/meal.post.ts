@@ -2,15 +2,75 @@ import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
 
+// mealJson flows untouched into grocery aggregation, dashboards, and reconciliation, so the
+// shape is validated here while unknown extra fields still pass through.
+const numberLike = z.union([z.number(), z.string()])
+
+const ingredientSchema = z
+  .object({
+    item: z.string().optional(),
+    name: z.string().optional(),
+    quantity: numberLike.nullish(),
+    unit: z.string().nullish(),
+    category: z.string().nullish()
+  })
+  .passthrough()
+
+const mealSchema = z
+  .object({
+    title: z.string().optional(),
+    name: z.string().optional(),
+    totals: z
+      .object({
+        carbs: numberLike.nullish(),
+        protein: numberLike.nullish(),
+        kcal: numberLike.nullish(),
+        calories: numberLike.nullish(),
+        fat: numberLike.nullish()
+      })
+      .passthrough()
+      .optional(),
+    ingredients: z.array(ingredientSchema).optional()
+  })
+  .passthrough()
+
+const windowAssignmentSchema = z
+  .object({
+    windowType: z.string().min(1),
+    windowKey: z.string().optional(),
+    slotName: z.string().optional(),
+    label: z.string().optional(),
+    targetCarbs: z.number().optional(),
+    targetProtein: z.number().optional(),
+    targetKcal: z.number().optional()
+  })
+  .passthrough()
+
+const lockMealSchema = z.object({
+  date: z.string().min(8),
+  windowType: z.string().min(1),
+  meal: mealSchema,
+  slotName: z.string().optional(),
+  windowKey: z.string().optional(),
+  windowAssignments: z.array(windowAssignmentSchema).optional()
+})
+
 export default defineEventHandler(async (event) => {
   const authUser = await requireAuth(event, ['nutrition:write'])
 
   const userId = authUser.id
-  const body = await readBody(event)
+  const rawBody = await readBody(event)
 
-  if (!body.date || !body.windowType || !body.meal) {
-    throw createError({ statusCode: 400, message: 'Date, windowType, and meal are required' })
+  const parsed = lockMealSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid lock meal payload',
+      data: parsed.error.issues
+    })
   }
+  const body = parsed.data
+
   console.log('[nutrition/plan/meal.post] request', {
     userId,
     date: body.date,
@@ -30,9 +90,7 @@ export default defineEventHandler(async (event) => {
       body.slotName,
       {
         windowKey: body.windowKey,
-        windowAssignments: Array.isArray(body.windowAssignments)
-          ? body.windowAssignments
-          : undefined
+        windowAssignments: body.windowAssignments
       }
     )
     console.log('[nutrition/plan/meal.post] locked', {

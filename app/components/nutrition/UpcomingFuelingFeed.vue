@@ -299,6 +299,7 @@
 
 <script setup lang="ts">
   import { format, parseISO } from 'date-fns'
+  import { resolveWindowKey } from '#shared/window-keys'
 
   const props = defineProps<{
     windows: any[]
@@ -407,7 +408,7 @@
       windowType: window.type,
       // Identity of this exact window. Without it a day with two pre-workout windows collapses
       // both onto one planned meal.
-      windowKey: window.windowKey || window.type,
+      windowKey: resolveWindowKey(window),
       slotName: window.slotName || window.label || '',
       label: window.label,
       targetCarbs: Number(window.targetCarbs || 0),
@@ -429,7 +430,7 @@
     const currentlyAssignedCarbs = day.windows
       .filter((candidate: any) =>
         windowAssignments.some(
-          (assignment: any) => assignment.windowKey === (candidate.windowKey || candidate.type)
+          (assignment: any) => assignment.windowKey === resolveWindowKey(candidate)
         )
       )
       .reduce((sum: number, candidate: any) => {
