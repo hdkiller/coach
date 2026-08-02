@@ -167,6 +167,10 @@ Each agent runs as its **own Linear member with its own API key**, so `assignee`
 
 **Plan → Act → Verify → Push & Open PR → Log & Transition**
 
+### Intake work that arrives without an issue
+
+For meaningful, trackable work with no existing Linear issue, agents must search for duplicates and create an issue before implementation. This covers code or configuration changes, deployments, deliverables, and investigations that produce an operational finding; it does not cover ordinary questions, read-only lookups with no actionable finding, or inconsequential edits. Incomplete requests start in `Triage`. For a clear request, write the complete §5 template, set `ai:agent-ready`, move it to `Todo`, claim it, and only then begin work.
+
 1. **Plan** — confirm file locations; restate the approach on the ticket.
 2. **Act** — implement in the ticket's worktree, touching only `Owned Paths`, without breaking existing API contracts.
 3. **Verify** — run the Verification Command (`pnpm test`, `pnpm typecheck`, build). **Never mark complete without clean output.**
