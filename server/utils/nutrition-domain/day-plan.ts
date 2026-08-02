@@ -1,3 +1,4 @@
+import { slugifySlot } from '../../../shared/window-keys'
 import { extractWorkoutTemperatureC, getEstimatedSweatRateLph } from '../nutrition/sweat-rate'
 import { calculateDailyCalorieBreakdown, calculateMacroTargetCalories } from './energy'
 import type { FuelingProfile, SerializedFuelingPlan, SerializedFuelingWindow } from './types'
@@ -328,23 +329,13 @@ function extractSupplements(durationHours: number, intensity: number): string[] 
   return supplements
 }
 
-/** A name with no usable characters at all still needs a key it can be found by. */
-const FALLBACK_SLOT_SLUG = 'slot'
-
 /**
  * The stable half of a DAILY_BASE window key.
  *
- * Exported because `nutritionPlanService` derives the same key for legacy windows that predate
- * `windowKey`; two implementations of this drifted apart once already.
+ * The canonical implementation lives in `shared/window-keys` so server and app code derive
+ * identical keys; re-exported here because existing callers import it from this module.
  */
-export function slugifySlot(name: string) {
-  const slug = (name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return slug || FALLBACK_SLOT_SLUG
-}
+export { slugifySlot }
 
 /**
  * Window keys for a day's meal slots, guaranteed unique.

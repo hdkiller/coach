@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import { defineEventHandler, readBody } from 'h3'
 import { requireAuth } from '../../../utils/auth-guard'
 import { nutritionPlanService } from '../../../utils/services/nutritionPlanService'
@@ -35,6 +34,10 @@ export default defineEventHandler(async (event) => {
         new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) +
           'T23:59:59.999Z'
       )
+
+  if (end < start) {
+    throw createError({ statusCode: 400, message: 'endDate must not be before startDate' })
+  }
 
   try {
     const plan = await nutritionPlanService.generateDraftPlan(userId, start, end)

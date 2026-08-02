@@ -1,8 +1,8 @@
 import { addDays, eachDayOfInterval, endOfDay, format, startOfWeek } from 'date-fns'
 import { prisma } from '../db'
 import { getUserTimezone, parseDateTimeInTimezone } from '../date'
+import { dailyBaseWindowKey } from '../../../shared/window-keys'
 import { nutritionRepository } from '../repositories/nutritionRepository'
-import { slugifySlot } from '../nutrition-domain/day-plan'
 import { bodyMetricResolver } from './bodyMetricResolver'
 import { metabolicService } from './metabolicService'
 import { mealRecommendationService } from './mealRecommendationService'
@@ -64,10 +64,9 @@ function toUpperList(value: unknown) {
 export const nutritionPlanService = {
   toDailyBaseWindowKey(slotName?: string) {
     // Legacy windows carry no windowKey, so their key is re-derived here. It has to be derived the
-    // same way the generator derives it - these two slugifiers disagreed on trailing punctuation
-    // ('Lunch!' -> 'lunch-' here, 'lunch' there), which silently unlinked the stored meal.
-    const raw = (slotName || '').trim()
-    return raw ? `DAILY_BASE:${slugifySlot(raw)}` : 'DAILY_BASE'
+    // same way the generator derives it - divergent slugifier copies silently unlinked stored
+    // meals once already, so the canonical implementation lives in shared/window-keys.
+    return dailyBaseWindowKey(slotName)
   },
 
   sanitizeMealTitle(value: unknown) {
@@ -443,6 +442,13 @@ export const nutritionPlanService = {
       }
     }
 
+    const nutrition = await prisma.nutrition.findUnique({
+      where: { userId_date: { userId, date: dayStartUtc } }
+    })
+    const dayWindows = Array.isArray((nutrition?.fuelingPlan as any)?.windows)
+      ? ((nutrition!.fuelingPlan as any).windows as any[])
+      : []
+
     const persistedPlanMeals: any[] = []
 
     for (const assignment of splitTotalsForAssignments) {
@@ -459,6 +465,32 @@ export const nutritionPlanService = {
         }
       }
 
+      // Without this, a re-lock that carries no explicit targets (the replace action does not)
+      // overwrote the window target with the meal's own totals, making every target-vs-planned
+      // comparison for the window self-referential.
+      const hasExplicitTarget =
+        assignment.targetCarbs != null ||
+        assignment.targetProtein != null ||
+        assignment.targetKcal != null
+      const targetJson = {
+        carbs: Number(assignment.targetCarbs ?? assignment.totals.carbs ?? 0),
+        protein: Number(assignment.targetProtein ?? assignment.totals.protein ?? 0),
+        kcal: Number(assignment.targetKcal ?? assignment.totals.kcal ?? 0)
+      }
+
+      // The window's clock time, so a manually locked meal doesn't sort to midnight while
+      // generated ones sit at their window start.
+      const sourceWindow = dayWindows.find(
+        (window: any) => this.resolveWindowKey(window) === assignment.normalizedWindowType
+      )
+      const windowStart = sourceWindow?.startTime ? new Date(sourceWindow.startTime) : null
+      const scheduledAt =
+        windowStart && !Number.isNaN(windowStart.getTime())
+          ? windowStart
+          : typeof date === 'string'
+            ? dayStartUtc
+            : date
+
       const planMeal = await prisma.nutritionPlanMeal.upsert({
         where: {
           planId_date_windowType: {
@@ -471,13 +503,9 @@ export const nutritionPlanService = {
           planId: plan.id,
           date: dayStartUtc,
           windowType: assignment.normalizedWindowType,
-          scheduledAt: typeof date === 'string' ? dayStartUtc : date,
+          scheduledAt,
           status: 'PLANNED',
-          targetJson: {
-            carbs: Number(assignment.targetCarbs ?? assignment.totals.carbs ?? 0),
-            protein: Number(assignment.targetProtein ?? assignment.totals.protein ?? 0),
-            kcal: Number(assignment.targetKcal ?? assignment.totals.kcal ?? 0)
-          },
+          targetJson,
           mealJson: mealForAssignment
         },
         update: {
@@ -486,21 +514,14 @@ export const nutritionPlanService = {
             replacedPreviousTitle: undefined
           },
           status: 'PLANNED',
-          targetJson: {
-            carbs: Number(assignment.targetCarbs ?? assignment.totals.carbs ?? 0),
-            protein: Number(assignment.targetProtein ?? assignment.totals.protein ?? 0),
-            kcal: Number(assignment.targetKcal ?? assignment.totals.kcal ?? 0)
-          },
+          scheduledAt,
+          ...(hasExplicitTarget ? { targetJson } : {}),
           actualNutritionItemId: null,
           updatedAt: new Date()
         }
       })
       persistedPlanMeals.push(planMeal)
     }
-
-    const nutrition = await prisma.nutrition.findUnique({
-      where: { userId_date: { userId, date: dayStartUtc } }
-    })
 
     if (nutrition) {
       const fuelingPlan = {
@@ -551,8 +572,13 @@ export const nutritionPlanService = {
   },
 
   async generateDraftPlan(userId: string, startDate: Date, endDate: Date) {
-    const days = eachDayOfInterval({ start: startDate, end: endDate })
     const plan = await this.getOrCreateWeeklyPlan(userId, startDate, 'DRAFT')
+    // The plan row always spans its full Monday-Sunday week. Persisting a caller-supplied
+    // endDate truncated the week when a sub-range was generated, which orphaned already-locked
+    // meals on the cut-off days; a range past the week overlapped the next week's plan.
+    const weekEnd = this.getWeekEndUtc(plan.startDate)
+    const rangeEnd = endDate > weekEnd ? weekEnd : endDate
+    const days = eachDayOfInterval({ start: startDate, end: rangeEnd })
     const existingMeals = new Map<string, any>(
       (plan.meals || []).map((meal: any) => [
         this.getWindowAssignmentKey(meal.date, meal.windowType),
@@ -689,13 +715,24 @@ export const nutritionPlanService = {
       })
     }
 
+    // A sub-range regeneration must not wipe the summary of the untouched days.
+    const existingSummaryDays = Array.isArray((plan.summaryJson as any)?.days)
+      ? ((plan.summaryJson as any).days as any[])
+      : []
+    const mergedSummaryDays = [
+      ...existingSummaryDays.filter(
+        (day: any) => !daySummaries.some((entry) => entry.date === day.date)
+      ),
+      ...daySummaries
+    ].sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)))
+
     await prisma.nutritionPlan.update({
       where: { id: plan.id },
       data: {
         status: 'DRAFT',
-        endDate,
+        endDate: weekEnd,
         summaryJson: {
-          days: daySummaries,
+          days: mergedSummaryDays,
           generatedAt: new Date().toISOString()
         } as any,
         updatedAt: new Date()
@@ -707,7 +744,7 @@ export const nutritionPlanService = {
       include: {
         meals: {
           where: {
-            date: { gte: startDate, lte: endDate }
+            date: { gte: startDate, lte: rangeEnd }
           },
           orderBy: [{ date: 'asc' }, { scheduledAt: 'asc' }]
         }
@@ -756,8 +793,12 @@ export const nutritionPlanService = {
 
         if (!dailyBaseSlot) return true
 
+        // Logged items come from the plural Nutrition arrays ('snacks') while slot slugs are
+        // singular ('snack'), so the raw includes() check never matched a logged snack.
         const normalizedMealType = String(item.mealType || '').toLowerCase()
+        const singularMealType = normalizedMealType.replace(/s$/, '')
         if (dailyBaseSlot.includes(normalizedMealType)) return true
+        if (singularMealType && dailyBaseSlot.includes(singularMealType)) return true
 
         const itemName = String(item.name || '')
           .trim()
