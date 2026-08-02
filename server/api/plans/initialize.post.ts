@@ -8,6 +8,7 @@ import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRep
 import {
   baseWeeklyVolumeMinutes,
   calculateWeekTargets,
+  computeRampBaseMinutes,
   isRecoveryWeek
 } from '../../utils/plans/week-targets'
 
@@ -257,6 +258,24 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // 4.5 Ramp-rate cap (CW-320): base the on-ramp on what the athlete actually
+  // trained in the last 4 weeks, so a plan can't jump straight to a multiple
+  // of their real load. The cap grows per loading week until it reaches the
+  // requested volume; it never raises targets.
+  const twentyEightDaysAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)
+  const recentLoad = await prisma.workout.aggregate({
+    _sum: { durationSec: true },
+    where: {
+      userId,
+      isDuplicate: false,
+      date: { gte: twentyEightDaysAgo }
+    }
+  })
+  const recentWeeklyAvgMinutes = (recentLoad._sum.durationSec || 0) / 60 / 4
+  const requestedBaseMinutes = baseWeeklyVolumeMinutes(volumeHours, volumePreference)
+  const rampBaseMinutes = computeRampBaseMinutes(recentWeeklyAvgMinutes)
+  let loadingWeekOrdinal = 0
+
   // 5. Create Plan Skeleton
   const plan = await trainingPlanRepository.create(
     {
@@ -299,13 +318,16 @@ export default defineEventHandler(async (event) => {
                 // e.g. Rhythm 4 (3:1) -> Weeks 4, 8, 12 are recovery
                 // But specifically for Taper/Race blocks, usually the whole thing is recovery/taper logic handled by workout generator
                 const isRecovery = isRecoveryWeek(i + 1, recoveryRhythm, blockConfig.type)
+                if (!isRecovery) loadingWeekOrdinal++
 
                 const targets = calculateWeekTargets({
                   blockType: blockConfig.type,
                   weekNumber: i + 1,
                   blockDurationWeeks: blockConfig.durationWeeks,
                   isRecovery,
-                  baseVolumeMinutes: baseWeeklyVolumeMinutes(volumeHours, volumePreference)
+                  baseVolumeMinutes: requestedBaseMinutes,
+                  rampBaseMinutes,
+                  loadingWeekOrdinal: Math.max(1, loadingWeekOrdinal)
                 })
 
                 return {

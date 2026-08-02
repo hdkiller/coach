@@ -15,6 +15,36 @@ export const RECOVERY_WEEK_FACTOR = 0.6
 /** Heuristic TSS per hour used for week targets across the app. */
 export const TSS_PER_HOUR = 50
 
+/**
+ * Ramp-rate cap (CW-320): a brand-new plan must not prescribe a multiple of
+ * what the athlete has actually been training. Week 1's loading volume is
+ * capped at recent 4-week average x RAMP_BASE_MULTIPLIER (with an absolute
+ * floor so low-history athletes can still start), then the allowance grows
+ * RAMP_GROWTH_PER_LOADING_WEEK per loading week until the athlete's chosen
+ * volume is reached. The cap only ever lowers targets, never raises them.
+ */
+export const RAMP_BASE_MULTIPLIER = 1.2
+export const RAMP_GROWTH_PER_LOADING_WEEK = 1.1
+export const RAMP_FLOOR_MINUTES = 240
+
+export function computeRampBaseMinutes(recentWeeklyAvgMinutes: number): number {
+  return Math.round(
+    Math.max((recentWeeklyAvgMinutes || 0) * RAMP_BASE_MULTIPLIER, RAMP_FLOOR_MINUTES)
+  )
+}
+
+export function applyRampCap(
+  baseVolumeMinutes: number,
+  loadingWeekOrdinal: number,
+  rampBaseMinutes?: number | null
+): number {
+  if (!rampBaseMinutes || rampBaseMinutes <= 0) return baseVolumeMinutes
+  const cap = Math.round(
+    rampBaseMinutes * Math.pow(RAMP_GROWTH_PER_LOADING_WEEK, Math.max(0, loadingWeekOrdinal - 1))
+  )
+  return Math.min(baseVolumeMinutes, cap)
+}
+
 export interface WeekTargetOptions {
   blockType: string
   /** 1-based week number within the block. */
@@ -23,6 +53,10 @@ export interface WeekTargetOptions {
   isRecovery: boolean
   /** Weekly loading volume in minutes (athlete's wizard choice or derived). */
   baseVolumeMinutes?: number | null
+  /** When set, caps the loading volume by ramp allowance before recovery/taper factors. */
+  rampBaseMinutes?: number | null
+  /** 1-based count of loading weeks up to and including this week's position. */
+  loadingWeekOrdinal?: number
 }
 
 export function baseWeeklyVolumeMinutes(
@@ -65,6 +99,10 @@ export function calculateWeekTargets(options: WeekTargetOptions): {
   tssTarget: number
 } {
   let targetMinutes = options.baseVolumeMinutes || DEFAULT_WEEKLY_VOLUME_MINUTES
+
+  if (options.rampBaseMinutes && options.loadingWeekOrdinal) {
+    targetMinutes = applyRampCap(targetMinutes, options.loadingWeekOrdinal, options.rampBaseMinutes)
+  }
 
   if (options.isRecovery) {
     targetMinutes = Math.round(targetMinutes * RECOVERY_WEEK_FACTOR)
