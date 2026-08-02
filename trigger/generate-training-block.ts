@@ -19,6 +19,7 @@ import { TRAINING_BLOCK_TYPES, TRAINING_BLOCK_FOCUSES } from '../app/utils/train
 import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
 import { enqueuePlannedWorkoutStructureGeneration } from '../server/utils/planned-workout-structure-trigger'
 import { registerTaskHandler } from '../server/utils/task-registry'
+import { normalizeGeneratedWorkoutType } from '../server/utils/plans/workout-type'
 import {
   validateGeneratedBlockWeeks,
   clampGeneratedBlockWeeks,
@@ -62,7 +63,9 @@ const trainingBlockSchema = {
                 },
                 type: {
                   type: 'string',
-                  enum: ['Ride', 'Run', 'Swim', 'Gym', 'Rest', 'Active Recovery']
+                  description:
+                    'Type of workout. DO NOT use generic terms like "Active Recovery" - map recovery sessions to a light "Ride"/"Run" or "Rest". "Gym" means strength training.',
+                  enum: ['Ride', 'Run', 'Swim', 'Gym', 'Rest']
                 },
                 durationMinutes: { type: 'integer' },
                 tssEstimate: { type: 'integer' },
@@ -427,7 +430,7 @@ Generate a detailed daily training plan for each week in this block (${block.dur
 - Ensure the recovery week (if applicable) has clearly reduced volume and intensity versus prior loading weeks.
 - Quantify recovery intent in your rationale (what was reduced and why).
 - For "Ride" workouts, provide realistic TSS estimates based on duration and intensity.
-- Workout types: ${allowedTypesString}, Rest, Active Recovery.
+- Workout types: ${allowedTypesString}, Rest. DO NOT use generic types like "Active Recovery" - map recovery sessions to a light Ride/Run or Rest.
 - Start each week on a Monday.
 - Provide a summary for each week explaining the focus and volume.
 - Explicitly connect each week focus to event demands and phase goals (base/build/peak/taper).
@@ -644,7 +647,7 @@ Return valid JSON matching the schema provided.`
                   date: targetDate,
                   title: workout.title,
                   description: workout.description,
-                  type: workout.type,
+                  type: normalizeGeneratedWorkoutType(workout.type),
                   durationSec: (workout.durationMinutes || 0) * 60,
                   tss: workout.tssEstimate,
                   workIntensity: getIntensityScore(workout.intensity),
