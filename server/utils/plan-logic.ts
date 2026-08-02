@@ -62,21 +62,5 @@ export async function shiftPlanDates(planId: string, fromOrder: number, daysDelt
   }
 }
 
-/**
- * Calculates and updates targets for a week (Volume, TSS).
- * Simple heuristic for now.
- */
-export function calculateWeekTargets(blockType: string, volumePreference: string = 'MID') {
-  // Determine target volume
-  let targetMinutes = 450 // Default MID
-  if (volumePreference === 'LOW') targetMinutes = 240
-  else if (volumePreference === 'HIGH') targetMinutes = 600
-
-  // Default TSS estimation (0.6 IF avg => 36 TSS/hr)
-  const tssTarget = Math.round((targetMinutes / 60) * 50)
-
-  return {
-    volumeTargetMinutes: targetMinutes,
-    tssTarget: tssTarget
-  }
-}
+// calculateWeekTargets moved to server/utils/plans/week-targets.ts (CW-318),
+// which accounts for the athlete's chosen volume, recovery weeks, and taper.

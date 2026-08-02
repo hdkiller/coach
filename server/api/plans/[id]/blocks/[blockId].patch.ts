@@ -1,6 +1,11 @@
 import { requireAuth } from '../../../../utils/auth-guard'
 import { prisma } from '../../../../utils/db'
-import { shiftPlanDates, calculateWeekTargets } from '../../../../utils/plan-logic'
+import { shiftPlanDates } from '../../../../utils/plan-logic'
+import {
+  calculateWeekTargets,
+  deriveBaseVolumeMinutesFromWeeks,
+  isRecoveryWeek
+} from '../../../../utils/plans/week-targets'
 import { trainingBlockRepository } from '../../../../utils/repositories/trainingBlockRepository'
 import { trainingWeekRepository } from '../../../../utils/repositories/trainingWeekRepository'
 import { z } from 'zod/v3'
@@ -32,7 +37,7 @@ export default defineEventHandler(async (event) => {
   // Verify ownership and existence
   const existingBlock = await trainingBlockRepository.getById(blockId!, {
     include: {
-      plan: { select: { userId: true } },
+      plan: { select: { userId: true, recoveryRhythm: true } },
       weeks: { orderBy: { weekNumber: 'asc' } }
     }
   })
@@ -55,7 +60,15 @@ export default defineEventHandler(async (event) => {
         const lastWeek = existingBlock.weeks[existingBlock.weeks.length - 1]
         if (!lastWeek)
           throw createError({ statusCode: 500, message: 'Block has no weeks to extend from' })
-        const targets = calculateWeekTargets(type || existingBlock.type)
+
+        // Inherit the block's loading volume instead of resetting to defaults (CW-318)
+        const blockType = type || existingBlock.type
+        const baseVolumeMinutes = deriveBaseVolumeMinutesFromWeeks(existingBlock.weeks)
+        const recoveryRhythm =
+          recoveryWeekIndex ||
+          existingBlock.recoveryWeekIndex ||
+          (existingBlock.plan as any).recoveryRhythm ||
+          4
 
         for (let i = 1; i <= deltaWeeks; i++) {
           const newWeekNumber = existingBlock.durationWeeks + i
@@ -65,12 +78,22 @@ export default defineEventHandler(async (event) => {
           const endDate = new Date(startDate)
           endDate.setUTCDate(endDate.getUTCDate() + 6)
 
+          const isRecovery = isRecoveryWeek(newWeekNumber, recoveryRhythm, blockType)
+          const targets = calculateWeekTargets({
+            blockType,
+            weekNumber: newWeekNumber,
+            blockDurationWeeks: durationWeeks,
+            isRecovery,
+            baseVolumeMinutes
+          })
+
           await trainingWeekRepository.create(
             {
               blockId: existingBlock.id,
               weekNumber: newWeekNumber,
               startDate,
               endDate,
+              isRecovery,
               ...targets
             },
             tx
