@@ -29,6 +29,7 @@ import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 import { buildWorkoutCleanupQuery } from '../server/utils/plans/cleanup'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
+import { normalizeGeneratedWorkoutType } from '../server/utils/plans/workout-type'
 
 import { registerTaskHandler } from '../server/utils/task-registry'
 
@@ -901,12 +902,8 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
           date: workoutDate, // Stored as UTC start of day for user
           title: d.title,
           description: d.description + (d.reasoningText ? `\n\nReasoning: ${d.reasoningText}` : ''),
-          // Map AI "Gym" type to "WeightTraining" which is standard in Intervals/our DB
-          // "Rest" is preserved. Everything else is passed through.
-          // AI has been instructed NOT to use "Workout" or "Active Recovery".
-          // If it still does, we map Active Recovery to a light Ride or Run based on user profile would be better,
-          // but for now let's map to "Workout" as a fallback so it doesn't crash, but log it.
-          type: d.workoutType === 'Gym' ? 'WeightTraining' : d.workoutType,
+          // "Rest" is preserved, "Gym" becomes "WeightTraining"; everything else passes through.
+          type: normalizeGeneratedWorkoutType(d.workoutType),
           durationSec: (d.durationMinutes || 0) * 60,
           distanceMeters: d.distanceMeters,
           tss: d.targetTSS,
