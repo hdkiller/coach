@@ -30,6 +30,13 @@ import { buildWorkoutCleanupQuery } from '../server/utils/plans/cleanup'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
 import { normalizeGeneratedWorkoutType } from '../server/utils/plans/workout-type'
+import {
+  validateGeneratedBlockWeeks,
+  clampGeneratedBlockWeeks,
+  formatViolationsFeedback,
+  type GeneratedBlockWeek,
+  type WeekVolumeTarget
+} from '../server/utils/plans/block-volume'
 
 import { registerTaskHandler } from '../server/utils/task-registry'
 
@@ -427,6 +434,7 @@ export async function runGenerateWeeklyPlan(payload: {
 
   // Fetch full Plan context if available (via trainingWeekId)
   let planContext = ''
+  let weekVolumeTargetMinutes: number | null = null
   if (trainingWeekId) {
     const fullContext = await prisma.trainingWeek.findUnique({
       where: { id: trainingWeekId },
@@ -442,6 +450,7 @@ export async function runGenerateWeeklyPlan(payload: {
     })
 
     if (fullContext) {
+      weekVolumeTargetMinutes = fullContext.volumeTargetMinutes || null
       planContext = `
 CONTEXT FROM MASTER PLAN:
 - Plan Name: ${fullContext.block.plan.name || fullContext.block.plan.goal?.title || 'Custom Plan'}
@@ -668,7 +677,7 @@ INSTRUCTIONS:
    - "Gym" means strength training.
 5. **PROGRESSION**:
    - If User Instructions are absent/minimal, aim for progressive overload based on the current phase.
-   - Weekly TSS target: ${Math.round(currentWeeklyTSS)} - ${targetMaxTSS} (unless overridden by instructions).
+   - Weekly TSS target: ${targetMinTSS} - ${targetMaxTSS} (unless overridden by instructions).
 6. **INTENSITY DISTRIBUTION**:
    - Keep the week polarized or pyramidal unless user constraints dictate otherwise.
    - Avoid stacking hard days back-to-back unless explicitly requested.
@@ -730,17 +739,70 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
     userInstructions: userInstructions || 'None'
   })
 
-  const plan = await generateStructuredAnalysis(
-    prompt,
-    weeklyPlanSchema,
-    aiSettings.aiModelPreference,
-    {
+  const generatePlan = (promptText: string) =>
+    generateStructuredAnalysis(promptText, weeklyPlanSchema, aiSettings.aiModelPreference, {
       userId,
       operation: 'weekly_plan_generation',
       entityType: 'WeeklyTrainingPlan',
       entityId: undefined
+    })
+
+  let plan = await generatePlan(prompt)
+
+  // Validate the generated week against the plan week's volume budget (when linked)
+  // and duration sanity bounds. One corrective retry, then deterministic clamping,
+  // mirroring generate-training-block. (CW-319)
+  const daysToBlockWeek = (days: any[]): GeneratedBlockWeek => ({
+    weekNumber: 1,
+    workouts: days.map((d: any) => ({
+      dayOfWeek: d.dayOfWeek ?? 0,
+      title: d.title,
+      type: d.workoutType,
+      durationMinutes: d.durationMinutes,
+      tssEstimate: d.targetTSS
+    }))
+  })
+  const weekTargets: WeekVolumeTarget[] = [
+    { weekNumber: 1, volumeTargetMinutes: weekVolumeTargetMinutes }
+  ]
+
+  let planDays: any[] = Array.isArray((plan as any)?.days) ? (plan as any).days : []
+  let volumeViolations = validateGeneratedBlockWeeks([daysToBlockWeek(planDays)], weekTargets)
+  if (volumeViolations.length > 0) {
+    logger.warn('Generated week violates volume budget, retrying with feedback', {
+      violations: volumeViolations.map((v) => v.message)
+    })
+
+    const retryPlan = await generatePlan(
+      `${prompt}\n\n${formatViolationsFeedback(volumeViolations)}`
+    )
+    if (Array.isArray((retryPlan as any)?.days) && (retryPlan as any).days.length > 0) {
+      plan = retryPlan
+      planDays = (plan as any).days
+      volumeViolations = validateGeneratedBlockWeeks([daysToBlockWeek(planDays)], weekTargets)
     }
-  )
+
+    if (volumeViolations.length > 0) {
+      const { weeks: clampedWeeks, adjustments } = clampGeneratedBlockWeeks(
+        [daysToBlockWeek(planDays)],
+        weekTargets
+      )
+      const clampedWorkouts = clampedWeeks[0]?.workouts || []
+      planDays.forEach((d: any, i: number) => {
+        const clamped = clampedWorkouts[i]
+        if (!clamped) return
+        d.durationMinutes = clamped.durationMinutes
+        if (typeof clamped.tssEstimate === 'number') d.targetTSS = clamped.tssEstimate
+      })
+      ;(plan as any).totalTSS = planDays.reduce(
+        (sum: number, d: any) => sum + (d.targetTSS || 0),
+        0
+      )
+      logger.warn('Retry still over budget - clamped generated week deterministically', {
+        adjustments
+      })
+    }
+  }
 
   logger.log('Plan generated from AI', {
     daysPlanned: (plan as any).days?.length,
