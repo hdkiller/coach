@@ -1,5 +1,9 @@
 import { prisma } from '../db'
-import { calculateWeekTargets } from '../plan-logic'
+import {
+  calculateWeekTargets,
+  deriveBaseVolumeMinutesFromWeeks,
+  isRecoveryWeek
+} from '../plans/week-targets'
 import { trainingPlanRepository } from '../repositories/trainingPlanRepository'
 import { trainingBlockRepository } from '../repositories/trainingBlockRepository'
 import { trainingWeekRepository } from '../repositories/trainingWeekRepository'
@@ -19,6 +23,12 @@ export const planService = {
     })
 
     if (!plan) throw new Error('Plan not found')
+
+    // TrainingPlan does not persist the wizard's volumeHours, so recover the
+    // athlete's loading volume from the weeks that already exist. (CW-318)
+    const baseVolumeMinutes = deriveBaseVolumeMinutesFromWeeks(
+      plan.blocks.flatMap((b) => (b as any).weeks || [])
+    )
 
     return await prisma.$transaction(async (tx) => {
       // 1. Delete blocks that are no longer in the plan
@@ -90,12 +100,21 @@ export const planService = {
         const newDuration = config.durationWeeks
 
         if (newDuration > oldDuration) {
-          const targets = calculateWeekTargets(config.type)
+          const recoveryRhythm = config.recoveryWeekIndex || plan.recoveryRhythm || 4
           for (let i = oldDuration + 1; i <= newDuration; i++) {
             const weekStart = new Date(blockStartDate)
             weekStart.setUTCDate(weekStart.getUTCDate() + (i - 1) * 7)
             const weekEnd = new Date(weekStart)
             weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
+
+            const isRecovery = isRecoveryWeek(i, recoveryRhythm, config.type)
+            const targets = calculateWeekTargets({
+              blockType: config.type,
+              weekNumber: i,
+              blockDurationWeeks: newDuration,
+              isRecovery,
+              baseVolumeMinutes
+            })
 
             await trainingWeekRepository.create(
               {
@@ -103,6 +122,7 @@ export const planService = {
                 weekNumber: i,
                 startDate: weekStart,
                 endDate: weekEnd,
+                isRecovery,
                 ...targets
               },
               tx

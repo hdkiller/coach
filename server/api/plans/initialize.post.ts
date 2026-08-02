@@ -5,6 +5,11 @@ import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { generateStructuredAnalysis } from '../../utils/gemini'
 
 import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRepository'
+import {
+  baseWeeklyVolumeMinutes,
+  calculateWeekTargets,
+  isRecoveryWeek
+} from '../../utils/plans/week-targets'
 
 const initializePlanSchema = z.object({
   goalId: z.string(),
@@ -293,38 +298,22 @@ export default defineEventHandler(async (event) => {
                 // Determine recovery week based on rhythm
                 // e.g. Rhythm 4 (3:1) -> Weeks 4, 8, 12 are recovery
                 // But specifically for Taper/Race blocks, usually the whole thing is recovery/taper logic handled by workout generator
-                const isRecovery =
-                  (i + 1) % recoveryRhythm === 0 &&
-                  blockConfig.type !== 'PEAK' &&
-                  blockConfig.type !== 'RACE'
+                const isRecovery = isRecoveryWeek(i + 1, recoveryRhythm, blockConfig.type)
 
-                // Determine target volume
-                let targetMinutes = 450 // Default MID
-                if (volumeHours) {
-                  targetMinutes = volumeHours * 60
-                  if (isRecovery) targetMinutes = Math.round(targetMinutes * 0.6)
-                } else {
-                  if (volumePreference === 'LOW') targetMinutes = 240
-                  else if (volumePreference === 'HIGH') targetMinutes = 600
-                  if (isRecovery) targetMinutes = Math.round(targetMinutes * 0.6)
-                }
-
-                // Taper volume reduction
-                if (blockConfig.type === 'PEAK') {
-                  // Progressive reduction: Week 1 (70%), Week 2 (50%)
-                  const taperFactor = 1 - ((i + 1) / blockConfig.durationWeeks) * 0.5
-                  targetMinutes = Math.round(targetMinutes * taperFactor)
-                }
-
-                const tssTarget = Math.round((targetMinutes / 60) * 50)
+                const targets = calculateWeekTargets({
+                  blockType: blockConfig.type,
+                  weekNumber: i + 1,
+                  blockDurationWeeks: blockConfig.durationWeeks,
+                  isRecovery,
+                  baseVolumeMinutes: baseWeeklyVolumeMinutes(volumeHours, volumePreference)
+                })
 
                 return {
                   weekNumber: i + 1,
                   startDate: weekStart,
                   endDate: weekEnd,
                   isRecovery,
-                  volumeTargetMinutes: targetMinutes,
-                  tssTarget: tssTarget
+                  ...targets
                 }
               })
             }
