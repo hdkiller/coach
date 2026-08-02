@@ -549,7 +549,14 @@
               </div>
 
               <div v-else-if="!groceryData.items.length" class="py-8 text-center text-gray-500">
-                No planned meal ingredients found for this range yet.
+                <p>No planned meal ingredients found for this range yet.</p>
+                <p class="mt-1 text-xs">
+                  {{
+                    groceryRange === 'week'
+                      ? `The Week range covers the plan week you are viewing (${weekStartDate} – ${weekEndDate}).`
+                      : 'The 24h/48h/7d ranges look forward from today — switch to Week to cover the plan week you are viewing.'
+                  }}
+                </p>
               </div>
 
               <ul v-else class="space-y-2">
@@ -699,7 +706,7 @@
   const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
   const groceryLoading = ref(false)
-  const groceryRange = ref<'24h' | '48h' | '7d'>('48h')
+  const groceryRange = ref<'week' | '24h' | '48h' | '7d'>('week')
   const groceryData = ref<{ items: any[]; totals: { ingredients: number; meals: number } }>({
     items: [],
     totals: { ingredients: 0, meals: 0 }
@@ -1069,20 +1076,26 @@
   }
 
   const groceryRangeOptions = [
+    { value: 'week', label: 'Week' },
     { value: '24h', label: '24h' },
     { value: '48h', label: '48h' },
     { value: '7d', label: '7d' }
   ] as const
 
   function getGroceryRangeDates() {
+    // 'week' covers the plan week currently shown in the dashboard; the hour-based
+    // options roll forward from today. The API treats `end` as inclusive end-of-day.
+    if (groceryRange.value === 'week') {
+      return { start: weekStartDate.value, end: weekEndDate.value }
+    }
     const start = format(new Date(), 'yyyy-MM-dd')
     if (groceryRange.value === '24h') {
-      return { start, end: format(addDays(new Date(), 1), 'yyyy-MM-dd') }
+      return { start, end: start }
     }
     if (groceryRange.value === '7d') {
       return { start, end: format(addDays(new Date(), 6), 'yyyy-MM-dd') }
     }
-    return { start, end: format(addDays(new Date(), 2), 'yyyy-MM-dd') }
+    return { start, end: format(addDays(new Date(), 1), 'yyyy-MM-dd') }
   }
 
   async function loadGroceryList() {
