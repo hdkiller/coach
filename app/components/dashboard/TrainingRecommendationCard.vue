@@ -14,6 +14,10 @@
         </div>
         <div class="flex items-center gap-2">
           <UButton
+            v-if="
+              (userStore.user as any)?.role === 'ONE_ON_ONE' ||
+              (userStore.user as any)?.role === 'ADMIN'
+            "
             icon="i-heroicons-clipboard-document-check"
             size="xs"
             color="neutral"
@@ -178,7 +182,13 @@
       </div>
 
       <!-- Daily Check-in Button (if not completed) -->
-      <div v-if="!checkinStore.isCompleted">
+      <div
+        v-if="
+          !checkinStore.isCompleted &&
+          ((userStore.user as any)?.role === 'ONE_ON_ONE' ||
+            (userStore.user as any)?.role === 'ADMIN')
+        "
+      >
         <UButton
           icon="i-heroicons-clipboard-document-check"
           color="primary"

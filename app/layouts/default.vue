@@ -251,6 +251,14 @@
         }
       },
       {
+        label: navLabel('navigation_community_calendar', 'Community Calendar'),
+        icon: 'i-lucide-calendar-heart',
+        to: '/calendar',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: navLabel('navigation_reports', 'Reports'),
         icon: 'i-lucide-file-text',
         to: '/reports',
@@ -584,6 +592,11 @@
             label: label('navigation_events', 'Events'),
             icon: 'i-lucide-flag',
             to: '/events'
+          },
+          {
+            label: label('navigation_community_calendar', 'Community Calendar'),
+            icon: 'i-lucide-calendar-heart',
+            to: '/calendar'
           }
         ])
       },

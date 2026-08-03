@@ -2,8 +2,14 @@
   <div
     class="min-h-screen flex flex-col font-sans bg-[oklch(12%_0.015_155)] text-gray-100 overflow-x-clip"
   >
-    <!-- N9 edge-aligned: brand flush left, utility cluster flush right — no sticky blur bar -->
-    <header class="relative z-40 border-b border-white/8">
+    <header
+      class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b"
+      :class="[
+        y > 50
+          ? 'bg-black/60 backdrop-blur-lg border-white/10 shadow-lg'
+          : 'bg-transparent border-transparent'
+      ]"
+    >
       <div
         class="mx-auto flex h-16 max-w-[88rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
       >
@@ -19,66 +25,40 @@
           class="hidden items-center gap-8 text-sm font-medium text-gray-400 lg:flex"
           aria-label="Primary"
         >
-          <NuxtLink
-            to="/#how-it-works"
-            class="whitespace-nowrap transition-colors hover:text-white"
+          <NuxtLink to="/#why-us" class="whitespace-nowrap transition-colors hover:text-white"
+            >Why Us</NuxtLink
           >
-            {{ t('nav.how_it_works') }}
-          </NuxtLink>
           <NuxtLink
             to="/#pricing"
             class="flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-white"
           >
-            {{ t('nav.pricing') }}
+            Pricing
             <span
-              class="inline-flex items-center justify-center rounded-sm bg-emerald-400 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-950"
-              >{{ t('nav.pricing_badge') }}</span
+              class="inline-flex items-center justify-center rounded-sm bg-primary-500/20 text-primary-400 px-1.5 py-0.5 text-xs font-bold leading-none"
+              >START</span
             >
           </NuxtLink>
-          <NuxtLink to="/works-with" class="whitespace-nowrap transition-colors hover:text-white">{{
-            t('nav.integrations')
-          }}</NuxtLink>
-          <NuxtLink to="/stories" class="whitespace-nowrap transition-colors hover:text-white">{{
-            t('nav.stories')
-          }}</NuxtLink>
         </nav>
 
         <div class="flex items-center gap-2">
-          <div class="hidden h-8 min-w-[8.5rem] shrink-0 sm:block">
-            <ClientOnly>
-              <LanguageSwitcher />
-              <template #fallback>
-                <div
-                  class="h-full w-full rounded-md border border-white/10 bg-white/5"
-                  aria-hidden="true"
-                />
-              </template>
-            </ClientOnly>
-          </div>
-
           <template v-if="!isAuthPage && isSignedIn">
-            <UButton to="/dashboard" color="primary" size="sm" class="whitespace-nowrap sm:hidden">
-              Dashboard
-            </UButton>
-            <div class="hidden items-center gap-2 sm:flex">
-              <UButton to="/dashboard" color="primary" class="whitespace-nowrap">
-                Dashboard
-              </UButton>
-            </div>
+            <UButton to="/dashboard" color="primary" class="whitespace-nowrap">Dashboard</UButton>
           </template>
-
           <template v-else-if="!isAuthPage">
-            <UButton to="/join" color="primary" size="sm" class="whitespace-nowrap sm:hidden">
-              {{ t('nav.get_started') }}
+            <UButton
+              to="/login"
+              variant="ghost"
+              color="neutral"
+              class="hidden sm:flex whitespace-nowrap"
+              >Sign In</UButton
+            >
+            <UButton
+              to="/join"
+              color="primary"
+              class="whitespace-nowrap transition-all duration-300"
+            >
+              {{ headerCtaText }}
             </UButton>
-            <div class="hidden items-center gap-2 sm:flex">
-              <UButton to="/login" variant="ghost" color="neutral" class="whitespace-nowrap">{{
-                t('nav.sign_in')
-              }}</UButton>
-              <UButton to="/join" color="primary" class="whitespace-nowrap">{{
-                t('nav.get_started')
-              }}</UButton>
-            </div>
           </template>
 
           <UPopover class="lg:hidden">
@@ -86,40 +66,24 @@
             <template #content>
               <div class="flex w-48 flex-col gap-4 p-4">
                 <NuxtLink
-                  to="/#how-it-works"
+                  to="/#why-us"
                   class="text-sm font-medium whitespace-nowrap transition-colors hover:text-primary"
-                  >{{ t('nav.how_it_works') }}</NuxtLink
+                  >Why Us</NuxtLink
                 >
                 <NuxtLink
                   to="/#pricing"
                   class="flex items-center justify-between text-sm font-medium whitespace-nowrap transition-colors hover:text-primary"
                 >
-                  {{ t('nav.pricing') }}
-                  <span
-                    class="inline-flex items-center justify-center rounded-sm bg-emerald-400 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-950"
-                    >{{ t('nav.pricing_badge') }}</span
-                  >
+                  Pricing
                 </NuxtLink>
-                <NuxtLink
-                  to="/works-with"
-                  class="text-sm font-medium whitespace-nowrap transition-colors hover:text-primary"
-                  >{{ t('nav.integrations') }}</NuxtLink
-                >
-                <NuxtLink
-                  to="/stories"
-                  class="text-sm font-medium whitespace-nowrap transition-colors hover:text-primary"
-                  >{{ t('nav.stories') }}</NuxtLink
-                >
                 <template v-if="!isAuthPage && isSignedIn">
                   <hr class="border-white/10" />
                   <UButton to="/dashboard" color="primary" block>Dashboard</UButton>
                 </template>
                 <template v-else-if="!isAuthPage">
                   <hr class="border-white/10" />
-                  <UButton to="/login" variant="ghost" color="neutral" block>{{
-                    t('nav.sign_in')
-                  }}</UButton>
-                  <UButton to="/join" color="primary" block>{{ t('nav.get_started') }}</UButton>
+                  <UButton to="/login" variant="ghost" color="neutral" block>Sign In</UButton>
+                  <UButton to="/join" color="primary" block>{{ headerCtaText }}</UButton>
                 </template>
               </div>
             </template>
@@ -128,7 +92,7 @@
       </div>
     </header>
 
-    <main class="flex-grow">
+    <main class="flex-grow pt-16">
       <slot />
     </main>
 
@@ -137,12 +101,14 @@
 </template>
 
 <script setup>
-  import { useTranslate } from '@tolgee/vue'
+  import { useWindowScroll } from '@vueuse/core'
   import PublicFooter from '~/components/layout/PublicFooter.vue'
+
+  const { y } = useWindowScroll()
+  const headerCtaText = useState('headerCtaText', () => 'Join the Community')
 
   const route = useRoute()
   const { data: authData, status: authStatus } = useAuth()
-  const { t } = useTranslate('common')
   const isAuthPage = computed(() => route.path === '/join' || route.path === '/login')
   const isSignedIn = computed(
     () => authStatus.value === 'authenticated' || Boolean(authData.value?.user)
@@ -157,7 +123,6 @@
     ]
   })
 
-  // Landing page is always dark — no light mode support
   const colorMode = useColorMode()
   const prevPreference = colorMode.preference
   colorMode.preference = 'dark'

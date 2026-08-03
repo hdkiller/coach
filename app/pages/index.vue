@@ -3,37 +3,38 @@
     class="relative min-h-screen overflow-x-clip bg-[oklch(12%_0.015_155)] selection:bg-primary-500/30"
   >
     <div class="pointer-events-none fixed inset-0 z-10 opacity-[0.02] grain-overlay" />
-    <LandingHero class="mb-8 sm:mb-12" />
-    <LandingNutritionExplainer class="py-16 sm:py-20" />
-    <LandingHowItWorks class="py-20 sm:py-28" />
-    <LandingIntegrations class="py-16 sm:py-20" />
-    <LandingDeepDiveArchitecture class="py-20 sm:py-24" />
-    <LandingFeatureBento class="py-16 sm:py-24" />
-    <LandingFeatureGoals class="py-20 sm:py-28" />
-    <LandingCommunity class="py-16 sm:py-20" />
-    <LandingPricing class="py-20 sm:py-24" />
 
-    <!-- Closing band — left-biased, not another centered SaaS CTA -->
-    <section class="border-t border-white/8 bg-[oklch(14%_0.018_155)] px-6 py-16 sm:py-20 lg:px-8">
-      <div
-        class="mx-auto flex max-w-[88rem] flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"
-      >
-        <div class="max-w-xl">
-          <h2
-            class="font-athletic text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl"
-          >
-            {{ t('cta.headline') }}
-          </h2>
-          <p class="mt-4 text-lg leading-8 text-gray-400">
-            {{ t('cta.description') }}
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-4">
-          <UButton size="xl" to="/join" color="primary" class="whitespace-nowrap">{{
-            t('cta.primary')
-          }}</UButton>
-          <UButton size="xl" to="/stories" color="neutral" variant="ghost" class="whitespace-nowrap"
-            >{{ t('cta.secondary') }} <span aria-hidden="true">→</span></UButton
+    <div ref="heroSectionRef">
+      <LandingHero class="mb-8 sm:mb-12" />
+    </div>
+
+    <div ref="bentoSectionRef">
+      <LandingBentoGrid class="py-16 sm:py-20" />
+    </div>
+
+    <div ref="pricingSectionRef">
+      <LandingPricing class="py-20 sm:py-24" />
+    </div>
+
+    <!-- Closing band (The Footer / Community Hook) -->
+    <section
+      ref="closingSectionRef"
+      class="border-t border-white/8 bg-[oklch(14%_0.018_155)] px-6 py-24 sm:py-32 lg:px-8 transition-all duration-700 transform"
+      :class="[isClosingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12']"
+    >
+      <div class="mx-auto flex max-w-[88rem] flex-col items-center text-center gap-8">
+        <h2
+          class="font-athletic text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl"
+        >
+          The Journey is the Destination.
+        </h2>
+        <p class="mt-4 max-w-2xl text-lg leading-8 text-gray-400">
+          Whether you're training for your first sprint triathlon or trying to shave 5 minutes off
+          your Ironman PR, do it with the data on your side and the community at your back.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          <UButton size="xl" to="/join" color="primary" class="whitespace-nowrap"
+            >Join the Community</UButton
           >
         </div>
       </div>
@@ -42,10 +43,54 @@
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
+  import { ref } from 'vue'
+  import { useIntersectionObserver } from '@vueuse/core'
 
-  const { t } = useTranslate('common')
   const { status } = useAuth()
+  const headerCtaText = useState('headerCtaText')
+
+  // Set default
+  headerCtaText.value = 'Join the Community'
+
+  // Section Refs
+  const heroSectionRef = ref(null)
+  const bentoSectionRef = ref(null)
+  const pricingSectionRef = ref(null)
+  const closingSectionRef = ref(null)
+  const isClosingVisible = ref(false)
+
+  // Observers for CTA changing
+  useIntersectionObserver(
+    bentoSectionRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting) headerCtaText.value = 'Unlock Your Digital Twin'
+    },
+    { threshold: 0.3 }
+  )
+
+  useIntersectionObserver(
+    pricingSectionRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting) headerCtaText.value = 'Choose Your Tier'
+    },
+    { threshold: 0.3 }
+  )
+
+  useIntersectionObserver(
+    heroSectionRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting) headerCtaText.value = 'Join the Community'
+    },
+    { threshold: 0.3 }
+  )
+
+  useIntersectionObserver(
+    closingSectionRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting) isClosingVisible.value = true
+    },
+    { threshold: 0.2 }
+  )
 
   definePageMeta({
     layout: 'home',
@@ -53,21 +98,14 @@
   })
 
   useSeoMeta({
-    title: () => t.value('seo.home_title'),
-    ogTitle: () => t.value('seo.home_og_title'),
-    description: () => t.value('seo.home_description'),
-    ogDescription: () => t.value('seo.home_description'),
-    ogImage: '/images/og-image.png',
-    twitterCard: 'summary_large_image',
-    twitterTitle: () => t.value('seo.home_og_title'),
-    twitterDescription: () => t.value('seo.home_description'),
-    twitterImage: '/images/og-image.png'
+    title: 'Tri Nerds Endurance Club',
+    ogTitle: 'Tri Nerds Endurance Club',
+    description: 'Level Up Your Endurance. Powered by the Journey Endurance AI.',
+    ogDescription: 'Level Up Your Endurance. Powered by the Journey Endurance AI.'
   })
 
   const route = useRoute()
 
-  // Only redirect if authenticated, otherwise stay on landing page.
-  // ?preview=1 keeps the marketing page visible under AUTH_BYPASS_USER.
   watchEffect(() => {
     if (status.value === 'authenticated' && route.query.preview !== '1') {
       navigateTo('/dashboard')

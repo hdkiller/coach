@@ -10,6 +10,7 @@
     personalFatigue: 5,
     wellnessSleep: 5,
     wellnessStress: 5,
+    wellnessPainScore: 1,
     trainingLoad: 5,
     trainingDifficulty: 5,
     trainingHydration: 5,
@@ -30,6 +31,7 @@
     personalFatigue: z.number().min(1).max(10),
     wellnessSleep: z.number().min(1).max(10),
     wellnessStress: z.number().min(1).max(10),
+    wellnessPainScore: z.number().min(1).max(10),
     trainingLoad: z.number().min(1).max(10),
     trainingDifficulty: z.number().min(1).max(10),
     trainingHydration: z.number().min(1).max(10),
@@ -74,128 +76,189 @@
     }
   }
 
-  // Helper to render the scale
-  const scaleHelp = '1 = Low / 10 = High'
-  const scaleHelpGood = '1 = Poor / 10 = Excellent'
+  const accordionItems = [
+    {
+      label: 'Training',
+      icon: 'i-heroicons-bolt',
+      defaultOpen: true,
+      slot: 'training'
+    },
+    {
+      label: 'Wellness',
+      icon: 'i-heroicons-heart',
+      slot: 'wellness'
+    },
+    {
+      label: 'Additional Context',
+      icon: 'i-heroicons-document-text',
+      slot: 'context'
+    }
+  ]
 </script>
 
 <template>
   <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- 1-10 Metrics -->
-      <UFormGroup label="Personal Fatigue" name="personalFatigue" :help="scaleHelp">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.personalFatigue" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
+    <UAccordion :items="accordionItems" multiple>
+      <!-- Training Section (Blue theme) -->
+      <template #training>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-4">
+          <UFormGroup label="Training Load" name="trainingLoad">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                [ {{ state.trainingLoad }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.trainingLoad" :min="1" :max="10" color="primary" />
+          </UFormGroup>
+
+          <UFormGroup label="Training Difficulty" name="trainingDifficulty">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                [ {{ state.trainingDifficulty }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.trainingDifficulty" :min="1" :max="10" color="primary" />
+          </UFormGroup>
+
+          <UFormGroup label="Recovery" name="trainingRecovery">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                [ {{ state.trainingRecovery }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.trainingRecovery" :min="1" :max="10" color="primary" />
+          </UFormGroup>
+
+          <UFormGroup label="Hydration" name="trainingHydration">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                [ {{ state.trainingHydration }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.trainingHydration" :min="1" :max="10" color="primary" />
+          </UFormGroup>
+
+          <UFormGroup label="Nutrition" name="trainingNutrition">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                [ {{ state.trainingNutrition }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.trainingNutrition" :min="1" :max="10" color="primary" />
+          </UFormGroup>
         </div>
-        <div class="text-center font-semibold mt-1">{{ state.personalFatigue }}</div>
-      </UFormGroup>
+      </template>
 
-      <UFormGroup label="Sleep Quality" name="wellnessSleep" :help="scaleHelpGood">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.wellnessSleep" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
+      <!-- Wellness Section (Orange theme) -->
+      <template #wellness>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-4">
+          <UFormGroup label="Personal Fatigue" name="personalFatigue">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">
+                [ {{ state.personalFatigue }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.personalFatigue" :min="1" :max="10" color="orange" />
+          </UFormGroup>
+
+          <UFormGroup label="Sleep Quality" name="wellnessSleep">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>POOR</span>
+              <span class="text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">
+                [ {{ state.wellnessSleep }} / 10 ]
+              </span>
+              <span>EXCELLENT</span>
+            </div>
+            <URange v-model="state.wellnessSleep" :min="1" :max="10" color="orange" />
+          </UFormGroup>
+
+          <UFormGroup label="Stress Levels" name="wellnessStress">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>LOW</span>
+              <span class="text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">
+                [ {{ state.wellnessStress }} / 10 ]
+              </span>
+              <span>HIGH</span>
+            </div>
+            <URange v-model="state.wellnessStress" :min="1" :max="10" color="orange" />
+          </UFormGroup>
+
+          <UFormGroup label="Pain Score" name="wellnessPainScore">
+            <div class="flex justify-between items-center mb-2 text-xs font-bold text-gray-500">
+              <span>NONE</span>
+              <span class="text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">
+                [ {{ state.wellnessPainScore }} / 10 ]
+              </span>
+              <span>SEVERE</span>
+            </div>
+            <URange v-model="state.wellnessPainScore" :min="1" :max="10" color="orange" />
+          </UFormGroup>
         </div>
-        <div class="text-center font-semibold mt-1">{{ state.wellnessSleep }}</div>
-      </UFormGroup>
+      </template>
 
-      <UFormGroup label="Stress Levels" name="wellnessStress" :help="scaleHelp">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.wellnessStress" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
+      <!-- Additional Context Section -->
+      <template #context>
+        <div class="space-y-6 p-4">
+          <UFormGroup label="Personal Notes" name="personalNotes">
+            <UTextarea
+              v-model="state.personalNotes"
+              placeholder="Any general thoughts or feelings on your training..."
+              :rows="3"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Current Challenges" name="personalChallenges">
+            <UTextarea
+              v-model="state.personalChallenges"
+              placeholder="What's holding you back right now?"
+              :rows="3"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Upcoming Goals" name="personalGoals">
+            <UTextarea
+              v-model="state.personalGoals"
+              placeholder="What are we pushing for?"
+              :rows="3"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Weekly Highlights" name="personalHighlights">
+            <UTextarea v-model="state.personalHighlights" placeholder="What went well?" :rows="3" />
+          </UFormGroup>
+
+          <UFormGroup label="Reported Injuries" name="wellnessInjury">
+            <UTextarea
+              v-model="state.wellnessInjury"
+              placeholder="Describe any specific injuries..."
+              :rows="3"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Reported Pain / Soreness" name="wellnessPain">
+            <UTextarea
+              v-model="state.wellnessPain"
+              placeholder="Describe any pain or general soreness..."
+              :rows="3"
+            />
+          </UFormGroup>
         </div>
-        <div class="text-center font-semibold mt-1">{{ state.wellnessStress }}</div>
-      </UFormGroup>
+      </template>
+    </UAccordion>
 
-      <UFormGroup label="Training Load" name="trainingLoad" :help="scaleHelp">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.trainingLoad" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
-        </div>
-        <div class="text-center font-semibold mt-1">{{ state.trainingLoad }}</div>
-      </UFormGroup>
-
-      <UFormGroup label="Training Difficulty" name="trainingDifficulty" :help="scaleHelp">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.trainingDifficulty" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
-        </div>
-        <div class="text-center font-semibold mt-1">{{ state.trainingDifficulty }}</div>
-      </UFormGroup>
-
-      <UFormGroup label="Hydration" name="trainingHydration" :help="scaleHelpGood">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.trainingHydration" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
-        </div>
-        <div class="text-center font-semibold mt-1">{{ state.trainingHydration }}</div>
-      </UFormGroup>
-
-      <UFormGroup label="Nutrition" name="trainingNutrition" :help="scaleHelpGood">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.trainingNutrition" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
-        </div>
-        <div class="text-center font-semibold mt-1">{{ state.trainingNutrition }}</div>
-      </UFormGroup>
-
-      <UFormGroup label="Recovery" name="trainingRecovery" :help="scaleHelpGood">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500 font-bold">1</span>
-          <URange v-model="state.trainingRecovery" :min="1" :max="10" />
-          <span class="text-xs text-gray-500 font-bold">10</span>
-        </div>
-        <div class="text-center font-semibold mt-1">{{ state.trainingRecovery }}</div>
-      </UFormGroup>
-    </div>
-
-    <hr class="border-gray-200 dark:border-gray-800 my-4" />
-
-    <div class="space-y-4">
-      <h3 class="text-lg font-semibold">Additional Context (Optional)</h3>
-
-      <UFormGroup label="Personal Notes" name="personalNotes">
-        <UTextarea
-          v-model="state.personalNotes"
-          placeholder="Any general thoughts or feelings on your training..."
-        />
-      </UFormGroup>
-
-      <UFormGroup label="Current Challenges" name="personalChallenges">
-        <UTextarea
-          v-model="state.personalChallenges"
-          placeholder="What's holding you back right now?"
-        />
-      </UFormGroup>
-
-      <UFormGroup label="Upcoming Goals" name="personalGoals">
-        <UTextarea v-model="state.personalGoals" placeholder="What are we pushing for?" />
-      </UFormGroup>
-
-      <UFormGroup label="Weekly Highlights" name="personalHighlights">
-        <UTextarea v-model="state.personalHighlights" placeholder="What went well?" />
-      </UFormGroup>
-
-      <UFormGroup label="Reported Injuries" name="wellnessInjury">
-        <UTextarea v-model="state.wellnessInjury" placeholder="Describe any specific injuries..." />
-      </UFormGroup>
-
-      <UFormGroup label="Reported Pain / Soreness" name="wellnessPain">
-        <UTextarea
-          v-model="state.wellnessPain"
-          placeholder="Describe any pain or general soreness..."
-        />
-      </UFormGroup>
-    </div>
-
-    <div class="flex justify-end pt-4">
+    <div class="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
       <UButton
         type="submit"
         color="primary"

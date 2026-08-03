@@ -143,6 +143,7 @@ model User {
   dailyCheckins                      DailyCheckin[]
   dailyMetrics                       DailyMetric[]
   events                             Event[]
+  participatingEvents                Event[]                         @relation("EventParticipants")
   fitFiles                           FitFile[]
   goals                              Goal[]
   integrations                       Integration[]
@@ -592,6 +593,7 @@ model Event {
   syncError        String?
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   goals            Goal[]   @relation("EventToGoal")
+  participants     User[]   @relation("EventParticipants")
 
   @@unique([userId, source, externalId])
   @@index([userId])
@@ -2717,6 +2719,7 @@ model CheckIn {
   personalNotes      String? @db.Text
   wellnessInjury     String?
   wellnessPain       String?
+  wellnessPainScore  Int?    @default(1)
 
   // Integer Metrics (1-10 scales)
   personalFatigue    Int?
