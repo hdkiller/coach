@@ -121,10 +121,6 @@
   }
 }
 
-body {
-  /* @apply bg-gray-50 dark:bg-gray-900; */
-}
-
 /* Ensure buttons and interactive elements have pointer cursor */
 button:not(:disabled):not([aria-disabled='true']),
 a[href],

@@ -150,7 +150,7 @@
   const roomStateSignaturesByRoom = ref<Record<string, string>>({})
 
   // Fetch session
-  const { data: session } = await useFetch('/api/auth/session')
+  const { data: session } = await (useFetch as any)('/api/auth/session')
 
   const { refresh: refreshRuns } = useUserRuns()
   const { showQuotaPaywall, getOperationQuota } = useQuotaPaywall()

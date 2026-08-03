@@ -372,7 +372,7 @@
     )
   )
 
-  const { data, pending } = await useFetch('/api/public/plans', {
+  const { data, pending } = await (useFetch as any)('/api/public/plans', {
     query: apiQuery
   })
 

@@ -560,22 +560,25 @@
   const coachJoinPage = ref(structuredClone(buildDefaultCoachPublicProfile().joinPage))
   const coachStartPage = ref(structuredClone(buildDefaultCoachPublicProfile().startPage))
 
-  const { data: coachData, refresh: refreshCoach } = await useFetch('/api/profile/public/coach', {
-    key: 'public-presence-coach'
-  })
-  const { data: coachJoinData, refresh: refreshCoachJoin } = await useFetch(
+  const { data: coachData, refresh: refreshCoach } = await (useFetch as any)(
+    '/api/profile/public/coach',
+    {
+      key: 'public-presence-coach'
+    }
+  )
+  const { data: coachJoinData, refresh: refreshCoachJoin } = await (useFetch as any)(
     '/api/profile/public/coach/join',
     {
       key: 'public-presence-coach-join'
     }
   )
-  const { data: coachStartData, refresh: refreshCoachStart } = await useFetch(
+  const { data: coachStartData, refresh: refreshCoachStart } = await (useFetch as any)(
     '/api/profile/public/coach/start',
     {
       key: 'public-presence-coach-start'
     }
   )
-  const { data: athleteData, refresh: refreshAthlete } = await useFetch(
+  const { data: athleteData, refresh: refreshAthlete } = await (useFetch as any)(
     '/api/profile/public/athlete',
     {
       key: 'public-presence-athlete'

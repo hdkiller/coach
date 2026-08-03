@@ -10,7 +10,7 @@
   const page = ref(1)
   const pageCount = ref(20)
 
-  const { data, pending, refresh } = await useFetch('/api/admin/webhooks', {
+  const { data, pending, refresh } = await (useFetch as any)('/api/admin/webhooks', {
     query: {
       page,
       limit: pageCount
@@ -18,7 +18,7 @@
     watch: [page]
   })
 
-  const { data: stats, pending: statsPending } = await useFetch('/api/admin/webhook-stats')
+  const { data: stats, pending: statsPending } = await (useFetch as any)('/api/admin/webhook-stats')
 
   const columns = [
     {
@@ -146,13 +146,19 @@
         <UCard>
           <UTable :data="data?.data || []" :columns="columns" :loading="pending">
             <template #status-cell="{ row }">
-              <UBadge :color="getStatusColor(row.original.status)" variant="subtle" size="xs">
+              <UBadge
+                :color="getStatusColor((row.original as any).status as string)"
+                variant="subtle"
+                size="xs"
+              >
                 {{ row.original.status }}
               </UBadge>
             </template>
 
             <template #createdAt-cell="{ row }">
-              {{ format(new Date(row.original.createdAt), 'MMM d, yyyy HH:mm:ss') }}
+              {{
+                format(new Date((row.original as any).createdAt as string), 'MMM d, yyyy HH:mm:ss')
+              }}
             </template>
 
             <template #actions-cell="{ row }">

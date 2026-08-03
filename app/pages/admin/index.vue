@@ -4,7 +4,7 @@
     middleware: ['auth', 'admin']
   })
 
-  const { data: stats } = await useFetch('/api/admin/stats')
+  const { data: stats } = await (useFetch as any)('/api/admin/stats')
 
   useHead({
     title: 'Admin Dashboard',

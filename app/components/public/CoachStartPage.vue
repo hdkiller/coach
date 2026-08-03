@@ -223,7 +223,7 @@
     maxAge: 60 * 30
   })
 
-  const { data, pending, refresh } = await useFetch(publicEndpoint, {
+  const { data, pending, refresh } = await (useFetch as any)(publicEndpoint, {
     key: () => `coach-start-${slug.value}`
   })
 

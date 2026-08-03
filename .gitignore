@@ -90,3 +90,6 @@ coverage
 .tolgeerc
 /.pi
 .eslintcache
+
+# Legacy App reference
+_legacy_journey_app/

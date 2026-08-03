@@ -210,6 +210,18 @@
                 :missing-fields="missingFields"
               />
 
+              <!-- Row: Coach Interaction (Check-In & Feedback) -->
+              <div
+                v-if="
+                  (userStore.user as any)?.role === 'ONE_ON_ONE' ||
+                  (userStore.user as any)?.role === 'ADMIN'
+                "
+                class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 items-start mb-4 sm:mb-8"
+              >
+                <DashboardCheckIn />
+                <DashboardCoachFeedback />
+              </div>
+
               <!-- Row 1: Athlete Profile / Today's Training / Performance Overview & Comparison -->
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 items-stretch">
                 <!-- Athlete Profile Card - shown when connected -->

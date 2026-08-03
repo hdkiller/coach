@@ -121,7 +121,7 @@
   const loading = ref(true)
   const refreshing = ref(false)
 
-  const { data, refresh: refreshData } = useFetch('/api/analytics/llm-usage', {
+  const { data, refresh: refreshData } = (useFetch as any)('/api/analytics/llm-usage', {
     query: {
       days: 30,
       groupBy: 'operation'

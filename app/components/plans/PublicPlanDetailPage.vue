@@ -621,8 +621,7 @@
   const { formatDateUTC } = useFormat()
   const slug = (props.overrideSlug || route.params.planSlug || route.params.slug) as string
 
-  // @ts-expect-error TS2589 Nitro route map too large for typed useFetch
-  const { data, pending } = await useFetch(`/api/public/plans/${slug}`)
+  const { data, pending } = await (useFetch as any)(`/api/public/plans/${slug}`)
   const plan = computed(() => (data.value as any)?.plan)
 
   const expandedBlockIds = ref<string[]>([])

@@ -21,7 +21,7 @@
   const searchAction = ref('')
   const searchUser = ref('')
 
-  const { data, pending, refresh } = await useFetch('/api/admin/audit-logs', {
+  const { data, pending, refresh } = await (useFetch as any)('/api/admin/audit-logs', {
     query: {
       page,
       limit,

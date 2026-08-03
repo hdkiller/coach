@@ -148,7 +148,7 @@
       : {}
   )
 
-  const { data, pending, refresh } = await useFetch(publicEndpoint, {
+  const { data, pending, refresh } = await (useFetch as any)(publicEndpoint, {
     key: () => `${props.role}-public-profile-${slug.value}`
   })
 

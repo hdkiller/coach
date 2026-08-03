@@ -158,7 +158,7 @@
     data,
     status,
     refresh: refreshData
-  } = await useFetch('/api/analytics/llm-usage/history', {
+  } = await (useFetch as any)('/api/analytics/llm-usage/history', {
     query: computed(() => ({
       page: currentPage.value,
       pageSize: pageSize.value

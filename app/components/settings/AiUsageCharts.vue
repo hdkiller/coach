@@ -144,7 +144,7 @@
     tooltip.visible = false
   }
 
-  const { data } = useFetch('/api/analytics/llm-usage', {
+  const { data } = (useFetch as any)('/api/analytics/llm-usage', {
     query: {
       days: 30,
       groupBy: 'operation'
@@ -154,7 +154,7 @@
   })
 
   // Also fetch daily data
-  const { data: dailyDataRaw } = useFetch('/api/analytics/llm-usage', {
+  const { data: dailyDataRaw } = (useFetch as any)('/api/analytics/llm-usage', {
     query: {
       days: 7,
       groupBy: 'date'
@@ -170,7 +170,7 @@
   })
 
   // Process operation data
-  const operationData = computed(() => {
+  const operationData = computed<{ operation: string; calls: number; percentage: number }[]>(() => {
     if (!data.value?.groupedData) return []
     const total = data.value.groupedData.reduce((sum: number, item: any) => sum + item.calls, 0)
     return data.value.groupedData

@@ -126,7 +126,7 @@
   const goalToDelete = ref<string | null>(null)
   const toast = useToast()
 
-  const { data, pending: loading, refresh } = await useFetch('/api/goals')
+  const { data, pending: loading, refresh } = await (useFetch as any)('/api/goals')
 
   const goals = computed(() => data.value?.goals || [])
 

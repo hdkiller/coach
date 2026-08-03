@@ -14,7 +14,7 @@
       ? route.query.userId
       : undefined
   )
-  const { data, refresh, status } = await useFetch('/api/admin/emails', {
+  const { data, refresh, status } = await (useFetch as any)('/api/admin/emails', {
     query: { page, limit, userId: userIdFilter },
     watch: [page, userIdFilter]
   })
