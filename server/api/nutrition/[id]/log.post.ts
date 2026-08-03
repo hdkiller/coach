@@ -1,5 +1,8 @@
 import { requireAuth } from '../../../utils/auth-guard'
-import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
+import {
+  CONCURRENT_UPDATE_CONFLICT,
+  nutritionRepository
+} from '../../../utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod/v3'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../../utils/date'
@@ -262,14 +265,41 @@ export default defineEventHandler(async (event) => {
         })
       })
 
-      targetNutrition = await nutritionRepository.create({
-        userId,
-        date: targetDate,
-        ...meals,
-        waterMl: 0
-      })
+      // Compute totals from the in-memory meal state up front so the new row
+      // is created with correct totals in a single write (no separate
+      // follow-up totals write that a concurrent request could race with).
+      const totals = recalculateNutritionTotals(meals)
+
+      try {
+        targetNutrition = await nutritionRepository.create({
+          userId,
+          date: targetDate,
+          ...meals,
+          calories: totals.calories,
+          protein: totals.protein,
+          carbs: totals.carbs,
+          fat: totals.fat,
+          fiber: totals.fiber,
+          sugar: totals.sugar,
+          waterMl: totals.waterMl
+        })
+      } catch (err: any) {
+        // Another request created the row for this date between our read and
+        // this create (unique userId+date constraint violation).
+        if (err?.code === 'P2002') {
+          throw createError({
+            statusCode: 409,
+            message: `Nutrition entry for ${targetDateStr} was created elsewhere. Please retry.`
+          })
+        }
+        throw err
+      }
     } else {
-      // Update existing
+      // Update existing. Merge the meal-array changes and the recalculated
+      // totals into a single payload so the whole mutation lands in one
+      // atomic, version-checked write instead of a separate meal write
+      // followed by a separate totals write.
+      const expectedUpdatedAt = targetNutrition.updatedAt
       const updates: any = {}
       items.forEach((item: any) => {
         const targetMeal = item.mealType || mealType || 'snacks'
@@ -285,7 +315,32 @@ export default defineEventHandler(async (event) => {
         })
       })
 
-      targetNutrition = await nutritionRepository.update(targetNutrition.id, updates)
+      const mergedForTotals = { ...targetNutrition, ...updates }
+      const totals = recalculateNutritionTotals(mergedForTotals)
+
+      const result = await nutritionRepository.updateWithVersionCheck(
+        targetNutrition.id,
+        expectedUpdatedAt,
+        {
+          ...updates,
+          calories: totals.calories,
+          protein: totals.protein,
+          carbs: totals.carbs,
+          fat: totals.fat,
+          fiber: totals.fiber,
+          sugar: totals.sugar,
+          waterMl: totals.waterMl
+        }
+      )
+
+      if (result === CONCURRENT_UPDATE_CONFLICT) {
+        throw createError({
+          statusCode: 409,
+          message: `Nutrition entry for ${targetDateStr} was updated elsewhere. Please retry.`
+        })
+      }
+
+      targetNutrition = result
     }
 
     const addedFluidMl = Math.max(0, Math.round(grouped.hydrationMl))
@@ -329,19 +384,6 @@ export default defineEventHandler(async (event) => {
         intraWorkout
       })
     }
-
-    // Recalculate totals for this record
-    const totals = recalculateNutritionTotals(targetNutrition)
-
-    await nutritionRepository.update(targetNutrition.id, {
-      calories: totals.calories,
-      protein: totals.protein,
-      carbs: totals.carbs,
-      fat: totals.fat,
-      fiber: totals.fiber,
-      sugar: totals.sugar,
-      waterMl: totals.waterMl
-    })
 
     // REACTIVE: Trigger fueling plan update for the log date
     try {

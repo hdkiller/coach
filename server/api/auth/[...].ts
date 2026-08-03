@@ -299,6 +299,10 @@ export default NuxtAuthHandler({
       }
     }
   },
+  pages: {
+    signIn: '/login',
+    error: '/login'
+  },
   callbacks: {
     async signIn({ user }: any) {
       const existingUser = user?.id
@@ -311,7 +315,8 @@ export default NuxtAuthHandler({
         : null
 
       if (existingUser?.deactivatedAt) {
-        return false
+        // Redirect (string) so the login page can show a deactivated message.
+        return '/login?error=deactivated'
       }
 
       return true
@@ -324,7 +329,13 @@ export default NuxtAuthHandler({
         session.user.language = user.language || 'English'
         session.user.uiLanguage = user.uiLanguage || 'en'
         session.user.termsAcceptedAt = user.termsAcceptedAt || null
-        session.user.deactivatedAt = user.deactivatedAt || null
+        // Surface deactivatedAt so client middleware can force sign-out with a
+        // message; server middleware invalidates the cookie/DB session.
+        session.user.deactivatedAt = user.deactivatedAt
+          ? user.deactivatedAt instanceof Date
+            ? user.deactivatedAt.toISOString()
+            : user.deactivatedAt
+          : null
       }
       return session
     }

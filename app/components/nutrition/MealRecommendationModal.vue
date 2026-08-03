@@ -630,40 +630,115 @@
     }
   }
 
-  // Fallback: poll if it stays loading too long
-  let pollTimer: NodeJS.Timeout | null = null
-  watch(loading, (val) => {
-    console.log('[MealRecommendationModal] loading changed', {
-      loading: val,
+  // Fallback: poll run status while waiting, in case WebSocket events are missed.
+  // LLM generation frequently takes well beyond a few seconds, so this can't be a
+  // single check — it needs to keep polling (with backoff) until the run finishes
+  // or a terminal timeout is hit, otherwise the modal is stuck spinning forever.
+  const POLL_INTERVALS_MS = [3000, 3000, 3000, 5000, 5000, 8000]
+  const POLL_MAX_TOTAL_MS = 90000
+  const TERMINAL_RUN_STATUSES = ['FAILED', 'CANCELED', 'TIMED_OUT']
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
+  let pollAttempt = 0
+  let pollStartedAt = 0
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+    pollAttempt = 0
+  }
+
+  function finishWithError(title: string, description: string) {
+    stopPolling()
+    stopLoadingStageRotation()
+    loading.value = false
+    loadingLlm.value = false
+    recommendations.value = []
+    toast.add({
+      title,
+      description,
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  }
+
+  async function pollRunStatus() {
+    pollTimer = null
+
+    if (!isWaitingForRun.value || !currentRunId.value) {
+      stopPolling()
+      return
+    }
+
+    if (Date.now() - pollStartedAt >= POLL_MAX_TOTAL_MS) {
+      console.warn('[MealRecommendationModal] polling timed out', {
+        runId: currentRunId.value
+      })
+      finishWithError(
+        'Still Working',
+        'Meal recommendations are taking longer than expected. Please try again.'
+      )
+      return
+    }
+
+    try {
+      console.log('[MealRecommendationModal] polling run status', {
+        runId: currentRunId.value,
+        attempt: pollAttempt
+      })
+      const run = await ($fetch as any)(`/api/runs/${currentRunId.value}`)
+      console.log('[MealRecommendationModal] polling run status response', {
+        runId: currentRunId.value,
+        status: run.status,
+        hasOutput: !!run.output
+      })
+
+      if (run.status === 'COMPLETED') {
+        stopPolling()
+        await applyRunOutput(run)
+        return
+      }
+
+      if (TERMINAL_RUN_STATUSES.includes(run.status)) {
+        finishWithError(
+          'Recommendation Failed',
+          run.error?.message || 'Failed to generate meal recommendations'
+        )
+        return
+      }
+    } catch (e) {
+      console.warn('[MealRecommendationModal] polling error', e)
+      // Transient network/fetch error — keep polling rather than giving up.
+    }
+
+    if (!isWaitingForRun.value) {
+      stopPolling()
+      return
+    }
+
+    const delay = POLL_INTERVALS_MS[Math.min(pollAttempt, POLL_INTERVALS_MS.length - 1)]
+    pollAttempt += 1
+    pollTimer = setTimeout(() => {
+      void pollRunStatus()
+    }, delay)
+  }
+
+  const isWaitingForRun = computed(() => loading.value || loadingLlm.value)
+
+  watch(isWaitingForRun, (val) => {
+    console.log('[MealRecommendationModal] isWaitingForRun changed', {
+      isWaitingForRun: val,
       currentRunId: currentRunId.value
     })
     if (val) {
-      pollTimer = setTimeout(async () => {
-        if (loading.value && currentRunId.value) {
-          try {
-            console.log('[MealRecommendationModal] polling run status', {
-              runId: currentRunId.value
-            })
-            const run = await ($fetch as any)(`/api/runs/${currentRunId.value}`)
-            console.log('[MealRecommendationModal] polling run status response', {
-              runId: currentRunId.value,
-              status: run.status,
-              hasOutput: !!run.output
-            })
-            if (run.status === 'COMPLETED') {
-              await applyRunOutput(run)
-            }
-          } catch (e) {
-            console.warn('[MealRecommendationModal] polling error', e)
-            // ignore
-          }
-        }
-      }, 3000)
+      pollAttempt = 0
+      pollStartedAt = Date.now()
+      pollTimer = setTimeout(() => {
+        void pollRunStatus()
+      }, POLL_INTERVALS_MS[0])
     } else {
-      if (pollTimer) {
-        clearTimeout(pollTimer)
-        pollTimer = null
-      }
+      stopPolling()
     }
   })
 
@@ -678,6 +753,7 @@
 
   onUnmounted(() => {
     stopLoadingStageRotation()
+    stopPolling()
   })
 
   async function getLlmRecommendations() {
@@ -724,8 +800,17 @@
 
       isOpen.value = false
       emit('updated')
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to confirm selection:', e)
+      toast.add({
+        title: 'Failed to Apply Meal',
+        description:
+          e?.data?.message ||
+          e?.message ||
+          'Could not add this meal to your plan. Please try again.',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
     } finally {
       confirming.value = false
     }

@@ -390,6 +390,8 @@
   const canShowTurnStatus = (message: any) => shouldShowAssistantStatusRow(message)
   const isQueuedUserMessage = (message: any) =>
     message?.role === 'user' && message?.metadata?.localQueueState === 'QUEUED'
+  const isFailedQueuedUserMessage = (message: any) =>
+    message?.role === 'user' && message?.metadata?.localQueueState === 'FAILED'
   const resumeTurn = (turnId?: string) => {
     if (!turnId) return
     emit('resume-turn', turnId)
@@ -903,7 +905,9 @@
                 message.role === 'user'
                   ? isQueuedUserMessage(message)
                     ? 'animate-pulse rounded-[1.75rem] rounded-tr-lg bg-amber-500/22 px-4 py-2 text-white ring-1 ring-inset ring-amber-300/35 dark:bg-amber-400/16 dark:ring-amber-200/20'
-                    : 'rounded-[1.75rem] rounded-tr-lg bg-gray-800/95 px-4 py-2 text-white dark:bg-gray-700/95 dark:text-gray-50'
+                    : isFailedQueuedUserMessage(message)
+                      ? 'rounded-[1.75rem] rounded-tr-lg bg-red-500/22 px-4 py-2 text-white ring-1 ring-inset ring-red-300/35 dark:bg-red-400/16 dark:ring-red-200/20'
+                      : 'rounded-[1.75rem] rounded-tr-lg bg-gray-800/95 px-4 py-2 text-white dark:bg-gray-700/95 dark:text-gray-50'
                   : ''
               "
             >

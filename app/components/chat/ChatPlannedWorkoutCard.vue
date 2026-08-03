@@ -2,7 +2,7 @@
   import { computed, onUnmounted, ref, watch } from 'vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
-  import { hasStructuredWorkoutPreviewData } from '~/utils/structuredWorkout'
+  import { hasRenderableStructure } from '~/utils/workout-structure'
 
   const props = defineProps<{
     toolName: string
@@ -170,7 +170,7 @@
   })
 
   const hasVisualization = computed(() => {
-    return hasStructuredWorkoutPreviewData(plannedWorkout.value)
+    return hasRenderableStructure(plannedWorkout.value)
   })
 
   const chartPreference = computed<'power' | 'hr' | 'pace'>(() => {

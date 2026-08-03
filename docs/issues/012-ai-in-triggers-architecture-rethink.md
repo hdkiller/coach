@@ -3,7 +3,42 @@
 **Type:** Architecture  
 **Priority:** High  
 **Area:** `ai`, `backend`, `infra`, `workouts`  
-**Status:** Open (partial — shared AI timeouts in PR #222; durable generation status model still TODO)
+**Status:** Open (partial — shared AI timeouts in PR #222; durable generation status model landed via `WorkoutStructureGenerationRun` (CW-5, PR #398); CW-2 closed the last gap in that model — see "CW-2 update" below. Broader "unify timeouts across every workout/planning trigger" and Option B/C from this doc remain undone.)
+
+## CW-2 update (2026-07-31)
+
+CW-5 already added a durable generation-status model for `generate-structured-workout` /
+`adjust-structured-workout`: the `WorkoutStructureGenerationRun` table (status
+`PENDING|RUNNING|COMPLETED|STALE|FAILED|SUPERSEDED`, fenced by `PlannedWorkout.generationRevision`)
+plus `hasActiveStructureGenerationRun()` / `structureGenerationInFlight` on the workout GET
+response and in the chat planning tools. This is a stronger design than the flat
+`structureGenerationStatus` field proposed below — revision fencing means a superseded/retried
+generation can't clobber a newer one's result.
+
+What CW-2 investigated and found still missing: **Trigger.dev's `maxDuration` docs state that when
+a run is killed for exceeding its time budget, the task's own `cleanup`/`onSuccess`/`onFailure`
+lifecycle hooks do **not** run.** Since `startStructureGenerationTask`/`finishStructureGenerationTask`
+/`failStructureGenerationTaskFromPayload` are only reachable from in-task `try/catch/finally`, a hard
+180s timeout left the `WorkoutStructureGenerationRun` row stuck in `RUNNING` forever — which wedged
+`structureGenerationInFlight` (blocking Publish on the planned-workout page) and the chat planning
+tools' in-flight guard (`hasActiveStructureGenerationRun`) indefinitely, even though the frontend's
+own local 180s poll timeout and Trigger.dev-run-status listener (`TIMED_OUT`) already recover
+gracefully on their own.
+
+Fix shipped: `hasActiveStructureGenerationRun()` now self-heals. Any `PENDING`/`RUNNING` row older
+than `STRUCTURE_GENERATION_RUN_STALE_AFTER_MS` (task `maxDuration` + 60s buffer, defined in
+`server/utils/workout-ai-timeouts.ts`) is reconciled to `FAILED` the next time it's read — no
+separate reconciliation job needed, since every consumer of the "is this still generating?"
+question already goes through this function. Also consolidated the previously-duplicated
+`180`/`180_000` `maxDuration` literals in both trigger tasks into
+`STRUCTURE_GENERATION_TASK_MAX_DURATION_SEC`/`_MS` in the same file, and removed a redundant local
+`45_000` AI-call-timeout literal in `generate-structured-workout.ts` in favor of the already-shared
+`WORKOUT_STRUCTURE_AI_TIMEOUT_MS`.
+
+**Deliberately not done in CW-2** (see PR for full reasoning): a scheduled/cron reconciliation
+task, unifying `maxDuration` across the ~50 other trigger tasks in this repo, and Option B (split
+AI-draft vs. persist into separate tasks). Those are larger, product/ops-scoped decisions this
+ticket's owned paths and risk budget didn't cover.
 
 ## Summary
 

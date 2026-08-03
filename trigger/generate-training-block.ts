@@ -19,6 +19,13 @@ import { TRAINING_BLOCK_TYPES, TRAINING_BLOCK_FOCUSES } from '../app/utils/train
 import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
 import { enqueuePlannedWorkoutStructureGeneration } from '../server/utils/planned-workout-structure-trigger'
 import { registerTaskHandler } from '../server/utils/task-registry'
+import { normalizeGeneratedWorkoutType } from '../server/utils/plans/workout-type'
+import {
+  validateGeneratedBlockWeeks,
+  clampGeneratedBlockWeeks,
+  formatViolationsFeedback,
+  type WeekVolumeTarget
+} from '../server/utils/plans/block-volume'
 
 const trainingBlockSchema = {
   type: 'object',
@@ -56,7 +63,9 @@ const trainingBlockSchema = {
                 },
                 type: {
                   type: 'string',
-                  enum: ['Ride', 'Run', 'Swim', 'Gym', 'Rest', 'Active Recovery']
+                  description:
+                    'Type of workout. DO NOT use generic terms like "Active Recovery" - map recovery sessions to a light "Ride"/"Run" or "Rest". "Gym" means strength training.',
+                  enum: ['Ride', 'Run', 'Swim', 'Gym', 'Rest']
                 },
                 durationMinutes: { type: 'integer' },
                 tssEstimate: { type: 'integer' },
@@ -124,7 +133,8 @@ export async function runGenerateTrainingBlock(payload: {
         select: {
           weekNumber: true,
           volumeTargetMinutes: true,
-          tssTarget: true
+          tssTarget: true,
+          isRecovery: true
         },
         orderBy: { weekNumber: 'asc' }
       }
@@ -381,7 +391,7 @@ CURRENT BLOCK CONTEXT:
 
 VOLUME TARGETS (Baseline from Plan Wizard):
 ${volumeTargets}
-*Use these targets as a guide. You may adjust slightly (+/- 10%) based on the phase and progression needs, but aim to hit these durations.*
+*These are HARD weekly duration budgets chosen by the athlete. The sum of all workout durations in a week MUST be within ±10% of that week's target. Never exceed it, and reduce recovery weeks accordingly.*
 
 WEEKLY SCHEDULE CONSTRAINTS (Explicit Dates):
 ${calendarContext}
@@ -389,6 +399,7 @@ ${calendarContext}
 
 TRAINING AVAILABILITY (when athlete can train):
 ${availabilitySummary || 'No availability set - assume flexible schedule'}
+*Availability slots are windows when the athlete CAN train — they are NOT sessions to fill. Schedule only as many sessions as the weekly volume budget allows; most days should use at most one slot.*
 
 LOCKED/ANCHOR WORKOUTS (DO NOT CHANGE OR REPLACE):
 ${
@@ -419,7 +430,7 @@ Generate a detailed daily training plan for each week in this block (${block.dur
 - Ensure the recovery week (if applicable) has clearly reduced volume and intensity versus prior loading weeks.
 - Quantify recovery intent in your rationale (what was reduced and why).
 - For "Ride" workouts, provide realistic TSS estimates based on duration and intensity.
-- Workout types: ${allowedTypesString}, Rest, Active Recovery. Ensure to highlight specific endurance disciplines (running, cycling, triathlon, hybrid) according to the athlete's goals.
+- Workout types: ${allowedTypesString}, Rest. DO NOT use generic types like "Active Recovery" - map recovery sessions to a light Ride/Run or Rest. Ensure to highlight specific endurance disciplines (running, cycling, triathlon, hybrid) according to the athlete's goals.
 - Start each week on a Monday.
 - Provide a summary for each week explaining the focus and volume.
 - Explicitly connect each week focus to event demands and phase goals (base/build/peak/taper).
@@ -442,21 +453,58 @@ Return valid JSON matching the schema provided.`
     blockId,
     userId
   })
-  const result = await generateStructuredAnalysis<any>(
-    prompt,
-    trainingBlockSchema,
-    aiSettings.aiModelPreference,
-    {
+  const generateWeeks = (promptText: string) =>
+    generateStructuredAnalysis<any>(promptText, trainingBlockSchema, aiSettings.aiModelPreference, {
       userId,
       operation: 'generate_training_block',
       entityType: 'TrainingBlock',
       entityId: blockId
-    }
-  )
+    })
+
+  const result = await generateWeeks(prompt)
 
   // 5. Persist Results
   if (!result.weeks || result.weeks.length === 0) {
     throw new Error('AI returned no weeks for the block')
+  }
+
+  // 4.5 Validate the generated schedule against the wizard's weekly volume budgets.
+  // One corrective retry; if the model still over-schedules, clamp deterministically
+  // so a week can never persist at a multiple of the athlete's chosen volume. (CW-316)
+  const weekTargets: WeekVolumeTarget[] = weekSchedules.map((schedule) => {
+    const original = block.weeks.find((w) => w.weekNumber === schedule.weekNumber)
+    return {
+      weekNumber: schedule.weekNumber,
+      volumeTargetMinutes: original?.volumeTargetMinutes ?? null,
+      isRecovery: original?.isRecovery,
+      allowedDaysOfWeek: schedule.validDays.map((d) => d.getUTCDay())
+    }
+  })
+
+  let volumeViolations = validateGeneratedBlockWeeks(result.weeks, weekTargets)
+  if (volumeViolations.length > 0) {
+    logger.warn('[GenerateBlock] Generated weeks violate volume budgets, retrying with feedback', {
+      blockId,
+      violations: volumeViolations.map((v) => v.message)
+    })
+
+    const retry = await generateWeeks(`${prompt}\n\n${formatViolationsFeedback(volumeViolations)}`)
+    if (retry.weeks && retry.weeks.length > 0) {
+      result.weeks = retry.weeks
+      volumeViolations = validateGeneratedBlockWeeks(result.weeks, weekTargets)
+    }
+
+    if (volumeViolations.length > 0) {
+      const { weeks: clampedWeeks, adjustments } = clampGeneratedBlockWeeks(
+        result.weeks,
+        weekTargets
+      )
+      result.weeks = clampedWeeks
+      logger.warn('[GenerateBlock] Retry still over budget - clamped weeks deterministically', {
+        blockId,
+        adjustments
+      })
+    }
   }
 
   logger.log('Persisting generated plan...', { weeksCount: result.weeks.length })
@@ -530,6 +578,10 @@ Return valid JSON matching the schema provided.`
 
           const focusLabel = weekData?.focus_label || weekData?.focus_key || 'Training Week'
 
+          // Wizard-defined targets are the source of truth; the AI's self-reported
+          // volume target can silently diverge from what it actually scheduled. (CW-316)
+          const originalWeek = block.weeks.find((w) => w.weekNumber === schedule.weekNumber)
+
           const createdWeek = await tx.trainingWeek.create({
             data: {
               blockId,
@@ -540,13 +592,15 @@ Return valid JSON matching the schema provided.`
               focusKey: focusKey,
               focusLabel: focusLabel,
               explanation: weekData?.explanation || 'Weekly progression.',
-              volumeTargetMinutes: weekData?.volumeTargetMinutes || 0,
+              volumeTargetMinutes:
+                originalWeek?.volumeTargetMinutes || weekData?.volumeTargetMinutes || 0,
               tssTarget:
                 weekData?.workouts?.reduce(
                   (acc: number, w: any) => acc + (w.tssEstimate || 0),
                   0
                 ) || 0,
-              isRecovery: focusKey === 'RECOVERY' || focusKey === 'TAPER'
+              isRecovery:
+                originalWeek?.isRecovery ?? (focusKey === 'RECOVERY' || focusKey === 'TAPER')
             }
           })
 
@@ -593,7 +647,7 @@ Return valid JSON matching the schema provided.`
                   date: targetDate,
                   title: workout.title,
                   description: workout.description,
-                  type: workout.type,
+                  type: normalizeGeneratedWorkoutType(workout.type),
                   durationSec: (workout.durationMinutes || 0) * 60,
                   tss: workout.tssEstimate,
                   workIntensity: getIntensityScore(workout.intensity),

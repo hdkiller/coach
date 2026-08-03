@@ -40,11 +40,19 @@ export const recommendNutritionMealTask = task({
         logger.warn('Meal recommendation quota exceeded', { userId })
 
         if (recommendationId) {
+          const existing = await prisma.nutritionRecommendation.findUnique({
+            where: { id: recommendationId },
+            select: { contextJson: true }
+          })
+
           await prisma.nutritionRecommendation.update({
             where: { id: recommendationId },
             data: {
               status: 'FAILED',
-              contextJson: { error: 'QUOTA_EXCEEDED' }
+              contextJson: {
+                ...((existing?.contextJson as object | null) ?? {}),
+                error: 'QUOTA_EXCEEDED'
+              }
             }
           })
         } else {

@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { logWebhookRequest } from '../../utils/webhook-logger'
 
+// CW-90: this endpoint is the primary, preferred Garmin data channel per
+// partner guidance (Push/Ping over ad-hoc polling). trigger/ingest-garmin.ts
+// and server/api/integrations/sync.post.ts cover the ad-hoc pull path, which
+// is bounded and rate-limited to a recovery-only role — see
+// docs/01-architecture/system-overview.md#garmin-push-first-policy.
 defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],

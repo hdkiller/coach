@@ -130,6 +130,16 @@
       </div>
     </div>
 
+    <div
+      v-if="loadError"
+      class="m-3 flex items-center justify-between gap-3 rounded-lg border border-error-200 bg-error-50 p-3 text-sm text-error-700 dark:border-error-800 dark:bg-error-900/20 dark:text-error-300"
+    >
+      <span>Could not load the weekly plan. The grid below may be incomplete.</span>
+      <UButton size="xs" color="error" variant="soft" icon="i-lucide-refresh-cw" @click="refresh">
+        Retry
+      </UButton>
+    </div>
+
     <div class="overflow-x-auto">
       <table class="w-full border-collapse text-left">
         <thead>
@@ -568,6 +578,7 @@
 
 <script setup lang="ts">
   import { addDays, format, parseISO } from 'date-fns'
+  import { resolveWindowKey } from '#shared/window-keys'
   import { normalizeWindowLabel } from '~/utils/nutrition-window-label'
 
   const toast = useToast()
@@ -628,6 +639,8 @@
   const loading = ref(false)
   /** True once a fetch has settled, so the grid can distinguish "empty" from "not loaded yet". */
   const planLoaded = ref(false)
+  /** A failed fetch used to render as an authoritative-looking empty week; surface it instead. */
+  const loadError = ref(false)
   const plan = ref<any>(null)
   const workoutsByDate = ref<Record<string, DayWorkout[]>>({})
   const drawerOpen = ref(false)
@@ -635,25 +648,8 @@
   const selectedWindowKey = ref('')
   const expandedMealKeys = ref<string[]>([])
 
-  function toDailyBaseKey(slotName?: string) {
-    const normalized = (slotName || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-    return normalized ? `DAILY_BASE:${normalized}` : 'DAILY_BASE'
-  }
-
-  function getSlotNameFromWindow(window: any) {
-    return window?.slotName || window?.label || (window?.type === 'DAILY_BASE' ? 'Meal' : '')
-  }
-
-  function resolveWindowKey(window: any) {
-    if (!window) return ''
-    if (window.windowKey) return String(window.windowKey)
-    if (window.type === 'DAILY_BASE') return toDailyBaseKey(getSlotNameFromWindow(window))
-    return `${window.type}#1`
-  }
-
+  // Key derivation is shared with the server (shared/window-keys); a drifted local copy here
+  // once produced different keys for punctuated slot names and unlinked locked meals.
   function matchesMealToWindow(meal: any, window: any) {
     if (!meal || !window) return false
 
@@ -742,6 +738,7 @@
 
   async function fetchPlan() {
     loading.value = true
+    loadError.value = false
     try {
       const [planData, workoutsData] = await Promise.all([
         ($fetch as any)('/api/nutrition/plan', {
@@ -779,6 +776,7 @@
       workoutsByDate.value = mappedWorkouts
     } catch (e) {
       console.error('Failed to fetch weekly nutrition dashboard data:', e)
+      loadError.value = true
     } finally {
       loading.value = false
       planLoaded.value = true

@@ -1,5 +1,6 @@
 import { z } from 'zod/v3'
 import { requireAuth } from '../../utils/auth-guard'
+import { prisma } from '../../utils/db'
 
 defineRouteMeta({
   // ... (omitting openAPI for brevity)
@@ -140,6 +141,26 @@ export default defineEventHandler(async (event) => {
     if (data.eventId) {
       if (!eventsToConnect.some((e) => e.id === data.eventId)) {
         eventsToConnect.push({ id: data.eventId })
+      }
+    }
+
+    // Prevent IDOR: only the caller's events may be linked to their goal
+    const uniqueExistingEventIds = [...new Set(eventsToConnect.map((e) => e.id))]
+    if (uniqueExistingEventIds.length > 0) {
+      const ownedEvents = await prisma.event.findMany({
+        where: {
+          id: { in: uniqueExistingEventIds },
+          userId: user.id
+        },
+        select: { id: true }
+      })
+
+      if (ownedEvents.length !== uniqueExistingEventIds.length) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Not authorized to link one or more events',
+          message: 'Not authorized to link one or more events'
+        })
       }
     }
 

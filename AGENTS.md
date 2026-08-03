@@ -56,3 +56,18 @@ This repository is Coach Watts product development only. Do not reference intern
 
 This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`, `trigger-authoring-chat-agent`.
 <!-- TRIGGER.DEV SKILLS END -->
+
+## Cursor Cloud specific instructions
+
+The Cloud VM snapshot already has: Node 24 (via nvm), pnpm deps, a local `.env`, and locally-installed PostgreSQL 16 + Redis 7. The startup update script runs `pnpm install` (which regenerates Prisma Client via `postinstall`). Everything below is what an agent still needs to do/know per session.
+
+- Node: the project requires Node `>=24.11 <25`. The VM's default `/exec-daemon/node` is v22, so `~/.bashrc` prepends the nvm Node 24 bin to `PATH`. Always run commands through a login shell (e.g. `bash -lc '…'`) so `node --version` reports 24.x; a non-login shell may fall back to v22.
+- Services are NOT auto-started (no systemd). Start them at the beginning of each session:
+  - Postgres: `sudo pg_ctlcluster 16 main start` (cluster `16 main`, listens on `localhost:5432`).
+  - Redis: `sudo redis-server /etc/redis/redis.conf --daemonize yes` (password `dragonfly`, port 6379). Check with `redis-cli -a dragonfly ping`.
+- Local `.env` (gitignored) differs from `.env.example`: Postgres runs on the standard port `5432` (not 5439) with role/db `watts`/`watts` (password `password`), so `DATABASE_URL=postgresql://watts:password@localhost:5432/watts`. The dev server runs on `http://localhost:3099`.
+- Apply DB migrations with `npx prisma migrate deploy` (or `npx prisma migrate dev`). The DB already has migrations applied in the snapshot; re-running deploy is a no-op.
+- Login without Google OAuth: `.env` sets `AUTH_BYPASS_USER=dev@coachwatts.test`, so hitting any protected page auto-creates a session for that seeded admin user (see `server/plugins/auth-bypass.ts`). Recreate the user if the DB is reset with `npx tsx scripts/seed-dev-user.ts`.
+- Prisma 7 uses a driver adapter — construct `PrismaClient` with `new PrismaPg(new pg.Pool(...))` (see `server/utils/db.ts`); `new PrismaClient()` alone throws. Standalone scripts must do the same.
+- Commands (`pnpm dev`, `build`, `typecheck`, `test`, `lint`, etc.) are defined in `package.json`. Note: `pnpm lint` and `pnpm typecheck` need generated Nuxt types first — run `pnpm exec nuxt prepare` once (CI does this) or start `pnpm dev` before them.
+- AI features (chat, analysis) need a real `GEMINI_API_KEY`; external integrations (Strava/Whoop/etc.) and Stripe use placeholder credentials in local dev and won't complete real OAuth/payment flows.

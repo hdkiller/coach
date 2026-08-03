@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nutritionPlanService } from '../../../../../server/utils/services/nutritionPlanService'
+import { metabolicService } from '../../../../../server/utils/services/metabolicService'
 import { prisma } from '../../../../../server/utils/db'
 import { getUserTimezone } from '../../../../../server/utils/date'
 import { slugifySlot } from '../../../../../server/utils/nutrition-domain/day-plan'
+import { buildDayFuelingPlan } from '../../../../../server/utils/nutrition-domain'
+import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/settings'
+import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
+import { nutritionRepository } from '../../../../../server/utils/repositories/nutritionRepository'
 
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
@@ -28,19 +33,77 @@ vi.mock('../../../../../server/utils/db', () => ({
     },
     user: {
       findUnique: vi.fn()
+    },
+    // CW-83: calculateFuelingPlanForDate/calculateFuelingPlansForRange query these two directly.
+    workout: {
+      findMany: vi.fn()
+    },
+    plannedWorkout: {
+      findMany: vi.fn()
+    },
+    // Queried by remediationService.getActiveFuelingOverride (real module, not mocked below).
+    athleteJourneyEvent: {
+      findMany: vi.fn()
     }
   }
 }))
 
-vi.mock('../../../../../server/utils/date', () => ({
-  getUserTimezone: vi.fn()
+vi.mock('../../../../../server/utils/date', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../../server/utils/date')>()
+  return {
+    // CW-83 tests exercise the real metabolicService, which needs the real date helpers
+    // (formatDateUTC, buildZonedDateTimeFromUtcDate, ...) to bucket days correctly - only
+    // getUserTimezone itself stays mockable, as it always has been in this file.
+    ...actual,
+    getUserTimezone: vi.fn()
+  }
+})
+
+vi.mock('../../../../../server/utils/nutrition/settings', () => ({
+  getUserNutritionSettings: vi.fn()
 }))
 
-vi.mock('../../../../../server/utils/services/metabolicService', () => ({
-  metabolicService: {
-    getNutritionDay: vi.fn()
+vi.mock('../../../../../server/utils/services/bodyMetricResolver', () => ({
+  bodyMetricResolver: {
+    resolveEffectiveWeight: vi.fn()
   }
 }))
+
+vi.mock('../../../../../server/utils/repositories/nutritionRepository', () => ({
+  nutritionRepository: {
+    getByDate: vi.fn(),
+    getForUser: vi.fn(),
+    upsert: vi.fn()
+  }
+}))
+
+// The barrel is left real (pure functions, no side-effecting imports) except buildDayFuelingPlan,
+// which is wrapped in a spy that still calls through to the real implementation. This lets the
+// CW-83 tests below assert exactly how many times the day builder - and therefore the dominant
+// fuel-state determination it computes internally - runs, while every other test in this file
+// keeps exercising the real fueling-plan math untouched.
+vi.mock('../../../../../server/utils/nutrition-domain', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../../../server/utils/nutrition-domain')>()
+  return {
+    ...actual,
+    buildDayFuelingPlan: vi.fn((...args: Parameters<typeof actual.buildDayFuelingPlan>) =>
+      actual.buildDayFuelingPlan(...args)
+    )
+  }
+})
+
+vi.mock('../../../../../server/utils/services/metabolicService', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../../../server/utils/services/metabolicService')>()
+  return {
+    metabolicService: {
+      ...actual.metabolicService,
+      getNutritionDay: vi.fn(),
+      getMealTargetContext: vi.fn()
+    }
+  }
+})
 
 describe('nutritionPlanService', () => {
   beforeEach(() => {
@@ -433,5 +496,329 @@ describe('nutritionPlanService', () => {
         })
       )
     })
+  })
+
+  describe('reconciliation matching', () => {
+    const snackWindow = {
+      type: 'DAILY_BASE',
+      windowKey: 'DAILY_BASE:snack',
+      slotName: 'Snack',
+      startTime: '2026-02-15T14:00:00.000Z',
+      endTime: '2026-02-15T16:00:00.000Z'
+    }
+
+    it('matches an item logged under the plural snacks array to a snack slot', () => {
+      // Logged items carry the Nutrition record's plural array name; slot slugs are singular.
+      // The raw includes() check never matched, so snack plan meals stayed PLANNED forever.
+      const planMeal = { windowType: 'DAILY_BASE:snack' }
+      const item = {
+        id: 'log-1',
+        mealType: 'snacks',
+        name: 'Apple',
+        at: new Date('2026-02-15T15:00:00.000Z')
+      }
+
+      expect(
+        nutritionPlanService.matchLoggedItemToPlanMeal(planMeal, [snackWindow], [item], new Set())
+      ).toBe(item)
+    })
+
+    it('still rejects items outside the window or of an unrelated meal type', () => {
+      const planMeal = { windowType: 'DAILY_BASE:snack' }
+      const outsideWindow = {
+        id: 'log-2',
+        mealType: 'snacks',
+        name: 'Apple',
+        at: new Date('2026-02-15T18:00:00.000Z')
+      }
+      const wrongMealType = {
+        id: 'log-3',
+        mealType: 'dinner',
+        name: 'Steak',
+        at: new Date('2026-02-15T15:00:00.000Z')
+      }
+
+      expect(
+        nutritionPlanService.matchLoggedItemToPlanMeal(
+          planMeal,
+          [snackWindow],
+          [outsideWindow, wrongMealType],
+          new Set()
+        )
+      ).toBeNull()
+    })
+  })
+
+  describe('lockMeal target and schedule handling', () => {
+    beforeEach(() => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({ id: 'plan-1' } as any)
+      vi.mocked(prisma.nutritionPlan.findMany).mockResolvedValue([] as any)
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockResolvedValue({
+        id: 'plan-meal-1',
+        planId: 'plan-1',
+        date: new Date('2026-02-15T00:00:00.000Z'),
+        windowType: 'PRE_WORKOUT',
+        scheduledAt: new Date('2026-02-15T00:00:00.000Z')
+      } as any)
+    })
+
+    it('keeps the stored window target when a re-lock carries no explicit targets', async () => {
+      // The replace action re-locks without targets; writing the meal's own totals as the
+      // target made every target-vs-planned comparison self-referential.
+      await nutritionPlanService.lockMeal('user-1', '2026-02-15', 'PRE_WORKOUT', {
+        title: 'Rice Cakes',
+        totals: { carbs: 50 }
+      })
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.update.targetJson).toBeUndefined()
+      expect(upsertArgs.create.targetJson).toEqual({ carbs: 50, protein: 0, kcal: 0 })
+    })
+
+    it('writes the explicit window target when the assignment carries one', async () => {
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Rice Cakes', totals: { carbs: 50 } },
+        undefined,
+        {
+          windowAssignments: [
+            {
+              windowType: 'PRE_WORKOUT',
+              windowKey: 'PRE_WORKOUT#1',
+              targetCarbs: 90,
+              targetProtein: 20,
+              targetKcal: 450
+            }
+          ]
+        }
+      )
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.update.targetJson).toEqual({ carbs: 90, protein: 20, kcal: 450 })
+    })
+
+    it('schedules a locked meal at its window start time instead of midnight', async () => {
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue({
+        id: 'nutrition-1',
+        fuelingPlan: {
+          windows: [
+            {
+              type: 'PRE_WORKOUT',
+              windowKey: 'PRE_WORKOUT#1',
+              startTime: '2026-02-15T09:30:00.000Z'
+            }
+          ]
+        }
+      } as any)
+
+      await nutritionPlanService.lockMeal(
+        'user-1',
+        '2026-02-15',
+        'PRE_WORKOUT',
+        { title: 'Morning Oats', totals: { carbs: 60 } },
+        undefined,
+        { windowKey: 'PRE_WORKOUT#1' }
+      )
+
+      const upsertArgs = vi.mocked(prisma.nutritionPlanMeal.upsert).mock.calls[0]?.[0] as any
+      expect(upsertArgs.create.scheduledAt).toEqual(new Date('2026-02-15T09:30:00.000Z'))
+      expect(upsertArgs.update.scheduledAt).toEqual(new Date('2026-02-15T09:30:00.000Z'))
+    })
+  })
+
+  describe('generateDraftPlan', () => {
+    it('persists the full plan week even when a sub-range is generated', async () => {
+      // A caller-supplied endDate used to truncate the plan row, orphaning locked meals on the
+      // cut-off days, and the regenerated summary wiped the untouched days' entries.
+      const weekStart = new Date('2026-02-09T00:00:00.000Z')
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({
+        id: 'plan-1',
+        startDate: weekStart,
+        summaryJson: {
+          days: [{ date: '2026-02-12', fuelingPlan: { windows: [] }, targets: {} }]
+        },
+        meals: []
+      } as any)
+      vi.mocked(prisma.userNutritionSettings.findUnique).mockResolvedValue(null as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null as any)
+      vi.mocked(bodyMetricResolver.resolveEffectiveWeight).mockResolvedValue({ value: 75 } as any)
+      vi.mocked(metabolicService.getNutritionDay).mockResolvedValue({
+        fuelingPlan: { windows: [] },
+        targets: {}
+      } as any)
+      vi.mocked(metabolicService.getMealTargetContext).mockResolvedValue({} as any)
+
+      await nutritionPlanService.generateDraftPlan(
+        'user-1',
+        new Date('2026-02-09T00:00:00.000Z'),
+        new Date('2026-02-11T23:59:59.999Z')
+      )
+
+      const updateArgs = vi.mocked(prisma.nutritionPlan.update).mock.calls[0]?.[0] as any
+      expect(updateArgs.data.endDate).toEqual(new Date('2026-02-15T23:59:59.999Z'))
+
+      const summaryDates = updateArgs.data.summaryJson.days.map((day: any) => day.date)
+      expect(summaryDates).toEqual(['2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12'])
+    })
+  })
+})
+
+describe('metabolicService.calculateFuelingPlansForRange batching (CW-83)', () => {
+  const userId = 'user-83'
+
+  const baseSettings = {
+    bmr: 1600,
+    activityLevel: 'ACTIVE',
+    baseCaloriesMode: 'AUTO',
+    nonExerciseBaseCalories: null,
+    baseProteinPerKg: 1.6,
+    baseFatPerKg: 1.0,
+    currentCarbMax: 90,
+    sodiumTarget: 750,
+    sweatRate: null,
+    preWorkoutWindow: 90,
+    postWorkoutWindow: 60,
+    fuelingSensitivity: 1.0,
+    fuelState1Trigger: 0.7,
+    fuelState1Min: 2.5,
+    fuelState1Max: 4.0,
+    fuelState2Trigger: 0.85,
+    fuelState2Min: 4.5,
+    fuelState2Max: 6.5,
+    fuelState3Min: 7.0,
+    fuelState3Max: 10.0,
+    targetAdjustmentPercent: 0,
+    mealPattern: null
+  }
+
+  // Two completed workouts on different days of a 5-day window, so the fixture proves per-day
+  // grouping actually varies day to day rather than every day getting the same plan by accident.
+  const allCompletedWorkouts = [
+    {
+      id: 'w-1',
+      title: 'Morning Ride',
+      durationSec: 3600,
+      type: 'Ride',
+      date: new Date('2026-03-01T08:00:00.000Z'),
+      intensity: 0.9,
+      calories: 600,
+      kilojoules: 2500,
+      plannedWorkoutId: null
+    },
+    {
+      id: 'w-2',
+      title: 'Long Endurance Ride',
+      durationSec: 4 * 3600,
+      type: 'Ride',
+      date: new Date('2026-03-03T09:00:00.000Z'),
+      intensity: 0.75,
+      calories: 2400,
+      kilojoules: 10000,
+      plannedWorkoutId: null
+    }
+  ]
+
+  const withinRange = (date: Date, gte?: Date, lte?: Date) =>
+    (!gte || date.getTime() >= gte.getTime()) && (!lte || date.getTime() <= lte.getTime())
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    vi.mocked(getUserTimezone).mockResolvedValue('UTC')
+    vi.mocked(getUserNutritionSettings).mockResolvedValue(baseSettings as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      weight: 70,
+      weightSourceMode: 'MANUAL',
+      ftp: 250
+    } as any)
+    vi.mocked(bodyMetricResolver.resolveEffectiveWeight).mockResolvedValue({ value: 70 } as any)
+    vi.mocked(prisma.athleteJourneyEvent.findMany).mockResolvedValue([])
+    vi.mocked(nutritionRepository.getByDate).mockResolvedValue(null)
+    vi.mocked(nutritionRepository.getForUser).mockResolvedValue([])
+
+    // Mimic real DB date-range filtering so a single-day query (the per-day loop) and a
+    // multi-day query (the batched range) against this same fixture return the correct subset.
+    vi.mocked(prisma.workout.findMany).mockImplementation((async (args: any) =>
+      allCompletedWorkouts.filter((w) =>
+        withinRange(w.date, args?.where?.date?.gte, args?.where?.date?.lte)
+      )) as any)
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([])
+  })
+
+  it('produces identical per-day plans to looping calculateFuelingPlanForDate (no behavior regression)', async () => {
+    const startDate = new Date('2026-03-01T00:00:00.000Z')
+    const endDate = new Date('2026-03-03T00:00:00.000Z')
+
+    const rangeResult = await metabolicService.calculateFuelingPlansForRange(
+      userId,
+      startDate,
+      endDate,
+      { persist: false }
+    )
+
+    expect(rangeResult.size).toBe(3)
+
+    // Sanity check that the fixture actually exercises different code paths day to day, so the
+    // equality assertions below are not vacuously comparing empty/identical plans: 03-01 has the
+    // workout and gets workout windows, 03-02 is a rest day and gets baseline windows only.
+    const workoutDay = rangeResult.get('2026-03-01')?.plan as any
+    const restDay = rangeResult.get('2026-03-02')?.plan as any
+    expect(workoutDay.windows.some((w: any) => w.type === 'INTRA_WORKOUT')).toBe(true)
+    expect(restDay.windows.every((w: any) => w.type === 'DAILY_BASE')).toBe(true)
+
+    for (let i = 0; i <= 2; i++) {
+      const date = new Date(startDate)
+      date.setUTCDate(startDate.getUTCDate() + i)
+      const dateKey = date.toISOString().split('T')[0] as string
+
+      const loopDay = await metabolicService.calculateFuelingPlanForDate(userId, date, {
+        persist: false
+      })
+
+      expect(rangeResult.get(dateKey)).toEqual(loopDay)
+    }
+  })
+
+  it('fetches shared per-user context and range data only once for a multi-day range, not once per day', async () => {
+    const startDate = new Date('2026-03-01T00:00:00.000Z')
+    const endDate = new Date('2026-03-05T00:00:00.000Z') // 5 days
+
+    const result = await metabolicService.calculateFuelingPlansForRange(
+      userId,
+      startDate,
+      endDate,
+      { persist: false }
+    )
+
+    expect(result.size).toBe(5)
+    expect(getUserNutritionSettings).toHaveBeenCalledTimes(1)
+    expect(getUserTimezone).toHaveBeenCalledTimes(1)
+    expect(prisma.user.findUnique).toHaveBeenCalledTimes(1)
+    expect(bodyMetricResolver.resolveEffectiveWeight).toHaveBeenCalledTimes(1)
+    expect(prisma.workout.findMany).toHaveBeenCalledTimes(1)
+    expect(prisma.plannedWorkout.findMany).toHaveBeenCalledTimes(1)
+    expect(nutritionRepository.getForUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('invokes the dominant fuel-state determination (buildDayFuelingPlan) exactly once per day, not twice', async () => {
+    const startDate = new Date('2026-03-01T00:00:00.000Z')
+    const endDate = new Date('2026-03-03T00:00:00.000Z') // 3 days
+
+    await metabolicService.calculateFuelingPlansForRange(userId, startDate, endDate, {
+      persist: false
+    })
+
+    expect(buildDayFuelingPlan).toHaveBeenCalledTimes(3)
+  })
+
+  it('calculateFuelingPlanForDate itself also invokes the day builder exactly once per call', async () => {
+    const date = new Date('2026-03-01T00:00:00.000Z')
+
+    await metabolicService.calculateFuelingPlanForDate(userId, date, { persist: false })
+
+    expect(buildDayFuelingPlan).toHaveBeenCalledTimes(1)
   })
 })

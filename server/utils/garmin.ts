@@ -459,6 +459,44 @@ export async function fetchGarminActivities(
 }
 
 /**
+ * FIT file download tokens from Garmin webhooks are short-lived and single-use.
+ * When queue processing is delayed, Garmin returns HTTP 400 "Invalid download token".
+ */
+export class GarminDownloadTokenExpiredError extends Error {
+  readonly code = 'GARMIN_DOWNLOAD_TOKEN_EXPIRED' as const
+  readonly statusCode: number
+  readonly retryable = true
+
+  constructor(message: string, statusCode = 400) {
+    super(message)
+    this.name = 'GarminDownloadTokenExpiredError'
+    this.statusCode = statusCode
+  }
+}
+
+export function isGarminDownloadTokenErrorMessage(message: string): boolean {
+  return /invalid\s*(download|pull)?\s*token|invalidtokenexception|download token.*(expired|invalid)/i.test(
+    message
+  )
+}
+
+export function isGarminDownloadTokenError(
+  error: unknown
+): error is GarminDownloadTokenExpiredError {
+  if (error instanceof GarminDownloadTokenExpiredError) return true
+  if (!(error instanceof Error)) return false
+  return isGarminDownloadTokenErrorMessage(error.message)
+}
+
+function throwGarminFileApiError(status: number, errorMessage: string): never {
+  const fullMessage = `Garmin File API error (${status}): ${errorMessage}`
+  if (status === 400 && isGarminDownloadTokenErrorMessage(errorMessage)) {
+    throw new GarminDownloadTokenExpiredError(fullMessage, status)
+  }
+  throw new Error(fullMessage)
+}
+
+/**
  * Fetch raw activity file (FIT)
  */
 export async function fetchGarminActivityFile(
@@ -492,7 +530,7 @@ export async function fetchGarminActivityFile(
       continue
     }
 
-    throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
+    throwGarminFileApiError(response.status, errorMessage)
   }
 
   throw new Error('Garmin File API request failed after token refresh retry')
@@ -524,7 +562,7 @@ export async function fetchGarminActivityFileByCallbackUrl(
       continue
     }
 
-    throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
+    throwGarminFileApiError(response.status, errorMessage)
   }
 
   throw new Error('Garmin File API request failed after token refresh retry')

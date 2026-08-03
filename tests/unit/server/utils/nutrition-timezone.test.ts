@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildAthleteContext } from '../../../../server/utils/services/chatContextService'
 import { prisma } from '../../../../server/utils/db'
 import { nutritionRepository } from '../../../../server/utils/repositories/nutritionRepository'
+import { workoutRepository } from '../../../../server/utils/repositories/workoutRepository'
+import { plannedWorkoutRepository } from '../../../../server/utils/repositories/plannedWorkoutRepository'
 import { nutritionTools } from '../../../../server/utils/ai-tools/nutrition'
 import { wellnessTools } from '../../../../server/utils/ai-tools/wellness'
 import { metabolicService } from '../../../../server/utils/services/metabolicService'
+import { calculateEnergyTimeline } from '../../../../server/utils/nutrition-domain'
 
 // Mock dependencies
 vi.mock('../../../../server/utils/db', () => ({
@@ -46,6 +49,12 @@ vi.mock('../../../../server/utils/repositories/wellnessRepository', () => ({
   }
 }))
 
+vi.mock('../../../../server/utils/repositories/plannedWorkoutRepository', () => ({
+  plannedWorkoutRepository: {
+    list: vi.fn().mockResolvedValue([])
+  }
+}))
+
 vi.mock('../../../../server/utils/training-metrics', () => ({
   generateTrainingContext: vi.fn().mockResolvedValue({ summary: {} }),
   formatTrainingContextForPrompt: vi.fn().mockReturnValue('Mocked Training Context')
@@ -57,6 +66,35 @@ vi.mock('../../../../server/utils/services/metabolicService', () => ({
     getDailyTimeline: vi.fn()
   }
 }))
+
+vi.mock('../../../../server/utils/nutrition/settings', () => ({
+  getUserNutritionSettings: vi.fn().mockResolvedValue({
+    fuelState1Min: 2.5,
+    metabolicFloor: 0.6
+  })
+}))
+
+vi.mock('../../../../server/utils/services/bodyMetricResolver', () => ({
+  bodyMetricResolver: {
+    resolveEffectiveWeight: vi.fn().mockResolvedValue({
+      value: 70,
+      source: { type: 'profile', label: 'Profile' }
+    })
+  }
+}))
+
+// getWaveRange/getMetabolicStatesForRange (CW-84) exercise the real nutrition simulation
+// per-day. Everything except the day-grouping logic under test is stubbed out so the test only
+// asserts which day a workout timestamp is bucketed into.
+vi.mock('../../../../server/utils/nutrition-domain', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../server/utils/nutrition-domain')>()
+  return {
+    ...actual,
+    calculateEnergyTimeline: vi.fn().mockReturnValue([{ level: 70, fluidDeficit: 0 }]),
+    synthesizeRefills: vi.fn().mockReturnValue([]),
+    estimateDailyCarbTargetGrams: vi.fn().mockReturnValue(300)
+  }
+})
 
 describe('Nutrition Timezone Handling', () => {
   const userId = 'user-123'
@@ -193,5 +231,96 @@ describe('Nutrition Timezone Handling', () => {
     expect(result.fuel_tank.breakdown.replenished).toBe(19)
     expect(result.workouts_on_day).toBe(2)
     expect(result.nutrition_summary.calories.logged).toBe(1401)
+  })
+})
+
+describe('getWaveRange / getMetabolicStatesForRange local-day workout grouping (CW-84)', () => {
+  const userId = 'user-tz-84'
+  // Fixed UTC+2 offset (no DST), so the local-vs-UTC day boundary is unambiguous.
+  const timezone = 'Etc/GMT-2'
+
+  // 00:30 local time on Feb 15 is 22:30 UTC on Feb 14 - the previous UTC calendar day.
+  const localMidnightThirtyWorkout = new Date('2026-02-14T22:30:00.000Z')
+
+  const startDate = new Date('2026-02-14T00:00:00.000Z')
+  const endDate = new Date('2026-02-15T00:00:00.000Z')
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: userId,
+      timezone,
+      weight: 70,
+      weightSourceMode: 'MANUAL',
+      ftp: 250
+    } as any)
+    vi.mocked(prisma.athleteJourneyEvent.findMany).mockResolvedValue([] as any)
+    vi.mocked(nutritionRepository.getForUser).mockResolvedValue([])
+    vi.mocked(plannedWorkoutRepository.list).mockResolvedValue([])
+  })
+
+  it('buckets a workout logged at 00:30 local (+2 TZ) onto the correct local day, not the UTC day', async () => {
+    vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+      {
+        id: 'w1',
+        date: localMidnightThirtyWorkout,
+        durationSec: 3600,
+        intensity: 0.7,
+        type: 'Ride'
+      }
+    ] as any)
+
+    const { metabolicService: realMetabolicService } = await vi.importActual<
+      typeof import('../../../../server/utils/services/metabolicService')
+    >('../../../../server/utils/services/metabolicService')
+
+    vi.spyOn(realMetabolicService, 'getMetabolicStateForDate').mockResolvedValue({
+      startingGlycogen: 70,
+      startingFluid: 0
+    } as any)
+
+    await realMetabolicService.getWaveRange(userId, startDate, endDate)
+
+    const calls = vi.mocked(calculateEnergyTimeline).mock.calls
+    expect(calls).toHaveLength(2)
+
+    // Call 0 = Feb 14 (local), Call 1 = Feb 15 (local) - the day-by-day loop runs in order.
+    const feb14Workouts = calls[0]![1] as any[]
+    const feb15Workouts = calls[1]![1] as any[]
+
+    expect(feb14Workouts.map((w) => w.id)).not.toContain('w1')
+    expect(feb15Workouts.map((w) => w.id)).toContain('w1')
+  })
+
+  it('getMetabolicStatesForRange buckets the same 00:30 local workout onto the correct local day', async () => {
+    vi.mocked(workoutRepository.getForUser).mockResolvedValue([
+      {
+        id: 'w1',
+        date: localMidnightThirtyWorkout,
+        durationSec: 3600,
+        intensity: 0.7,
+        type: 'Ride'
+      }
+    ] as any)
+
+    const { metabolicService: realMetabolicService } = await vi.importActual<
+      typeof import('../../../../server/utils/services/metabolicService')
+    >('../../../../server/utils/services/metabolicService')
+
+    vi.spyOn(realMetabolicService, 'getMetabolicStateForDate').mockResolvedValue({
+      startingGlycogen: 70,
+      startingFluid: 0
+    } as any)
+
+    await realMetabolicService.getMetabolicStatesForRange(userId, startDate, endDate)
+
+    const calls = vi.mocked(calculateEnergyTimeline).mock.calls
+    expect(calls).toHaveLength(2)
+
+    const feb14Workouts = calls[0]![1] as any[]
+    const feb15Workouts = calls[1]![1] as any[]
+
+    expect(feb14Workouts.map((w) => w.id)).not.toContain('w1')
+    expect(feb15Workouts.map((w) => w.id)).toContain('w1')
   })
 })

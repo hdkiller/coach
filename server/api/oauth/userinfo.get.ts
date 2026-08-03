@@ -1,4 +1,5 @@
 import { oauthRepository } from '../../utils/repositories/oauthRepository'
+import { prisma } from '../../utils/db'
 
 defineRouteMeta({
   openAPI: {
@@ -43,6 +44,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = token.user
+
+  if (user.deactivatedAt) {
+    throw createError({ statusCode: 403, message: 'Account deactivated' })
+  }
 
   // Update last used info
   await prisma.oAuthToken.update({

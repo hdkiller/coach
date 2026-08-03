@@ -71,8 +71,10 @@
 
   const isLoading = ref(true)
   const isSaving = ref(false)
+  const isRetrying = ref(false)
+  const loadError = ref(false)
 
-  onMounted(async () => {
+  async function fetchPreferences() {
     try {
       const data = (await $fetch<any, string & {}>('/api/profile/email-preferences')) as any
       if (data) {
@@ -96,11 +98,26 @@
         state.marketing = data.marketing ?? false
         state.globalUnsubscribe = data.globalUnsubscribe ?? false
       }
+      loadError.value = false
     } catch (error) {
       console.error('Failed to load preferences', error)
+      loadError.value = true
     } finally {
       isLoading.value = false
     }
+  }
+
+  async function retryLoadPreferences() {
+    isRetrying.value = true
+    try {
+      await fetchPreferences()
+    } finally {
+      isRetrying.value = false
+    }
+  }
+
+  onMounted(async () => {
+    await fetchPreferences()
   })
 
   // Watch for global unsubscribe to disable everything else
@@ -131,6 +148,9 @@
   }
 
   async function onSubmit(event: FormSubmitEvent<Schema>) {
+    if (loadError.value) {
+      return
+    }
     isSaving.value = true
     try {
       await $fetch<any, string & {}>('/api/profile/email-preferences', {
@@ -170,6 +190,26 @@
 
 <template>
   <div v-if="!isLoading" class="space-y-6">
+    <UAlert
+      v-if="loadError"
+      icon="i-heroicons-exclamation-triangle"
+      color="error"
+      variant="soft"
+      title="Couldn't load your communication preferences"
+      description="We weren't able to load your saved preferences, so the toggles below may not reflect your real settings. Saving is disabled until they're loaded successfully to avoid overwriting your saved preferences."
+      :actions="[
+        {
+          label: 'Retry',
+          color: 'error',
+          variant: 'solid',
+          icon: 'i-heroicons-arrow-path',
+          loading: isRetrying,
+          onClick: () => {
+            void retryLoadPreferences()
+          }
+        }
+      ]"
+    />
     <UForm :schema="schema" :state="state" @submit="onSubmit" @error="onValidationError">
       <div class="space-y-6">
         <!-- Global Override Card -->
@@ -355,6 +395,7 @@
             color="primary"
             size="lg"
             :loading="isSaving"
+            :disabled="loadError"
             icon="i-heroicons-check"
           >
             {{ t('comm_button_save') }}

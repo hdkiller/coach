@@ -8,7 +8,8 @@ import {
   normalizeFitSession,
   extractFitStreams,
   reconstructSessionFromRecords,
-  extractFitExtrasMeta
+  extractFitExtrasMeta,
+  type FitData
 } from '../fit'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import {
@@ -19,6 +20,15 @@ import {
   detectSurges
 } from '../pacing'
 import { registerTaskHandler } from '../task-registry'
+
+/** Drop large FIT arrays so V8 can reclaim memory after stream upsert. */
+function releaseFitData(fitData: FitData | null | undefined) {
+  if (!fitData) return
+  for (const key of ['records', 'sessions', 'laps', 'events', 'device_infos'] as const) {
+    const value = fitData[key]
+    if (Array.isArray(value)) value.length = 0
+  }
+}
 
 export interface IngestRouvyFitPayload {
   userId: string
@@ -44,13 +54,14 @@ export async function ingestRouvyFitFile(payload: IngestRouvyFitPayload) {
     throw new Error('ROUVY integration not found for user')
   }
 
+  let fitData: FitData | undefined
   try {
     console.log(`[RouvyService] Fetching FIT file for ROUVY activity ${activityId}...`)
     const fitBuffer = await fetchRouvyActivityFitFile(integration, activityId)
 
     // Parse file content
     console.log('[RouvyService] Parsing FIT file from ROUVY...')
-    const fitData = await parseFitFile(fitBuffer)
+    fitData = await parseFitFile(fitBuffer)
 
     // Get main session
     let session = fitData.sessions[0]
@@ -122,9 +133,8 @@ export async function ingestRouvyFitFile(payload: IngestRouvyFitPayload) {
       surges
     })
 
-    // Save FIT file to DB for backup/future use
+    // Persist FIT bytes without copying into a second Uint8Array
     const hash = crypto.createHash('sha256').update(fitBuffer).digest('hex')
-    const uint8Data = new Uint8Array(fitBuffer)
 
     await prisma.fitFile.upsert({
       where: { workoutId },
@@ -132,11 +142,11 @@ export async function ingestRouvyFitFile(payload: IngestRouvyFitPayload) {
         userId,
         workoutId,
         filename: `rouvy_${activityId}.fit`,
-        fileData: uint8Data,
+        fileData: fitBuffer as any,
         hash
       },
       update: {
-        fileData: uint8Data,
+        fileData: fitBuffer as any,
         hash
       }
     })
@@ -157,6 +167,8 @@ export async function ingestRouvyFitFile(payload: IngestRouvyFitPayload) {
   } catch (error) {
     console.error('[RouvyService] Error processing ROUVY FIT file', { error, activityId })
     throw error
+  } finally {
+    releaseFitData(fitData)
   }
 }
 

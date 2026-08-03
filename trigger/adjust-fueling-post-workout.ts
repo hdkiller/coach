@@ -1,4 +1,5 @@
 import { task } from '@trigger.dev/sdk/v3'
+import { prisma } from '../server/utils/db'
 import { getUserLocalDate, getUserTimezone } from '../server/utils/date'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -6,6 +7,56 @@ import type {
   SerializedFuelingPlan,
   SerializedFuelingWindow
 } from '../server/utils/nutrition-domain'
+
+/** Fallback FTP (watts) used when the athlete has not set one, matching metabolicService's default. */
+const DEFAULT_FTP_WATTS = 250
+/** Fallback intensity factor (0-1) used when a planned workout has no recorded IF. */
+const DEFAULT_INTENSITY_FACTOR = 0.65
+
+const BOOST_CARBS_G = 30
+const BOOST_PROTEIN_G = 10
+
+/**
+ * Estimates the energy cost (kJ) of a planned session from FTP-based training load.
+ *
+ * Watts * seconds = joules, so `ftp * intensityFactor` approximates the average power for the
+ * session (a normalized-power proxy) and multiplying by duration then dividing by 1000 converts to
+ * kilojoules. This mirrors how `actualKj` is measured from real power-meter data so the two values
+ * are directly comparable (the previous `durationSec * workIntensity * 60` formula overestimated
+ * planned energy by roughly two orders of magnitude).
+ */
+export function calculatePlannedEnergyKj(
+  ftpWatts: number,
+  intensityFactor: number,
+  durationSec: number
+): number {
+  return (ftpWatts * intensityFactor * durationSec) / 1000
+}
+
+/**
+ * Returns a copy of the recovery window with the post-workout boost applied.
+ *
+ * `description` is always populated by the plan generator, so the boost note is appended there.
+ * `advice` is optional and, elsewhere in the codebase, callers fall back to `description` when it
+ * is unset — so this always assigns `advice` a complete, self-contained sentence instead of
+ * concatenating onto a possibly-undefined value (which previously produced literal "undefined"
+ * text in the window's advice).
+ */
+export function buildBoostedRecoveryWindow(
+  window: SerializedFuelingWindow,
+  boost: { carbs: number; protein: number } = { carbs: BOOST_CARBS_G, protein: BOOST_PROTEIN_G }
+): SerializedFuelingWindow {
+  const boostNote = `Boosted by +${boost.carbs}g carbs / +${boost.protein}g protein — that session ran harder than planned.`
+
+  return {
+    ...window,
+    targetCarbs: window.targetCarbs + boost.carbs,
+    targetProtein: window.targetProtein + boost.protein,
+    description: window.description ? `${window.description} ${boostNote}` : boostNote,
+    advice: boostNote,
+    status: 'PENDING'
+  }
+}
 
 /**
  * Picks the recovery window that belongs to the session that was just completed.
@@ -73,8 +124,14 @@ export const adjustFuelingPostWorkoutTask = task({
 
     const planned = workout.plannedWorkout
     const actualKj = workout.kilojoules || 0
-    const plannedKj = (planned.durationSec || 0) * (planned.workIntensity || 0.65) * 60 // Rough estimate if KJ not present? Or assume `tss` is proxy?
-    // Let's rely on TSS or IF if KJ is missing, but KJ is king.
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { ftp: true }
+    })
+    const ftp = user?.ftp || DEFAULT_FTP_WATTS
+    const intensityFactor = planned.workIntensity ?? DEFAULT_INTENSITY_FACTOR
+    const plannedKj = calculatePlannedEnergyKj(ftp, intensityFactor, planned.durationSec || 0)
 
     // Calculate Delta
     const kjThreshold = (plannedKj || 1000) * 1.1 // 10% more
@@ -113,20 +170,13 @@ export const adjustFuelingPostWorkoutTask = task({
       return
     }
 
-    // Boost Recovery: +50g Carbs? Or +20%?
-    // Let's do +30g Carbs and +10g Protein
+    // Boost Recovery: +30g Carbs and +10g Protein
     const currentWindow = plan.windows[postWindowIndex]
-    const newWindow: SerializedFuelingWindow = {
-      ...currentWindow,
-      targetCarbs: currentWindow.targetCarbs + 30,
-      targetProtein: currentWindow.targetProtein + 10,
-      advice: `${currentWindow.advice} (Boosted by +30g C due to high intensity effort!)`,
-      status: 'PENDING' // Reset to pending? Or if already hit, just note it?
-    }
+    const newWindow = buildBoostedRecoveryWindow(currentWindow)
 
     plan.windows[postWindowIndex] = newWindow
-    plan.dailyTotals.carbs += 30
-    plan.dailyTotals.protein += 10
+    plan.dailyTotals.carbs += BOOST_CARBS_G
+    plan.dailyTotals.protein += BOOST_PROTEIN_G
 
     // 4. Save
     await nutritionRepository.update(nutrition.id, {

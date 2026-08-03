@@ -1,5 +1,6 @@
 import { registerTaskHandler } from '../task-registry'
 import { prisma } from '../db'
+import { toPrismaInputJsonValue } from '../prisma-json'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { workoutStreamRepository } from '../repositories/workoutStreamRepository'
@@ -13,6 +14,7 @@ import {
   fetchGarminSleeps,
   fetchGarminUserMetrics,
   buildGarminTimeSlices,
+  isGarminDownloadTokenError,
   refreshGarminIntegrationPermissions,
   requestGarminBackfill,
   type GarminBackfillType
@@ -22,7 +24,8 @@ import {
   normalizeFitSession,
   reconstructSessionFromRecords,
   extractFitStreams,
-  extractFitExtrasMeta
+  extractFitExtrasMeta,
+  type FitData
 } from '../fit'
 import { triggerWorkoutDeduplicationIfEnabled } from '../trigger-workout-deduplication'
 import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
@@ -53,6 +56,15 @@ function inferDeviceNameFromFitData(fitData: any): string | null {
     if (candidate) return candidate
   }
   return null
+}
+
+/** Drop large FIT arrays so V8 can reclaim memory after stream upsert. */
+function releaseFitData(fitData: FitData | null | undefined) {
+  if (!fitData) return
+  for (const key of ['records', 'sessions', 'laps', 'events', 'device_infos'] as const) {
+    const value = fitData[key]
+    if (Array.isArray(value)) value.length = 0
+  }
 }
 
 function normalizeUtcDateFromTimestamp(
@@ -96,6 +108,43 @@ function extractGarminNumericMetric(
   }
 
   return null
+}
+
+/**
+ * Detects whether a Prisma error is a P2002 unique-constraint violation on
+ * the Integration(provider, externalUserId) index added in CW-99 to close a
+ * race where two concurrent Garmin OAuth callbacks could both pass the
+ * application-level "is this externalUserId already linked?" check and then
+ * both write an Integration row for the same externalUserId.
+ *
+ * The shape of `PrismaClientKnownRequestError.meta` differs by query engine:
+ * - Classic engine: `error.meta.target` is the field list directly, e.g.
+ *   `["provider", "externalUserId"]`.
+ * - Driver adapter engine (this app uses `@prisma/adapter-pg`, see
+ *   server/utils/db.ts): `meta.target` does not exist. Prisma instead
+ *   constructs the error as `new PrismaClientKnownRequestError(message, code,
+ *   { driverAdapterError: originalError })`, so the field list is nested at
+ *   `meta.driverAdapterError.cause.constraint.fields` (same finding used in
+ *   emailDeliveryService.ts's getUniqueConstraintFields for CW-227).
+ *
+ * One extra wrinkle discovered while building this, verified against a live
+ * Postgres 16 + @prisma/adapter-pg 7.8.0 instance: for a *multi-column*
+ * unique index, the driver adapter's field list is derived from Postgres's
+ * own rendering of the index definition, which quotes camelCase identifiers
+ * but not lowercase ones. A real violation of this exact constraint reported
+ * `constraint.fields: ["provider", "\"externalUserId\""]` - note the second
+ * entry carries literal embedded double-quote characters that a naive
+ * `.includes('externalUserId')` check would silently fail to match. We strip
+ * surrounding quotes from every field before comparing to stay correct
+ * regardless of which shape/quoting shows up.
+ */
+export function isGarminExternalUserIdConflict(error: any): boolean {
+  if (!error || error.code !== 'P2002') return false
+  const rawFields: unknown =
+    error?.meta?.target ?? error?.meta?.driverAdapterError?.cause?.constraint?.fields
+  if (!Array.isArray(rawFields)) return false
+  const fields = rawFields.map((f) => (typeof f === 'string' ? f.replace(/^"+|"+$/g, '') : f))
+  return fields.includes('provider') && fields.includes('externalUserId')
 }
 
 /**
@@ -164,10 +213,88 @@ export function extractGarminReadinessScore(record: Record<string, unknown> | nu
   return normalizeReadinessScore(clampPercentage(readiness))
 }
 
+/**
+ * Garmin's Activity summary exposes distinct average/max cadence fields per sport family:
+ * cycling (`...BikeCadenceInRoundsPerMinute`), running (`...RunCadenceInStepsPerMinute`), and
+ * swimming (`...SwimCadenceInStrokesPerMinute`). Our Workout model only stores one generic
+ * averageCadence/maxCadence pair, so pick the source field pair based on the activity's
+ * normalized sport (see `normalizeGarminActivityType`). Cycling (including virtual/mountain
+ * biking) keeps the original bike-field-only behavior; anything else that isn't running or
+ * swimming has no documented cadence fields and yields null, same as before this fix.
+ */
+export function extractGarminActivityCadence(
+  record: Record<string, unknown> | null | undefined,
+  normalizedType: string
+): { average: number | null; max: number | null } {
+  if (!record || typeof record !== 'object') return { average: null, max: null }
+
+  if (normalizedType === 'Run') {
+    return {
+      average: extractGarminNumericMetric(record, ['averageRunCadenceInStepsPerMinute']),
+      max: extractGarminNumericMetric(record, ['maxRunCadenceInStepsPerMinute'])
+    }
+  }
+
+  if (normalizedType === 'Swim') {
+    return {
+      average: extractGarminNumericMetric(record, ['averageSwimCadenceInStrokesPerMinute']),
+      max: extractGarminNumericMetric(record, ['maxSwimCadenceInStrokesPerMinute'])
+    }
+  }
+
+  return {
+    average: extractGarminNumericMetric(record, ['averageBikeCadenceInRoundsPerMinute']),
+    max: extractGarminNumericMetric(record, ['maxBikeCadenceInRoundsPerMinute'])
+  }
+}
+
+/**
+ * Garmin's Stress Details schema exposes an absolute Body Battery *level* sampled
+ * throughout the day via `timeOffsetBodyBatteryValues` (a map of seconds-since-start-of-day
+ * to a 0-100 battery reading), the same shape as `timeOffsetSleepSpo2`. Body Battery is
+ * highest right after sleep/rest and drains through the day with activity and stress, so the
+ * peak sampled value is the best documented proxy for "how recovered" the user was that day.
+ */
+function extractGarminBodyBatteryPeakFromTimeSeries(value: unknown): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const values = Object.values(value as Record<string, unknown>)
+    .map((entry) => toFiniteNumber(entry))
+    .filter((entry): entry is number => entry !== null)
+
+  if (values.length === 0) return null
+
+  return Math.max(...values)
+}
+
 export function extractGarminBodyBatteryScore(record: Record<string, unknown> | null | undefined) {
   if (!record || typeof record !== 'object') return null
 
-  const bodyBattery = extractGarminNumericMetric(record, [
+  // Preferred source: Garmin Stress Details' documented time-series field. This carries an
+  // absolute Body Battery level (not a delta), so it maps directly onto our 0-100 recovery scale.
+  const timeSeriesPeak = extractGarminBodyBatteryPeakFromTimeSeries(
+    record.timeOffsetBodyBatteryValues
+  )
+  if (timeSeriesPeak !== null) {
+    return clampPercentage(timeSeriesPeak)
+  }
+
+  // Garmin Daily Summary's documented fields only expose the amount of Body Battery charged
+  // and drained over the day (deltas), not an absolute level. Derive a recovery percentage
+  // centered on a neutral 50: a net-positive day (charged > drained) moves the score up toward
+  // 100, a net-negative day moves it down toward 0. Charged/drained are each roughly 0-100, so
+  // halving the net keeps the result within the 0-100 recovery range before clamping.
+  const chargedValue = extractGarminNumericMetric(record, ['bodyBatteryChargedValue'])
+  const drainedValue = extractGarminNumericMetric(record, ['bodyBatteryDrainedValue'])
+  if (chargedValue !== null || drainedValue !== null) {
+    const netChange = (chargedValue ?? 0) - (drainedValue ?? 0)
+    return clampPercentage(50 + netChange / 2)
+  }
+
+  // Legacy/non-standard field names some earlier payload shapes used before this extractor was
+  // aligned with the documented Garmin Health API models. Kept as a fallback so any
+  // already-integrated data source that only ever sent these keeps working (CW-96).
+  const legacyBodyBattery = extractGarminNumericMetric(record, [
     'bodyBatteryMostRecentValue',
     'bodyBatteryCurrentValue',
     'bodyBatteryEndingValue',
@@ -177,8 +304,8 @@ export function extractGarminBodyBatteryScore(record: Record<string, unknown> | 
     'bodyBatteryMaxValue'
   ])
 
-  if (bodyBattery !== null) {
-    return clampPercentage(bodyBattery)
+  if (legacyBodyBattery !== null) {
+    return clampPercentage(legacyBodyBattery)
   }
 
   // Some Garmin devices surface readiness-style recovery metrics without a body battery field.
@@ -307,6 +434,7 @@ export const GarminService = {
       if (wellnessEnabled && dailies.length > 0) await this.processWellness(userId, dailies)
       if (wellnessEnabled && sleeps.length > 0) await this.processSleep(userId, sleeps)
       if (wellnessEnabled && hrv.length > 0) await this.processHRV(userId, hrv)
+      if (wellnessEnabled && stress.length > 0) await this.processStressDetails(userId, stress)
       if (activitiesEnabled && activities.length > 0)
         await this.processActivities(userId, activities, integration, pullToken)
       if (activitiesEnabled && activityFiles.length > 0) {
@@ -493,6 +621,44 @@ export const GarminService = {
   },
 
   /**
+   * Process Garmin Stress Details push records.
+   *
+   * These carry the `timeOffsetBodyBatteryValues` time series (and, in the future, stress
+   * level samples) that Dailies alone cannot provide an absolute Body Battery reading from.
+   * Previously these records were counted toward `hasSummaryData` but never persisted -
+   * recognized recovery-bearing summaries were silently discarded (CW-96). Only recoveryScore
+   * is written here; the wellnessRepository upsert only overwrites non-null fields, so this
+   * merges into whatever Dailies/Sleep/HRV already wrote for the same day without clobbering it.
+   */
+  async processStressDetails(userId: string, data: any[]) {
+    for (const record of data) {
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
+
+      const recoveryScore = extractGarminBodyBatteryScore(record)
+      if (recoveryScore === null) continue
+
+      const stressDetailsData: any = {
+        userId,
+        date: utcDate,
+        recoveryScore,
+        rawJson: record
+      }
+
+      await wellnessRepository.upsert(
+        userId,
+        utcDate,
+        stressDetailsData,
+        stressDetailsData,
+        'garmin'
+      )
+    }
+  },
+
+  /**
    * Process Garmin Body Composition (Weight)
    */
   async processBodyComp(userId: string, data: any[]) {
@@ -578,25 +744,24 @@ export const GarminService = {
         continue
       }
 
+      const activityType = normalizeGarminActivityType(record.activityType)
+      const cadence = extractGarminActivityCadence(record, activityType)
+
       const workoutData: any = {
         userId,
         externalId,
         source: 'garmin',
         date: startDate,
         title: record.activityName || `Garmin ${record.activityType}`,
-        type: normalizeGarminActivityType(record.activityType),
+        type: activityType,
         durationSec: record.durationInSeconds,
         elapsedTimeSec: record.durationInSeconds || null,
         distanceMeters: record.distanceInMeters || null,
         elevationGain: record.totalElevationGainInMeters
           ? Math.round(record.totalElevationGainInMeters)
           : null,
-        averageCadence: record.averageBikeCadenceInRoundsPerMinute
-          ? Math.round(record.averageBikeCadenceInRoundsPerMinute)
-          : null,
-        maxCadence: record.maxBikeCadenceInRoundsPerMinute
-          ? Math.round(record.maxBikeCadenceInRoundsPerMinute)
-          : null,
+        averageCadence: cadence.average !== null ? Math.round(cadence.average) : null,
+        maxCadence: cadence.max !== null ? Math.round(cadence.max) : null,
         averageSpeed: record.averageSpeedInMetersPerSecond || null,
         averageHr: record.averageHeartRateInBeatsPerMinute || null,
         maxHr: record.maxHeartRateInBeatsPerMinute || null,
@@ -639,13 +804,17 @@ export const GarminService = {
                 buffer
               )
             } catch (e) {
-              const isTokenError =
-                e instanceof Error &&
-                /invalid (download|pull) token|invalidtokenexception/i.test(e.message)
-              if (isTokenError) {
-                console.log(
-                  `[GarminService] Stream download token not available in summary push for ${externalId}; awaiting activityFiles push...`
-                )
+              if (isGarminDownloadTokenError(e)) {
+                await this.handleExpiredActivityFileDownloadToken({
+                  workoutId: upserted.record.id,
+                  externalId,
+                  integration,
+                  startTimeInSeconds:
+                    typeof record.startTimeInSeconds === 'number'
+                      ? record.startTimeInSeconds
+                      : null,
+                  error: e
+                })
               } else {
                 console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
               }
@@ -717,15 +886,33 @@ export const GarminService = {
           )
           workout = createdWorkout
 
-          await this.ingestFitArtifactsForWorkout(userId, workout.id, primaryExternalId, buffer)
+          // Reuse the already-parsed FIT data to avoid a second full parse in memory.
+          await this.ingestFitArtifactsForWorkout(
+            userId,
+            workout.id,
+            primaryExternalId,
+            buffer,
+            fitData
+          )
           console.log(
             `[GarminService] Created workout and ingested FIT file from out-of-order activityFiles push for ${primaryExternalId}`
           )
         } catch (e) {
-          console.error(
-            `[GarminService] Failed to ingest early activity file for candidate externalIds ${candidateExternalIds.join(', ')}`,
-            e
-          )
+          if (isGarminDownloadTokenError(e)) {
+            await this.handleExpiredActivityFileDownloadToken({
+              workoutId: null,
+              externalId: candidateExternalIds[0] || 'unknown',
+              integration,
+              startTimeInSeconds:
+                typeof record?.startTimeInSeconds === 'number' ? record.startTimeInSeconds : null,
+              error: e
+            })
+          } else {
+            console.error(
+              `[GarminService] Failed to ingest early activity file for candidate externalIds ${candidateExternalIds.join(', ')}`,
+              e
+            )
+          }
         }
         continue
       }
@@ -742,10 +929,25 @@ export const GarminService = {
         const buffer = await fetchGarminActivityFileByCallbackUrl(integration, callbackUrl)
         await this.ingestFitArtifactsForWorkout(userId, workout.id, workout.externalId, buffer)
       } catch (e) {
-        console.error(
-          `[GarminService] Failed to ingest activity file for workout ${workout.id} (${workout.externalId})`,
-          e
-        )
+        if (isGarminDownloadTokenError(e)) {
+          await this.handleExpiredActivityFileDownloadToken({
+            workoutId: workout.id,
+            externalId: workout.externalId,
+            integration,
+            startTimeInSeconds:
+              typeof record?.startTimeInSeconds === 'number'
+                ? record.startTimeInSeconds
+                : workout.date
+                  ? Math.floor(new Date(workout.date).getTime() / 1000)
+                  : null,
+            error: e
+          })
+        } else {
+          console.error(
+            `[GarminService] Failed to ingest activity file for workout ${workout.id} (${workout.externalId})`,
+            e
+          )
+        }
       }
     }
   },
@@ -800,7 +1002,8 @@ export const GarminService = {
     userId: string,
     workoutId: string,
     externalId: string,
-    buffer: Buffer
+    buffer: Buffer,
+    preParsed?: FitData
   ) {
     const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
@@ -820,22 +1023,151 @@ export const GarminService = {
       }
     })
 
-    const fitData = await parseFitFile(buffer)
-    const streams = extractFitStreams(fitData.records)
-    const extrasMeta = extractFitExtrasMeta(fitData)
-    const fitDeviceName = inferDeviceNameFromFitData(fitData)
+    const fitData = preParsed ?? (await parseFitFile(buffer))
+    try {
+      const streams = extractFitStreams(fitData.records)
+      const extrasMeta = extractFitExtrasMeta(fitData)
+      const fitDeviceName = inferDeviceNameFromFitData(fitData)
 
-    if (fitDeviceName) {
-      await prisma.workout.update({
-        where: { id: workoutId },
-        data: { deviceName: fitDeviceName }
+      if (fitDeviceName) {
+        await prisma.workout.update({
+          where: { id: workoutId },
+          data: { deviceName: fitDeviceName }
+        })
+      }
+
+      await workoutStreamRepository.upsert(workoutId, {
+        ...streams,
+        extrasMeta
       })
+    } finally {
+      releaseFitData(fitData)
     }
 
-    await workoutStreamRepository.upsert(workoutId, {
-      ...streams,
-      extrasMeta
+    await this.clearActivityFileIngestionStatus(workoutId)
+  },
+
+  /**
+   * Persist expired/retryable FIT download state on the workout without failing the job batch.
+   * Tokens in Garmin activityFiles callbacks are short-lived; request a narrow activities
+   * backfill so Garmin can re-push a fresh callbackURL.
+   */
+  async handleExpiredActivityFileDownloadToken(params: {
+    workoutId: string | null
+    externalId: string
+    integration: any
+    startTimeInSeconds?: number | null
+    error: unknown
+  }) {
+    const message =
+      params.error instanceof Error ? params.error.message : String(params.error || 'unknown')
+
+    console.warn(
+      `[GarminService] Activity FIT download token expired for ${params.externalId}; marking retryable and requesting activities backfill`,
+      { workoutId: params.workoutId, message }
+    )
+
+    if (params.workoutId) {
+      try {
+        await this.markActivityFileIngestionExpired(params.workoutId, {
+          externalId: params.externalId,
+          reason: message
+        })
+      } catch (markError) {
+        console.warn(
+          `[GarminService] Failed to mark file ingestion expired for workout ${params.workoutId}`,
+          markError
+        )
+      }
+    }
+
+    try {
+      await this.requestActivityFileBackfill(params.integration, params.startTimeInSeconds)
+    } catch (backfillError) {
+      console.warn(
+        `[GarminService] Failed to request activities backfill after download token expiry for ${params.externalId}`,
+        backfillError
+      )
+    }
+  },
+
+  async markActivityFileIngestionExpired(
+    workoutId: string,
+    details: { externalId: string; reason: string }
+  ) {
+    const workout = await prisma.workout.findUnique({
+      where: { id: workoutId },
+      select: { rawJson: true }
     })
+
+    const existing =
+      workout?.rawJson && typeof workout.rawJson === 'object' && !Array.isArray(workout.rawJson)
+        ? ({ ...(workout.rawJson as Record<string, unknown>) } as Record<string, unknown>)
+        : {}
+
+    await prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        rawJson: {
+          ...existing,
+          garminFileIngestion: {
+            status: 'download_token_expired',
+            retryable: true,
+            externalId: details.externalId,
+            reason: details.reason,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      }
+    })
+  },
+
+  async clearActivityFileIngestionStatus(workoutId: string) {
+    try {
+      const workout = await prisma.workout.findUnique({
+        where: { id: workoutId },
+        select: { rawJson: true }
+      })
+
+      if (
+        !workout?.rawJson ||
+        typeof workout.rawJson !== 'object' ||
+        Array.isArray(workout.rawJson)
+      ) {
+        return
+      }
+
+      const existing = { ...(workout.rawJson as Record<string, unknown>) }
+      if (!('garminFileIngestion' in existing)) return
+
+      delete existing.garminFileIngestion
+      await prisma.workout.update({
+        where: { id: workoutId },
+        data: { rawJson: toPrismaInputJsonValue(existing) }
+      })
+    } catch (error) {
+      console.warn(
+        `[GarminService] Failed to clear garminFileIngestion status for workout ${workoutId}`,
+        error
+      )
+    }
+  },
+
+  async requestActivityFileBackfill(
+    integration: any,
+    startTimeInSeconds?: number | null
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000) - 60
+    const anchor =
+      typeof startTimeInSeconds === 'number' && Number.isFinite(startTimeInSeconds)
+        ? Math.floor(startTimeInSeconds)
+        : now - 24 * 60 * 60
+
+    // Narrow window around the activity so Garmin re-pushes activities + activityFiles.
+    const startTimestamp = Math.max(0, anchor - 60 * 60)
+    const endTimestamp = Math.min(now, Math.max(startTimestamp + 60, anchor + 24 * 60 * 60))
+
+    await requestGarminBackfill(integration, 'activities', startTimestamp, endTimestamp)
   },
 
   extractPullToken(

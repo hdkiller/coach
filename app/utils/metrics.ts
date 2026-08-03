@@ -3,6 +3,7 @@ export const LBS_TO_KG = 0.45359237
 const MPS_TO_KPH = 3.6
 const MPS_TO_MPH = 2.2369362921
 const KM_TO_MILE_PACE_FACTOR = 1.609344
+const METERS_TO_FEET = 3.28084
 
 export interface MetricDefinition {
   label: string
@@ -240,6 +241,38 @@ export function formatTemperature(celsius: number | null | undefined, units: str
 
 export function usesImperialDistance(units: string | null | undefined): boolean {
   return units === 'Miles'
+}
+
+/**
+ * Elevation/climb/ascent units follow the athlete's distance-unit preference
+ * (Kilometers -> meters, Miles -> feet), matching `getVelocityUnitLabel`.
+ */
+export function getElevationUnitLabel(units: string | null | undefined): string {
+  return usesImperialDistance(units) ? 'ft' : 'm'
+}
+
+/**
+ * Convert a raw elevation value (in meters) to the athlete's preferred unit,
+ * without rounding. Useful for chart/stream data where rounding should happen
+ * at render time rather than on the underlying values.
+ */
+export function convertElevation(meters: number, units: string | null | undefined): number {
+  return usesImperialDistance(units) ? meters * METERS_TO_FEET : meters
+}
+
+/**
+ * Format elevation/climb/ascent (given in meters) for display based on the
+ * athlete's distance-unit preference. Mirrors the conversion math in
+ * `server/utils/ai-prompt-format.ts`'s `formatPromptElevation`: elevation
+ * units follow distance units (Kilometers -> meters, Miles -> feet), rounded
+ * to the nearest whole unit.
+ */
+export function formatElevation(
+  meters: number | null | undefined,
+  units: string | null | undefined
+): string {
+  if (meters === null || meters === undefined) return 'N/A'
+  return `${Math.round(convertElevation(meters, units))} ${getElevationUnitLabel(units)}`
 }
 
 export function isRideWorkoutType(type: string | null | undefined): boolean {

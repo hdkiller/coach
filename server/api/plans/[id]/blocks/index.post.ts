@@ -1,6 +1,11 @@
 import { requireAuth } from '../../../../utils/auth-guard'
 import { prisma } from '../../../../utils/db'
-import { shiftPlanDates, calculateWeekTargets } from '../../../../utils/plan-logic'
+import { shiftPlanDates } from '../../../../utils/plan-logic'
+import {
+  calculateWeekTargets,
+  deriveBaseVolumeMinutesFromWeeks,
+  isRecoveryWeek
+} from '../../../../utils/plans/week-targets'
 import { trainingPlanRepository } from '../../../../utils/repositories/trainingPlanRepository'
 import { trainingBlockRepository } from '../../../../utils/repositories/trainingBlockRepository'
 import { trainingWeekRepository } from '../../../../utils/repositories/trainingWeekRepository'
@@ -32,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
   const plan = await trainingPlanRepository.getById(planId!, user.id, {
     include: {
-      blocks: { orderBy: { order: 'asc' } }
+      blocks: { orderBy: { order: 'asc' }, include: { weeks: true } }
     }
   })
 
@@ -89,8 +94,12 @@ export default defineEventHandler(async (event) => {
       tx
     )
 
-    // 4. Create weeks for the new block
-    const targets = calculateWeekTargets(type)
+    // 4. Create weeks for the new block, inheriting the plan's loading volume (CW-318)
+    const baseVolumeMinutes = deriveBaseVolumeMinutesFromWeeks(
+      plan.blocks.flatMap((b: any) => b.weeks || [])
+    )
+    const recoveryRhythm = recoveryWeekIndex || (plan as any).recoveryRhythm || 4
+
     for (let i = 1; i <= durationWeeks; i++) {
       const weekStart = new Date(startDate)
       weekStart.setUTCDate(weekStart.getUTCDate() + (i - 1) * 7)
@@ -98,12 +107,22 @@ export default defineEventHandler(async (event) => {
       const weekEnd = new Date(weekStart)
       weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
 
+      const isRecovery = isRecoveryWeek(i, recoveryRhythm, type)
+      const targets = calculateWeekTargets({
+        blockType: type,
+        weekNumber: i,
+        blockDurationWeeks: durationWeeks,
+        isRecovery,
+        baseVolumeMinutes
+      })
+
       await trainingWeekRepository.create(
         {
           blockId: newBlock.id,
           weekNumber: i,
           startDate: weekStart,
           endDate: weekEnd,
+          isRecovery,
           ...targets
         },
         tx

@@ -930,7 +930,6 @@
     if (!athlete?.id || athlete?.canViewDetails === false || athlete?.isMasked) return
     const name = athlete.name || athlete.email || 'Athlete'
     coachingStore.startActingAs(athlete.id, name)
-    void router.push('/dashboard')
   }
 
   async function removeMember(userId: string, displayName?: string) {

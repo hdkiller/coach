@@ -240,10 +240,11 @@ export default defineEventHandler(async (event) => {
       stripeEvent = stripe.webhooks.constructEvent(body, signature!, webhookSecret)
     }
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message)
+    console.error('Webhook signature verification failed:', err)
+    if (err?.stack) console.error(err.stack)
     throw createError({
       statusCode: 400,
-      message: `Webhook Error: ${err.message}`
+      message: 'Webhook verification failed'
     })
   }
 
@@ -366,7 +367,7 @@ export default defineEventHandler(async (event) => {
     if (error.stack) console.error(error.stack)
     throw createError({
       statusCode: 500,
-      message: `Webhook processing error: ${error.message}`
+      message: 'Webhook processing failed'
     })
   }
 })

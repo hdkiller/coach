@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import {
   adaptStructuredWorkout,
   type CanonicalStructuredWorkout,
