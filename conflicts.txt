@@ -1,0 +1,165 @@
+﻿diff --cc AGENTS.md
+index 0b43eeb6,dcf7f353..00000000
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@@ -50,9 -50,17 +50,26 @@@ This project has Trigger.dev agent skil
+  
+  This repository is Coach Watts product development only. Do not reference internal corporate teams, internal financial namespaces, or client engagements in code, commits, PR descriptions, or issue comments here.
+  
+++<<<<<<< HEAD
+ +<!-- TRIGGER.DEV SKILLS START -->
+ +
+ +## Trigger.dev agent skills
+ +
+ +This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`, `trigger-authoring-chat-agent`.
+ +<!-- TRIGGER.DEV SKILLS END -->
+++=======
++ ## Cursor Cloud specific instructions
++ 
++ The Cloud VM snapshot already has: Node 24 (via nvm), pnpm deps, a local `.env`, and locally-installed PostgreSQL 16 + Redis 7. The startup update script runs `pnpm install` (which regenerates Prisma Client via `postinstall`). Everything below is what an agent still needs to do/know per session.
++ 
++ - Node: the project requires Node `>=24.11 <25`. The VM's default `/exec-daemon/node` is v22, so `~/.bashrc` prepends the nvm Node 24 bin to `PATH`. Always run commands through a login shell (e.g. `bash -lc 'ΓÇª'`) so `node --version` reports 24.x; a non-login shell may fall back to v22.
++ - Services are NOT auto-started (no systemd). Start them at the beginning of each session:
++   - Postgres: `sudo pg_ctlcluster 16 main start` (cluster `16 main`, listens on `localhost:5432`).
++   - Redis: `sudo redis-server /etc/redis/redis.conf --daemonize yes` (password `dragonfly`, port 6379). Check with `redis-cli -a dragonfly ping`.
++ - Local `.env` (gitignored) differs from `.env.example`: Postgres runs on the standard port `5432` (not 5439) with role/db `watts`/`watts` (password `password`), so `DATABASE_URL=postgresql://watts:password@localhost:5432/watts`. The dev server runs on `http://localhost:3099`.
++ - Apply DB migrations with `npx prisma migrate deploy` (or `npx prisma migrate dev`). The DB already has migrations applied in the snapshot; re-running deploy is a no-op.
++ - Login without Google OAuth: `.env` sets `AUTH_BYPASS_USER=dev@coachwatts.test`, so hitting any protected page auto-creates a session for that seeded admin user (see `server/plugins/auth-bypass.ts`). Recreate the user if the DB is reset with `npx tsx scripts/seed-dev-user.ts`.
++ - Prisma 7 uses a driver adapter ΓÇö construct `PrismaClient` with `new PrismaPg(new pg.Pool(...))` (see `server/utils/db.ts`); `new PrismaClient()` alone throws. Standalone scripts must do the same.
++ - Commands (`pnpm dev`, `build`, `typecheck`, `test`, `lint`, etc.) are defined in `package.json`. Note: `pnpm lint` and `pnpm typecheck` need generated Nuxt types first ΓÇö run `pnpm exec nuxt prepare` once (CI does this) or start `pnpm dev` before them.
++ - AI features (chat, analysis) need a real `GEMINI_API_KEY`; external integrations (Strava/Whoop/etc.) and Stripe use placeholder credentials in local dev and won't complete real OAuth/payment flows.
+++>>>>>>> upstream/master
+diff --cc app/pages/admin/subscriptions.vue
+index dafdbdd8,6bc01240..00000000
+--- a/app/pages/admin/subscriptions.vue
++++ b/app/pages/admin/subscriptions.vue
+@@@ -15,11 -15,9 +15,15 @@@
+  
+    definePageMeta({
+      layout: 'admin',
+-     middleware: ['auth']
++     middleware: ['auth', 'admin']
+    })
+++<<<<<<< HEAD
+ +
+ +  // Ensure only admin can access (though middleware 'admin' likely handles this, duplicating check is safe)
+ +  const { data: stats, pending, error } = await (useFetch as any)('/api/admin/subscriptions')
+++=======
++   const { data: stats, pending, error } = await useFetch('/api/admin/subscriptions')
+++>>>>>>> upstream/master
+  
+    useHead({
+      title: 'Subscription Analytics'
+diff --cc package.json
+index 26ec0fad,c7caf7a7..00000000
+--- a/package.json
++++ b/package.json
+@@@ -175,10 -174,9 +176,16 @@@
+      "e2e:remote:ui": "bash e2e/scripts/ui-remote.sh",
+      "e2e:tunnel": "bash e2e/scripts/tunnel-to-mini.sh",
+      "e2e:tunnel:stop": "bash e2e/scripts/tunnel-to-mini.sh stop",
+++<<<<<<< HEAD
+ +    "build": "prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=8192 nuxt build",
+ +    "start": "node .output/server/index.mjs",
+ +    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=8192 nuxt dev",
+ +    "dev:worker": "tsx watch cli/worker/index.ts start",
+++=======
++     "build": "prisma generate && nuxt build",
++     "dev": "NODE_OPTIONS='--max-old-space-size=8192' nuxt dev",
++     "dev:worker": "NODE_OPTIONS='--max-old-space-size=8192' tsx watch cli/worker/index.ts start",
+++>>>>>>> upstream/master
+      "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",
+      "generate": "nuxt generate",
+      "lint": "eslint .",
+diff --cc trigger/generate-training-block.ts
+index 4240d6fb,dcb7c9f2..00000000
+--- a/trigger/generate-training-block.ts
++++ b/trigger/generate-training-block.ts
+@@@ -419,7 -430,7 +430,11 @@@ Generate a detailed daily training pla
+  - Ensure the recovery week (if applicable) has clearly reduced volume and intensity versus prior loading weeks.
+  - Quantify recovery intent in your rationale (what was reduced and why).
+  - For "Ride" workouts, provide realistic TSS estimates based on duration and intensity.
+++<<<<<<< HEAD
+ +- Workout types: ${allowedTypesString}, Rest, Active Recovery. Ensure to highlight specific endurance disciplines (running, cycling, triathlon, hybrid) according to the athlete's goals.
+++=======
++ - Workout types: ${allowedTypesString}, Rest. DO NOT use generic types like "Active Recovery" - map recovery sessions to a light Ride/Run or Rest.
+++>>>>>>> upstream/master
+  - Start each week on a Monday.
+  - Provide a summary for each week explaining the focus and volume.
+  - Explicitly connect each week focus to event demands and phase goals (base/build/peak/taper).
+diff --cc trigger/trial-ending-reminder.ts
+index bad42089,16b41cfd..00000000
+--- a/trigger/trial-ending-reminder.ts
++++ b/trigger/trial-ending-reminder.ts
+@@@ -80,26 -88,51 +88,68 @@@ export const trialEndingReminderCron = 
+        windowEnd: windowEnd.toISOString()
+      })
+  
++     let dispatchedCount = 0
++     let failedCount = 0
++     let skippedCount = 0
++ 
+      for (const user of users) {
+-       if (!user.trialEndsAt) continue
++       if (!user.trialEndsAt) {
++         skippedCount++
++         continue
++       }
+  
+-       const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
+-       const usageHighlights = await getWeeklyUsageSummary(user.id)
++       try {
++         const trialEndKey = user.trialEndsAt.toISOString().slice(0, 10)
++         const usageHighlights = await getWeeklyUsageSummary(user.id)
+  
+++<<<<<<< HEAD
+ +      await dispatchTask('send-email', {
+ +        userId: user.id,
+ +        templateKey: 'TrialEndingSoon',
+ +        eventKey: `TRIAL_ENDING_${trialEndKey}`,
+ +        idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
+ +        audience: 'ENGAGEMENT',
+ +        subject: 'Your Journey Endurance Coaching performance trial ends soon',
+ +        props: {
+ +          name: user.name || 'Athlete',
+ +          trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
+ +          usageHighlights,
+ +          supporterHighlights: formatSupporterHighlights(),
+ +          pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
+ +        }
+++=======
++         await dispatchTask('send-email', {
++           userId: user.id,
++           templateKey: 'TrialEndingSoon',
++           eventKey: `TRIAL_ENDING_${trialEndKey}`,
++           idempotencyKey: `trial-ending:${user.id}:${trialEndKey}`,
++           audience: 'ENGAGEMENT',
++           subject: 'Your Coach Watts performance trial ends soon',
++           props: {
++             name: user.name || 'Athlete',
++             trialEndsAt: formatUserDate(user.trialEndsAt, user.timezone || 'UTC', 'EEEE, MMMM d'),
++             usageHighlights,
++             supporterHighlights: formatSupporterHighlights(),
++             pricingUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/settings/billing`
++           }
++         })
++         dispatchedCount++
++       } catch (error) {
++         failedCount++
++         logger.error('Failed to dispatch trial ending reminder', {
++           userId: user.id,
++           error
++         })
++       }
++     }
++ 
++     if (failedCount > 0) {
++       logger.warn('Trial ending reminder cron completed with partial failures', {
++         count: users.length,
++         dispatchedCount,
++         failedCount,
++         skippedCount
+++>>>>>>> upstream/master
+        })
+      }
+  
