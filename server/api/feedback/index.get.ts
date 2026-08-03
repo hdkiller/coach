@@ -1,15 +1,22 @@
-export default defineEventHandler((event) => {
-  return {
-    status: 'success',
-    data: [
-      {
-        id: 'fb_1',
-        checkInId: 'chk_1',
-        date: new Date().toISOString(),
-        coachName: 'Coach Nick',
-        videoUrl: 'https://komododecks.com/recordings/embed/mock-video-id',
-        message: 'Great progress this week. Let us increase the volume slightly for next week.'
-      }
-    ]
+import { requireAuth } from '../../utils/auth-guard'
+
+export default defineEventHandler(async (event) => {
+  const user = await requireAuth(event, [])
+
+  try {
+    const feedbackList = await prisma.coachFeedback.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return {
+      status: 'success',
+      data: feedbackList
+    }
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to fetch coach feedback'
+    })
   }
 })

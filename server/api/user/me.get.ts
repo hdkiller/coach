@@ -32,7 +32,8 @@ export default defineEventHandler(async (event) => {
       dashboardSettings: true,
       isAdmin: true,
       language: true,
-      uiLanguage: true
+      uiLanguage: true,
+      role: true
     }
   })
 

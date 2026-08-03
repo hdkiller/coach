@@ -1896,3 +1896,33 @@ function convertIntervalsZones(
 
   return result
 }
+
+export async function fetchAthleteIntervalsData(apiKey: string, athleteId: string) {
+  const auth = Buffer.from(`API_KEY:${apiKey}`).toString('base64')
+  const headers = { Authorization: `Basic ${auth}` }
+
+  // Fetch wellness (CTL, ATL, TSB)
+  const wellnessRes = await fetch(`https://intervals.icu/api/v1/athlete/${athleteId}/wellness`, {
+    headers
+  })
+  const wellnessData = await wellnessRes.json()
+  const latestWellness =
+    Array.isArray(wellnessData) && wellnessData.length > 0 ? wellnessData[0] : null
+
+  // Fetch last 7 days of activities
+  const oldest = new Date()
+  oldest.setDate(oldest.getDate() - 7)
+  const oldestStr = oldest.toISOString().split('T')[0]
+  const newestStr = new Date().toISOString().split('T')[0]
+
+  const activitiesRes = await fetch(
+    `https://intervals.icu/api/v1/athlete/${athleteId}/activities?oldest=${oldestStr}&newest=${newestStr}`,
+    { headers }
+  )
+  const activitiesData = await activitiesRes.json()
+
+  return {
+    wellness: latestWellness,
+    recentActivities: activitiesData
+  }
+}

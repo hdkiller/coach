@@ -7,16 +7,27 @@
       </div>
     </template>
 
-    <div v-if="loading" class="animate-pulse space-y-4">
+    <div v-if="status === 'pending'" class="animate-pulse space-y-4">
       <div class="h-40 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
       <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
     </div>
 
-    <div v-else-if="error" class="text-red-500">Error loading feedback.</div>
+    <div v-else-if="error || status === 'error'" class="space-y-4">
+      <UAlert
+        icon="i-heroicons-exclamation-triangle"
+        color="red"
+        variant="soft"
+        title="Failed to load feedback"
+        description="There was an issue connecting to the server. Please try again."
+      />
+      <UButton color="gray" variant="solid" icon="i-heroicons-arrow-path" @click="refresh()">
+        Retry
+      </UButton>
+    </div>
 
     <div v-else-if="latestFeedback" class="space-y-4">
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        Received on {{ formatDate(latestFeedback.date) }} from {{ latestFeedback.coachName }}
+        Received on {{ formatDate(latestFeedback.createdAt) }}
       </p>
 
       <div
@@ -24,19 +35,29 @@
       >
         <!-- Komodo Video Player iframe -->
         <iframe
-          v-if="latestFeedback.videoUrl"
-          :src="latestFeedback.videoUrl"
+          v-if="latestFeedback.komodoUrl"
+          :src="latestFeedback.komodoUrl"
           class="absolute top-0 left-0 w-full h-full border-0"
           allow="microphone; camera; display-capture"
           allowfullscreen
         ></iframe>
+        <!-- Placeholder when no video is attached -->
+        <div
+          v-else
+          class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500"
+        >
+          <UIcon name="i-heroicons-video-camera-slash" class="w-12 h-12 mb-2 opacity-50" />
+          <span class="text-sm font-medium">No video attached</span>
+        </div>
       </div>
 
       <div
         class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg border border-primary-100 dark:border-primary-800"
       >
         <h4 class="font-medium text-primary-900 dark:text-primary-100 mb-2">Coach Notes</h4>
-        <p class="text-sm text-primary-800 dark:text-primary-200">"{{ latestFeedback.message }}"</p>
+        <p class="text-sm text-primary-800 dark:text-primary-200">
+          "{{ latestFeedback.coachNotes || 'No notes provided.' }}"
+        </p>
       </div>
     </div>
 
@@ -48,31 +69,25 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
+  import { computed } from 'vue'
 
   interface Feedback {
     id: string
-    checkInId: string
-    date: string
-    coachName: string
-    videoUrl: string
-    message: string
+    checkInId?: string
+    createdAt: string
+    komodoUrl?: string
+    coachNotes?: string
   }
 
-  const feedbackList = ref<Feedback[]>([])
-  const loading = ref(true)
-  const error = ref(false)
+  // Use Nuxt's lazy fetching to handle state natively without blocking setup
+  const {
+    data: response,
+    status,
+    error,
+    refresh
+  } = await useFetch<any>('/api/feedback', { lazy: true })
 
-  onMounted(async () => {
-    try {
-      const response = await ($fetch as any)('/api/feedback')
-      feedbackList.value = response.data
-    } catch (e) {
-      error.value = true
-    } finally {
-      loading.value = false
-    }
-  })
+  const feedbackList = computed<Feedback[]>(() => response.value?.data || [])
 
   const latestFeedback = computed(() => {
     return feedbackList.value.length > 0 ? feedbackList.value[0] : null

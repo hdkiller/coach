@@ -202,6 +202,12 @@ model User {
   partnerCampaignRedemptions         PartnerCampaignRedemption[]
   providerSubscriptions              ProviderSubscription[]
   subscriptionLifecycleEvents        SubscriptionLifecycleEvent[]
+  checkIns                           CheckIn[]
+  feedbacks                          CoachFeedback[]
+
+  // Intervals.icu Sync
+  intervalsApiKey     String?
+  intervalsAthleteId  String?
 
   @@index([createdAt])
   @@index([deactivatedAt])
@@ -2685,4 +2691,56 @@ model FavoriteTrainingPlan {
   @@unique([userId, planId])
   @@index([userId])
   @@index([planId])
+}
+
+// 1. Add CheckIn model
+model CheckIn {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedbacks CoachFeedback[]
+
+  // Text Responses
+  personalChallenges String?
+  personalGoals      String?
+  personalHighlights String?
+  personalNotes      String? @db.Text
+  wellnessInjury     String?
+  wellnessPain       String?
+
+  // Integer Metrics (1-10 scales)
+  personalFatigue    Int?
+  trainingDifficulty Int?
+  trainingHydration  Int?
+  trainingLoad       Int?
+  trainingNutrition  Int?
+  trainingRecovery   Int?
+  wellnessSleep      Int?
+  wellnessStress     Int?
+
+  @@index([userId])
+}
+
+// 2. Add CoachFeedback model
+model CoachFeedback {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkInId String?
+  checkIn   CheckIn? @relation(fields: [checkInId], references: [id], onDelete: SetNull)
+
+  // Content
+  komodoUrl  String?
+  coachNotes String? @db.Text
+
+  @@index([userId])
+  @@index([checkInId])
 }
