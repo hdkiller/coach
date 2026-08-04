@@ -1,5 +1,5 @@
 import { getServerSession } from '#auth'
-import prisma from '~/server/utils/db'
+import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
