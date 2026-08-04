@@ -133,9 +133,9 @@ A tool result is not paid for once. It stays in the context window and is re-sen
 
 ### Browsers
 
-The browser profile is **shared between concurrently running agents**. `browser is already running for .../chrome-profile` means another agent has it — that is contention, not a crash, and it was hit 95 times across 26 runs.
+Factory-spawned sessions get their **own isolated headless Chrome** (via `--mcp-config`, `config/mcp/claude.json` in the factory repo) — a temp profile per session, screenshots served as capped webp. There is nothing to share and nothing to fight over.
 
-Do not retry the call and do not kill the other agent's browser. Attach to what is already there (`list_pages` then `select_page`, or open a new tab), or if you need genuine isolation, launch with an isolated profile of your own.
+If a browser tool still errors: report it and continue with non-browser verification — never retry in a loop, and **never kill another process's Chrome**; a killed browser mid-flight destroys another agent's verification run. `browser is already running for .../chrome-profile` means you are running outside the factory config (interactive session, older harness) where the profile IS shared — attach to the running browser (`list_pages`, then work in your own new page) rather than fighting the lock.
 
 ### Shell globs
 
