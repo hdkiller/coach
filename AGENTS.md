@@ -50,7 +50,10 @@ This repository is Coach Watts product development only. Do not reference intern
 <!-- FACTORY:FLOOR:BEGIN -->
 <!-- Generated from watt-mind/factory shared/floor.md. Do not edit here — edit
      the source and re-run `node build/emit.mjs`, or your change is lost on the
-     next sync. -->
+     next sync. Keep the source prettier-canonical (`npx prettier -w`): some
+     repos run prettier on *.md in pre-commit hooks, and any construct prettier
+     rewrites (e.g. *emphasis* -> _emphasis_) makes --check read those repos as
+     perpetually stale. -->
 
 ## Agent operating floor
 
