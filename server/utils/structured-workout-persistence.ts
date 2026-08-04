@@ -1,5 +1,5 @@
 import {
-  applyRunTargetPolicyToStep,
+  applyTargetPolicyToStep,
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard
 } from '../../trigger/utils/workout-targeting'

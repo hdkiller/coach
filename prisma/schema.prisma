@@ -7,15 +7,16 @@ datasource db {
 }
 
 enum Role {
+  FREE
+  UNCOVER
+  UNLOCK
+  UNLEASH
   ADMIN
-  ONE_ON_ONE
-  GROUP
-  BASIC
 }
 
 model User {
   id                                 String                          @id @default(uuid())
-  role                               Role                            @default(BASIC)
+  role                               Role                            @default(FREE)
   name                               String?
   email                              String                          @unique
   emailVerified                      DateTime?
@@ -2752,4 +2753,18 @@ model CoachFeedback {
 
   @@index([userId])
   @@index([checkInId])
+}
+
+
+model ScheduledTaskConfig {
+  id             String    @id @default(cuid())
+  taskName       String    @unique
+  displayName    String
+  cronExpression String
+  enabled        Boolean   @default(true)
+  lastRunAt      DateTime?
+  lastStatus     String?
+  lastError      String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

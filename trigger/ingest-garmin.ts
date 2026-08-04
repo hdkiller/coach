@@ -78,6 +78,3 @@ export const ingestGarminTask = task({
     })
   }
 })
-
-// Alias for webhook handler consistency
-export const ingestGarminWellnessTask = ingestGarminTask

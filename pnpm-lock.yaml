@@ -166,6 +166,9 @@ importers:
       commander:
         specifier: ^14.0.2
         version: 14.0.2
+      cronstrue:
+        specifier: ^3.24.0
+        version: 3.24.0
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -9921,6 +9924,7 @@ packages:
         integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==
       }
     engines: { node: '>=12.0.0' }
+    deprecated: v4 is no longer maintained, upgrade to v5
 
   croner@10.0.1:
     resolution:
@@ -9940,6 +9944,13 @@ packages:
     resolution:
       {
         integrity: sha512-YKGmAy84hKH+hHIIER07VCAHf9u0Ldelx1uU6EBxsRPDXIA1m5fsKmJfyC3xBhw6cVC/1i83VdbL4PvepTrt8A==
+      }
+    hasBin: true
+
+  cronstrue@3.24.0:
+    resolution:
+      {
+        integrity: sha512-t/Ji3Ur2c/pzhIAWNwC0ftl3JAE4dLfCjAdZoTZXmPDZwcispnS1PaMcMS4OmIIXyIVouAz+yw+mfQiE3hz5OQ==
       }
     hasBin: true
 
@@ -26596,6 +26607,8 @@ snapshots:
   croner@9.1.0: {}
 
   cronstrue@2.59.0: {}
+
+  cronstrue@3.24.0: {}
 
   cross-env@10.1.0:
     dependencies:

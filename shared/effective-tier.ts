@@ -57,7 +57,3 @@ export function resolveEffectiveTier(input: EffectiveTierInput): SubscriptionTie
 
   return effectiveTier
 }
-
-export function tierMeetsMinimum(tier: SubscriptionTier, minimumTier: SubscriptionTier): boolean {
-  return TIER_RANK[tier] >= TIER_RANK[minimumTier]
-}

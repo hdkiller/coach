@@ -210,23 +210,46 @@
                 :missing-fields="missingFields"
               />
 
+              <!-- Free Tier Upgrades -->
+              <div v-if="isFree" class="grid gap-4 mb-4 sm:mb-8">
+                <UAlert
+                  icon="i-heroicons-lock-closed"
+                  color="primary"
+                  variant="subtle"
+                  title="Upgrade to Unlock Your Digital Twin"
+                  description="Upgrade your account to get daily AI check-ins, glycogen tracking, and live performance metrics."
+                />
+                <UCard>
+                  <h3 class="font-bold">12-Week Intro Plan</h3>
+                  <p class="text-gray-500 text-sm">Your free plan is active.</p>
+                </UCard>
+              </div>
+
               <!-- Row: Coach Interaction (Check-In & Feedback) -->
               <div
-                class="grid grid-cols-1 gap-4 sm:gap-8 items-start mb-4 sm:mb-8"
-                :class="
-                  (userStore.user as any)?.role === 'ONE_ON_ONE' ||
-                  (userStore.user as any)?.role === 'ADMIN'
-                    ? 'lg:grid-cols-2'
-                    : ''
-                "
+                v-if="isUnlockPlus"
+                class="grid grid-cols-1 gap-4 sm:gap-8 items-start mb-4 sm:mb-8 lg:grid-cols-2"
               >
+                <!-- Daily Digital Twin Check-In trigger -->
                 <DashboardCheckIn />
-                <DashboardCoachFeedback
-                  v-if="
-                    (userStore.user as any)?.role === 'ONE_ON_ONE' ||
-                    (userStore.user as any)?.role === 'ADMIN'
-                  "
-                />
+                <!-- "Ask Coach" launcher -->
+                <DashboardCoachFeedback />
+              </div>
+
+              <div
+                v-if="isUnlockPlus"
+                class="grid grid-cols-1 gap-4 sm:gap-8 items-start mb-4 sm:mb-8 lg:grid-cols-2"
+              >
+                <UCard>
+                  <h3 class="font-bold mb-1">Active Recovery Context</h3>
+                  <p class="text-sm text-gray-500">
+                    Recovery algorithms are analyzing your sleep data.
+                  </p>
+                </UCard>
+                <UCard>
+                  <h3 class="font-bold mb-1">Glycogen Fuel Tank</h3>
+                  <p class="text-sm text-gray-500">Fuel status optimal.</p>
+                </UCard>
               </div>
 
               <!-- Row 1: Athlete Profile / Today's Training / Performance Overview & Comparison -->
@@ -248,11 +271,20 @@
                   <DashboardMonthlyComparisonCard v-if="canUseDashboardActions" />
 
                   <!-- Performance Overview Card -->
-                  <DashboardPerformanceScoresCard
-                    ref="performanceScoresCard"
-                    @open-score-modal="openScoreModal"
-                    @open-training-load="openTrainingLoadModal"
-                  />
+                  <template v-if="isUnleash">
+                    <DashboardPerformanceScoresCard
+                      ref="performanceScoresCard"
+                      @open-score="openScoreModal"
+                    />
+                    <UCard class="mt-4">
+                      <h3 class="font-bold mb-1">Telemetry Radar</h3>
+                      <p class="text-sm text-gray-500">ACWR, EF, Biomechanical Risk</p>
+                    </UCard>
+                    <UCard class="mt-4">
+                      <h3 class="font-bold mb-1">Live Energy Availability</h3>
+                      <p class="text-sm text-gray-500">Tracking calorie deficit.</p>
+                    </UCard>
+                  </template>
                 </div>
               </div>
 
@@ -506,6 +538,7 @@
 
   const { t } = useTranslate('dashboard')
   const { trackWidgetClick } = useAnalytics()
+  const { isFree, isUncoverPlus, isUnlockPlus, isUnleash } = useNavigation()
 
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()
 

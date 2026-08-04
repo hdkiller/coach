@@ -27,7 +27,7 @@
           <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-red-500 mb-4" />
           <h3 class="text-xl font-bold text-white mb-2">Error loading events</h3>
           <p class="text-gray-400">{{ error.message }}</p>
-          <UButton class="mt-4" @click="refresh">Retry</UButton>
+          <UButton class="mt-4" @click="() => refresh()">Retry</UButton>
         </div>
 
         <div
@@ -100,7 +100,7 @@
               </div>
 
               <UButton
-                :color="isParticipating(event) ? 'green' : 'primary'"
+                :color="isParticipating(event) ? 'success' : 'primary'"
                 :variant="isParticipating(event) ? 'subtle' : 'solid'"
                 :icon="isParticipating(event) ? 'i-heroicons-check' : 'i-heroicons-plus'"
                 size="sm"
@@ -123,7 +123,7 @@
 
   definePageMeta({
     middleware: 'auth',
-    layout: 'dashboard'
+    layout: 'dashboard' as any
   })
 
   const { data: session } = useAuth()
@@ -141,7 +141,7 @@
 
   const isParticipating = (event: any) => {
     if (!session.value?.user?.id || !event.participants) return false
-    return event.participants.some((p: any) => p.id === session.value.user.id)
+    return event.participants.some((p: any) => p.id === session.value?.user?.id)
   }
 
   const toggleRSVP = async (eventId: string) => {
@@ -158,14 +158,14 @@
       toast.add({
         title: 'RSVP Updated',
         icon: 'i-heroicons-check-circle',
-        color: 'green'
+        color: 'success'
       })
     } catch (e: any) {
       toast.add({
         title: 'Failed to update RSVP',
         description: e.message || 'Please try again.',
         icon: 'i-heroicons-exclamation-triangle',
-        color: 'red'
+        color: 'error'
       })
     } finally {
       loadingEventId.value = null
@@ -177,13 +177,13 @@
   }
 
   const getTypeColor = (type: string | null) => {
-    if (!type) return 'gray'
+    if (!type) return 'neutral'
     const t = type.toLowerCase()
-    if (t.includes('triathlon')) return 'blue'
-    if (t.includes('run')) return 'orange'
-    if (t.includes('cycl') || t.includes('bike')) return 'cyan'
-    if (t.includes('social')) return 'purple'
-    if (t.includes('swim')) return 'sky'
+    if (t.includes('triathlon')) return 'info'
+    if (t.includes('run')) return 'warning'
+    if (t.includes('cycl') || t.includes('bike')) return 'info'
+    if (t.includes('social')) return 'secondary'
+    if (t.includes('swim')) return 'info'
     return 'primary'
   }
 </script>

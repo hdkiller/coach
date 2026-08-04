@@ -7,7 +7,7 @@
     <div
       class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-900/40 via-[oklch(12%_0.015_155)] to-[oklch(12%_0.015_155)] opacity-80"
     ></div>
-    <div class="absolute inset-0 -z-10 bg-[url('/grain.svg')] opacity-10 mix-blend-overlay"></div>
+    <div class="absolute inset-0 -z-10 opacity-10 mix-blend-overlay"></div>
     <div
       class="absolute top-0 left-1/2 -translate-x-1/2 -z-10 w-[200%] h-[100%] animate-[spin_60s_linear_infinite] opacity-30 pointer-events-none"
     >

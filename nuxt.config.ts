@@ -264,7 +264,10 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       '*/15 * * * *': ['shield:cleanBans'],
-      '0 0 * * *': ['shield:cleanIpData']
+      '0 0 * * *': ['shield:cleanIpData'],
+      '0 7 * * *': ['telegram:morning-summary'],
+      '0 19 * * *': ['telegram:evening-reminder'],
+      '0 17 * * 5': ['telegram:weekend-race-broadcast']
     },
     imports: {
       imports: [
@@ -346,6 +349,12 @@ export default defineNuxtConfig({
     revenueCatAcceptSandbox: process.env.REVENUECAT_ACCEPT_SANDBOX || 'false',
     subscriptionSupporterProductIds: process.env.SUBSCRIPTION_SUPPORTER_PRODUCT_IDS || '',
     subscriptionProProductIds: process.env.SUBSCRIPTION_PRO_PRODUCT_IDS || '',
+
+    // Telegram
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID || '',
+    telegramGroupChatId: process.env.TELEGRAM_GROUP_CHAT_ID || '',
+    telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || '',
 
     public: {
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3099/',

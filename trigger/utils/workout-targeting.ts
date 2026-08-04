@@ -905,8 +905,6 @@ export function applyTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
   step.primaryTarget = selectedMetric
 }
 
-export const applyRunTargetPolicyToStep = applyTargetPolicyToStep
-
 export function applyTargetFormatPolicyToStep(
   step: any,
   targetFormatPolicy: TargetFormatPolicy,

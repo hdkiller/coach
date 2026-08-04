@@ -62,32 +62,32 @@
   // Observers for CTA changing
   useIntersectionObserver(
     bentoSectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) headerCtaText.value = 'Unlock Your Digital Twin'
+    (entries) => {
+      if (entries[0]?.isIntersecting) headerCtaText.value = 'Unlock Your Digital Twin'
     },
     { threshold: 0.3 }
   )
 
   useIntersectionObserver(
     pricingSectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) headerCtaText.value = 'Choose Your Tier'
+    (entries) => {
+      if (entries[0]?.isIntersecting) headerCtaText.value = 'Choose Your Tier'
     },
     { threshold: 0.3 }
   )
 
   useIntersectionObserver(
     heroSectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) headerCtaText.value = 'Join the Community'
+    (entries) => {
+      if (entries[0]?.isIntersecting) headerCtaText.value = 'Join the Community'
     },
     { threshold: 0.3 }
   )
 
   useIntersectionObserver(
     closingSectionRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting) isClosingVisible.value = true
+    (entries) => {
+      if (entries[0]?.isIntersecting) isClosingVisible.value = true
     },
     { threshold: 0.2 }
   )

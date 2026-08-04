@@ -91,7 +91,7 @@ function parseActivityId(externalId: string): number | null {
   return Number.isFinite(activityId) ? activityId : null
 }
 
-export async function findStravaWorkoutsMissingStreams(
+async function findStravaWorkoutsMissingStreams(
   prisma: PrismaClient,
   options: Pick<
     StravaStreamBackfillOptions,

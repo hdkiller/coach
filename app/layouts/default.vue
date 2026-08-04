@@ -138,6 +138,8 @@
   }
 
   // Navigation Items
+  const { isUncoverPlus, isUnlockPlus, isUnleash } = useNavigation()
+
   const links = computed<NavigationMenuItem[][]>(() => {
     // Force re-evaluation on language change or ready state
     const ready = isTReady.value && typeof t.value === 'function'
@@ -152,28 +154,36 @@
           open.value = false
         }
       },
-      {
-        label: navLabel('navigation_morning_checkin', 'Morning Check-in'),
-        icon: 'i-lucide-sunrise',
-        to: {
-          path: '/dashboard',
-          query: { focus: 'checkin' }
-        },
-        onSelect: () => {
-          open.value = false
-        }
-      },
-      {
-        label: navLabel('navigation_todays_wellness', "Today's Wellness"),
-        icon: 'i-lucide-heart-pulse',
-        to: {
-          path: '/dashboard',
-          query: { focus: 'wellness' }
-        },
-        onSelect: () => {
-          open.value = false
-        }
-      },
+      ...(isUnlockPlus.value
+        ? [
+            {
+              label: navLabel('navigation_morning_checkin', 'Morning Check-in'),
+              icon: 'i-lucide-sunrise',
+              to: {
+                path: '/dashboard',
+                query: { focus: 'checkin' }
+              },
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
+      ...(isUncoverPlus.value
+        ? [
+            {
+              label: navLabel('navigation_todays_wellness', "Today's Wellness"),
+              icon: 'i-lucide-heart-pulse',
+              to: {
+                path: '/dashboard',
+                query: { focus: 'wellness' }
+              },
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
       {
         label: navLabel('navigation_activities', 'Activities'),
         icon: 'i-lucide-calendar-days',
@@ -182,7 +192,7 @@
           open.value = false
         }
       },
-      ...(nutritionEnabled.value
+      ...(isUncoverPlus.value && nutritionEnabled.value
         ? [
             {
               label: navLabel('navigation_nutrition', 'Nutrition'),
@@ -194,22 +204,30 @@
             }
           ]
         : []),
-      {
-        label: navLabel('navigation_performance', 'Performance'),
-        icon: 'i-lucide-trending-up',
-        to: '/performance',
-        onSelect: () => {
-          open.value = false
-        }
-      },
-      {
-        label: navLabel('navigation_recommendations', 'Recommendations'),
-        icon: 'i-lucide-sparkles',
-        to: '/recommendations',
-        onSelect: () => {
-          open.value = false
-        }
-      },
+      ...(isUnleash.value
+        ? [
+            {
+              label: navLabel('navigation_performance', 'Performance'),
+              icon: 'i-lucide-trending-up',
+              to: '/performance',
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
+      ...(isUnlockPlus.value
+        ? [
+            {
+              label: navLabel('navigation_recommendations', 'Recommendations'),
+              icon: 'i-lucide-sparkles',
+              to: '/recommendations',
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
       {
         label: navLabel('navigation_training_plan', 'Training Plan'),
         icon: 'i-lucide-calendar',
@@ -258,22 +276,30 @@
           open.value = false
         }
       },
-      {
-        label: navLabel('navigation_reports', 'Reports'),
-        icon: 'i-lucide-file-text',
-        to: '/reports',
-        onSelect: () => {
-          open.value = false
-        }
-      },
-      {
-        label: navLabel('navigation_chat', 'AI Chat'),
-        icon: 'i-lucide-message-circle',
-        to: '/chat',
-        onSelect: () => {
-          open.value = false
-        }
-      },
+      ...(isUnleash.value
+        ? [
+            {
+              label: navLabel('navigation_reports', 'Reports'),
+              icon: 'i-lucide-file-text',
+              to: '/reports',
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
+      ...(isUnlockPlus.value
+        ? [
+            {
+              label: navLabel('navigation_chat', 'AI Chat'),
+              icon: 'i-lucide-message-circle',
+              to: '/chat',
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
       {
         label: 'Library',
         icon: 'i-lucide-library',

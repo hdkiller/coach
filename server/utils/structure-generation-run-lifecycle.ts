@@ -57,9 +57,6 @@ export async function finishStructureGenerationTask(
   await markStructureGenerationRunFailed(payload.generationRunId, failureMessage)
 }
 
-/** Terminates lifecycle from a task return value (success, skipped, stale, or failure). */
-export const terminateStructureGenerationTask = finishStructureGenerationTask
-
 export async function failStructureGenerationTaskFromPayload(payload: unknown, error: unknown) {
   const runId = (payload as GenerationTaskPayload | null)?.generationRunId
   if (!runId) return

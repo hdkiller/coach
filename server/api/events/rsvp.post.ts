@@ -4,14 +4,14 @@ import { prisma } from '../../utils/db'
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user || !(session.user as any).id) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized'
     })
   }
 
-  const userId = session.user.id
+  const userId = (session.user as any).id as string
   const body = await readBody(event)
   const { eventId } = body
 
